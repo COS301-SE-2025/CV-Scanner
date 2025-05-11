@@ -44,4 +44,4 @@ Final-year Computer Science student with a strong passion for **artificial intel
 
 ## 📋 Project Board  
 Track our development progress here:  
-🔗 [GitHub Project Board](https://github.com/orgs/COS301-SE-2025/projects/92)
+🔗 [GitHub Project Board]()
