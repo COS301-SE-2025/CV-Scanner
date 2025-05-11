@@ -4,6 +4,12 @@ Each candidate profile is summarized and stored in a secure, centralized databas
 # Quantum Stack
 Abdullah Pochee:
 Computer Science & Data Science student at the University of Pretoria, passionate about AI, software engineering, and innovative tech solutions.
+
+Talhah Karodia: I am a final-year Computer Science student with a strong passion for artificial intelligence,
+cybersecurity and software engineering. Over the course of my studies, I’ve developed a solid
+foundation in both theoretical and practical aspects of computing, with particular strengths in
+software development, problem-solving, and team collaboration.
+https://www.linkedin.com/in/talhah-karodia-752657246/
 # Functional Requirements
 # Git-hub Project Board
 
