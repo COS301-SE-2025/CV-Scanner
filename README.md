@@ -34,11 +34,24 @@ Final-year Computer Science student with a strong passion for **artificial intel
 
 ## ✅ Functional Requirements
 
-- Parse and analyze CVs (PDF, DOCX)
-- Extract key skills and personality traits
-- Summarize and store candidate data
-- Admin portal with secure login and role-based access
-- Search, filter, and manage profiles
+1. The system must be able to process PDF and Word document CVs and extract relevant
+technologies.
+
+2. The system must generate a summary of the candidate's profile, including technology preferences
+and personality traits.
+
+3. The system must indicate the type of project the candidate would be most effective on (technical,
+collaborative, business engagement, high-autonomy, etc.).
+
+4. The system must save and link the extracted data and CV reference to a database that can be
+viewed, edited, or optimized via an admin portal.
+
+5. The system must allow admin users to specify skills to ignore and/or include specifically.
+
+6. The system must allow users to upload CVs and provide some information and contact details.
+
+7. The system must allow access roles and role management that would allow some users to only
+upload, some to edit, some full access and some users to have full admin access permissions.
 
 ---
 
