@@ -34,6 +34,10 @@ Final-year Computer Science student with a strong passion for **artificial intel
 Final-year Computer Science student driven by a deep interest in software development and problem solving. Skilled in applying both theoretical knowledge and hands-on experience, especially in dynamic, team-based projects that push the boundaries of innovation.
 🔗 [LinkedIn](https://www.linkedin.com/in/ronan-smart-361619353/)
 
+### Marcelo Parsotam
+Third Year Information and Knowledge Systems student at the University of Pretoria with a passion for front-end development and UI/UX design. Enthusiastic about learning new frameworks and creating innovative, user-centered designs that enhance digital experiences.
+🔗 [LinkedIn](https://www.linkedin.com/in/marcelo-parsotam-5965bb355/)
+
 ---
 
 ## ✅ Functional Requirements
