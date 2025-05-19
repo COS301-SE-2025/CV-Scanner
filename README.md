@@ -30,6 +30,9 @@ Computer Science & Data Science student at the University of Pretoria. Passionat
 Final-year Computer Science student with a strong passion for **artificial intelligence**, **cybersecurity**, and **software engineering**. Proficient in both theory and practical development, especially in collaborative and innovative environments.  
 🔗 [LinkedIn](https://www.linkedin.com/in/talhah-karodia-752657246/)
 
+### Ronan Smart
+Final-year Computer Science student driven by a deep interest in software development and problem solving. Skilled in applying both theoretical knowledge and hands-on experience, especially in dynamic, team-based projects that push the boundaries of innovation
+🔗 [LinkedIn](https://www.linkedin.com/in/ronan-smart-361619353/)
 ---
 
 ## ✅ Functional Requirements
