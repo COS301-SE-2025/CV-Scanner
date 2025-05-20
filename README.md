@@ -38,6 +38,10 @@ Final-year Computer Science student driven by a deep interest in software develo
 Third Year Information and Knowledge Systems student at the University of Pretoria with a passion for front-end development and UI/UX design. Enthusiastic about learning new frameworks and creating innovative, user-centered designs that enhance digital experiences.
 🔗 [LinkedIn](https://www.linkedin.com/in/marcelo-parsotam-5965bb355/)
 
+### Unaisah Hassim
+Final-year Computer Science student with a strong interest in front-end development, user experience design, and problem-solving. Skilled in creating responsive, intuitive interfaces and dynamic functionality.
+🔗 [LinkedIn](https://www.linkedin.com/in/unaisah-hassim-51ab14354/)
+
 ---
 
 ## ✅ Functional Requirements
