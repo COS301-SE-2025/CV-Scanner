@@ -4,7 +4,6 @@ project(Engine)
 set(CMAKE_CXX_STANDARD 20)
 
 add_executable(Engine
-        main.cpp
         Engine.cpp
         Engine.h
         CVData.cpp
@@ -21,8 +20,10 @@ add_executable(Engine
         SkillsInterpreter.h
         PersonalInfoInterpreter.cpp
         PersonalInfoInterpreter.h
+        EngineCLI.cpp
+        EngineCLI.h
+        UnifiedMain.cpp
 )
-
 if(WIN32)
     target_link_libraries(Engine PRIVATE ws2_32)
 endif()
