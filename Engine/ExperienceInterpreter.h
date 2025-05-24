@@ -8,7 +8,7 @@
 #include "CVInterpreter.h"
 
 class ExperienceInterpreter: public CVInterpreter {
-
+    void interperet(CVData data) override;
 };
 
 
