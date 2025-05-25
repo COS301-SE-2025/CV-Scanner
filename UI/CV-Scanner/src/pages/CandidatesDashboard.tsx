@@ -1,6 +1,15 @@
-import { Box, Typography, Paper, Button, List, ListItem, ListItemText } from '@mui/material';
+import { Box, Typography, Paper, Button, List, ListItem, ListItemText , TableContainer, Table,TableHead,TableRow, TableCell, TableBody,
+} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import EntelectLogo from '../assets/logo.png'; 
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
+import PeopleIcon from '@mui/icons-material/People';
+import SearchIcon from '@mui/icons-material/Search';
+import SettingsIcon from '@mui/icons-material/Settings';
+
+
 
 export default function CandidatesDashboard() {
   const navigate = useNavigate();
@@ -13,15 +22,17 @@ export default function CandidatesDashboard() {
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#181c2f', color: '#fff' }}>
 
       {/* Sidebar */}
-      <Box sx={{ width: 220, bgcolor: '#5a88ad', display: 'flex', flexDirection: 'column', p: 2 }}>
-        <Typography variant="h6" sx={{ color: '#fff', fontWeight: 'bold', mb: 2 }}>entelect</Typography>
-        <Button fullWidth sx={navButtonStyle}>Dashboard</Button>
-        <Button fullWidth sx={navButtonStyle}>Upload CV</Button>
-        <Button fullWidth sx={navButtonStyle}>Candidates</Button>
-        <Button fullWidth sx={navButtonStyle}>Search</Button>
-        <Box sx={{ flexGrow: 1 }} />
-        <Button fullWidth sx={navButtonStyle}>Settings</Button>
-      </Box>
+    <Box sx={{ width: 220, bgcolor: '#5a88ad', display: 'flex', flexDirection: 'column', p: 2 }}>
+  <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+    <img src={EntelectLogo} alt="Entelect Logo" style={{ width: 120 }} />
+  </Box>
+  <Button fullWidth sx={navButtonStyle} startIcon={<DashboardIcon />}>Dashboard</Button>
+  <Button fullWidth sx={navButtonStyle} startIcon={<UploadFileIcon />}>Upload CV</Button>
+  <Button fullWidth sx={navButtonStyle} startIcon={<PeopleIcon />}>Candidates</Button>
+  <Button fullWidth sx={navButtonStyle} startIcon={<SearchIcon />}>Search</Button>
+  <Box sx={{ flexGrow: 1 }} />
+  <Button fullWidth sx={navButtonStyle} startIcon={<SettingsIcon />}>Settings</Button>
+</Box>
 
       {/* Main Dashboard */}
       <Box sx={{ flexGrow: 1, p: 3 }}>
@@ -42,42 +53,58 @@ export default function CandidatesDashboard() {
         </Box>
 
         <Paper elevation={6} sx={{ p: 2, borderRadius: 3, backgroundColor: '#bce4ff' }}>
-          <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#0073c1', mb: 2 }}>Recently Processed</Typography>
+  <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#0073c1', mb: 2 }}>
+    Recently Processed
+  </Typography>
 
-          <List disablePadding>
-            {[
-              {
-                name: 'Jane Smith',
-                skills: '.NET, Azure, SQL',
-                fit: 'Technical (92%)',
-              },
-              {
-                name: 'Mike Johnson',
-                skills: 'React, Node.js',
-                fit: 'Collaborative (85%)',
-              },
-              {
-                name: 'Peter Griffin',
-                skills: 'C++, C, Python',
-                fit: 'Technical (64%)',
-              },
-            ].map((candidate, idx) => (
-              <ListItem
-                key={idx}
-                divider
-                sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+  <TableContainer>
+    <Table>
+      <TableHead>
+        <TableRow>
+          <TableCell sx={{ fontWeight: 'bold', fontSize: '1.2rem'  }}>Candidate</TableCell>
+          <TableCell sx={{ fontWeight: 'bold', fontSize: '1.2rem'  }}>Top Skills</TableCell>
+          <TableCell sx={{ fontWeight: 'bold' , fontSize: '1.2rem' }}>Project Fit</TableCell>
+          <TableCell sx={{ fontWeight: 'bold', fontSize: '1.2rem'  }}>Actions</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {[
+          {
+            name: 'Jane Smith',
+            skills: '.NET, Azure, SQL',
+            fit: 'Technical (92%)',
+          },
+          {
+            name: 'Mike Johnson',
+            skills: 'React, Node.js',
+            fit: 'Collaborative (85%)',
+          },
+          {
+            name: 'Peter Griffin',
+            skills: 'C++, C, Python',
+            fit: 'Technical (64%)',
+          },
+        ].map((candidate, idx) => (
+          <TableRow key={idx}>
+            <TableCell>{candidate.name}</TableCell>
+            <TableCell>{candidate.skills}</TableCell>
+            <TableCell>{candidate.fit}</TableCell>
+            <TableCell>
+              <Button
+                variant="contained"
+                sx={reviewButtonStyle}
+                onClick={() => navigate('/review')}
               >
-                <ListItemText
-                  primary={candidate.name}
-                  secondary={`Top Skills: ${candidate.skills} | Project Fit: ${candidate.fit}`}
-                  primaryTypographyProps={{ sx: { fontWeight: 'bold', color: '#000' } }}
-                  secondaryTypographyProps={{ sx: { color: '#000' } }}
-                />
-                <Button variant="contained" sx={reviewButtonStyle} onClick={() => navigate('/review')}>Review</Button>
-              </ListItem>
-            ))}
-          </List>
-        </Paper>
+                Review
+              </Button>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  </TableContainer>
+</Paper>
+
       </Box>
     </Box>
   );
@@ -105,10 +132,27 @@ const statCardStyle = {
 };
 
 const reviewButtonStyle = {
-  backgroundColor: '#2f2f6e',
-  color: '#b3ff00',
+  background: 'linear-gradient(45deg, #0a1172 0%, #032c3b 50%, #00b300 100%)',
+  color: 'white',
   fontWeight: 'bold',
+  padding: '8px 20px',
+  borderRadius: '4px',
+  boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
   '&:hover': {
-    backgroundColor: '#1f1f5a',
+    background: 'linear-gradient(45deg, #081158 0%, #022028 50%, #009a00 100%)',
+    transform: 'translateY(-1px)',
   },
+  textTransform: 'none',
+  transition: 'all 0.3s ease',
+  position: 'relative',
+  overflow: 'hidden',
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    background: 'linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)',
+  }
 };
