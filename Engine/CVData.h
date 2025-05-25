@@ -11,6 +11,7 @@
 #include "CVSectionExtractor.h"
 
 class CVData {
+public:
     std::map<std::string,int> experience;
     std::string education;
     std::vector<std::string> skills;
@@ -21,7 +22,7 @@ class CVData {
     std::string linkedin;
     std::string github;
 
-public:
+
     CVData() = default;
     CVData( std::string str);
     std::map<std::string,int> getXP();
