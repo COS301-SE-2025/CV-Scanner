@@ -15,6 +15,7 @@ import {
   Toolbar,
   Badge
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -42,6 +43,8 @@ export default function UploadCVPage() {
     if (file) alert(`Processing: ${file.name}`);
   };
 
+  const navigate = useNavigate();
+
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#181c2f', color: '#fff' }}>
 
@@ -50,12 +53,19 @@ export default function UploadCVPage() {
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
           <img src={EntelectLogo} alt="Entelect Logo" style={{ width: 120 }} />
         </Box>
-        <Button fullWidth sx={navButtonStyle} startIcon={<DashboardIcon />}>Dashboard</Button>
-        <Button fullWidth sx={{ ...navButtonStyle, bgcolor: '#00c4ff' }} startIcon={<UploadFileIcon />}>Upload CV</Button>
-        <Button fullWidth sx={navButtonStyle} startIcon={<PeopleIcon />}>Candidates</Button>
-        <Button fullWidth sx={navButtonStyle} startIcon={<SearchIcon />}>Search</Button>
-        <Box sx={{ flexGrow: 1 }} />
-        <Button fullWidth sx={navButtonStyle} startIcon={<SettingsIcon />}>Settings</Button>
+       <Button fullWidth sx={navButtonStyle} startIcon={<DashboardIcon />} onClick={() => navigate('/dashboard')}>
+  Dashboard
+</Button>
+<Button fullWidth sx={navButtonStyle} startIcon={<UploadFileIcon />} onClick={() => navigate('/upload')}>
+  Upload CV
+</Button>
+<Button fullWidth sx={navButtonStyle} startIcon={<PeopleIcon />} onClick={() => navigate('/candidates')}>
+  Candidates
+</Button>
+<Button fullWidth sx={navButtonStyle} startIcon={<SearchIcon />} onClick={() => navigate('/search')}>
+  Search
+</Button>
+
       </Box>
 
       {/* Main Content with Top Bar */}

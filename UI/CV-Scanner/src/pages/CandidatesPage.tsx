@@ -47,12 +47,19 @@ export default function CandidatesPage() {
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
           <img src={EntelectLogo} alt="Entelect Logo" style={{ width: 120 }} />
         </Box>
-        <Button fullWidth sx={navButtonStyle} startIcon={<DashboardIcon />} onClick={() => navigate('/')}>Dashboard</Button>
-        <Button fullWidth sx={navButtonStyle} startIcon={<UploadFileIcon />} onClick={() => navigate('/upload')}>Upload CV</Button>
-        <Button fullWidth sx={{ ...navButtonStyle, bgcolor: '#d8f0ff', color: '#000' }} startIcon={<PeopleIcon />}>Candidates</Button>
-        <Button fullWidth sx={navButtonStyle} startIcon={<SearchIcon />}>Search</Button>
-        <Box sx={{ flexGrow: 1 }} />
-        <Button fullWidth sx={navButtonStyle} startIcon={<SettingsIcon />}>Settings</Button>
+        <Button fullWidth sx={navButtonStyle} startIcon={<DashboardIcon />} onClick={() => navigate('/dashboard')}>
+  Dashboard
+</Button>
+<Button fullWidth sx={navButtonStyle} startIcon={<UploadFileIcon />} onClick={() => navigate('/upload')}>
+  Upload CV
+</Button>
+<Button fullWidth sx={navButtonStyle} startIcon={<PeopleIcon />} onClick={() => navigate('/candidates')}>
+  Candidates
+</Button>
+<Button fullWidth sx={navButtonStyle} startIcon={<SearchIcon />} onClick={() => navigate('/search')}>
+  Search
+</Button>
+
       </Box>
 
       {/* Main Content with Top Bar */}
