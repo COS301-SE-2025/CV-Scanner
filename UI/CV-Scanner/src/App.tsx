@@ -3,6 +3,7 @@ import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
 import ResetPassword from './pages/ResetPassword';
 import CandidatesDashboard  from './pages/CandidatesDashboard';
+import UploadCVPage  from './pages/UploadCVPage';
 
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
 
           <Route path="/dashboard" element={<CandidatesDashboard />} />
+          <Route path="/upload" element={<UploadCVPage />} />
        <Route path="*" element={<LoginPage />} />
       </Routes>
     </BrowserRouter>
