@@ -155,5 +155,5 @@ void ExperienceInterpreter::interpret(std::string str, CVData* data) {
         ++it;
     }
 }
-}
+
 
