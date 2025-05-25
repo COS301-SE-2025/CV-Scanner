@@ -1,5 +1,5 @@
+//
+// Created by smart on 5/24/2025.
+//
+
 #include "EducationInterpreter.h"
-
-void CVInterpreter:: interpret(std::string str,CVData* data) {
-
-}
