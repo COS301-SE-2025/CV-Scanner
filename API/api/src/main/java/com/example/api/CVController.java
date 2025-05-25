@@ -26,13 +26,26 @@ public class CVController {
             Tika tika = new Tika();
             String text = tika.parseToString(file.getInputStream());
 
-            // List of technologies to search for (expand as needed)
+
             List<String> technologies = Arrays.asList(
-                "Java", "Python", "C#", "JavaScript", "Spring", "React", "Angular", "Node.js",
-                "SQL", "Azure", "AWS", "Docker", "Kubernetes", "HTML", "CSS", "TypeScript"
+                
+                "Java", "Python", "JavaScript", "TypeScript", "C#", "C++", "C", "Go", "Rust", "Kotlin", "Swift", "PHP", "Ruby", "Scala", "Dart",
+                
+                "React", "Angular", "Vue.js", "Next.js", "Express", "Spring", "Spring Boot", "Django", "Flask", "ASP.NET", "Laravel", "Symfony", "Svelte", "Nuxt.js",
+                
+                "Android", "iOS", "Flutter", "React Native", "SwiftUI", "Xamarin",
+                
+                "MySQL", "PostgreSQL", "MongoDB", "SQLite", "Redis", "Oracle", "MariaDB", "Firebase", "Elasticsearch", "Cassandra", "DynamoDB", "SQL Server",
+               
+                "AWS", "Azure", "Google Cloud", "GCP", "Docker", "Kubernetes", "Terraform", "Ansible", "Jenkins", "GitHub Actions", "CircleCI", "Travis CI", "GitLab CI",
+                
+                "TensorFlow", "PyTorch", "scikit-learn", "Pandas", "NumPy", "Keras", "OpenCV", "NLTK", "Hugging Face", "Spark", "Hadoop",
+                
+                "Git", "GitHub", "GitLab", "Bitbucket", "Jira", "Confluence", "Slack", "Figma", "Postman", "VS Code", "IntelliJ", "Eclipse", "NetBeans",
+                
+                "HTML", "CSS", "Sass", "Less", "Bootstrap", "Tailwind", "GraphQL", "REST", "SOAP", "WebSocket", "Microservices", "Serverless", "CI/CD", "Agile", "Scrum"
             );
 
-            // Find mentioned technologies
             List<String> found = new ArrayList<>();
             for (String tech : technologies) {
                 if (text.toLowerCase().contains(tech.toLowerCase())) {
