@@ -3,8 +3,7 @@ project(Engine)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(Engine main.cpp
-        main.cpp
+add_executable(Engine
         CVData.cpp
         CVData.h
         CVInterpreter.cpp
@@ -19,4 +18,6 @@ add_executable(Engine main.cpp
         SkillsInterpreter.h
         PersonalInfoInterpreter.cpp
         PersonalInfoInterpreter.h
+        UnifiedMain.cpp
+        UnifiedMain.h
 )
