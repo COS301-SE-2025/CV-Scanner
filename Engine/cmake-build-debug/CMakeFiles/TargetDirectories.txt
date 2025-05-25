@@ -1,0 +1,3 @@
+C:/Users/abdul/OneDrive/Documents/capstone/CV-Scanner/Engine/cmake-build-debug/CMakeFiles/Engine.dir
+C:/Users/abdul/OneDrive/Documents/capstone/CV-Scanner/Engine/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/abdul/OneDrive/Documents/capstone/CV-Scanner/Engine/cmake-build-debug/CMakeFiles/rebuild_cache.dir

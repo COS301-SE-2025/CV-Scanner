@@ -1,0 +1,23 @@
+Index: CMakeLists.txt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>cmake_minimum_required(VERSION 3.30)\r\nproject(Engine)\r\n\r\nset(CMAKE_CXX_STANDARD 20)\r\n\r\nadd_executable(Engine main.cpp\r\n        main.cpp\r\n        CVData.cpp\r\n        CVData.h\r\n        CVInterpreter.cpp\r\n        CVInterpreter.h\r\n        CVSectionExtractor.cpp\r\n        CVSectionExtractor.h\r\n        ExperienceInterpreter.cpp\r\n        ExperienceInterpreter.h\r\n        EducationInterpreter.cpp\r\n        EducationInterpreter.h\r\n        SkillsInterpreter.cpp\r\n        SkillsInterpreter.h\r\n        PersonalInfoInterpreter.cpp\r\n        PersonalInfoInterpreter.h\r\n)\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt	(revision 8c0af0f6d0dab4259b18c7e124c1255d5fbcc858)
++++ b/CMakeLists.txt	(date 1748181287245)
+@@ -1,4 +1,4 @@
+-cmake_minimum_required(VERSION 3.30)
++cmake_minimum_required(VERSION 3.29.6)
+ project(Engine)
+ 
+ set(CMAKE_CXX_STANDARD 20)
+@@ -19,4 +19,6 @@
+         SkillsInterpreter.h
+         PersonalInfoInterpreter.cpp
+         PersonalInfoInterpreter.h
++        CVInterpreter.cpp
++        CVInterpreter.cpp
+ )

@@ -1,0 +1,17 @@
+ninja_dyndep_version = 1.0
+build CMakeFiles/Engine.dir/main.cpp.obj: dyndep
+
+build CMakeFiles/Engine.dir/CVData.cpp.obj: dyndep
+
+build CMakeFiles/Engine.dir/CVInterpreter.cpp.obj: dyndep
+
+build CMakeFiles/Engine.dir/CVSectionExtractor.cpp.obj: dyndep
+
+build CMakeFiles/Engine.dir/ExperienceInterpreter.cpp.obj: dyndep
+
+build CMakeFiles/Engine.dir/EducationInterpreter.cpp.obj: dyndep
+
+build CMakeFiles/Engine.dir/SkillsInterpreter.cpp.obj: dyndep
+
+build CMakeFiles/Engine.dir/PersonalInfoInterpreter.cpp.obj: dyndep
+
