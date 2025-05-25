@@ -101,3 +101,50 @@ void PersonalInfoInterpreter::interpret(string str, CVData* data) {
             }
         }
     }
+    name_found:
+
+    // Extract about section
+    vector<string> about_headers = {"about", "summary", "profile", "objective", "personal statement"};
+    vector<string> section_headers = {"experience", "education", "skills", "projects", "work", "employment"};
+    bool in_about_section = false;
+    string about_content;
+
+    for (const auto& line : lines) {
+        string trimmed_line = trim(line);
+        string lower_line = trimmed_line;
+        transform(lower_line.begin(), lower_line.end(), lower_line.begin(), ::tolower);
+
+        if (!in_about_section) {
+            for (const string& header : about_headers) {
+                if (lower_line.find(header) == 0) {
+                    in_about_section = true;
+                    break;
+                }
+            }
+        } else {
+            if (trimmed_line.empty()) {
+                in_about_section = false;
+                continue;
+            }
+
+            bool is_new_section = false;
+            for (const string& sec_header : section_headers) {
+                if (lower_line.find(sec_header) == 0) {
+                    is_new_section = true;
+                    break;
+                }
+            }
+
+            if (is_new_section) {
+                in_about_section = false;
+            } else {
+                about_content += trimmed_line + "\n";
+            }
+        }
+    }
+
+    if (!about_content.empty() && about_content.back() == '\n') {
+        about_content.pop_back();
+    }
+    data->about = about_content;
+}
