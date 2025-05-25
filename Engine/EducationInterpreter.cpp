@@ -116,8 +116,44 @@ void ExperienceInterpreter::interpret(std::string str, CVData* data) {
             end_year_str = std::to_string(current_year);
             is_present = true;
                                      }
+        int start_month = parseMonth(start_month_str);
+        int start_year = start_year_str.length() == 2 ? 2000 + std::stoi(start_year_str) : std::stoi(start_year_str);
+        int end_month = parseMonth(end_month_str);
+        int end_year = end_year_str.length() == 2 ? 2000 + std::stoi(end_year_str) : std::stoi(end_year_str);
+
+        if(start_month == -1 || end_month == -1) {
+            ++it;
+            continue;
+        }
+
+        // Calculate duration
+        int duration = calculateDuration(start_month, start_year, end_month, end_year);
+        if(duration <= 0) {
+            ++it;
+            continue;
+        }
+
+        // Extract position/company
+        size_t pos = match.position() + match.length();
+        std::string context = str.substr(0, match.position());
+        std::string after = str.substr(pos);
+
+        std::string company;
+        if(!after.empty()) {
+            size_t end_pos = after.find_first_of("\n•-–");
+            company = after.substr(0, end_pos);
+        } else if(!context.empty()) {
+            size_t start_pos = context.find_last_of("\n•-–");
+            company = context.substr(start_pos + 1);
+        }
+
+        company = cleanPositionName(company);
+        if(!company.empty()) {
+            data->addExperience(company, duration);
+        }
+
+        ++it;
     }
 }
-
-        // Parse numerical values
+}
 
