@@ -9,6 +9,7 @@
 
 class SkillsInterpreter: public CVInterpreter{
 
+    void interpret(std::string str,CVData* data) override;
 };
 
 
