@@ -22,7 +22,8 @@ class CVData {
     std::string github;
 
 public:
-    CVData(std::string str);
+    CVData() = default;
+    CVData( std::string str);
     std::map<std::string,int> getXP();
     std::string getEdu();
     std::vector<std::string> getSkills();
@@ -32,6 +33,8 @@ public:
     std::string getEmail();
     std::string getLinkedIn();
     std::string getGitHub();
+    void addExperience(const std::string& place, int months);
+
 
 };
 

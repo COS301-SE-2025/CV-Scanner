@@ -1,5 +1,5 @@
 #include "PersonalInfoInterpreter.h"
 
-void CVInterpreter:: interperet(CVData data) {
+void interpret(std::string str,CVData* data) {
 
 }

@@ -9,7 +9,7 @@
 
 class CVInterpreter {
 public:
-virtual void interperet(CVData data);
+virtual void interpret(std::string str,CVData* data);
 };
 
 

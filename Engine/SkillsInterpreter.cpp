@@ -1,5 +1,5 @@
 #include "SkillsInterpreter.h"
 
-void CVInterpreter:: interperet(CVData data) {
+void CVInterpreter:: interpret(std::string str,CVData* data) {
 
 }

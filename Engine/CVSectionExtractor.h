@@ -4,21 +4,11 @@
 #include <string>
 #include <vector>
 #include <map>
+#include "CVData.h"
 
 class CVSectionExtractor {
-std::string cv;
-
 public:
-    CVSectionExtractor(std::string cv);
-    std::map<std::string,int> getXP();
-    std::string getEdu();
-    std::vector<std::string> getSkills();
-    std::string getName();
-    std::string getSurname();
-    std::string getAbout ();
-    std::string getEmail();
-    std::string getLinkedIn();
-    std::string getGitHub();
+    CVData* Extractor(std::string str,CVData* data);
 };
 
 #endif //ENGINE_CVSECTIONEXTRACTOR_H
