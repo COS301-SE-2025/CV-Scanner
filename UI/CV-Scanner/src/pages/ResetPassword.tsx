@@ -17,6 +17,33 @@ export default function ResetPassword() {
   };
 
   return (
+    <>
+    {/* Header */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          bgcolor: '#3a7ca5',
+          color: '#fff',
+          px: 2,
+          py: 1,
+          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <img
+            src="UI\CV-Scanner\src\assets\logo.png"
+            alt="Entelect Logo"
+            style={{ width: 40, height: 40, marginRight: 8 }}
+          />
+          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+            Entelect
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Main Content */}
     <Box
       sx={{
         minHeight: '100vh',
@@ -102,5 +129,6 @@ export default function ResetPassword() {
         </Typography>
       </Paper>
     </Box>
+    </>
   );
 }
