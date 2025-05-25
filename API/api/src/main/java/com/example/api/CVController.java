@@ -1,13 +1,14 @@
 package com.example.api;
+import java.io.InputStream;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFTable;
+import org.apache.poi.xwpf.usermodel.XWPFTableCell;
+import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 import org.apache.tika.Tika;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,44 +21,40 @@ import org.springframework.web.multipart.MultipartFile;
 public class CVController {
 
     @PostMapping("/uploadcv")
-    public ResponseEntity<Map<String, Object>> extractTechnologies(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<byte[]> uploadAndConvertToTxt(@RequestParam("file") MultipartFile file) {
         try {
-            // Extract text from the uploaded file
-            Tika tika = new Tika();
-            String text = tika.parseToString(file.getInputStream());
-
-
-            List<String> technologies = Arrays.asList(
-                
-                "Java", "Python", "JavaScript", "TypeScript", "C#", "C++", "C", "Go", "Rust", "Kotlin", "Swift", "PHP", "Ruby", "Scala", "Dart",
-                
-                "React", "Angular", "Vue.js", "Next.js", "Express", "Spring", "Spring Boot", "Django", "Flask", "ASP.NET", "Laravel", "Symfony", "Svelte", "Nuxt.js",
-                
-                "Android", "iOS", "Flutter", "React Native", "SwiftUI", "Xamarin",
-                
-                "MySQL", "PostgreSQL", "MongoDB", "SQLite", "Redis", "Oracle", "MariaDB", "Firebase", "Elasticsearch", "Cassandra", "DynamoDB", "SQL Server",
+            String filename = file.getOriginalFilename();
+            String text;
+            if (filename != null && filename.endsWith(".docx")) {
                
-                "AWS", "Azure", "Google Cloud", "GCP", "Docker", "Kubernetes", "Terraform", "Ansible", "Jenkins", "GitHub Actions", "CircleCI", "Travis CI", "GitLab CI",
-                
-                "TensorFlow", "PyTorch", "scikit-learn", "Pandas", "NumPy", "Keras", "OpenCV", "NLTK", "Hugging Face", "Spark", "Hadoop",
-                
-                "Git", "GitHub", "GitLab", "Bitbucket", "Jira", "Confluence", "Slack", "Figma", "Postman", "VS Code", "IntelliJ", "Eclipse", "NetBeans",
-                
-                "HTML", "CSS", "Sass", "Less", "Bootstrap", "Tailwind", "GraphQL", "REST", "SOAP", "WebSocket", "Microservices", "Serverless", "CI/CD", "Agile", "Scrum"
-            );
-
-            List<String> found = new ArrayList<>();
-            for (String tech : technologies) {
-                if (text.toLowerCase().contains(tech.toLowerCase())) {
-                    found.add(tech);
+                try (InputStream is = file.getInputStream();
+                     XWPFDocument doc = new XWPFDocument(is)) {
+                    StringBuilder sb = new StringBuilder();
+                    for (XWPFParagraph p : doc.getParagraphs()) {
+                        sb.append(p.getText()).append("\n");
+                    }
+                    for (XWPFTable table : doc.getTables()) {
+                        for (XWPFTableRow row : table.getRows()) {
+                            for (XWPFTableCell cell : row.getTableCells()) {
+                                sb.append(cell.getText()).append("\t");
+                            }
+                            sb.append("\n");
+                        }
+                    }
+                    text = sb.toString();
                 }
-            }
+            } else {
 
-            Map<String, Object> result = new HashMap<>();
-            result.put("technologies", found);
-            return ResponseEntity.ok(result);
+                Tika tika = new Tika();
+                text = tika.parseToString(file.getInputStream());
+            }
+            byte[] txtBytes = text.getBytes();
+            return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=cv.txt")
+                .contentType(MediaType.TEXT_PLAIN)
+                .body(txtBytes);
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(Collections.singletonMap("error", "Failed to process file: " + e.getMessage()));
+            return ResponseEntity.status(500).body(("Error: " + e.getMessage()).getBytes());
         }
     }
 }
