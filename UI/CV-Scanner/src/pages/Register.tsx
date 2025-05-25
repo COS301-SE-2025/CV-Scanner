@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Box, Button, TextField, Typography, Paper, Alert, MenuItem } from '@mui/material';
-
+import logo from '../assets/logo.png';
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
     name: '',
@@ -51,15 +51,12 @@ export default function RegisterPage() {
           boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Box sx={{ display: "flex", alignItems: "center" }}>
           <img
-            src="UI\CV-Scanner\src\assets\logo.png"
+            src={logo}
             alt="Entelect Logo"
-            style={{ width: 40, height: 40, marginRight: 8 }}
+            style={{ width: 100, height: 40, marginRight: 8 }}
           />
-          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-            Entelect
-          </Typography>
         </Box>
       </Box>
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import logo from '../assets/logo.png';
 import {
   Box,
   Button,
@@ -49,13 +50,10 @@ export default function LoginPage() {
       >
         <Box sx={{ display: "flex", alignItems: "center" }}>
           <img
-            src="UI\CV-Scanner\src\assets\logo.png" // Replace with the actual path to the Entelect logo
+            src={logo}
             alt="Entelect Logo"
-            style={{ width: 40, height: 40, marginRight: 8 }}
+            style={{ width: 100, height: 40, marginRight: 8 }}
           />
-          <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-            Entelect
-          </Typography>
         </Box>
       </Box>
 
