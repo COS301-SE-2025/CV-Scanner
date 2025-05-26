@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Box, Button, TextField, Typography, Paper, Alert, MenuItem } from '@mui/material';
-
+import logo from '../assets/logo.png';
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
     name: '',
@@ -37,7 +37,30 @@ export default function RegisterPage() {
     }, 1000);
   };
 
-  return (
+  return (<>
+      {/* Header */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          bgcolor: '#3a7ca5',
+          color: '#fff',
+          px: 2,
+          py: 1,
+          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          <img
+            src={logo}
+            alt="Entelect Logo"
+            style={{ width: 100, height: 40, marginRight: 8 }}
+          />
+        </Box>
+      </Box>
+
+      {/* Main Content */}
     <Box sx={{ 
       display: 'flex',
       justifyContent: 'center',
@@ -208,5 +231,6 @@ export default function RegisterPage() {
         </Box>
       </Paper>
     </Box>
+    </>
   );
 }
