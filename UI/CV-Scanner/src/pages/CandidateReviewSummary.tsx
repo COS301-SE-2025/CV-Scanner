@@ -132,27 +132,30 @@ export default function CandidateReviewSummary() {
           </Typography>
 
           {/* Tabs Section */}
-            <Box sx={{ display: "flex", gap: 3, mb: 4 }}>
-            {["Summary", "Skills", "Experience", "Recruiters Notes"].map((tab, idx) => (
+          <Box sx={{ display: "flex", gap: 3, mb: 4 }}>
+            {["Summary", "Skills", "Experience", "Recruiters Notes"].map(
+              (tab, idx) => (
                 <Typography
-                key={idx}
-                variant="body1"
-                sx={{
+                  key={idx}
+                  variant="body1"
+                  sx={{
                     cursor: "pointer",
                     color: idx === 0 ? "#0073c1" : "#b0b8c1", // Highlight the active tab
                     fontWeight: idx === 0 ? "bold" : "normal",
-                }}
-                onClick={() => {
+                  }}
+                  onClick={() => {
                     if (tab === "Summary") navigate("/candidate-review");
                     if (tab === "Skills") navigate("/candidate-skills");
                     if (tab === "Experience") navigate("/candidate-experience");
-                    if (tab === "Recruiters Notes") navigate("/candidate-notes");
-                }}
+                    if (tab === "Recruiters Notes")
+                      navigate("/candidate-notes");
+                  }}
                 >
-                {tab}
+                  {tab}
                 </Typography>
-            ))}
-            </Box>
+              )
+            )}
+          </Box>
 
           {/* Project Fit Section */}
           <Paper
@@ -163,45 +166,92 @@ export default function CandidateReviewSummary() {
               Project Fit
             </Typography>
             <Box
-              sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "repeat(2, 1fr)",
+                gap: 3,
+              }}
             >
+              {/* Technical Projects */}
               <Box>
-                <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+                <Typography variant="body1" sx={{ fontWeight: "bold", mb: 1 }}>
                   Technical Projects
                 </Typography>
-                <Typography variant="body2" sx={{ color: "#555" }}>
+                <Typography variant="body2" sx={{ color: "#555", mb: 1 }}>
                   High proficiency in complex technical environments
                 </Typography>
+                <Box
+                  sx={{
+                    position: "relative",
+                    height: 20,
+                    bgcolor: "#ccc",
+                    borderRadius: 10,
+                    overflow: "hidden",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: "80%", // Adjust percentage here
+                      bgcolor: "#4caf50",
+                      height: "100%",
+                      borderRadius: 10,
+                    }}
+                  />
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      position: "absolute",
+                      top: "50%",
+                      left: "50%",
+                      transform: "translate(-50%, -50%)",
+                      color: "#fff",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    80%
+                  </Typography>
+                </Box>
               </Box>
-              <Box
-                sx={{
-                  width: "50%",
-                  bgcolor: "#ccc",
-                  borderRadius: 2,
-                  overflow: "hidden",
-                }}
-              >
-                <Box sx={{ width: "80%", bgcolor: "#4caf50", height: 10 }} />
-              </Box>
-            </Box>
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+
+              {/* Collaborative Projects */}
               <Box>
-                <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+                <Typography variant="body1" sx={{ fontWeight: "bold", mb: 1 }}>
                   Collaborative Projects
                 </Typography>
-                <Typography variant="body2" sx={{ color: "#555" }}>
+                <Typography variant="body2" sx={{ color: "#555", mb: 1 }}>
                   Works well in team settings
                 </Typography>
-              </Box>
-              <Box
-                sx={{
-                  width: "50%",
-                  bgcolor: "#ccc",
-                  borderRadius: 2,
-                  overflow: "hidden",
-                }}
-              >
-                <Box sx={{ width: "60%", bgcolor: "#4caf50", height: 10 }} />
+                <Box
+                  sx={{
+                    position: "relative",
+                    height: 20,
+                    bgcolor: "#ccc",
+                    borderRadius: 10,
+                    overflow: "hidden",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: "60%", // Adjust percentage here
+                      bgcolor: "#4caf50",
+                      height: "100%",
+                      borderRadius: 10,
+                    }}
+                  />
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      position: "absolute",
+                      top: "50%",
+                      left: "50%",
+                      transform: "translate(-50%, -50%)",
+                      color: "#fff",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    60%
+                  </Typography>
+                </Box>
               </Box>
             </Box>
           </Paper>
