@@ -42,7 +42,7 @@ public:
     void setEmail(const std::string& email);
     void setLinkedIn(const std::string& linkedIn);
     void setGitHub(const std::string& gitHub);
-
+    void display();
 };
 
 

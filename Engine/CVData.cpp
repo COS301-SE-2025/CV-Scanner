@@ -1,9 +1,31 @@
 #include "CVData.h"
+
+#include <regex>
+
 #include "CVSectionExtractor.h"  // Assume this header exists for extraction
+#include "EducationInterpreter.h"
+#include "ExperienceInterpreter.h"
+#include "PersonalInfoInterpreter.h"
+#include "SkillsInterpreter.h"
 
 CVData::CVData(std::string str) {
-    CVSectionExtractor extractor;
-    extractor.Extractor(str, this);  // The extractor uses public setters to populate data
+
+     this->education = "";
+     this->name= "";
+     this->surname= "";
+     this->about= "";
+     this->email= "";
+     this->linkedin= "";
+     this->github= "";
+
+    SkillsInterpreter* skillsInterpreter = new SkillsInterpreter();
+    skillsInterpreter->interpret(str,this);
+    EducationInterpreter* educationInterpreter = new EducationInterpreter();
+    educationInterpreter->interpret(str,this);
+    ExperienceInterpreter* experienceInterpreter = new ExperienceInterpreter();
+    experienceInterpreter->interpret(str,this);
+    PersonalInfoInterpreter* personalInfoInterpreter = new PersonalInfoInterpreter();
+    personalInfoInterpreter->interpret(str,this);
 }
 
 // Getters
@@ -78,4 +100,23 @@ void CVData::setLinkedIn(const std::string& linkedIn) {
 
 void CVData::setGitHub(const std::string& gitHub) {
     this->github = gitHub;
+}
+
+void CVData::display()
+{
+    std::cout << "Name: " << name << std::endl
+    << "Surname: " << surname << std::endl
+    << "Email: " << email << std::endl
+    << "LinkedIn: " << linkedin << std::endl
+    << "GitHub: " << github << std::endl
+    << "About: " << about << std::endl
+    << "Education: " << education << std::endl
+    << "Skills: " << std::endl;
+    for (auto skill : skills) {
+        std::cout << skill << std::endl;
+    }
+    std::cout << "Experience: " << std::endl;
+    for (auto exp : experience) {
+        std::cout << exp.first << ": " << exp.second << std::endl;
+    }
 }
