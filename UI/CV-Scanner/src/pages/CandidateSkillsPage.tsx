@@ -1,21 +1,38 @@
-import React, { useState } from "react";
+import React, {useState} from "react";
 import {
   Box,
   Typography,
   Paper,
   Button,
   IconButton,
-  Chip,
-  TextField,
+  TableContainer,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
   AppBar,
   Toolbar,
   Badge,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Chip,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import DeleteIcon from "@mui/icons-material/Delete";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
+import PeopleIcon from "@mui/icons-material/People";
+import SearchIcon from "@mui/icons-material/Search";
+import SettingsIcon from "@mui/icons-material/Settings";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import logo from "../assets/logo.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
-import logo from "../assets/logo.png"; // Adjust the path as necessary
 
 export default function CandidateSkillsPage() {
   const navigate = useNavigate();
@@ -34,16 +51,31 @@ export default function CandidateSkillsPage() {
   };
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#181c2f", color: "#fff" }}>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        bgcolor: "#181c2f",
+        color: "#fff",
+      }}
+    >
       {/* Sidebar */}
-      <Box sx={{ width: 220, bgcolor: "#5a88ad", display: "flex", flexDirection: "column", p: 2 }}>
+      <Box
+        sx={{
+          width: 220,
+          bgcolor: "#5a88ad",
+          display: "flex",
+          flexDirection: "column",
+          p: 2,
+        }}
+      >
         <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
           <img src={logo} alt="Entelect Logo" style={{ width: 120 }} />
         </Box>
         <Button
           fullWidth
           sx={navButtonStyle}
-          startIcon={<AccountCircleIcon />}
+          startIcon={<DashboardIcon />}
           onClick={() => navigate("/dashboard")}
         >
           Dashboard
@@ -51,7 +83,7 @@ export default function CandidateSkillsPage() {
         <Button
           fullWidth
           sx={navButtonStyle}
-          startIcon={<AccountCircleIcon />}
+          startIcon={<UploadFileIcon />}
           onClick={() => navigate("/upload")}
         >
           Upload CV
@@ -59,7 +91,7 @@ export default function CandidateSkillsPage() {
         <Button
           fullWidth
           sx={navButtonStyle}
-          startIcon={<AccountCircleIcon />}
+          startIcon={<PeopleIcon />}
           onClick={() => navigate("/candidates")}
         >
           Candidates
@@ -67,7 +99,7 @@ export default function CandidateSkillsPage() {
         <Button
           fullWidth
           sx={navButtonStyle}
-          startIcon={<AccountCircleIcon />}
+          startIcon={<SearchIcon />}
           onClick={() => navigate("/search")}
         >
           Search
