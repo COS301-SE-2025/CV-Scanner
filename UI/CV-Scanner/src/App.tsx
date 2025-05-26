@@ -2,6 +2,11 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
 import ResetPassword from './pages/ResetPassword';
+import CandidatesDashboard  from './pages/CandidatesDashboard';
+import UploadCVPage  from './pages/UploadCVPage';
+import CandidatesPage from './pages/CandidatesPage';
+import Search from './pages/Search';
+
 
 function App() {
   return (
@@ -10,7 +15,12 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="*" element={<LoginPage />} />
+
+          <Route path="/dashboard" element={<CandidatesDashboard />} />
+          <Route path="/upload" element={<UploadCVPage />} />
+           <Route path="/candidates" element={<CandidatesPage />} />
+            <Route path="/search" element={<Search />} />
+       <Route path="*" element={<LoginPage />} />
       </Routes>
     </BrowserRouter>
   );
