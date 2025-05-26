@@ -6,6 +6,7 @@ import CandidatesDashboard  from './pages/CandidatesDashboard';
 import UploadCVPage  from './pages/UploadCVPage';
 import CandidatesPage from './pages/CandidatesPage';
 import Search from './pages/Search';
+import CandidateReviewSummary from './pages/CandidateReviewSummary';
 
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
           <Route path="/upload" element={<UploadCVPage />} />
            <Route path="/candidates" element={<CandidatesPage />} />
             <Route path="/search" element={<Search />} />
+            <Route path="/candidate-review" element={<CandidateReviewSummary />} />
        <Route path="*" element={<LoginPage />} />
       </Routes>
     </BrowserRouter>

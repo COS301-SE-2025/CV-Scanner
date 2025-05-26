@@ -117,7 +117,7 @@ const navigate = useNavigate();
                         <Button
                           variant="contained"
                           sx={reviewButtonStyle}
-                          onClick={() => navigate('/review')}
+                          onClick={() => navigate('/candidate-review')}
                         >
                           Review
                         </Button>
