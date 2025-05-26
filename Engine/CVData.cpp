@@ -117,6 +117,6 @@ void CVData::display()
     }
     std::cout << "Experience: " << std::endl;
     for (auto exp : experience) {
-        std::cout << exp.first << ": " << exp.second << std::endl;
+        std::cout << exp.first << ": " << exp.second <<" months"<< std::endl;
     }
 }
