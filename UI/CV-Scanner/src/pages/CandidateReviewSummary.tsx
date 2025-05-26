@@ -32,12 +32,20 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import logo from "../assets/logo.png"; // Adjust the path as necessary
+import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 
 export default function CandidateReviewSummary() {
   const navigate = useNavigate();
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#181c2f", color: "#fff" }}>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        bgcolor: "#181c2f",
+        color: "#fff",
+      }}
+    >
       {/* Sidebar */}
       <Box
         sx={{
@@ -88,7 +96,10 @@ export default function CandidateReviewSummary() {
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
-        <AppBar position="static" sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}>
+        <AppBar
+          position="static"
+          sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
+        >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
             <IconButton color="inherit">
               <Badge badgeContent={4} color="error">
@@ -99,6 +110,15 @@ export default function CandidateReviewSummary() {
               <AccountCircleIcon sx={{ mr: 1 }} />
               <Typography variant="subtitle1">Admin User</Typography>
             </Box>
+            <IconButton
+              color="inherit"
+              onClick={() => {
+                // Perform logout logic here
+                navigate("/login"); // Redirect to login page
+              }}
+            >
+              <ExitToAppIcon />
+            </IconButton>
           </Toolbar>
         </AppBar>
 
@@ -112,28 +132,39 @@ export default function CandidateReviewSummary() {
           </Typography>
 
           {/* Tabs Section */}
-          <Box sx={{ display: "flex", gap: 3, mb: 4 }}>
+            <Box sx={{ display: "flex", gap: 3, mb: 4 }}>
             {["Summary", "Skills", "Experience", "Recruiters Notes"].map((tab, idx) => (
-              <Typography
+                <Typography
                 key={idx}
                 variant="body1"
                 sx={{
-                  cursor: "pointer",
-                  color: idx === 0 ? "#0073c1" : "#b0b8c1",
-                  fontWeight: idx === 0 ? "bold" : "normal",
+                    cursor: "pointer",
+                    color: idx === 0 ? "#0073c1" : "#b0b8c1", // Highlight the active tab
+                    fontWeight: idx === 0 ? "bold" : "normal",
                 }}
-              >
+                onClick={() => {
+                    if (tab === "Summary") navigate("/candidate-review");
+                    if (tab === "Skills") navigate("/candidate-skills");
+                    if (tab === "Experience") navigate("/candidate-experience");
+                    if (tab === "Recruiters Notes") navigate("/candidate-notes");
+                }}
+                >
                 {tab}
-              </Typography>
+                </Typography>
             ))}
-          </Box>
+            </Box>
 
           {/* Project Fit Section */}
-          <Paper elevation={6} sx={{ p: 3, mb: 4, borderRadius: 3, bgcolor: "#e1f4ff" }}>
+          <Paper
+            elevation={6}
+            sx={{ p: 3, mb: 4, borderRadius: 3, bgcolor: "#e1f4ff" }}
+          >
             <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
               Project Fit
             </Typography>
-            <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+            <Box
+              sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}
+            >
               <Box>
                 <Typography variant="body1" sx={{ fontWeight: "bold" }}>
                   Technical Projects
@@ -142,7 +173,14 @@ export default function CandidateReviewSummary() {
                   High proficiency in complex technical environments
                 </Typography>
               </Box>
-              <Box sx={{ width: "50%", bgcolor: "#ccc", borderRadius: 2, overflow: "hidden" }}>
+              <Box
+                sx={{
+                  width: "50%",
+                  bgcolor: "#ccc",
+                  borderRadius: 2,
+                  overflow: "hidden",
+                }}
+              >
                 <Box sx={{ width: "80%", bgcolor: "#4caf50", height: 10 }} />
               </Box>
             </Box>
@@ -155,20 +193,34 @@ export default function CandidateReviewSummary() {
                   Works well in team settings
                 </Typography>
               </Box>
-              <Box sx={{ width: "50%", bgcolor: "#ccc", borderRadius: 2, overflow: "hidden" }}>
+              <Box
+                sx={{
+                  width: "50%",
+                  bgcolor: "#ccc",
+                  borderRadius: 2,
+                  overflow: "hidden",
+                }}
+              >
                 <Box sx={{ width: "60%", bgcolor: "#4caf50", height: 10 }} />
               </Box>
             </Box>
           </Paper>
 
           {/* Key Technologies Section */}
-          <Paper elevation={6} sx={{ p: 3, borderRadius: 3, bgcolor: "#e1f4ff" }}>
+          <Paper
+            elevation={6}
+            sx={{ p: 3, borderRadius: 3, bgcolor: "#e1f4ff" }}
+          >
             <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
               Key Technologies
             </Typography>
             <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
               {[".NET", "Azure", "SQL", "C#"].map((tech, idx) => (
-                <Chip key={idx} label={tech} sx={{ bgcolor: "#0073c1", color: "#fff" }} />
+                <Chip
+                  key={idx}
+                  label={tech}
+                  sx={{ bgcolor: "#0073c1", color: "#fff" }}
+                />
               ))}
             </Box>
           </Paper>
