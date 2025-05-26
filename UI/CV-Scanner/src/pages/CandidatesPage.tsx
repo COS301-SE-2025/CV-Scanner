@@ -25,7 +25,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import SettingsIcon from '@mui/icons-material/Settings';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import EntelectLogo from '../assets/logo.png';
+//import EntelectLogo from '../assets/logo.png';
 
 export default function CandidatesPage() {
   const navigate = useNavigate();
@@ -43,10 +43,10 @@ export default function CandidatesPage() {
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#181c2f', color: '#fff' }}>
       {/* Sidebar */}
-      <Box sx={{ width: 220, bgcolor: '#5a88ad', display: 'flex', flexDirection: 'column', p: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+    <Box sx={{ width: 220, bgcolor: '#5a88ad', display: 'flex', flexDirection: 'column', p: 2 }}>
+        {/* <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
           <img src={EntelectLogo} alt="Entelect Logo" style={{ width: 120 }} />
-        </Box>
+        </Box>*/}
         <Button fullWidth sx={navButtonStyle} startIcon={<DashboardIcon />} onClick={() => navigate('/dashboard')}>
   Dashboard
 </Button>
