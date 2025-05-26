@@ -1,36 +1,81 @@
 #include "CVData.h"
+#include "CVSectionExtractor.h"  // Assume this header exists for extraction
 
-CVData::CVData(std::string str){
-this = CVSectionExtractor().Extractor(str,this);
-};
-std::map<std::string,int> CVData::getXP(){
+CVData::CVData(std::string str) {
+    CVSectionExtractor extractor;
+    extractor.Extractor(str, *this);  // The extractor uses public setters to populate data
+}
 
-};
-std::string CVData::getEdu(){
+// Getters
+std::map<std::string, int> CVData::getXP() const {
+    return experience;
+}
 
-};
-std::vector<std::string> CVData::getSkills(){
+std::string CVData::getEdu() const {
+    return education;
+}
 
-};
-std::string CVData::getName(){
+std::vector<std::string> CVData::getSkills() const {
+    return skills;
+}
 
-};
-std::string CVData::getSurname(){
+std::string CVData::getName() const {
+    return name;
+}
 
-};
-std::string CVData::getAbout (){
+std::string CVData::getSurname() const {
+    return surname;
+}
 
-};
-std::string CVData::getEmail(){
+std::string CVData::getAbout() const {
+    return about;
+}
 
-};
-std::string CVData::getLinkedIn(){
+std::string CVData::getEmail() const {
+    return email;
+}
 
-};
-std::string CVData::getGitHub(){
+std::string CVData::getLinkedIn() const {
+    return this->linkedin;
+}
 
-};
+std::string CVData::getGitHub() const {
+    return this->github;
+}
+
+// Setters
 void CVData::addExperience(const std::string& place, int months) {
     experience[place] = months;
 }
 
+void CVData::setEdu(const std::string& edu) {
+    this->education = edu;
+}
+
+void CVData::addSkill(const std::string& skill) {
+    skills.push_back(skill);
+}
+
+void CVData::setName(const std::string& name) {
+    this->name = name;
+}
+
+void CVData::setSurname(const std::string& surname) {
+    this->surname = surname;
+}
+
+void CVData::setAbout(const std::string& about) {
+    this->about = about;
+}
+
+void CVData::setEmail(const std::string& email) {
+    this->email = email;
+}
+
+void CVData::setLinkedIn(const std::string& linkedIn) {
+    this->linkedin = linkedIn;
+}
+
+void CVData::setGitHub(const std::string& gitHub) {
+    this->github = gitHub;
+}

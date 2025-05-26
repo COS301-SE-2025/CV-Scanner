@@ -19,7 +19,8 @@ namespace {
         }
         return string(start, end);
     }
-        vector<string> splitLines(const string& str) {
+
+    vector<string> splitLines(const string& str) {
         vector<string> lines;
         size_t pos = 0;
         while (pos < str.size()) {
@@ -40,21 +41,21 @@ void PersonalInfoInterpreter::interpret(string str, CVData* data) {
     regex email_regex(R"(\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b)");
     smatch email_match;
     if (regex_search(str, email_match, email_regex)) {
-        data->email = email_match.str();
+        data->setEmail(email_match.str());  // Using setter
     }
 
     // Extract LinkedIn URL
     regex linkedin_regex(R"((https?:\/\/)?(www\.)?linkedin\.com\/in\/[a-zA-Z0-9-]+\/?\b)");
     smatch linkedin_match;
     if (regex_search(str, linkedin_match, linkedin_regex)) {
-        data->linkedin = linkedin_match.str();
+        data->setLinkedIn(linkedin_match.str());  // Using setter
     }
 
     // Extract GitHub URL
     regex github_regex(R"((https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9-]+\/?\b)");
     smatch github_match;
     if (regex_search(str, github_match, github_regex)) {
-        data->github = github_match.str();
+        data->setGitHub(github_match.str());  // Using setter
     }
 
     vector<string> lines = splitLines(str);
@@ -65,7 +66,6 @@ void PersonalInfoInterpreter::interpret(string str, CVData* data) {
         string trimmedLine = trim(line);
         if (trimmedLine.empty()) continue;
 
-        // Check segments split by common delimiters
         vector<string> segments;
         size_t start_pos = 0;
         while (start_pos < trimmedLine.size()) {
@@ -90,12 +90,15 @@ void PersonalInfoInterpreter::interpret(string str, CVData* data) {
                     parts.push_back(part);
                 }
                 if (!parts.empty()) {
-                    data->name = parts[0];
-                    data->surname = "";
+                    // Build name and surname locally first
+                    string name = parts[0];
+                    string surname;
                     for (size_t i = 1; i < parts.size(); ++i) {
-                        if (!data->surname.empty()) data->surname += " ";
-                        data->surname += parts[i];
+                        if (!surname.empty()) surname += " ";
+                        surname += parts[i];
                     }
+                    data->setName(name);    // Using setter
+                    data->setSurname(surname);  // Using setter
                     goto name_found;
                 }
             }
@@ -146,5 +149,5 @@ void PersonalInfoInterpreter::interpret(string str, CVData* data) {
     if (!about_content.empty() && about_content.back() == '\n') {
         about_content.pop_back();
     }
-    data->about = about_content;
+    data->setAbout(about_content);  // Using setter
 }
