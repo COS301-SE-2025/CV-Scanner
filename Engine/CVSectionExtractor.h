@@ -6,6 +6,8 @@
 #include <map>
 #include "CVData.h"
 
+class CVData;
+
 class CVSectionExtractor {
 public:
     CVData* Extractor(std::string str,CVData* data);

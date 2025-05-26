@@ -9,7 +9,8 @@
 
 class CVInterpreter {
 public:
-virtual void interpret(std::string str,CVData* data);
+    virtual void interpret(std::string str,CVData* data) =0;
+    virtual ~CVInterpreter() = default;
 };
 
 
