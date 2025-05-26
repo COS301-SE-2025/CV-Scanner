@@ -107,20 +107,21 @@ void PersonalInfoInterpreter::interpret(string str, CVData* data) {
             }
         }
 
-        // Extract professional summary/about section
+        // Extract professional summary/about section - FIXED VERSION
         vector<string> about_headers = {"professional summary", "summary", "about", "profile", "objective"};
-        vector<string> section_headers = {"education", "experience", "skills", "projects", "work", "employment"};
+        vector<string> section_headers = {"education", "experience", "skills", "projects", "work", "employment", "technical skills"};
         bool in_about_section = false;
         string about_content;
 
-        for (const auto& line : lines) {
-            string trimmed_line = trim(line);
+        for (size_t i = 0; i < lines.size(); ++i) {
+            string trimmed_line = trim(lines[i]);
             if (trimmed_line.empty()) continue;
 
             string lower_line = trimmed_line;
             transform(lower_line.begin(), lower_line.end(), lower_line.begin(), ::tolower);
 
             if (!in_about_section) {
+                // Check if this line is an about header
                 for (const string& header : about_headers) {
                     if (lower_line.find(header) == 0) {
                         in_about_section = true;
@@ -128,6 +129,7 @@ void PersonalInfoInterpreter::interpret(string str, CVData* data) {
                     }
                 }
             } else {
+                // We're in the about section, check if we hit a new section
                 bool is_new_section = false;
                 for (const string& sec_header : section_headers) {
                     if (lower_line.find(sec_header) == 0) {
@@ -137,15 +139,19 @@ void PersonalInfoInterpreter::interpret(string str, CVData* data) {
                 }
 
                 if (is_new_section) {
-                    in_about_section = false;
+                    // We've hit a new section, stop collecting about content
+                    break;
                 } else {
+                    // This is content for the about section
                     if (!about_content.empty()) about_content += " ";
                     about_content += trimmed_line;
                 }
             }
         }
 
-        data->setAbout(about_content);
+        if (!about_content.empty()) {
+            data->setAbout(about_content);
+        }
     }
     catch (const regex_error& e) {
         cerr << "Personal Info Regex error: " << e.what() << endl;

@@ -79,8 +79,16 @@ namespace {
         return cleaned;
     }
 
-    // Helper function to parse date strings
+    // Helper function to parse date strings - handles "Present" and "Current"
     std::pair<int, int> parseDate(const std::string& dateStr) {
+        // Check for present/current first
+        std::string lowerDate = dateStr;
+        std::transform(lowerDate.begin(), lowerDate.end(), lowerDate.begin(), ::tolower);
+        if (lowerDate.find("present") != std::string::npos || lowerDate.find("current") != std::string::npos) {
+            auto [currentMonth, currentYear] = getCurrentDate();
+            return {currentMonth, currentYear};
+        }
+
         std::regex monthYearRegex(R"((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{4}))", std::regex::icase);
         std::regex slashRegex(R"((\d{1,2})/(\d{4}))");
         std::regex yearRegex(R"(\d{4})");
@@ -109,93 +117,143 @@ namespace {
         return {-1, -1};
     }
 
+    // Helper function to split lines
+    std::vector<std::string> splitLines(const std::string& str) {
+        std::vector<std::string> lines;
+        size_t pos = 0;
+        while (pos < str.size()) {
+            size_t end = str.find('\n', pos);
+            if (end == std::string::npos) {
+                lines.push_back(str.substr(pos));
+                break;
+            }
+            lines.push_back(str.substr(pos, end - pos));
+            pos = end + 1;
+        }
+        return lines;
+    }
+
+    // Helper function to trim whitespace
+    std::string trim(const std::string& s) {
+        if (s.empty()) return s;
+        auto start = s.begin();
+        while (start != s.end() && std::isspace(*start)) {
+            start++;
+        }
+        auto end = s.end();
+        while (end != start && std::isspace(*(end - 1))) {
+            end--;
+        }
+        return std::string(start, end);
+    }
+
 } // namespace
 
 void ExperienceInterpreter::interpret(std::string str, CVData* data) {
     try {
-        // Look for experience section first
-        // Use [\s\S] instead of . to match any character including newlines
-        std::regex experience_section_regex(R"(Professional\s+Experience[\s\S]*?(?=\n[A-Z][^a-z]*\n|\n\n|\Z))", std::regex_constants::icase);
-        std::smatch section_match;
+        std::vector<std::string> lines = splitLines(str);
+        bool in_experience_section = false;
 
-        std::string experience_text = str;
-        if (std::regex_search(str, section_match, experience_section_regex)) {
-            experience_text = section_match[0].str();
-        }
+        // Find the Professional Experience section
+        for (size_t i = 0; i < lines.size(); ++i) {
+            std::string trimmed_line = trim(lines[i]);
+            if (trimmed_line.empty()) continue;
 
-        // Pattern to match: Job Title | Company | Year - Year
-        std::regex job_pattern(
-            R"(([^|\n]+)\s*\|\s*([^|\n]+)\s*\|\s*(\d{4})\s*[-–]\s*(\d{4}|Present|Current))",
-            std::regex_constants::icase
-        );
+            std::string lower_line = trimmed_line;
+            std::transform(lower_line.begin(), lower_line.end(), lower_line.begin(), ::tolower);
 
-        std::sregex_iterator it(experience_text.begin(), experience_text.end(), job_pattern);
-        std::sregex_iterator end_it;
-
-        while(it != end_it) {
-            std::smatch match = *it;
-            if (match.size() >= 5) {
-                std::string jobTitle = match[1].str();
-                std::string company = match[2].str();
-                std::string startYear = match[3].str();
-                std::string endYear = match[4].str();
-
-                // Clean up the extracted strings
-                jobTitle = cleanPositionName(jobTitle);
-                company = cleanPositionName(company);
-
-                // Calculate duration
-                auto [currentMonth, currentYear] = getCurrentDate();
-                int startYearInt = std::stoi(startYear);
-                int endYearInt = currentYear;
-
-                if (endYear != "Present" && endYear != "Current") {
-                    endYearInt = std::stoi(endYear);
-                }
-
-                int duration = (endYearInt - startYearInt) * 12; // Convert to months
-
-                if (duration > 0 && !company.empty()) {
-                    data->addExperience(company + " (" + jobTitle + ")", duration);
-                    std::cout << "Found experience: " << jobTitle << " at " << company
-                              << " (" << startYear << " - " << endYear << ", " << duration << " months)" << std::endl;
-                }
+            // Check if we're entering the experience section
+            if (lower_line.find("professional experience") == 0 ||
+                lower_line.find("work experience") == 0 ||
+                lower_line.find("experience") == 0) {
+                in_experience_section = true;
+                std::cout << "Found experience section at line: " << trimmed_line << std::endl;
+                continue;
             }
-            ++it;
-        }
 
-        // Fallback: try simpler year-only pattern
-        if (it == end_it) {
-            std::regex simple_year_pattern(R"((\d{4})\s*[-–]\s*(\d{4}|Present|Current))", std::regex_constants::icase);
-            std::sregex_iterator simple_it(experience_text.begin(), experience_text.end(), simple_year_pattern);
+            // If we're in experience section, look for job entries
+            if (in_experience_section) {
+                // Check if we've hit a new section
+                if (lower_line.find("education") == 0 ||
+                    lower_line.find("skills") == 0 ||
+                    lower_line.find("projects") == 0 ||
+                    lower_line.find("certifications") == 0) {
+                    break; // Exit experience section
+                }
 
-            while(simple_it != end_it) {
-                std::smatch match = *simple_it;
-                if (match.size() >= 3) {
-                    std::string startYear = match[1].str();
-                    std::string endYear = match[2].str();
+                // Look for job pattern: Position | Company | Year - Year/Present
+                std::regex job_pattern(
+                    R"(([^|\n]+)\s*\|\s*([^|\n]+)\s*\|\s*(\d{4})\s*[-–]\s*(\d{4}|Present|Current))",
+                    std::regex::icase
+                );
 
+                std::smatch job_match;
+                if (std::regex_search(trimmed_line, job_match, job_pattern)) {
+                    std::string jobTitle = trim(job_match[1].str());
+                    std::string company = trim(job_match[2].str());
+                    std::string startYear = job_match[3].str();
+                    std::string endYear = job_match[4].str();
+
+                    std::cout << "Found job entry: " << jobTitle << " at " << company
+                              << " (" << startYear << " - " << endYear << ")" << std::endl;
+
+                    // Calculate duration
                     auto [currentMonth, currentYear] = getCurrentDate();
                     int startYearInt = std::stoi(startYear);
                     int endYearInt = currentYear;
 
-                    if (endYear != "Present" && endYear != "Current") {
+                    std::string lowerEndYear = endYear;
+                    std::transform(lowerEndYear.begin(), lowerEndYear.end(), lowerEndYear.begin(), ::tolower);
+
+                    if (lowerEndYear != "present" && lowerEndYear != "current") {
                         endYearInt = std::stoi(endYear);
                     }
 
-                    int duration = (endYearInt - startYearInt) * 12;
+                    int duration = (endYearInt - startYearInt) * 12; // Convert to months
+                    if (duration < 0) duration = 0; // Handle invalid ranges
 
-                    if (duration > 0) {
-                        // Try to find company name around this date
-                        size_t pos = match.position();
-                        std::string context = experience_text.substr(std::max(0, (int)pos - 100), 200);
-
-                        data->addExperience("Unknown Company", duration);
-                        std::cout << "Found experience: " << startYear << " - " << endYear
-                                  << " (" << duration << " months)" << std::endl;
+                    if (duration >= 0 && !company.empty()) {
+                        std::string experienceEntry = company + " (" + jobTitle + ")";
+                        data->addExperience(experienceEntry, duration);
+                        std::cout << "Added experience: " << experienceEntry
+                                  << " - " << duration << " months" << std::endl;
                     }
                 }
-                ++simple_it;
+            }
+        }
+
+        // Fallback: if no structured experience found, try simpler patterns
+        if (data->getXP().empty()) {
+            std::cout << "No structured experience found, trying fallback patterns..." << std::endl;
+
+            // Look for any year ranges in the text
+            std::regex year_range_pattern(R"((\d{4})\s*[-–]\s*(\d{4}|Present|Current))", std::regex::icase);
+            std::sregex_iterator it(str.begin(), str.end(), year_range_pattern);
+            std::sregex_iterator end_it;
+
+            while (it != end_it) {
+                std::smatch match = *it;
+                std::string startYear = match[1].str();
+                std::string endYear = match[2].str();
+
+                auto [currentMonth, currentYear] = getCurrentDate();
+                int startYearInt = std::stoi(startYear);
+                int endYearInt = currentYear;
+
+                std::string lowerEndYear = endYear;
+                std::transform(lowerEndYear.begin(), lowerEndYear.end(), lowerEndYear.begin(), ::tolower);
+
+                if (lowerEndYear != "present" && lowerEndYear != "current") {
+                    endYearInt = std::stoi(endYear);
+                }
+
+                int duration = (endYearInt - startYearInt) * 12;
+                if (duration > 0) {
+                    data->addExperience("Experience " + startYear + "-" + endYear, duration);
+                    std::cout << "Added fallback experience: " << startYear << "-" << endYear
+                              << " (" << duration << " months)" << std::endl;
+                }
+                ++it;
             }
         }
     }
