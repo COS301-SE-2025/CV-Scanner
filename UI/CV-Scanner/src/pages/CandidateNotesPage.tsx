@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Box,
   Typography,
@@ -34,8 +34,28 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import logo from "../assets/logo.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 
-export default function CandidateExperiencePage() {
+export default function CandidateNotesPage() {
   const navigate = useNavigate();
+  const [note, setNote] = useState(""); // State for the new note input
+  const [notes, setNotes] = useState([
+    {
+      recruiter: "Recruiter 1",
+      date: "2023-05-15",
+      content: "Strong technical skills, may need more business exposure",
+    },
+  ]); // State for existing notes
+
+  const handleSaveNote = () => {
+    if (note.trim()) {
+      const newNote = {
+        recruiter: "Recruiter 1", // Replace with dynamic recruiter name if available
+        date: new Date().toISOString().split("T")[0], // Current date
+        content: note,
+      };
+      setNotes([newNote, ...notes]); // Add the new note to the top of the list
+      setNote(""); // Clear the input field
+    }
+  };
 
   return (
     <Box
@@ -121,7 +141,7 @@ export default function CandidateExperiencePage() {
           </Toolbar>
         </AppBar>
 
-        {/* Experience Content */}
+        {/* Notes Content */}
         <Box sx={{ p: 3 }}>
           <Typography variant="h4" sx={{ fontWeight: "bold", mb: 2 }}>
             Jane Smith
@@ -139,8 +159,8 @@ export default function CandidateExperiencePage() {
                   variant="body1"
                   sx={{
                     cursor: "pointer",
-                    color: idx === 2 ? "#0073c1" : "#b0b8c1", // Highlight "Experience" tab
-                    fontWeight: idx === 2 ? "bold" : "normal",
+                    color: idx === 3 ? "#0073c1" : "#b0b8c1", // Highlight "Recruiters Notes" tab
+                    fontWeight: idx === 3 ? "bold" : "normal",
                   }}
                   onClick={() => {
                     if (tab === "Summary") navigate("/candidate-review");
@@ -155,35 +175,42 @@ export default function CandidateExperiencePage() {
             )}
           </Box>
 
-          {/* Work History Section */}
+          {/* Recruiter Notes Section */}
           <Paper
             elevation={6}
             sx={{ p: 3, borderRadius: 3, bgcolor: "#e1f4ff" }}
           >
             <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
-              Work History
+              Recruiter Notes
             </Typography>
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="body1" sx={{ fontWeight: "bold" }}>
-                Tech Solutions Inc. | Senior Developer
-              </Typography>
-              <Typography variant="body2" sx={{ color: "#555" }}>
-                2020 - 2025
-              </Typography>
-              <Typography variant="body2" sx={{ color: "#555" }}>
-                Led team in migrating legacy systems to .NET Core
-              </Typography>
-            </Box>
-            <Box>
-              <Typography variant="body1" sx={{ fontWeight: "bold" }}>
-                Digital Innovations | Software Developer
-              </Typography>
-              <Typography variant="body2" sx={{ color: "#555" }}>
-                2018 - 2020
-              </Typography>
-              <Typography variant="body2" sx={{ color: "#555" }}>
-                Developed Azure-based SaaS solutions
-              </Typography>
+            <TextField
+              label="Add private notes about this candidate..."
+              variant="outlined"
+              fullWidth
+              multiline
+              rows={3}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+            <Button
+              variant="contained"
+              onClick={handleSaveNote}
+              sx={{ bgcolor: "#0073c1" }}
+            >
+              Save Notes
+            </Button>
+            <Box sx={{ mt: 3 }}>
+              {notes.map((note, idx) => (
+                <Box key={idx} sx={{ mb: 2 }}>
+                  <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                    {note.recruiter} on {note.date}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "#555" }}>
+                    {note.content}
+                  </Typography>
+                </Box>
+              ))}
             </Box>
           </Paper>
         </Box>
