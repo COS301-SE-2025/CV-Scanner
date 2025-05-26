@@ -38,7 +38,16 @@ const navigate = useNavigate();
 <Button fullWidth sx={navButtonStyle} startIcon={<SearchIcon />} onClick={() => navigate('/search')}>
   Search
 </Button>
-
+{/*userRole === "Admin" && */(
+    <Button
+      fullWidth
+      sx={navButtonStyle}
+      startIcon={<SettingsIcon />}
+      onClick={() => navigate("/user-management")}
+    >
+      User Management
+    </Button>
+  )}
       </Box>
 
       {/* Main Content with Top Bar */}
@@ -117,7 +126,7 @@ const navigate = useNavigate();
                         <Button
                           variant="contained"
                           sx={reviewButtonStyle}
-                          onClick={() => navigate('/review')}
+                          onClick={() => navigate('/candidate-review')}
                         >
                           Review
                         </Button>
