@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React from "react";
 import {
   Box,
   Typography,
@@ -34,21 +34,8 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import logo from "../assets/logo.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 
-export default function CandidateSkillsPage() {
+export default function CandidateExperiencePage() {
   const navigate = useNavigate();
-  const [skills, setSkills] = useState<string[]>([".NET", "Azure", "SQL", "C#"]); // Initial skills
-  const [newSkill, setNewSkill] = useState<string>(""); // State for the new skill input
-
-  const handleAddSkill = () => {
-    if (newSkill.trim() && !skills.includes(newSkill)) {
-      setSkills([...skills, newSkill]);
-      setNewSkill("");
-    }
-  };
-
-  const handleDeleteSkill = (skillToDelete: string) => {
-    setSkills(skills.filter((skill) => skill !== skillToDelete));
-  };
 
   return (
     <Box
@@ -109,7 +96,10 @@ export default function CandidateSkillsPage() {
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
-        <AppBar position="static" sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}>
+        <AppBar
+          position="static"
+          sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
+        >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
             <IconButton color="inherit">
               <Badge badgeContent={4} color="error">
@@ -131,7 +121,7 @@ export default function CandidateSkillsPage() {
           </Toolbar>
         </AppBar>
 
-        {/* Skills Content */}
+        {/* Experience Content */}
         <Box sx={{ p: 3 }}>
           <Typography variant="h4" sx={{ fontWeight: "bold", mb: 2 }}>
             Jane Smith
@@ -142,53 +132,59 @@ export default function CandidateSkillsPage() {
 
           {/* Tabs Section */}
           <Box sx={{ display: "flex", gap: 3, mb: 4 }}>
-            {["Summary", "Skills", "Experience", "Recruiters Notes"].map((tab, idx) => (
-              <Typography
-                key={idx}
-                variant="body1"
-                sx={{
-                  cursor: "pointer",
-                  color: idx === 1 ? "#0073c1" : "#b0b8c1", // Highlight "Skills" tab
-                  fontWeight: idx === 1 ? "bold" : "normal",
-                }}
-                onClick={() => {
-                  if (tab === "Summary") navigate("/candidate-review");
-                  if (tab === "Skills") navigate("/candidate-skills");
-                  if (tab === "Experience") navigate("/candidate-experience");
-                  if (tab === "Recruiters Notes") navigate("/candidate-notes");
-                }}
-              >
-                {tab}
-              </Typography>
-            ))}
+            {["Summary", "Skills", "Experience", "Recruiters Notes"].map(
+              (tab, idx) => (
+                <Typography
+                  key={idx}
+                  variant="body1"
+                  sx={{
+                    cursor: "pointer",
+                    color: idx === 2 ? "#0073c1" : "#b0b8c1", // Highlight "Experience" tab
+                    fontWeight: idx === 2 ? "bold" : "normal",
+                  }}
+                  onClick={() => {
+                    if (tab === "Summary") navigate("/candidate-review");
+                    if (tab === "Skills") navigate("/candidate-skills");
+                    if (tab === "Experience") navigate("/candidate-experience");
+                    if (tab === "Recruiters Notes")
+                      navigate("/candidate-notes");
+                  }}
+                >
+                  {tab}
+                </Typography>
+              )
+            )}
           </Box>
 
-          {/* Skills Section */}
-          <Paper elevation={6} sx={{ p: 3, borderRadius: 3, bgcolor: "#e1f4ff" }}>
+          {/* Work History Section */}
+          <Paper
+            elevation={6}
+            sx={{ p: 3, borderRadius: 3, bgcolor: "#e1f4ff" }}
+          >
             <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
-              Technical Skills
+              Work History
             </Typography>
-            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 3 }}>
-              {skills.map((skill, idx) => (
-                <Chip
-                  key={idx}
-                  label={skill}
-                  onDelete={() => handleDeleteSkill(skill)}
-                  sx={{ bgcolor: "#0073c1", color: "#fff" }}
-                />
-              ))}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+                Tech Solutions Inc. | Senior Developer
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#555" }}>
+                2020 - 2025
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#555" }}>
+                Led team in migrating legacy systems to .NET Core
+              </Typography>
             </Box>
-            <Box sx={{ display: "flex", gap: 2 }}>
-              <TextField
-                label="Add new skill"
-                variant="outlined"
-                value={newSkill}
-                onChange={(e) => setNewSkill(e.target.value)}
-                sx={{ flexGrow: 1 }}
-              />
-              <Button variant="contained" onClick={handleAddSkill} sx={{ bgcolor: "#0073c1" }}>
-                Add
-              </Button>
+            <Box>
+              <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+                Digital Innovations | Software Developer
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#555" }}>
+                2018 - 2020
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#555" }}>
+                Developed Azure-based SaaS solutions
+              </Typography>
             </Box>
           </Paper>
         </Box>

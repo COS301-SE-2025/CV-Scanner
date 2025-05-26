@@ -8,6 +8,7 @@ import CandidatesPage from './pages/CandidatesPage';
 import Search from './pages/Search';
 import CandidateReviewSummary from './pages/CandidateReviewSummary';
 import CandidateSkillsPage from './pages/CandidateSkillsPage';
+import CandidateExperiencePage from './pages/CandidateExperiencePage';
 
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
             <Route path="/search" element={<Search />} />
             <Route path="/candidate-review" element={<CandidateReviewSummary />} />
             <Route path="/candidate-skills" element={<CandidateSkillsPage />} />
+            <Route path="/candidate-experience" element={<CandidateExperiencePage />} />
        <Route path="*" element={<LoginPage />} />
       </Routes>
     </BrowserRouter>
