@@ -4,11 +4,13 @@
 #include <algorithm>
 #include <cctype>
 #include <vector>
+#include <iostream>
 
 using namespace std;
-namespace {
 
+namespace {
     string trim(const string& s) {
+        if (s.empty()) return s;
         auto start = s.begin();
         while (start != s.end() && isspace(*start)) {
             start++;
@@ -37,116 +39,116 @@ namespace {
 }
 
 void PersonalInfoInterpreter::interpret(string str, CVData* data) {
-    // Extract email
-    regex email_regex(R"(\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b)");
-    smatch email_match;
-    if (regex_search(str, email_match, email_regex)) {
-        data->setEmail(email_match.str());  // Using setter
-    }
-
-    // Extract LinkedIn URL
-    regex linkedin_regex(R"((https?:\/\/)?(www\.)?linkedin\.com\/in\/[a-zA-Z0-9-]+\/?\b)");
-    smatch linkedin_match;
-    if (regex_search(str, linkedin_match, linkedin_regex)) {
-        data->setLinkedIn(linkedin_match.str());  // Using setter
-    }
-
-    // Extract GitHub URL
-    regex github_regex(R"((https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9-]+\/?\b)");
-    smatch github_match;
-    if (regex_search(str, github_match, github_regex)) {
-        data->setGitHub(github_match.str());  // Using setter
-    }
-
-    vector<string> lines = splitLines(str);
-
-    // Extract name and surname
-    regex name_regex(R"(^[A-Z][a-zA-Z'-]+(\s+[A-Z][a-zA-Z'-]+)*$)");
-    for (const auto& line : lines) {
-        string trimmedLine = trim(line);
-        if (trimmedLine.empty()) continue;
-
-        vector<string> segments;
-        size_t start_pos = 0;
-        while (start_pos < trimmedLine.size()) {
-            size_t delim_pos = trimmedLine.find_first_of("|,-", start_pos);
-            if (delim_pos == string::npos) {
-                segments.push_back(trimmedLine.substr(start_pos));
-                break;
-            }
-            segments.push_back(trimmedLine.substr(start_pos, delim_pos - start_pos));
-            start_pos = delim_pos + 1;
+    try {
+        // Extract email
+        regex email_regex(R"(\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b)");
+        smatch email_match;
+        if (regex_search(str, email_match, email_regex)) {
+            data->setEmail(email_match.str());
         }
 
-        for (const string& segment : segments) {
-            string seg_trimmed = trim(segment);
-            if (seg_trimmed.empty()) continue;
+        // Extract LinkedIn URL
+        regex linkedin_regex(R"(linkedin\.com\/in\/[a-zA-Z0-9-]+)");
+        smatch linkedin_match;
+        if (regex_search(str, linkedin_match, linkedin_regex)) {
+            data->setLinkedIn(linkedin_match.str());
+        }
 
-            if (regex_match(seg_trimmed, name_regex)) {
-                istringstream iss(seg_trimmed);
+        // Extract GitHub URL
+        regex github_regex(R"(github\.com\/[a-zA-Z0-9-]+)");
+        smatch github_match;
+        if (regex_search(str, github_match, github_regex)) {
+            data->setGitHub(github_match.str());
+        }
+
+        vector<string> lines = splitLines(str);
+        bool name_found = false;
+
+        // Extract name from the first meaningful line (not title/header)
+        for (const auto& line : lines) {
+            string trimmed_line = trim(line);
+            if (trimmed_line.empty()) continue;
+
+            // Skip common CV headers/titles
+            string lower_line = trimmed_line;
+            transform(lower_line.begin(), lower_line.end(), lower_line.begin(), ::tolower);
+
+            if (lower_line.find("cv #") == 0 ||
+                lower_line.find("resume") != string::npos ||
+                lower_line.find("curriculum vitae") != string::npos ||
+                lower_line.find("software developer") != string::npos ||
+                lower_line.find("engineer") != string::npos ||
+                lower_line.find("manager") != string::npos ||
+                lower_line.find("analyst") != string::npos) {
+                continue;
+            }
+
+            // Look for name pattern: two or more capitalized words
+            regex name_regex(R"(^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)$)");
+            smatch name_match;
+            if (regex_match(trimmed_line, name_match, name_regex)) {
+                istringstream iss(trimmed_line);
                 vector<string> parts;
                 string part;
                 while (iss >> part) {
                     parts.push_back(part);
                 }
-                if (!parts.empty()) {
-                    // Build name and surname locally first
-                    string name = parts[0];
+                if (parts.size() >= 2) {
+                    data->setName(parts[0]);
                     string surname;
                     for (size_t i = 1; i < parts.size(); ++i) {
                         if (!surname.empty()) surname += " ";
                         surname += parts[i];
                     }
-                    data->setName(name);    // Using setter
-                    data->setSurname(surname);  // Using setter
-                    goto name_found;
+                    data->setSurname(surname);
+                    name_found = true;
+                    break;
                 }
             }
         }
-    }
-    name_found:
 
-    vector<string> about_headers = {"about", "summary", "profile", "objective", "personal statement"};
-    vector<string> section_headers = {"experience", "education", "skills", "projects", "work", "employment"};
-    bool in_about_section = false;
-    string about_content;
+        // Extract professional summary/about section
+        vector<string> about_headers = {"professional summary", "summary", "about", "profile", "objective"};
+        vector<string> section_headers = {"education", "experience", "skills", "projects", "work", "employment"};
+        bool in_about_section = false;
+        string about_content;
 
-    for (const auto& line : lines) {
-        string trimmed_line = trim(line);
-        string lower_line = trimmed_line;
-        transform(lower_line.begin(), lower_line.end(), lower_line.begin(), ::tolower);
+        for (const auto& line : lines) {
+            string trimmed_line = trim(line);
+            if (trimmed_line.empty()) continue;
 
-        if (!in_about_section) {
-            for (const string& header : about_headers) {
-                if (lower_line.find(header) == 0) {
-                    in_about_section = true;
-                    break;
+            string lower_line = trimmed_line;
+            transform(lower_line.begin(), lower_line.end(), lower_line.begin(), ::tolower);
+
+            if (!in_about_section) {
+                for (const string& header : about_headers) {
+                    if (lower_line.find(header) == 0) {
+                        in_about_section = true;
+                        break;
+                    }
                 }
-            }
-        } else {
-            if (trimmed_line.empty()) {
-                in_about_section = false;
-                continue;
-            }
-
-            bool is_new_section = false;
-            for (const string& sec_header : section_headers) {
-                if (lower_line.find(sec_header) == 0) {
-                    is_new_section = true;
-                    break;
-                }
-            }
-
-            if (is_new_section) {
-                in_about_section = false;
             } else {
-                about_content += trimmed_line + "\n";
+                bool is_new_section = false;
+                for (const string& sec_header : section_headers) {
+                    if (lower_line.find(sec_header) == 0) {
+                        is_new_section = true;
+                        break;
+                    }
+                }
+
+                if (is_new_section) {
+                    in_about_section = false;
+                } else {
+                    if (!about_content.empty()) about_content += " ";
+                    about_content += trimmed_line;
+                }
             }
         }
-    }
 
-    if (!about_content.empty() && about_content.back() == '\n') {
-        about_content.pop_back();
+        data->setAbout(about_content);
     }
-    data->setAbout(about_content);  // Using setter
+    catch (const regex_error& e) {
+        cerr << "Personal Info Regex error: " << e.what() << endl;
+        cerr << "Code: " << e.code() << endl;
+    }
 }
