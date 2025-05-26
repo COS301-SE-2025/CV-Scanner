@@ -3,7 +3,7 @@
 
 CVData::CVData(std::string str) {
     CVSectionExtractor extractor;
-    extractor.Extractor(str, *this);  // The extractor uses public setters to populate data
+    extractor.Extractor(str, this);  // The extractor uses public setters to populate data
 }
 
 // Getters

@@ -106,7 +106,6 @@ void PersonalInfoInterpreter::interpret(string str, CVData* data) {
     }
     name_found:
 
-    // Extract about section
     vector<string> about_headers = {"about", "summary", "profile", "objective", "personal statement"};
     vector<string> section_headers = {"experience", "education", "skills", "projects", "work", "employment"};
     bool in_about_section = false;

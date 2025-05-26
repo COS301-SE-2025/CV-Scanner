@@ -1,5 +1,5 @@
 #include "EducationInterpreter.h"
 
-void CVInterpreter:: interpret(std::string str,CVData* data) {
+void EducationInterpreter:: interpret(std::string str,CVData* data) {
 
 }
