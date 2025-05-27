@@ -8,7 +8,8 @@
 #include "CVInterpreter.h"
 
 class ExperienceInterpreter: public CVInterpreter {
-
+public:
+    void interpret(std::string str, CVData* data) override;
 };
 
 

@@ -4,7 +4,8 @@
 #include "CVInterpreter.h"
 
 class PersonalInfoInterpreter: public CVInterpreter {
-
+public:
+    void interpret(std::string str,CVData* data) override;
 };
 
 #endif //ENGINE_PERSONALINFOINTERPRETER_H
