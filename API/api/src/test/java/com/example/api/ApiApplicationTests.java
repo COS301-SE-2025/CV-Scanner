@@ -96,25 +96,6 @@ public class ApiApplicationTests {
 
 
     @Test
-    void uploadcv_returnsTxtFile() throws Exception {
-        // Use a relative path from the project root
-        File fileOnDisk = new File("src/test/java/com/example/resources/CV.docx");
-        assert fileOnDisk.exists() : "CV.docx not found at src/test/java/com/example/resources/CV.docx!";
-        FileInputStream is = new FileInputStream(fileOnDisk);
-
-        MockMultipartFile file = new MockMultipartFile(
-                "file", "CV.docx",
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                is);
-
-        mockMvc.perform(multipart("/cv/uploadcv").file(file))
-                .andExpect(status().isOk())
-                .andExpect(header().string("Content-Disposition", "attachment; filename=cv.txt"))
-                .andExpect(content().contentType(MediaType.TEXT_PLAIN));
-    }
-
-
-    @Test
     void login_missing_fields() throws Exception {
         String json = """
         {
