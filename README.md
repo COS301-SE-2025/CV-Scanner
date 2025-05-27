@@ -78,3 +78,20 @@ Track our development progress here:
 - [**Demo1 Video**](https://drive.google.com/file/d/1BtbS0klLEC0HWkYhbL0k7NyrCFnGpLrS/view?usp=sharing)
 - [**Demo1 Presentation**](https://docs.google.com/presentation/d/1O4b6erR0Uo78WA-xSwWJO_uA2eCvOgGE/edit?usp=sharing&ouid=117709380918548409880&rtpof=true&sd=true)
 - [**Software Requirement Specification Document**](https://drive.google.com/file/d/1AruNcFe2mI8f6CEjC8__o1PSpbJJFRpj/view?usp=sharing)
+
+---
+
+## Branching Strategies
+
+```mermaid
+graph TD;
+    Main-->Dev;
+    Dev-->UI;
+    Dev-->API;
+    Dev-->AI;
+    Dev-->Engine;
+    UI-->UIFeatureBranch;
+    Engine-->EngineFeatureBranch;
+    API-->APIFeatureBranch;
+    AI-->AIFeatureBranch;
+```
