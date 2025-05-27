@@ -6,7 +6,7 @@
 #include "PersonalInfoInterpreter.h"
 #include "SkillsInterpreter.h"
 
-CVData* CVSectionExtractor::Extractor (std::string str,CVData* data){
+void CVSectionExtractor::Extractor (std::string str,CVData* data){
 
     CVInterpreter* Sinterpreter = new SkillsInterpreter();
     CVInterpreter* Pinterpreter = new PersonalInfoInterpreter();
@@ -17,5 +17,4 @@ CVData* CVSectionExtractor::Extractor (std::string str,CVData* data){
     Pinterpreter->interpret(str,data);
     Einterpreter->interpret(str,data);
     EDinterpreter->interpret(str,data);
-
 }
