@@ -30,8 +30,14 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install and build UI
+      - name: Install dependencies
         working-directory: ./UI/CV-Scanner
-        run: |
-          npm install
-          npm run build
+        run: npm install
+
+      - name: Build UI (with explicit tsconfig)
+        working-directory: ./UI/CV-Scanner
+        run: npx tsc --project tsconfig.app.json
+
+      - name: Build React app
+        working-directory: ./UI/CV-Scanner
+        run: npm run build
