@@ -70,3 +70,11 @@ upload, some to edit, some full access and some users to have full admin access 
 ## 📋 Project Board  
 Track our development progress here:  
 🔗 [GitHub Project Board](https://github.com/orgs/COS301-SE-2025/projects/110/views/1)
+
+---
+
+## 🔗 Demo Links
+
+- [**Demo1 Video**](https://drive.google.com/file/d/1BtbS0klLEC0HWkYhbL0k7NyrCFnGpLrS/view?usp=sharing)
+- [**Demo1 Presentation**](https://docs.google.com/presentation/d/1O4b6erR0Uo78WA-xSwWJO_uA2eCvOgGE/edit?usp=sharing&ouid=117709380918548409880&rtpof=true&sd=true)
+- [**Software Requirement Specification Document**](https://drive.google.com/file/d/1AruNcFe2mI8f6CEjC8__o1PSpbJJFRpj/view?usp=sharing)
