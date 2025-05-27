@@ -14,30 +14,30 @@
 #include "SkillsInterpreter.h"
 
 int main(int argc, char* argv[]) {
-    // if(argc > 1) {
-    //     // CLI Mode
-    //     EngineCLI cli;
-    //     cli.executeCommand(argc, argv);
-    // } else {
-    //     // Direct execution mode (for debugging)
-    //     Engine& engine = Engine::getInstance(8080);
-    //     engine.start();
-    // }
+    if(argc > 1) {
+        // CLI Mode
+        EngineCLI cli;
+        cli.executeCommand(argc, argv);
+    } else {
+        // Direct execution mode (for debugging)
+        Engine& engine = Engine::getInstance(8080);
+        engine.start();
+    }
     std::ifstream file("../cv1.txt");  // Open the file
     if (!file) {
         std::cerr << "Could not open the file.\n";
         return 1;
     }
 
-    std::stringstream buffer;
-    buffer << file.rdbuf();  // Read the whole file into the buffer
-
-    std::string cv = buffer.str();  // Convert buffer to string
-
-    std::cout << "File content:\n" << cv << std::endl;
-    std::cout << "test1"<<std::endl;
-    CVData* data = new CVData(cv);
-    data->display();
+    // std::stringstream buffer;
+    // buffer << file.rdbuf();  // Read the whole file into the buffer
+    //
+    // std::string cv = buffer.str();  // Convert buffer to string
+    //
+    // std::cout << "File content:\n" << cv << std::endl;
+    // std::cout << "test1"<<std::endl;
+    // CVData* data = new CVData(cv);
+    // data->display();
 
     // CVSectionExtractor extractor;
     // extractor.Extractor(cv,data);
