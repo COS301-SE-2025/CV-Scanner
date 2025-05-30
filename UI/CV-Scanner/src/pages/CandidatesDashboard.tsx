@@ -1,7 +1,7 @@
 import { Box, Typography, Paper, Button, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, AppBar, Toolbar, IconButton, Badge } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import EntelectLogo from '../assets/logo.png'; 
+import logo2 from '../assets/logo2.png'; 
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import PeopleIcon from '@mui/icons-material/People';
@@ -23,7 +23,26 @@ const navigate = useNavigate();
 
       {/* Sidebar */}
       <Box sx={{ width: 220, bgcolor: '#5a88ad', display: 'flex', flexDirection: 'column', p: 2 }}>
-       {/* logo */}
+      <Box sx={{
+           display: "flex",
+           alignItems: "center",
+           backgroundColor: "#5a88ad", // Same as navbar
+           padding: "4px 8px",
+           borderRadius: "4px",
+             marginRight: 2,
+             
+         }}>
+           <img
+             src={logo2}
+             alt="Team Logo"
+             style={{
+             height: 50,
+             width: "auto",
+             imageRendering: 'crisp-edges', // or 'crisp-edges'
+          
+           }}
+           />
+         </Box>
        <Button fullWidth sx={navButtonStyle} startIcon={<DashboardIcon />} onClick={() => navigate('/dashboard')}>
   Dashboard
 </Button>

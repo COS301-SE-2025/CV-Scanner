@@ -31,7 +31,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import SettingsIcon from "@mui/icons-material/Settings";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import logo from "../assets/logo.png";
+import logo2 from "../assets/logo2.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 
 export default function CandidateExperiencePage() {
@@ -56,9 +56,26 @@ export default function CandidateExperiencePage() {
           p: 2,
         }}
       >
-        <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
-          <img src={logo} alt="Entelect Logo" style={{ width: 120 }} />
-        </Box>
+        <Box sx={{
+             display: "flex",
+             alignItems: "center",
+             backgroundColor: "#5a88ad", // Same as navbar
+             padding: "4px 8px",
+             borderRadius: "4px",
+               marginRight: 2,
+               
+           }}>
+             <img
+               src={logo2}
+               alt="Team Logo"
+               style={{
+               height: 50,
+               width: "auto",
+               imageRendering: 'crisp-edges', // or 'crisp-edges'
+            
+             }}
+             />
+           </Box>
         <Button
           fullWidth
           sx={navButtonStyle}

@@ -45,7 +45,7 @@ export default function ResetPassword() {
         src={logo}
         alt="Team Logo"
         style={{
-        height: 40,
+        height: 50,
         width: "auto",
         imageRendering: 'crisp-edges', // or 'crisp-edges'
      
