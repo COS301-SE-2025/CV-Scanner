@@ -30,7 +30,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import SettingsIcon from '@mui/icons-material/Settings';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import logo from '../assets/logo.png';
+import logo2 from '../assets/logo2.png';
 
 export default function Search() {
   const navigate = useNavigate();
@@ -43,7 +43,26 @@ export default function Search() {
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#181c2f', color: '#fff' }}>
       {/* Sidebar */}
       <Box sx={{ width: 220, bgcolor: '#5a88ad', display: 'flex', flexDirection: 'column', p: 2 }}>
-     {/* logo*/}
+   <Box sx={{
+     display: "flex",
+     alignItems: "center",
+     backgroundColor: "#5a88ad", // Same as navbar
+     padding: "4px 8px",
+     borderRadius: "4px",
+       marginRight: 2,
+       
+   }}>
+     <img
+       src={logo2}
+       alt="Team Logo"
+       style={{
+       height: 40,
+       width: "auto",
+       imageRendering: 'crisp-edges', // or 'crisp-edges'
+    
+     }}
+     />
+   </Box>
        <Button fullWidth sx={navButtonStyle} startIcon={<DashboardIcon />} onClick={() => navigate('/dashboard')}>
   Dashboard
 </Button>

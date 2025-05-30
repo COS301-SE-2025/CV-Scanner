@@ -60,7 +60,26 @@ export default function LoginPage() {
           boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
         }}
       >
-      {/* logo */}
+    <Box sx={{
+  display: "flex",
+  alignItems: "center",
+  backgroundColor: "#3a7ca5", // Same as navbar
+  padding: "4px 8px",
+  borderRadius: "4px",
+    marginRight: 2,
+    
+}}>
+  <img
+    src={logo}
+    alt="Team Logo"
+    style={{
+    height: 40,
+    width: "auto",
+    imageRendering: 'crisp-edges', // or 'crisp-edges'
+ 
+  }}
+  />
+</Box>
       </Box>
 
       {/* Main Content */}
