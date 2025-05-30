@@ -60,13 +60,7 @@ export default function LoginPage() {
           boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          <img
-            src={logo}
-            alt="Entelect Logo"
-            style={{ width: 100, height: 40, marginRight: 8 }}
-          />
-        </Box>
+      {/* logo */}
       </Box>
 
       {/* Main Content */}

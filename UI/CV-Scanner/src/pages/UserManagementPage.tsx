@@ -73,9 +73,8 @@ export default function UserManagementPage() {
           p: 2,
         }}
       >
-        <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
-          <img src={logo} alt="Entelect Logo" style={{ width: 120 }} />
-        </Box>
+        {/* logo */}
+       
         <Button
           fullWidth
           sx={navButtonStyle}
