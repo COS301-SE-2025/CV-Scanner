@@ -1,7 +1,19 @@
 FROM eclipse-temurin:21-jdk as builder
 WORKDIR /app
-COPY . .
-RUN ./mvnw clean package -DskipTests
+
+# Copy only dependency files first
+COPY pom.xml ./
+COPY mvnw ./
+COPY .mvn .mvn
+
+# Download dependencies (this layer will be cached)
+RUN ./mvnw dependency:go-offline -B
+
+# Copy source code
+COPY src ./src
+
+# Build the application
+RUN ./mvnw clean package -DskipTests -B
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
