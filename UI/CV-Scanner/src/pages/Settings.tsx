@@ -156,6 +156,182 @@ export default function SettingsPage() {
         <Box sx={{ flexGrow: 1 }} />
       </Box>
 
+      {/* Main Content */}
+      <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+        {/* Top App Bar */}
+        <AppBar position="static" sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}>
+          <Toolbar sx={{ justifyContent: "flex-end" }}>
+            <IconButton color="inherit">
+              <Badge badgeContent={4} color="error">
+                <NotificationsIcon />
+              </Badge>
+            </IconButton>
+            <Box sx={{ display: "flex", alignItems: "center", ml: 2 }}>
+              <AccountCircleIcon sx={{ mr: 1 }} />
+              <Typography variant="subtitle1">Admin User</Typography>
+            </Box>
+          </Toolbar>
+        </AppBar>
+
+        {/* Settings Content */}
+        <Box sx={{ p: 3 }}>
+          <Typography variant="h4" sx={{ fontWeight: "bold", mb: 3 }}>
+            User Settings
+          </Typography>
+
+          <Paper elevation={6} sx={{ p: 4, borderRadius: 3, bgcolor: "#e1f4ff", maxWidth: 800 }}>
+            {/* Error/Success Alerts */}
+            {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+            {success && <Alert severity="success" sx={{ mb: 3 }}>{success}</Alert>}
+
+            {/* Profile Section */}
+            <Box component="form" onSubmit={handleProfileUpdate} sx={{ mb: 4 }}>
+              <Typography variant="h6" sx={{ fontWeight: "bold", color: "#0073c1", mb: 2 }}>
+                Profile Information
+              </Typography>
+              
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                <Avatar sx={{ width: 80, height: 80, bgcolor: '#0073c1', fontSize: '2rem', mr: 3 }}>
+                  {profileForm.firstName[0]}{profileForm.lastName[0]}
+                </Avatar>
+              </Box>
+
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
+                <TextField
+                  name="firstName"
+                  label="First Name"
+                  value={profileForm.firstName}
+                  onChange={handleProfileChange}
+                  fullWidth
+                  variant="outlined"
+                  sx={{ mb: 2 }}
+                  InputProps={{ sx: { bgcolor: '#fff', borderRadius: 1 } }}
+                />
+                <TextField
+                  name="lastName"
+                  label="Last Name"
+                  value={profileForm.lastName}
+                  onChange={handleProfileChange}
+                  fullWidth
+                  variant="outlined"
+                  sx={{ mb: 2 }}
+                  InputProps={{ sx: { bgcolor: '#fff', borderRadius: 1 } }}
+                />
+                <TextField
+                  name="email"
+                  label="Email"
+                  value={profileForm.email}
+                  onChange={handleProfileChange}
+                  fullWidth
+                  variant="outlined"
+                  sx={{ mb: 2 }}
+                  InputProps={{ sx: { bgcolor: '#fff', borderRadius: 1 } }}
+                />
+              </Box>
+
+              <Button 
+                type="submit"
+                variant="contained"
+                disabled={loading}
+                sx={{ 
+                  mt: 2,
+                  background: 'linear-gradient(90deg, #232a3b 0%, #6ddf6d 100%)',
+                  color: '#fff',
+                  '&:hover': {
+                    background: 'linear-gradient(90deg, #232a3b 0%, #4bb34b 100%)',
+                  }
+                }}
+              >
+                {loading ? "Updating..." : "Update Profile"}
+              </Button>
+            </Box>
+
+            <Divider sx={{ my: 3 }} />
+
+            {/* Password Section */}
+            <Box component="form" onSubmit={handlePasswordChange} sx={{ mb: 4 }}>
+              <Typography variant="h6" sx={{ fontWeight: "bold", color: "#0073c1", mb: 2 }}>
+                Change Password
+              </Typography>
+              
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
+                <TextField
+                  name="currentPassword"
+                  label="Current Password"
+                  type="password"
+                  value={passwordForm.currentPassword}
+                  onChange={handlePasswordChangeInput}
+                  fullWidth
+                  variant="outlined"
+                  sx={{ mb: 2 }}
+                  InputProps={{ sx: { bgcolor: '#fff', borderRadius: 1 } }}
+                />
+                <Box></Box>
+                <TextField
+                  name="newPassword"
+                  label="New Password"
+                  type="password"
+                  value={passwordForm.newPassword}
+                  onChange={handlePasswordChangeInput}
+                  fullWidth
+                  variant="outlined"
+                  sx={{ mb: 2 }}
+                  InputProps={{ sx: { bgcolor: '#fff', borderRadius: 1 } }}
+                />
+                <TextField
+                  name="confirmPassword"
+                  label="Confirm New Password"
+                  type="password"
+                  value={passwordForm.confirmPassword}
+                  onChange={handlePasswordChangeInput}
+                  fullWidth
+                  variant="outlined"
+                  sx={{ mb: 2 }}
+                  InputProps={{ sx: { bgcolor: '#fff', borderRadius: 1 } }}
+                />
+              </Box>
+
+              <Button 
+                type="submit"
+                variant="contained"
+                disabled={loading}
+                startIcon={<LockResetIcon />}
+                sx={{ 
+                  mt: 2,
+                  background: 'linear-gradient(90deg, #232a3b 0%, #6ddf6d 100%)',
+                  color: '#fff',
+                  '&:hover': {
+                    background: 'linear-gradient(90deg, #232a3b 0%, #4bb34b 100%)',
+                  }
+                }}
+              >
+                {loading ? "Updating..." : "Update Password"}
+              </Button>
+            </Box>
+
+            <Divider sx={{ my: 3 }} />
+
+            {/* Danger Zone */}
+            <Box>
+              
+              
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <Button 
+                  variant="contained" 
+                  sx={{ 
+                    bgcolor: '#f44336',
+                    color: '#fff',
+                    '&:hover': { bgcolor: '#d32f2f' }
+                  }}
+                  onClick={handleLogout}
+                >
+                  Logout
+                </Button>
+              </Box>
+            </Box>
+          </Paper>
+        </Box>
+      </Box>
     </Box>
   );
 }
