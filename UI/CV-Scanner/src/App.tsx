@@ -11,6 +11,7 @@ import CandidateSkillsPage from './pages/CandidateSkillsPage';
 import CandidateExperiencePage from './pages/CandidateExperiencePage';
 import CandidateNotesPage from './pages/CandidateNotesPage';
 import UserManagementPage from './pages/UserManagementPage';
+import Settings from './pages/Settings';
 
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
             <Route path="/candidate-experience" element={<CandidateExperiencePage />} />
             <Route path="/candidate-notes" element={<CandidateNotesPage />} />
             <Route path="/user-management" element={<UserManagementPage />} />
+             <Route path="/settings" element={<Settings />} />
        <Route path="*" element={<LoginPage />} />
       </Routes>
     </BrowserRouter>
