@@ -17,6 +17,10 @@ import {
   Toolbar,
   IconButton,
   Badge,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import NotificationsIcon from "@mui/icons-material/Notifications";
@@ -27,6 +31,7 @@ import PeopleIcon from "@mui/icons-material/People";
 import SearchIcon from "@mui/icons-material/Search";
 import SettingsIcon from "@mui/icons-material/Settings";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import DeleteIcon from "@mui/icons-material/Delete";
 import logo from "../assets/logo.png";
 
 export default function UserManagementPage() {
@@ -53,6 +58,40 @@ export default function UserManagementPage() {
       lastActive: "2 days ago",
     },
   ];
+
+  const [openEditDialog, setOpenEditDialog] = React.useState(false);
+  const [editingUser, setEditingUser] = React.useState(null);
+  const [editFormData, setEditFormData] = React.useState({
+    name: "",
+    email: "",
+    role: "",
+  });
+
+  const handleEditClick = (user) => {
+    setEditingUser(user);
+    setEditFormData({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
+    setOpenEditDialog(true);
+  };
+
+  const handleEditClose = () => {
+    setOpenEditDialog(false);
+    setEditingUser(null);
+  };
+
+  const handleEditSave = () => {
+    // Here you would typically make an API call to update the user
+    console.log("Saving user:", editFormData);
+    handleEditClose();
+  };
+
+  const handleDeleteUser = (user) => {
+    // Here you would typically make an API call to delete the user
+    console.log("Deleting user:", user);
+  };
 
   return (
     <Box
@@ -232,6 +271,7 @@ export default function UserManagementPage() {
                             textTransform: "none",
                             mr: 1,
                           }}
+                          onClick={() => handleEditClick(user)}
                         >
                           Edit
                         </Button>
@@ -242,8 +282,10 @@ export default function UserManagementPage() {
                             color: "#fff",
                             textTransform: "none",
                           }}
+                          onClick={() => handleDeleteUser(user)}
+                          startIcon={<DeleteIcon />}
                         >
-                          Review
+                          Delete
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -272,6 +314,67 @@ export default function UserManagementPage() {
             </Button>
           </Box>
         </Box>
+
+        {/* Edit User Dialog */}
+        <Dialog
+          open={openEditDialog}
+          onClose={handleEditClose}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: { overflow: 'visible' }
+          }}
+        >
+          <DialogTitle sx={{ bgcolor: "#5a88ad", color: "#fff" }}>
+            Edit User
+          </DialogTitle>
+          <DialogContent sx={{ 
+            mt: 2,
+            overflow: 'visible'
+          }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <TextField
+                label="Name"
+                fullWidth
+                value={editFormData.name}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, name: e.target.value })
+                }
+              />
+              <TextField
+                label="Email"
+                fullWidth
+                value={editFormData.email}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, email: e.target.value })
+                }
+              />
+              <Select
+                value={editFormData.role}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, role: e.target.value })
+                }
+                fullWidth
+              >
+                <MenuItem value="Admin">Admin</MenuItem>
+                <MenuItem value="Editor">Editor</MenuItem>
+                <MenuItem value="Uploader">Uploader</MenuItem>
+              </Select>
+            </Box>
+          </DialogContent>
+          <DialogActions sx={{ p: 2 }}>
+            <Button onClick={handleEditClose} sx={{ color: "#666" }}>
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleEditSave}
+              sx={{ bgcolor: "#4caf50", color: "#fff" }}
+            >
+              Save Changes
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </Box>
   );
