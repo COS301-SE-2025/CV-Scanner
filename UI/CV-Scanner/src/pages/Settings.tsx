@@ -120,6 +120,26 @@ export default function SettingsPage() {
     navigate("/login");
   };
 
+ /* const handleLogout = async () => {
+  try {
+    // Optional: Tell backend to clear session / cookies
+    await fetch("http://localhost:8081/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+  } catch (err) {
+    console.warn("Logout request failed, continuing with client-side logout.");
+  }
+
+  // Clear client-side storage
+  localStorage.removeItem("authToken");
+  // Optionally: clear more app state here (e.g., Redux, Context)
+
+  // Redirect
+  navigate("/login");
+};*/
+
+
   // Handle form changes
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
