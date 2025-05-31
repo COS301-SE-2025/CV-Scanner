@@ -136,7 +136,7 @@ export default function SettingsPage() {
       {/* Sidebar */}
       <Box sx={{ width: 220, bgcolor: "#5a88ad", display: "flex", flexDirection: "column", p: 2 }}>
         <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
-          <img src={logo2} alt="Entelect Logo" style={{ width: 120 }} />
+          <img src={logo2} alt="Team Logo" style={{ width: 120 }} />
         </Box>
         <Button fullWidth sx={navButtonStyle} startIcon={<DashboardIcon />} onClick={() => navigate("/dashboard")}>
           Dashboard

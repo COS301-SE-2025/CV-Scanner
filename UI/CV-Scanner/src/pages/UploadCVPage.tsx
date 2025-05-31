@@ -97,26 +97,10 @@ export default function UploadCVPage() {
           p: 2,
         }}
       >
-       <Box sx={{
-     display: "flex",
-     alignItems: "center",
-     backgroundColor: "#5a88ad", // Same as navbar
-     padding: "4px 8px",
-     borderRadius: "4px",
-       marginRight: 2,
-       
-   }}>
-     <img
-       src={logo2}
-       alt="Team Logo"
-       style={{
-       height: 50,
-       width: "auto",
-       imageRendering: 'crisp-edges', // or 'crisp-edges'
-    
-     }}
-     />
-   </Box>
+    <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
+          <img src={logo2} alt="Team Logo" style={{ width: 120 }} />
+        </Box>
+
         <Button
           fullWidth
           sx={navButtonStyle}
