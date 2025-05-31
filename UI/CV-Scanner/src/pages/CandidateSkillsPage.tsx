@@ -133,10 +133,20 @@ export default function CandidateSkillsPage() {
                 <NotificationsIcon />
               </Badge>
             </IconButton>
-            <Box sx={{ display: "flex", alignItems: "center", ml: 2 }}>
-              <AccountCircleIcon sx={{ mr: 1 }} />
-              <Typography variant="subtitle1">Admin User</Typography>
-            </Box>
+            <Box
+  sx={{
+    display: 'flex',
+    alignItems: 'center',
+    ml: 2,
+    cursor: 'pointer',
+    '&:hover': { opacity: 0.8 },
+  }}
+  onClick={() => navigate('/settings')}
+>
+  <AccountCircleIcon sx={{ mr: 1 }} />
+  <Typography variant="subtitle1">Admin User</Typography>
+</Box>
+
             <IconButton
               color="inherit"
               onClick={() => {
