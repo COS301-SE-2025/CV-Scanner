@@ -72,7 +72,9 @@ export default function Search() {
 <Button fullWidth sx={navButtonStyle} startIcon={<PeopleIcon />} onClick={() => navigate('/candidates')}>
   Candidates
 </Button>
-<Button fullWidth sx={navButtonStyle} startIcon={<SearchIcon />} onClick={() => navigate('/search')}>
+<Button fullWidth
+ sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
+startIcon={<SearchIcon />} onClick={() => navigate('/search')}>
   Search
 </Button>
 

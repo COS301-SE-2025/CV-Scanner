@@ -70,7 +70,9 @@ export default function CandidatesPage() {
 <Button fullWidth sx={navButtonStyle} startIcon={<UploadFileIcon />} onClick={() => navigate('/upload')}>
   Upload CV
 </Button>
-<Button fullWidth sx={navButtonStyle} startIcon={<PeopleIcon />} onClick={() => navigate('/candidates')}>
+<Button fullWidth
+ sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
+startIcon={<PeopleIcon />} onClick={() => navigate('/candidates')}>
   Candidates
 </Button>
 <Button fullWidth sx={navButtonStyle} startIcon={<SearchIcon />} onClick={() => navigate('/search')}>

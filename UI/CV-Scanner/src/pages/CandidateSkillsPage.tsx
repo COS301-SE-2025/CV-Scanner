@@ -107,7 +107,7 @@ export default function CandidateSkillsPage() {
         </Button>
         <Button
           fullWidth
-          sx={navButtonStyle}
+        sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
           startIcon={<PeopleIcon />}
           onClick={() => navigate("/candidates")}
         >

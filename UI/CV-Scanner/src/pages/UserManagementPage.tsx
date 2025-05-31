@@ -129,7 +129,7 @@ export default function UserManagementPage() {
         {userRole === "Admin" && (
           <Button
             fullWidth
-            sx={navButtonStyle}
+             sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
             startIcon={<SettingsIcon />}
             onClick={() => navigate("/user-management")}
           >

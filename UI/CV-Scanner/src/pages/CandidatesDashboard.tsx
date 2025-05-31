@@ -43,7 +43,12 @@ const navigate = useNavigate();
            }}
            />
          </Box>
-       <Button fullWidth sx={navButtonStyle} startIcon={<DashboardIcon />} onClick={() => navigate('/dashboard')}>
+       <Button
+  fullWidth
+  sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
+  startIcon={<DashboardIcon />}
+  onClick={() => navigate('/dashboard')}
+>
   Dashboard
 </Button>
 <Button fullWidth sx={navButtonStyle} startIcon={<UploadFileIcon />} onClick={() => navigate('/upload')}>
