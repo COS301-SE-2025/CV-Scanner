@@ -60,13 +60,26 @@ export default function LoginPage() {
           boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          <img
-            src={logo}
-            alt="Entelect Logo"
-            style={{ width: 100, height: 40, marginRight: 8 }}
-          />
-        </Box>
+    <Box sx={{
+  display: "flex",
+  alignItems: "center",
+  backgroundColor: "#3a7ca5", // Same as navbar
+  padding: "4px 8px",
+  borderRadius: "4px",
+    marginRight: 2,
+    
+}}>
+  <img
+    src={logo}
+    alt="Team Logo"
+    style={{
+    height: 50,
+    width: "auto",
+    imageRendering: 'crisp-edges', // or 'crisp-edges'
+ 
+  }}
+  />
+</Box>
       </Box>
 
       {/* Main Content */}
