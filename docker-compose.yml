@@ -1,0 +1,38 @@
+services:
+  engine:
+    build:
+      context: ./Engine
+    image: capstone-engine
+    container_name: engine-service
+    ports:
+      - "8080:8080"  # Match what your engine actually uses
+    networks:
+      - scanner-network
+
+  api:
+    build:
+      context: ./API/api
+    image: capstone-api
+    container_name: api-service
+    ports:
+      - "8081:8080"  # API runs on 8080 inside container, expose on 8081
+    depends_on:
+      - engine
+    networks:
+      - scanner-network
+
+  frontend:
+    build:
+      context: ./UI/CV-Scanner
+    image: capstone-frontend
+    container_name: frontend-service
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    networks:
+      - scanner-network
+
+networks:
+  scanner-network:
+    driver: bridge
