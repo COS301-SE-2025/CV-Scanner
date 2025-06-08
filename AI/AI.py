@@ -36,11 +36,6 @@ def categorize_cv_nlp(text: str):
 
     return categories
 
-            categories[current_section].append(line)
-        else:
-            categories["other"].append(line)
-
-    return categories
 
 def prepare_json_data(categories: dict):
     json_data = {}
