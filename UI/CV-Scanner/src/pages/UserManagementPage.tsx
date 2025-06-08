@@ -31,8 +31,9 @@ import PeopleIcon from "@mui/icons-material/People";
 import SearchIcon from "@mui/icons-material/Search";
 import SettingsIcon from "@mui/icons-material/Settings";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
-import DeleteIcon from "@mui/icons-material/Delete";
-import logo from "../assets/logo.png";
+
+import logo2 from "../assets/logo2.png";
+
 
 export default function UserManagementPage() {
   const navigate = useNavigate();
@@ -112,9 +113,10 @@ export default function UserManagementPage() {
           p: 2,
         }}
       >
-        <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
-          <img src={logo} alt="Entelect Logo" style={{ width: 120 }} />
+     <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
+          <img src={logo2} alt="Team Logo" style={{ width: 120 }} />
         </Box>
+       
         <Button
           fullWidth
           sx={navButtonStyle}
@@ -150,7 +152,7 @@ export default function UserManagementPage() {
         {userRole === "Admin" && (
           <Button
             fullWidth
-            sx={navButtonStyle}
+             sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
             startIcon={<SettingsIcon />}
             onClick={() => navigate("/user-management")}
           >
@@ -172,10 +174,20 @@ export default function UserManagementPage() {
                 <NotificationsIcon />
               </Badge>
             </IconButton>
-            <Box sx={{ display: "flex", alignItems: "center", ml: 2 }}>
-              <AccountCircleIcon sx={{ mr: 1 }} />
-              <Typography variant="subtitle1">Admin User</Typography>
-            </Box>
+            <Box
+  sx={{
+    display: 'flex',
+    alignItems: 'center',
+    ml: 2,
+    cursor: 'pointer',
+    '&:hover': { opacity: 0.8 },
+  }}
+  onClick={() => navigate('/settings')}
+>
+  <AccountCircleIcon sx={{ mr: 1 }} />
+  <Typography variant="subtitle1">Admin User</Typography>
+</Box>
+
             <IconButton
               color="inherit"
               onClick={() => {

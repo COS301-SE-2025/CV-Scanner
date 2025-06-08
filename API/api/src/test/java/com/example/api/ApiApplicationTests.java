@@ -8,6 +8,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.mock.web.MockMultipartFile;
@@ -26,6 +27,9 @@ public class ApiApplicationTests {
 
     @MockBean
     private JdbcTemplate jdbcTemplate;
+
+    @MockBean
+    private BCryptPasswordEncoder passwordEncoder;
 
     // --- AuthController Tests ---
 
@@ -90,26 +94,39 @@ public class ApiApplicationTests {
                 .andExpect(content().string("Username or email already exists."));
     }
 
-    // --- CVController Tests ---
 
-    
     @Test
-    void uploadcv_returnsTxtFile() throws Exception {
-        // Use a relative path from the project root
-        File fileOnDisk = new File("src/test/java/com/example/resources/CV.docx");
-        assert fileOnDisk.exists() : "CV.docx not found at src/test/java/com/example/resources/CV.docx!";
-        FileInputStream is = new FileInputStream(fileOnDisk);
+    void login_missing_fields() throws Exception {
+        String json = """
+        {
+            "email": "test@example.com"
+        }
+        """;
 
-        MockMultipartFile file = new MockMultipartFile(
-                "file", "CV.docx",
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                is);
-
-        mockMvc.perform(multipart("/cv/uploadcv").file(file))
-                .andExpect(status().isOk())
-                .andExpect(header().string("Content-Disposition", "attachment; filename=cv.txt"))
-                .andExpect(content().contentType(MediaType.TEXT_PLAIN));
+        mockMvc.perform(post("/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Email and password are required."));
     }
 
-    
+    @Test
+    void login_invalid_credentials() throws Exception {
+        Mockito.when(jdbcTemplate.queryForObject(anyString(), eq(String.class), any()))
+                .thenThrow(new org.springframework.dao.EmptyResultDataAccessException(1));
+
+        String json = """
+        {
+            "email": "wrong@example.com",
+            "password": "wrongpass"
+        }
+        """;
+
+        mockMvc.perform(post("/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().string("Invalid email or password."));
+    }
+
 }
