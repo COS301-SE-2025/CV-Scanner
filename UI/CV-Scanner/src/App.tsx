@@ -12,6 +12,7 @@ import CandidateExperiencePage from './pages/CandidateExperiencePage';
 import CandidateNotesPage from './pages/CandidateNotesPage';
 import UserManagementPage from './pages/UserManagementPage';
 import Settings from './pages/Settings';
+import AddUserPage from './pages/AddUserPage';
 
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
             <Route path="/candidate-notes" element={<CandidateNotesPage />} />
             <Route path="/user-management" element={<UserManagementPage />} />
              <Route path="/settings" element={<Settings />} />
+             <Route path="/add-user" element={<AddUserPage />} />
        <Route path="*" element={<LoginPage />} />
       </Routes>
     </BrowserRouter>
