@@ -5,11 +5,16 @@ import tempfile
 import json
 import os
 from transformers import pipeline
+import re
+import spacy
+nlp = spacy.load("en_core_web_sm")
+
+
+
 
 app = FastAPI()
 
 classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
-
 
 labels = ["profile", "education", "skills", "languages", "projects", "achievements", "contact", "experience"]
 
