@@ -1,7 +1,11 @@
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.responses import JSONResponse
 from tika import parser
 import tempfile
-import os
 import json
+import os
+
+app = FastAPI()
 
 def categorize_cv(text: str):
     categories = {
@@ -64,38 +68,39 @@ def process_pdf_file(pdf_path):
         parsed = parser.from_file(pdf_path)
         cv_text = parsed.get('content', '')
         if not cv_text:
-            print(f"No content extracted from {pdf_path}")
             return None
     except Exception as e:
-        print(f"Failed to parse PDF: {e}")
         return None
 
     categorized = categorize_cv(cv_text)
     return prepare_json_data(categorized)
 
 def process_pdf_bytes(pdf_bytes: bytes):
-    # Create a temporary file, write bytes to it, parse, then delete
-    with tempfile.NamedTemporaryFile(delete=True, suffix=".pdf") as tmp_file:
+    # On Windows, NamedTemporaryFile must be closed before another process can read it
+    tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    try:
         tmp_file.write(pdf_bytes)
-        tmp_file.flush()  # ensure all bytes written
-        # parse from this temp file
+        tmp_file.close()  # CLOSE it so tika (Java) can read it
+
         result = process_pdf_file(tmp_file.name)
+    finally:
+        os.unlink(tmp_file.name)  # delete the temp file
+
     return result
 
-# Example main that simulates receiving a PDF file as bytes
-def main():
-    # Simulate loading a PDF file as bytes
-    pdf_path = "CV(1).pdf"
-    if not os.path.isfile(pdf_path):
-        print(f"File '{pdf_path}' not found. Please add it.")
-        return
+@app.post("/upload_pdf/")
+async def upload_pdf(file: UploadFile = File(...)):
+    if file.content_type != "application/pdf":
+        raise HTTPException(status_code=400, detail="Invalid file type, only PDFs allowed.")
 
-    with open(pdf_path, "rb") as f:
-        pdf_data = f.read()
+    pdf_bytes = await file.read()
+    result = process_pdf_bytes(pdf_bytes)
 
-    extracted_json = process_pdf_bytes(pdf_data)
-    if extracted_json:
-        print(json.dumps(extracted_json, indent=2))
+    if result is None:
+        raise HTTPException(status_code=500, detail="Failed to extract text from PDF.")
+
+    return JSONResponse(content=result)
 
 if __name__ == "__main__":
-    main()
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8081)
