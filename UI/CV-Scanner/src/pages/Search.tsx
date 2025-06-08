@@ -263,8 +263,10 @@ export default function Search() {
           transform: 'translateY(-2px)'
         },
         transition: 'all 0.2s ease'
-    }}>
-       onClick={() => navigate('/candidate-review')}
+    }}
+      onClick={() => navigate('/candidate-review')} // Correct placement
+>
+
     
       <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 3 }}>
         <Avatar sx={{ bgcolor: '#0073c1', width: 56, height: 56, fontSize: '1.5rem' }}>
