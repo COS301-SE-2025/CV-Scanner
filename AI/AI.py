@@ -1,9 +1,6 @@
 from tika import parser
 
 def categorize_cv(text: str):
-    """
-    Categorize CV text into sections by simple keyword matching.
-    """
     categories = {
         "profile": [],
         "education": [],
@@ -15,28 +12,36 @@ def categorize_cv(text: str):
         "other": []
     }
 
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    lines = [line.strip() for line in text.splitlines()]
     current_section = None
 
-    for line in lines:
-        lower = line.lower()
+    section_keywords = {
+        "profile": ["profile"],
+        "education": ["education"],
+        "skills": ["skill", "technical skills"],
+        "languages": ["language"],
+        "projects": ["project"],
+        "achievements": ["achievement"],
+        "contact": ["phone", "email", "address", "github", ".com"]
+    }
 
-        if "profile" in lower:
-            current_section = "profile"
-        elif "education" in lower:
-            current_section = "education"
-        elif "skill" in lower:
-            current_section = "skills"
-        elif "language" in lower:
-            current_section = "languages"
-        elif "project" in lower:
-            current_section = "projects"
-        elif "achievement" in lower:
-            current_section = "achievements"
-        elif any(x in lower for x in ["phone", "email", "address", "github", ".com"]):
-            current_section = "contact"
-        elif lower.strip() == "":
+    def matches_section(line):
+        lower = line.lower()
+        for section, keywords in section_keywords.items():
+            for kw in keywords:
+                if kw in lower:
+                    return section
+        return None
+
+    for line in lines:
+        if not line.strip():
             current_section = None
+            continue
+
+        matched_section = matches_section(line)
+        if matched_section:
+            current_section = matched_section
+            continue  # Skip adding the header line to content
 
         if current_section:
             categories[current_section].append(line)
@@ -46,7 +51,7 @@ def categorize_cv(text: str):
     return categories
 
 def main():
-    pdf_path = "example.pdf"
+    pdf_path = "CV(1).pdf"
 
     try:
         parsed = parser.from_file(pdf_path)
