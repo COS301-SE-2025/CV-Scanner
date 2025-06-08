@@ -1,5 +1,6 @@
 from tika import parser
 import os
+import json
 
 def categorize_cv(text: str):
     categories = {
@@ -42,7 +43,7 @@ def categorize_cv(text: str):
         matched_section = matches_section(line)
         if matched_section:
             current_section = matched_section
-            continue  # Skip adding the header line to content
+            continue
 
         if current_section:
             categories[current_section].append(line)
@@ -50,6 +51,13 @@ def categorize_cv(text: str):
             categories["other"].append(line)
 
     return categories
+
+def prepare_json_data(categories: dict):
+    # Convert lists of lines into strings for JSON
+    json_data = {}
+    for section, content in categories.items():
+        json_data[section] = "\n".join(content).strip()
+    return json_data
 
 def main():
     pdf_path = "CV(1).pdf"
@@ -69,10 +77,18 @@ def main():
         return
 
     categorized = categorize_cv(cv_text)
+
+    # Show categories (optional)
     for section, content in categorized.items():
         print(f"\n--- {section.upper()} ---")
         for line in content:
             print(line)
+
+    json_ready = prepare_json_data(categorized)
+
+    # Demo print JSON string that can be sent to API
+    print("\nJSON data ready to send:")
+    print(json.dumps(json_ready, indent=2))
 
 if __name__ == "__main__":
     main()
