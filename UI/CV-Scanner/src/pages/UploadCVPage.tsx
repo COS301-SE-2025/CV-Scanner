@@ -21,6 +21,7 @@ import {
   TextField,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { useLocation } from 'react-router-dom';
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -78,6 +79,8 @@ export default function UploadCVPage() {
 
   const navigate = useNavigate();
 
+  const location = useLocation();
+
   return (
     <Box
       sx={{
@@ -100,39 +103,45 @@ export default function UploadCVPage() {
     <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
           <img src={logo2} alt="Team Logo" style={{ width: 120 }} />
         </Box>
+<Button
+  fullWidth
+  sx={navButtonStyle}
+  className={location.pathname === '/dashboard' ? 'active' : ''}
+  startIcon={<DashboardIcon />}
+  onClick={() => navigate('/dashboard')}
+>
+  Dashboard
+</Button>
 
-        <Button
-          fullWidth
-          sx={navButtonStyle}
-          startIcon={<DashboardIcon />}
-          onClick={() => navigate("/dashboard")}
-        >
-          Dashboard
-        </Button>
-        <Button
-          fullWidth
-        sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
-          startIcon={<UploadFileIcon />}
-          onClick={() => navigate("/upload")}
-        >
-          Upload CV
-        </Button>
-        <Button
-          fullWidth
-          sx={navButtonStyle}
-          startIcon={<PeopleIcon />}
-          onClick={() => navigate("/candidates")}
-        >
-          Candidates
-        </Button>
-        <Button
-          fullWidth
-          sx={navButtonStyle}
-          startIcon={<SearchIcon />}
-          onClick={() => navigate("/search")}
-        >
-          Search
-        </Button>
+<Button
+  fullWidth
+  sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
+  className={location.pathname === '/upload' ? 'active' : ''}
+  startIcon={<UploadFileIcon />}
+  onClick={() => navigate('/upload')}
+>
+  Upload CV
+</Button>
+
+<Button
+  fullWidth
+  sx={navButtonStyle}
+  className={location.pathname === '/candidates' ? 'active' : ''}
+  startIcon={<PeopleIcon />}
+  onClick={() => navigate('/candidates')}
+>
+  Candidates
+</Button>
+
+<Button
+  fullWidth
+  sx={navButtonStyle}
+  className={location.pathname === '/search' ? 'active' : ''}
+  startIcon={<SearchIcon />}
+  onClick={() => navigate('/search')}
+>
+  Search
+</Button>
       </Box>
 
       {/* Main Content with Top Bar */}
@@ -329,6 +338,19 @@ const navButtonStyle = {
   },
   textTransform: "none",
   fontWeight: "bold",
+  '&.active': {
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    height: '100%',
+    width: '4px',
+    backgroundColor: 'black',
+    borderRadius: '0 4px 4px 0'
+  }
+}
+
 };
 
 const reviewButtonStyle = {
