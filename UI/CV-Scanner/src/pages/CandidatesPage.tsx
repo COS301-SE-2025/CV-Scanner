@@ -57,18 +57,45 @@ export default function CandidatesPage() {
         <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
           <img src={logo2} alt="Team Logo" style={{ width: 120 }} />
         </Box>
-        <Button fullWidth sx={navButtonStyle} startIcon={<DashboardIcon />} onClick={() => navigate('/dashboard')}>
-          Dashboard
-        </Button>
-        <Button fullWidth sx={navButtonStyle} startIcon={<UploadFileIcon />} onClick={() => navigate('/upload')}>
-          Upload CV
-        </Button>
-        <Button fullWidth sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }} startIcon={<PeopleIcon />} onClick={() => navigate('/candidates')}>
-          Candidates
-        </Button>
-        <Button fullWidth sx={navButtonStyle} startIcon={<SearchIcon />} onClick={() => navigate('/search')}>
-          Search
-        </Button>
+     <Button
+  fullWidth
+  sx={navButtonStyle}
+  className={location.pathname === '/dashboard' ? 'active' : ''}
+  startIcon={<DashboardIcon />}
+  onClick={() => navigate('/dashboard')}
+>
+  Dashboard
+</Button>
+
+<Button
+  fullWidth
+  sx={navButtonStyle}
+  className={location.pathname === '/upload' ? 'active' : ''}
+  startIcon={<UploadFileIcon />}
+  onClick={() => navigate('/upload')}
+>
+  Upload CV
+</Button>
+
+<Button
+  fullWidth
+  sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
+  className={location.pathname === '/candidates' ? 'active' : ''}
+  startIcon={<PeopleIcon />}
+  onClick={() => navigate('/candidates')}
+>
+  Candidates
+</Button>
+
+<Button
+  fullWidth
+  sx={navButtonStyle}
+  className={location.pathname === '/search' ? 'active' : ''}
+  startIcon={<SearchIcon />}
+  onClick={() => navigate('/search')}
+>
+  Search
+</Button>
       </Box>
 
       {/* Main Content */}
@@ -205,7 +232,7 @@ const navButtonStyle = {
     top: 0,
     height: '100%',
     width: '4px',
-    backgroundColor: '#0073c1',
+    backgroundColor: 'black',
     borderRadius: '0 4px 4px 0'
   }
 }
