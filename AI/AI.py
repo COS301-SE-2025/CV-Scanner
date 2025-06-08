@@ -1,4 +1,5 @@
 from tika import parser
+import os
 
 def categorize_cv(text: str):
     categories = {
@@ -52,6 +53,10 @@ def categorize_cv(text: str):
 
 def main():
     pdf_path = "CV(1).pdf"
+
+    if not os.path.isfile(pdf_path):
+        print(f"File '{pdf_path}' does not exist. Please check the path and try again.")
+        return
 
     try:
         parsed = parser.from_file(pdf_path)
