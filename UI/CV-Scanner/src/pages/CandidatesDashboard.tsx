@@ -9,6 +9,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import SettingsIcon from '@mui/icons-material/Settings';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 
 export default function CandidatesDashboard() {
 
@@ -78,6 +79,14 @@ const navigate = useNavigate();
   <AccountCircleIcon sx={{ mr: 1 }} />
   <Typography variant="subtitle1">Admin User</Typography>
 </Box>
+<IconButton
+              color="inherit"
+              onClick={() => {
+                navigate("/login"); // Redirect to login page
+              }}
+            >
+              <ExitToAppIcon />
+            </IconButton>
 
           </Toolbar>
         </AppBar>
