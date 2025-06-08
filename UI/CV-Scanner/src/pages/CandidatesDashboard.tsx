@@ -1,7 +1,7 @@
 import { Box, Typography, Paper, Button, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, AppBar, Toolbar, IconButton, Badge } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import EntelectLogo from '../assets/logo.png'; 
+import logo2 from '../assets/logo2.png'; 
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import PeopleIcon from '@mui/icons-material/People';
@@ -23,10 +23,15 @@ const navigate = useNavigate();
 
       {/* Sidebar */}
       <Box sx={{ width: 220, bgcolor: '#5a88ad', display: 'flex', flexDirection: 'column', p: 2 }}>
-        {<Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
-         <img src={EntelectLogo} alt="Entelect Logo" style={{ width: 120 }} />
-        </Box>}
-       <Button fullWidth sx={navButtonStyle} startIcon={<DashboardIcon />} onClick={() => navigate('/dashboard')}>
+   <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
+          <img src={logo2} alt="Team Logo" style={{ width: 120 }} />
+        </Box>
+       <Button
+  fullWidth
+  sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
+  startIcon={<DashboardIcon />}
+  onClick={() => navigate('/dashboard')}
+>
   Dashboard
 </Button>
 <Button fullWidth sx={navButtonStyle} startIcon={<UploadFileIcon />} onClick={() => navigate('/upload')}>
@@ -60,10 +65,20 @@ const navigate = useNavigate();
                 <NotificationsIcon />
               </Badge>
             </IconButton>
-            <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
-              <AccountCircleIcon sx={{ mr: 1 }} />
-              <Typography variant="subtitle1">Admin User</Typography>
-            </Box>
+            <Box
+  sx={{
+    display: 'flex',
+    alignItems: 'center',
+    ml: 2,
+    cursor: 'pointer',
+    '&:hover': { opacity: 0.8 },
+  }}
+  onClick={() => navigate('/settings')}
+>
+  <AccountCircleIcon sx={{ mr: 1 }} />
+  <Typography variant="subtitle1">Admin User</Typography>
+</Box>
+
           </Toolbar>
         </AppBar>
 

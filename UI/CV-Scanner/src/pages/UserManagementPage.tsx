@@ -22,7 +22,7 @@ import {
   DialogContent,
   DialogActions,
 } from "@mui/material";
-import { useLocation } from "react-router-dom";
+import { useLocation } from 'react-router-dom';
 import { useNavigate } from "react-router-dom";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
@@ -37,7 +37,6 @@ import logo from "../assets/logo.png";
 
 export default function UserManagementPage() {
   const navigate = useNavigate();
-  const location = useLocation();
   const userRole = "Admin"; // Replace with dynamic role logic
 
   const users = [
@@ -95,9 +94,6 @@ export default function UserManagementPage() {
     console.log("Deleting user:", user);
   };
 
-  // Create a function to check if a path is active
-  const isActivePath = (path: string) => location.pathname === path;
-
   return (
     <Box
       sx={{
@@ -122,25 +118,7 @@ export default function UserManagementPage() {
         </Box>
         <Button
           fullWidth
-          sx={{
-            ...navButtonStyle,
-            position: "relative",
-            bgcolor: isActivePath("/dashboard") ? "#fff" : "transparent",
-            color: isActivePath("/dashboard") ? "#0073c1" : "#fff",
-            "&::before": isActivePath("/dashboard")
-              ? {
-                  content: '""',
-                  position: "absolute",
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: 4,
-                  bgcolor: "#0073c1",
-                  borderTopRightRadius: 4,
-                  borderBottomRightRadius: 4,
-                }
-              : {},
-          }}
+          sx={navButtonStyle}
           startIcon={<DashboardIcon />}
           onClick={() => navigate("/dashboard")}
         >
@@ -148,25 +126,7 @@ export default function UserManagementPage() {
         </Button>
         <Button
           fullWidth
-          sx={{
-            ...navButtonStyle,
-            position: "relative",
-            bgcolor: isActivePath("/upload") ? "#fff" : "transparent",
-            color: isActivePath("/upload") ? "#0073c1" : "#fff",
-            "&::before": isActivePath("/upload")
-              ? {
-                  content: '""',
-                  position: "absolute",
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: 4,
-                  bgcolor: "#0073c1",
-                  borderTopRightRadius: 4,
-                  borderBottomRightRadius: 4,
-                }
-              : {},
-          }}
+          sx={navButtonStyle}
           startIcon={<UploadFileIcon />}
           onClick={() => navigate("/upload")}
         >
@@ -174,25 +134,7 @@ export default function UserManagementPage() {
         </Button>
         <Button
           fullWidth
-          sx={{
-            ...navButtonStyle,
-            position: "relative",
-            bgcolor: isActivePath("/candidates") ? "#fff" : "transparent",
-            color: isActivePath("/candidates") ? "#0073c1" : "#fff",
-            "&::before": isActivePath("/candidates")
-              ? {
-                  content: '""',
-                  position: "absolute",
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: 4,
-                  bgcolor: "#0073c1",
-                  borderTopRightRadius: 4,
-                  borderBottomRightRadius: 4,
-                }
-              : {},
-          }}
+          sx={navButtonStyle}
           startIcon={<PeopleIcon />}
           onClick={() => navigate("/candidates")}
         >
@@ -200,25 +142,7 @@ export default function UserManagementPage() {
         </Button>
         <Button
           fullWidth
-          sx={{
-            ...navButtonStyle,
-            position: "relative",
-            bgcolor: isActivePath("/search") ? "#fff" : "transparent",
-            color: isActivePath("/search") ? "#0073c1" : "#fff",
-            "&::before": isActivePath("/search")
-              ? {
-                  content: '""',
-                  position: "absolute",
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: 4,
-                  bgcolor: "#0073c1",
-                  borderTopRightRadius: 4,
-                  borderBottomRightRadius: 4,
-                }
-              : {},
-          }}
+          sx={navButtonStyle}
           startIcon={<SearchIcon />}
           onClick={() => navigate("/search")}
         >
@@ -227,27 +151,7 @@ export default function UserManagementPage() {
         {userRole === "Admin" && (
           <Button
             fullWidth
-            sx={{
-              ...navButtonStyle,
-              position: "relative",
-              bgcolor: isActivePath("/user-management")
-                ? "#fff"
-                : "transparent",
-              color: isActivePath("/user-management") ? "#0073c1" : "#fff",
-              "&::before": isActivePath("/user-management")
-                ? {
-                    content: '""',
-                    position: "absolute",
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: 4,
-                    bgcolor: "#0073c1",
-                    borderTopRightRadius: 4,
-                    borderBottomRightRadius: 4,
-                  }
-                : {},
-            }}
+            sx={navButtonStyle}
             startIcon={<SettingsIcon />}
             onClick={() => navigate("/user-management")}
           >
@@ -419,18 +323,16 @@ export default function UserManagementPage() {
           maxWidth="sm"
           fullWidth
           PaperProps={{
-            sx: { overflow: "visible" },
+            sx: { overflow: 'visible' }
           }}
         >
           <DialogTitle sx={{ bgcolor: "#5a88ad", color: "#fff" }}>
             Edit User
           </DialogTitle>
-          <DialogContent
-            sx={{
-              mt: 2,
-              overflow: "visible",
-            }}
-          >
+          <DialogContent sx={{ 
+            mt: 2,
+            overflow: 'visible'
+          }}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               <TextField
                 label="Name"

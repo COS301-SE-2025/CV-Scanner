@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import logo from '../assets/logo.png';
+import logo from "../assets/logo.png";
 import {
   Box,
   Button,
@@ -20,17 +20,29 @@ export default function LoginPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
 
-    // Mock login - replace with real API later
-    setTimeout(() => {
-      if (email && password) {
-        console.log("Mock login:", { email, password });
-        navigate("/dashboard");
-      } else {
-        setError("Please enter both email and password");
-      }
-      setLoading(false);
-    }, 1000);
+    fetch("http://localhost:8081/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        password,
+      }),
+    })
+      .then((res) => res.text())
+      .then((data) => {
+        if (data.toLowerCase().includes("success")) {
+          navigate("/dashboard"); // or wherever you want to redirect
+        } else {
+          setError(data);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Login failed. Please try again.");
+        setLoading(false);
+      });
   };
 
   return (
@@ -48,13 +60,26 @@ export default function LoginPage() {
           boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          <img
-            src={logo}
-            alt="Entelect Logo"
-            style={{ width: 100, height: 40, marginRight: 8 }}
-          />
-        </Box>
+    <Box sx={{
+  display: "flex",
+  alignItems: "center",
+  backgroundColor: "#3a7ca5", // Same as navbar
+  padding: "4px 8px",
+  borderRadius: "4px",
+    marginRight: 2,
+    
+}}>
+  <img
+    src={logo}
+    alt="Team Logo"
+    style={{
+    height: 50,
+    width: "auto",
+    imageRendering: 'crisp-edges', // or 'crisp-edges'
+ 
+  }}
+  />
+</Box>
       </Box>
 
       {/* Main Content */}
@@ -68,7 +93,7 @@ export default function LoginPage() {
           bgcolor: "#181c2f",
         }}
       >
-        {/* Existing Login Form */}
+        {/* Login Form */}
         <Paper
           elevation={8}
           sx={{
