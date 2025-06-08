@@ -185,6 +185,7 @@ export default function AddUserPage() {
 
         {/* Add User Content */}
         <Box sx={{ p: 3 }}>
+          {/* Keep header left-aligned */}
           <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
             <IconButton
               onClick={() => navigate("/user-management")}
@@ -197,102 +198,120 @@ export default function AddUserPage() {
             </Typography>
           </Box>
 
-          <Paper
-            elevation={6}
-            sx={{ p: 3, borderRadius: 3, bgcolor: "#e1f4ff", maxWidth: 600 }}
-          >
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              <FormControl error={!!errors.name}>
-                <TextField
-                  label="Full Name"
-                  fullWidth
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  error={!!errors.name}
-                  helperText={errors.name}
-                />
-              </FormControl>
+          {/* Center just the form */}
+          <Box sx={{ display: "flex", justifyContent: "center" }}>
+            <Paper
+              elevation={6}
+              sx={{
+                p: 3,
+                borderRadius: 3,
+                bgcolor: "#e1f4ff",
+                width: "100%",
+                maxWidth: 600,
+              }}
+            >
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                <FormControl error={!!errors.name}>
+                  <TextField
+                    label="Full Name"
+                    fullWidth
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    error={!!errors.name}
+                    helperText={errors.name}
+                  />
+                </FormControl>
 
-              <FormControl error={!!errors.email}>
-                <TextField
-                  label="Email Address"
-                  fullWidth
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  error={!!errors.email}
-                  helperText={errors.email}
-                />
-              </FormControl>
+                <FormControl error={!!errors.email}>
+                  <TextField
+                    label="Email Address"
+                    fullWidth
+                    value={formData.email}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
+                    error={!!errors.email}
+                    helperText={errors.email}
+                  />
+                </FormControl>
 
-              <FormControl error={!!errors.role}>
-                <InputLabel>Role</InputLabel>
-                <Select
-                  value={formData.role}
-                  label="Role"
-                  onChange={(e) =>
-                    setFormData({ ...formData, role: e.target.value })
-                  }
+                <FormControl error={!!errors.role}>
+                  <InputLabel>Role</InputLabel>
+                  <Select
+                    value={formData.role}
+                    label="Role"
+                    onChange={(e) =>
+                      setFormData({ ...formData, role: e.target.value })
+                    }
+                  >
+                    <MenuItem value="Admin">Admin</MenuItem>
+                    <MenuItem value="Editor">Editor</MenuItem>
+                    <MenuItem value="Uploader">Uploader</MenuItem>
+                  </Select>
+                  {errors.role && (
+                    <FormHelperText>{errors.role}</FormHelperText>
+                  )}
+                </FormControl>
+
+                <FormControl error={!!errors.password}>
+                  <TextField
+                    label="Password"
+                    type="password"
+                    fullWidth
+                    value={formData.password}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
+                    error={!!errors.password}
+                    helperText={errors.password}
+                  />
+                </FormControl>
+
+                <FormControl error={!!errors.confirmPassword}>
+                  <TextField
+                    label="Confirm Password"
+                    type="password"
+                    fullWidth
+                    value={formData.confirmPassword}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        confirmPassword: e.target.value,
+                      })
+                    }
+                    error={!!errors.confirmPassword}
+                    helperText={errors.confirmPassword}
+                  />
+                </FormControl>
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    gap: 2,
+                    mt: 2,
+                  }}
                 >
-                  <MenuItem value="Admin">Admin</MenuItem>
-                  <MenuItem value="Editor">Editor</MenuItem>
-                  <MenuItem value="Uploader">Uploader</MenuItem>
-                </Select>
-                {errors.role && <FormHelperText>{errors.role}</FormHelperText>}
-              </FormControl>
-
-              <FormControl error={!!errors.password}>
-                <TextField
-                  label="Password"
-                  type="password"
-                  fullWidth
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                  error={!!errors.password}
-                  helperText={errors.password}
-                />
-              </FormControl>
-
-              <FormControl error={!!errors.confirmPassword}>
-                <TextField
-                  label="Confirm Password"
-                  type="password"
-                  fullWidth
-                  value={formData.confirmPassword}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      confirmPassword: e.target.value,
-                    })
-                  }
-                  error={!!errors.confirmPassword}
-                  helperText={errors.confirmPassword}
-                />
-              </FormControl>
-
-              <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-                <Button
-                  variant="outlined"
-                  onClick={() => navigate("/user-management")}
-                  sx={{ color: "#666" }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="contained"
-                  onClick={handleSubmit}
-                  sx={{ bgcolor: "#4caf50", color: "#fff" }}
-                >
-                  Create User
-                </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={() => navigate("/user-management")}
+                    sx={{ color: "#666" }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="contained"
+                    onClick={handleSubmit}
+                    sx={{ bgcolor: "#4caf50", color: "#fff" }}
+                  >
+                    Create User
+                  </Button>
+                </Box>
               </Box>
-            </Box>
-          </Paper>
+            </Paper>
+          </Box>
         </Box>
       </Box>
     </Box>
