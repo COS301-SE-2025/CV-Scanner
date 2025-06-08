@@ -19,6 +19,7 @@ import {
   Badge,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { useLocation } from 'react-router-dom';
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -32,6 +33,8 @@ import logo2 from "../assets/logo2.png";
 export default function UserManagementPage() {
   const navigate = useNavigate();
   const userRole = "Admin"; // Replace with dynamic role logic
+
+  const location = useLocation();
 
   const users = [
     {
@@ -298,4 +301,17 @@ const navButtonStyle = {
   },
   textTransform: "none",
   fontWeight: "bold",
+  '&.active': {
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    height: '100%',
+    width: '4px',
+    backgroundColor: '#0073c1',
+    borderRadius: '0 4px 4px 0'
+  }
+}
+
 };

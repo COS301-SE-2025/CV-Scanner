@@ -21,6 +21,7 @@ import {
   TextField,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { useLocation } from 'react-router-dom';
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -77,6 +78,8 @@ export default function UploadCVPage() {
   };
 
   const navigate = useNavigate();
+
+  const location = useLocation();
 
   return (
     <Box
@@ -329,6 +332,19 @@ const navButtonStyle = {
   },
   textTransform: "none",
   fontWeight: "bold",
+  '&.active': {
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    height: '100%',
+    width: '4px',
+    backgroundColor: '#0073c1',
+    borderRadius: '0 4px 4px 0'
+  }
+}
+
 };
 
 const reviewButtonStyle = {

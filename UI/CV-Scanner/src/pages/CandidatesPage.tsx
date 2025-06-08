@@ -17,6 +17,7 @@ import {
   Badge
 } from '@mui/material';
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
@@ -30,6 +31,8 @@ export default function CandidatesPage() {
   const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+
+  const location = useLocation();
 
   useEffect(() => {
     document.title = 'Candidates';
@@ -194,6 +197,19 @@ const navButtonStyle = {
   },
   textTransform: 'none',
   fontWeight: 'bold',
+  '&.active': {
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    height: '100%',
+    width: '4px',
+    backgroundColor: '#0073c1',
+    borderRadius: '0 4px 4px 0'
+  }
+}
+
 };
 
 // Review button style
