@@ -18,14 +18,8 @@ CVData::CVData(std::string str) {
      this->linkedin= "";
      this->github= "";
 
-    SkillsInterpreter* skillsInterpreter = new SkillsInterpreter();
-    skillsInterpreter->interpret(str,this);
-    EducationInterpreter* educationInterpreter = new EducationInterpreter();
-    educationInterpreter->interpret(str,this);
-    ExperienceInterpreter* experienceInterpreter = new ExperienceInterpreter();
-    experienceInterpreter->interpret(str,this);
-    PersonalInfoInterpreter* personalInfoInterpreter = new PersonalInfoInterpreter();
-    personalInfoInterpreter->interpret(str,this);
+    CVSectionExtractor extractor;
+    extractor.Extractor(str,this);
 }
 
 // Getters
