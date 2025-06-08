@@ -184,8 +184,15 @@ export default function AddUserPage() {
         </AppBar>
 
         {/* Add User Content */}
-        <Box sx={{ p: 3 }}>
-          {/* Keep header left-aligned */}
+        <Box
+          sx={{
+            p: 3,
+            display: "flex",
+            flexDirection: "column",
+            height: "100%", // Take full height of container
+          }}
+        >
+          {/* Keep header at top */}
           <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
             <IconButton
               onClick={() => navigate("/user-management")}
@@ -198,8 +205,15 @@ export default function AddUserPage() {
             </Typography>
           </Box>
 
-          {/* Center just the form */}
-          <Box sx={{ display: "flex", justifyContent: "center" }}>
+          {/* Center form vertically and horizontally */}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              flex: 1, // Take remaining space
+            }}
+          >
             <Paper
               elevation={6}
               sx={{
