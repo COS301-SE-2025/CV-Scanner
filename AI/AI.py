@@ -35,15 +35,7 @@ def categorize_cv_nlp(text: str):
             categories["other"].append(line)
 
     return categories
-    section_keywords = {
-        "profile": ["profile"],
-        "education": ["education"],
-        "skills": ["skill", "technical skills"],
-        "languages": ["language"],
-        "projects": ["project"],
-        "achievements": ["achievement"],
-        "contact": ["phone", "email", "address", "github", ".com"]
-    }
+  
 
     def matches_section(line):
         lower = line.lower()
