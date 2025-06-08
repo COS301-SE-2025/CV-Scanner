@@ -36,12 +36,6 @@ def categorize_cv_nlp(text: str):
 
     return categories
 
-        matched_section = matches_section(line)
-        if matched_section:
-            current_section = matched_section
-            continue
-
-        if current_section:
             categories[current_section].append(line)
         else:
             categories["other"].append(line)
