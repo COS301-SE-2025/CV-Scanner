@@ -15,21 +15,26 @@ labels = ["profile", "education", "skills", "languages", "projects", "achievemen
 
 
 
-def categorize_cv(text: str):
-    categories = {
-        "profile": [],
-        "education": [],
-        "skills": [],
-        "languages": [],
-        "projects": [],
-        "achievements": [],
-        "contact": [],
-        "other": []
-    }
+def categorize_cv_nlp(text: str):
+    categories = {label: [] for label in labels}
+    categories["other"] = []
 
-    lines = [line.strip() for line in text.splitlines()]
-    current_section = None
+    # Clean and split text into lines
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
 
+    for line in lines:
+        try:
+            result = classifier(line, candidate_labels=labels)
+            top_label = result['labels'][0]
+            confidence = result['scores'][0]
+            if confidence >= 0.5:
+                categories[top_label].append(line)
+            else:
+                categories["other"].append(line)
+        except Exception:
+            categories["other"].append(line)
+
+    return categories
     section_keywords = {
         "profile": ["profile"],
         "education": ["education"],
