@@ -48,39 +48,47 @@ export default function LoginPage() {
   return (
     <>
       {/* Header */}
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          bgcolor: "#3a7ca5",
-          color: "#fff",
-          px: 2,
-          py: 1,
-          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-        }}
-      >
-    <Box sx={{
-  display: "flex",
-  alignItems: "center",
-  backgroundColor: "#3a7ca5", // Same as navbar
-  padding: "4px 8px",
-  borderRadius: "4px",
-    marginRight: 2,
-    
-}}>
-  <img
-    src={logo}
-    alt="Team Logo"
-    style={{
-    height: 50,
-    width: "auto",
-    imageRendering: 'crisp-edges', // or 'crisp-edges'
- 
+     {/* Header */}
+<Box
+  sx={{
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    bgcolor: "#3a7ca5",
+    color: "#fff",
+    px: 4, // Increased padding
+    py: 2,
+    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
   }}
-  />
+>
+  <Box sx={{ 
+    display: "flex", 
+    alignItems: "center",
+    gap: 2 // Adds space between logo and text
+  }}>
+    <img 
+      src={logo} 
+      alt="Team Logo" 
+      style={{ 
+        width: 75,
+        height: "auto",
+        objectFit: "contain"
+      }} 
+    />
+    <Typography
+      variant="h6"
+      sx={{
+        fontWeight: 700,
+        letterSpacing: 1.2,
+        textTransform: "uppercase",
+        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+        textShadow: "1px 1px 2px rgba(0,0,0,0.3)"
+      }}
+    >
+      Quantum Stack
+    </Typography>
+  </Box>
 </Box>
-      </Box>
 
       {/* Main Content */}
       <Box
