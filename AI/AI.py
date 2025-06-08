@@ -42,6 +42,32 @@ def categorize_cv_nlp(text: str):
     return categories
 
 
+def extract_contact_info(text: str):
+    doc = nlp(text)
+
+    emails = list(set([ent.text for ent in doc.ents if ent.label_ == "EMAIL"]))
+    phones = re.findall(r"\+?\d[\d\-\(\) ]{7,}\d", text)
+    urls = re.findall(r"https?://[^\s]+", text)
+
+    lines = text.strip().splitlines()
+    name = None
+    for line in lines[:5]:
+        doc_line = nlp(line)
+        for ent in doc_line.ents:
+            if ent.label_ == "PERSON":
+                name = ent.text
+                break
+        if name:
+            break
+
+    return {
+        "name": name or "",
+        "emails": emails,
+        "phones": phones,
+        "urls": urls
+    }
+
+
 def prepare_json_data(categories: dict):
     json_data = {}
     for section, content in categories.items():
