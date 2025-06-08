@@ -1,13 +1,6 @@
-# Ignore the virtual environment
 venv/
-
-# Byte-compiled / cache files
 __pycache__/
 *.py[cod]
-
-# Ignore OS and IDE files
 .DS_Store
-*.swp
-*.swo
 .idea/
 .vscode/
