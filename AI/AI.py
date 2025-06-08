@@ -37,13 +37,7 @@ def categorize_cv_nlp(text: str):
     return categories
   
 
-    def matches_section(line):
-        lower = line.lower()
-        for section, keywords in section_keywords.items():
-            for kw in keywords:
-                if kw in lower:
-                    return section
-        return None
+
 
     for line in lines:
         if not line.strip():
