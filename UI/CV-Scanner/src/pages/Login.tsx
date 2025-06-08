@@ -78,7 +78,7 @@ export default function LoginPage() {
       src={logo} 
       alt="Quantum Stack Logo" 
       style={{ 
-        width: 60,
+        width: 75,
         height: "auto",
         filter: "none" // Removed shadow
       }} 
