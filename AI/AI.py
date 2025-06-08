@@ -19,7 +19,7 @@ def categorize_cv_nlp(text: str):
     categories = {label: [] for label in labels}
     categories["other"] = []
 
-    # Clean and split text into lines
+ 
     lines = [line.strip() for line in text.splitlines() if line.strip()]
 
     for line in lines:
@@ -52,19 +52,18 @@ def process_pdf_file(pdf_path):
     except Exception as e:
         return None
 
-    categorized = categorize_cv(cv_text)
+    categorized = categorize_cv_nlp(cv_text)
     return prepare_json_data(categorized)
 
+
 def process_pdf_bytes(pdf_bytes: bytes):
-    # On Windows, NamedTemporaryFile must be closed before another process can read it
     tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     try:
         tmp_file.write(pdf_bytes)
-        tmp_file.close()  # CLOSE it so tika (Java) can read it
-
+        tmp_file.close()
         result = process_pdf_file(tmp_file.name)
     finally:
-        os.unlink(tmp_file.name)  # delete the temp file
+        os.unlink(tmp_file.name)
 
     return result
 
