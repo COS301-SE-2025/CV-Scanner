@@ -4,58 +4,69 @@ from tika import parser
 import tempfile
 import json
 import os
+from transformers import pipeline
+import re
+import spacy
+nlp = spacy.load("en_core_web_sm")
+
+
+
 
 app = FastAPI()
 
-def categorize_cv(text: str):
-    categories = {
-        "profile": [],
-        "education": [],
-        "skills": [],
-        "languages": [],
-        "projects": [],
-        "achievements": [],
-        "contact": [],
-        "other": []
-    }
+classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
-    lines = [line.strip() for line in text.splitlines()]
-    current_section = None
+labels = ["profile", "education", "skills", "languages", "projects", "achievements", "contact", "experience"]
 
-    section_keywords = {
-        "profile": ["profile"],
-        "education": ["education"],
-        "skills": ["skill", "technical skills"],
-        "languages": ["language"],
-        "projects": ["project"],
-        "achievements": ["achievement"],
-        "contact": ["phone", "email", "address", "github", ".com"]
-    }
 
-    def matches_section(line):
-        lower = line.lower()
-        for section, keywords in section_keywords.items():
-            for kw in keywords:
-                if kw in lower:
-                    return section
-        return None
+
+def categorize_cv_nlp(text: str):
+    categories = {label: [] for label in labels}
+    categories["other"] = []
+
+ 
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
 
     for line in lines:
-        if not line.strip():
-            current_section = None
-            continue
-
-        matched_section = matches_section(line)
-        if matched_section:
-            current_section = matched_section
-            continue
-
-        if current_section:
-            categories[current_section].append(line)
-        else:
+        try:
+            result = classifier(line, candidate_labels=labels)
+            top_label = result['labels'][0]
+            confidence = result['scores'][0]
+            if confidence >= 0.5:
+                categories[top_label].append(line)
+            else:
+                categories["other"].append(line)
+        except Exception:
             categories["other"].append(line)
 
     return categories
+
+
+def extract_contact_info(text: str):
+    doc = nlp(text)
+
+    emails = list(set([ent.text for ent in doc.ents if ent.label_ == "EMAIL"]))
+    phones = re.findall(r"\+?\d[\d\-\(\) ]{7,}\d", text)
+    urls = re.findall(r"https?://[^\s]+", text)
+
+    lines = text.strip().splitlines()
+    name = None
+    for line in lines[:5]:
+        doc_line = nlp(line)
+        for ent in doc_line.ents:
+            if ent.label_ == "PERSON":
+                name = ent.text
+                break
+        if name:
+            break
+
+    return {
+        "name": name or "",
+        "emails": emails,
+        "phones": phones,
+        "urls": urls
+    }
+
 
 def prepare_json_data(categories: dict):
     json_data = {}
@@ -69,22 +80,33 @@ def process_pdf_file(pdf_path):
         cv_text = parsed.get('content', '')
         if not cv_text:
             return None
-    except Exception as e:
+    except Exception:
         return None
 
-    categorized = categorize_cv(cv_text)
+    categorized = categorize_cv_nlp(cv_text)
+    contact_info = extract_contact_info(cv_text)
+
+    contact_section = categorized.get("contact", [])
+    contact_section.extend([
+        f"Name: {contact_info['name']}",
+        *[f"Email: {email}" for email in contact_info['emails']],
+        *[f"Phone: {phone}" for phone in contact_info['phones']],
+        *[f"Link: {url}" for url in contact_info['urls']]
+    ])
+    categorized["contact"] = contact_section
+
     return prepare_json_data(categorized)
 
+
+
 def process_pdf_bytes(pdf_bytes: bytes):
-    # On Windows, NamedTemporaryFile must be closed before another process can read it
     tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     try:
         tmp_file.write(pdf_bytes)
-        tmp_file.close()  # CLOSE it so tika (Java) can read it
-
+        tmp_file.close()
         result = process_pdf_file(tmp_file.name)
     finally:
-        os.unlink(tmp_file.name)  # delete the temp file
+        os.unlink(tmp_file.name)
 
     return result
 
