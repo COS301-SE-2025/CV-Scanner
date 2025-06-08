@@ -1,4 +1,5 @@
 from tika import parser
+import tempfile
 import os
 import json
 
@@ -53,42 +54,48 @@ def categorize_cv(text: str):
     return categories
 
 def prepare_json_data(categories: dict):
-    # Convert lists of lines into strings for JSON
     json_data = {}
     for section, content in categories.items():
         json_data[section] = "\n".join(content).strip()
     return json_data
 
-def main():
-    pdf_path = "CV(1).pdf"
-
-    if not os.path.isfile(pdf_path):
-        print(f"File '{pdf_path}' does not exist. Please check the path and try again.")
-        return
-
+def process_pdf_file(pdf_path):
     try:
         parsed = parser.from_file(pdf_path)
         cv_text = parsed.get('content', '')
         if not cv_text:
             print(f"No content extracted from {pdf_path}")
-            return
+            return None
     except Exception as e:
         print(f"Failed to parse PDF: {e}")
-        return
+        return None
 
     categorized = categorize_cv(cv_text)
+    return prepare_json_data(categorized)
 
-    # Show categories (optional)
-    for section, content in categorized.items():
-        print(f"\n--- {section.upper()} ---")
-        for line in content:
-            print(line)
+def process_pdf_bytes(pdf_bytes: bytes):
+    # Create a temporary file, write bytes to it, parse, then delete
+    with tempfile.NamedTemporaryFile(delete=True, suffix=".pdf") as tmp_file:
+        tmp_file.write(pdf_bytes)
+        tmp_file.flush()  # ensure all bytes written
+        # parse from this temp file
+        result = process_pdf_file(tmp_file.name)
+    return result
 
-    json_ready = prepare_json_data(categorized)
+# Example main that simulates receiving a PDF file as bytes
+def main():
+    # Simulate loading a PDF file as bytes
+    pdf_path = "CV(1).pdf"
+    if not os.path.isfile(pdf_path):
+        print(f"File '{pdf_path}' not found. Please add it.")
+        return
 
-    # Demo print JSON string that can be sent to API
-    print("\nJSON data ready to send:")
-    print(json.dumps(json_ready, indent=2))
+    with open(pdf_path, "rb") as f:
+        pdf_data = f.read()
+
+    extracted_json = process_pdf_bytes(pdf_data)
+    if extracted_json:
+        print(json.dumps(extracted_json, indent=2))
 
 if __name__ == "__main__":
     main()
