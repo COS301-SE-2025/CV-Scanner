@@ -165,6 +165,21 @@ export default function CandidateNotesPage() {
 
         {/* Notes Content */}
         <Box sx={{ p: 3 }}>
+          <Button
+                      startIcon={<ArrowBackIcon />}
+                      onClick={() => navigate('/candidates')}
+                      sx={{
+                        mb: 2,
+                        color: '#0073c1',
+                        fontWeight: "bold",
+                        textTransform: "none",
+                        '&:hover': {
+                          backgroundColor: 'rgba(0, 115, 193, 0.1)'
+                        }
+                      }}
+                    >
+                      Back to Candidates
+                    </Button>
           <Typography variant="h4" sx={{ fontWeight: "bold", mb: 2 }}>
             Jane Smith
           </Typography>
