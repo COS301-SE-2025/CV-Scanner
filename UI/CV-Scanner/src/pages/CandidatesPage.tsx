@@ -79,8 +79,17 @@ export default function CandidatesPage() {
 
 <Button
   fullWidth
-  sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
-  className={location.pathname === '/candidates' ? 'active' : ''}
+  sx={{
+    ...navButtonStyle,
+    ...(location.pathname.startsWith('/candidate') || location.pathname === '/candidates') 
+      ? { bgcolor: "#d8f0ff", color: "#000" } 
+      : {}
+  }}
+  className={
+    location.pathname.startsWith('/candidate') || location.pathname === '/candidates' 
+      ? 'active' 
+      : ''
+  }
   startIcon={<PeopleIcon />}
   onClick={() => navigate('/candidates')}
 >
