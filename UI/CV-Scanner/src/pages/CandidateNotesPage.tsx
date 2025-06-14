@@ -46,6 +46,8 @@ export default function CandidateNotesPage() {
     },
   ]); // State for existing notes
 
+ const location = useLocation();
+
   const handleSaveNote = () => {
     if (note.trim()) {
       const newNote = {

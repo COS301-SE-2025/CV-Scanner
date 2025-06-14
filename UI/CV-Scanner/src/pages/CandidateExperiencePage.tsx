@@ -38,6 +38,8 @@ import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 export default function CandidateExperiencePage() {
   const navigate = useNavigate();
 
+ const location = useLocation();
+
   return (
     <Box
       sx={{

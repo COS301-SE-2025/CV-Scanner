@@ -47,6 +47,8 @@ export default function CandidateSkillsPage() {
     }
   };
 
+ const location = useLocation();
+
   const handleDeleteSkill = (skillToDelete: string) => {
     setSkills(skills.filter((skill) => skill !== skillToDelete));
   };
