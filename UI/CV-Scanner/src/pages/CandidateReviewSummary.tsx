@@ -301,4 +301,16 @@ const navButtonStyle = {
   },
   textTransform: "none",
   fontWeight: "bold",
+   '&.active': {
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      height: '100%',
+      width: '4px',
+      backgroundColor: 'black',
+      borderRadius: '0 4px 4px 0'
+    }
+  }
 };
