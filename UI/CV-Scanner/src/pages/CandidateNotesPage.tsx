@@ -22,6 +22,7 @@ import {
   Chip,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { useLocation } from 'react-router-dom';
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -33,6 +34,7 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import logo2 from "../assets/logo2.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 
 export default function CandidateNotesPage() {
   const navigate = useNavigate();
@@ -44,6 +46,8 @@ export default function CandidateNotesPage() {
       content: "Strong technical skills, may need more business exposure",
     },
   ]); // State for existing notes
+
+ const location = useLocation();
 
   const handleSaveNote = () => {
     if (note.trim()) {
@@ -67,52 +71,59 @@ export default function CandidateNotesPage() {
       }}
     >
       {/* Sidebar */}
-      <Box
-        sx={{
-          width: 220,
-          bgcolor: "#5a88ad",
-          display: "flex",
-          flexDirection: "column",
-          p: 2,
-        }}
+      <Box sx={{ width: 220, bgcolor: '#5a88ad', display: 'flex', flexDirection: 'column', p: 2 }}>
+              <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
+                <img src={logo2} alt="Team Logo" style={{ width: 120 }} />
+              </Box>
+           <Button
+        fullWidth
+        sx={navButtonStyle}
+        className={location.pathname === '/dashboard' ? 'active' : ''}
+        startIcon={<DashboardIcon />}
+        onClick={() => navigate('/dashboard')}
       >
-      <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
-          <img src={logo2} alt="Team Logo" style={{ width: 120 }} />
-        </Box>
-
-        <Button
-          fullWidth
-          sx={navButtonStyle}
-          startIcon={<DashboardIcon />}
-          onClick={() => navigate("/dashboard")}
-        >
-          Dashboard
-        </Button>
-        <Button
-          fullWidth
-          sx={navButtonStyle}
-          startIcon={<UploadFileIcon />}
-          onClick={() => navigate("/upload")}
-        >
-          Upload CV
-        </Button>
-        <Button
-          fullWidth
-          sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
-          startIcon={<PeopleIcon />}
-          onClick={() => navigate("/candidates")}
-        >
-          Candidates
-        </Button>
-        <Button
-          fullWidth
-          sx={navButtonStyle}
-          startIcon={<SearchIcon />}
-          onClick={() => navigate("/search")}
-        >
-          Search
-        </Button>
-      </Box>
+        Dashboard
+      </Button>
+      
+      <Button
+        fullWidth
+        sx={navButtonStyle}
+        className={location.pathname === '/upload' ? 'active' : ''}
+        startIcon={<UploadFileIcon />}
+        onClick={() => navigate('/upload')}
+      >
+        Upload CV
+      </Button>
+      
+      <Button
+        fullWidth
+        sx={{
+          ...navButtonStyle,
+          ...(location.pathname.startsWith('/candidate') || location.pathname === '/candidates') 
+            ? { bgcolor: "#d8f0ff", color: "#000" } 
+            : {}
+        }}
+        className={
+          location.pathname.startsWith('/candidate') || location.pathname === '/candidates' 
+            ? 'active' 
+            : ''
+        }
+        startIcon={<PeopleIcon />}
+        onClick={() => navigate('/candidates')}
+      >
+        Candidates
+      </Button>
+      
+      <Button
+        fullWidth
+        sx={navButtonStyle}
+        className={location.pathname === '/search' ? 'active' : ''}
+        startIcon={<SearchIcon />}
+        onClick={() => navigate('/search')}
+      >
+        Search
+      </Button>
+            </Box>
 
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
@@ -154,6 +165,21 @@ export default function CandidateNotesPage() {
 
         {/* Notes Content */}
         <Box sx={{ p: 3 }}>
+          <Button
+                      startIcon={<ArrowBackIcon />}
+                      onClick={() => navigate('/candidates')}
+                      sx={{
+                        mb: 2,
+                        color: '#0073c1',
+                        fontWeight: "bold",
+                        textTransform: "none",
+                        '&:hover': {
+                          backgroundColor: 'rgba(0, 115, 193, 0.1)'
+                        }
+                      }}
+                    >
+                      Back to Candidates
+                    </Button>
           <Typography variant="h4" sx={{ fontWeight: "bold", mb: 2 }}>
             Jane Smith
           </Typography>
@@ -240,4 +266,16 @@ const navButtonStyle = {
   },
   textTransform: "none",
   fontWeight: "bold",
+   '&.active': {
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      height: '100%',
+      width: '4px',
+      backgroundColor: 'black',
+      borderRadius: '0 4px 4px 0'
+    }
+  }
 };

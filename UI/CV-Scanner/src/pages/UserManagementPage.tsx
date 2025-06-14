@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Box,
   Typography,
@@ -22,8 +22,7 @@ import {
   DialogContent,
   DialogActions,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
-import { useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from "react-router-dom";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -32,15 +31,14 @@ import PeopleIcon from "@mui/icons-material/People";
 import SearchIcon from "@mui/icons-material/Search";
 import SettingsIcon from "@mui/icons-material/Settings";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
-
+import DeleteIcon from "@mui/icons-material/Delete";
 import logo2 from "../assets/logo2.png";
 
-
 export default function UserManagementPage() {
+  const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
-  const userRole = "Admin"; // Replace with dynamic role logic
-
   const location = useLocation();
+  const userRole = "Admin";
 
   const users = [
     {
@@ -63,9 +61,9 @@ export default function UserManagementPage() {
     },
   ];
 
-  const [openEditDialog, setOpenEditDialog] = React.useState(false);
-  const [editingUser, setEditingUser] = React.useState(null);
-  const [editFormData, setEditFormData] = React.useState({
+  const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [editFormData, setEditFormData] = useState({
     name: "",
     email: "",
     role: "",
@@ -87,13 +85,11 @@ export default function UserManagementPage() {
   };
 
   const handleEditSave = () => {
-    // Here you would typically make an API call to update the user
     console.log("Saving user:", editFormData);
     handleEditClose();
   };
 
   const handleDeleteUser = (user) => {
-    // Here you would typically make an API call to delete the user
     console.log("Deleting user:", user);
   };
 
@@ -107,70 +103,114 @@ export default function UserManagementPage() {
       }}
     >
       {/* Sidebar */}
-      <Box
-        sx={{
-          width: 220,
-          bgcolor: "#5a88ad",
-          display: "flex",
-          flexDirection: "column",
-          p: 2,
-        }}
-      >
-     <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
-          <img src={logo2} alt="Team Logo" style={{ width: 120 }} />
-        </Box>
-       
-        <Button
-          fullWidth
-          sx={navButtonStyle}
-          startIcon={<DashboardIcon />}
-          onClick={() => navigate("/dashboard")}
+      {!collapsed ? (
+        <Box
+          sx={{
+            width: 220,
+            bgcolor: '#5a88ad',
+            display: 'flex',
+            flexDirection: 'column',
+            p: 2,
+            position: 'relative',
+          }}
         >
-          Dashboard
-        </Button>
-        <Button
-          fullWidth
-          sx={navButtonStyle}
-          startIcon={<UploadFileIcon />}
-          onClick={() => navigate("/upload")}
-        >
-          Upload CV
-        </Button>
-        <Button
-          fullWidth
-          sx={navButtonStyle}
-          startIcon={<PeopleIcon />}
-          onClick={() => navigate("/candidates")}
-        >
-          Candidates
-        </Button>
-        <Button
-          fullWidth
-          sx={navButtonStyle}
-          startIcon={<SearchIcon />}
-          onClick={() => navigate("/search")}
-        >
-          Search
-        </Button>
-        {userRole === "Admin" && (
+          {/* Collapse Button */}
+          <IconButton
+            onClick={() => setCollapsed(true)}
+            sx={{
+              color: '#fff',
+              position: 'absolute',
+              top: 8,
+              left: 8,
+              zIndex: 1,
+            }}
+          >
+             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="6" width="18" height="2" fill="currentColor" />
+              <rect x="3" y="11" width="18" height="2" fill="currentColor" />
+              <rect x="3" y="16" width="18" height="2" fill="currentColor" />
+            </svg>
+          </IconButton>
+
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3, mt: 5 }}>
+            <img src={logo2} alt="Team Logo" style={{ width: 120 }} />
+          </Box>
+
           <Button
             fullWidth
-             sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
+            sx={navButtonStyle}
+            className={location.pathname === '/dashboard' ? 'active' : ''}
+            startIcon={<DashboardIcon />}
+            onClick={() => navigate('/dashboard')}
+          >
+            Dashboard
+          </Button>
+
+          <Button
+            fullWidth
+            sx={navButtonStyle}
+            className={location.pathname === '/upload' ? 'active' : ''}
+            startIcon={<UploadFileIcon />}
+            onClick={() => navigate('/upload')}
+          >
+            Upload CV
+          </Button>
+
+          <Button
+            fullWidth
+            sx={navButtonStyle}
+            className={location.pathname === '/candidates' ? 'active' : ''}
+            startIcon={<PeopleIcon />}
+            onClick={() => navigate('/candidates')}
+          >
+            Candidates
+          </Button>
+
+          <Button
+            fullWidth
+            sx={navButtonStyle}
+            className={location.pathname === '/search' ? 'active' : ''}
+            startIcon={<SearchIcon />}
+            onClick={() => navigate('/search')}
+          >
+            Search
+          </Button>
+
+          <Button
+            fullWidth
+            sx={{ ...navButtonStyle, bgcolor: '#d8f0ff', color: '#000' }}
+            className={location.pathname === '/user-management' ? 'active' : ''}
             startIcon={<SettingsIcon />}
-            onClick={() => navigate("/user-management")}
+            onClick={() => navigate('/user-management')}
           >
             User Management
           </Button>
-        )}
-      </Box>
+        </Box>
+      ) : (
+        <Box
+          sx={{
+            width: 40,
+            bgcolor: '#5a88ad',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'flex-start',
+            pt: 1,
+          }}
+        >
+          <IconButton onClick={() => setCollapsed(false)} sx={{ color: '#fff' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="6" width="18" height="2" fill="currentColor" />
+              <rect x="3" y="11" width="18" height="2" fill="currentColor" />
+              <rect x="3" y="16" width="18" height="2" fill="currentColor" />
+            </svg>
+          </IconButton>
+        </Box>
+      )}
 
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
-        <AppBar
-          position="static"
-          sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
-        >
+        <AppBar position="static" sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}>
           <Toolbar sx={{ justifyContent: "flex-end" }}>
             <IconButton color="inherit">
               <Badge badgeContent={4} color="error">
@@ -178,23 +218,22 @@ export default function UserManagementPage() {
               </Badge>
             </IconButton>
             <Box
-  sx={{
-    display: 'flex',
-    alignItems: 'center',
-    ml: 2,
-    cursor: 'pointer',
-    '&:hover': { opacity: 0.8 },
-  }}
-  onClick={() => navigate('/settings')}
->
-  <AccountCircleIcon sx={{ mr: 1 }} />
-  <Typography variant="subtitle1">Admin User</Typography>
-</Box>
-
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                ml: 2,
+                cursor: 'pointer',
+                '&:hover': { opacity: 0.8 },
+              }}
+              onClick={() => navigate('/settings')}
+            >
+              <AccountCircleIcon sx={{ mr: 1 }} />
+              <Typography variant="subtitle1">Admin User</Typography>
+            </Box>
             <IconButton
               color="inherit"
               onClick={() => {
-                navigate("/login"); // Redirect to login page
+                navigate("/login");
               }}
             >
               <ExitToAppIcon />
@@ -211,7 +250,7 @@ export default function UserManagementPage() {
           {/* Search and Filter Section */}
           <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
             <TextField
-              placeholder="Search by name, skills, or project type..."
+              placeholder="Search users..."
               variant="outlined"
               fullWidth
               sx={{ bgcolor: "#fff", borderRadius: 1 }}
@@ -235,10 +274,7 @@ export default function UserManagementPage() {
           </Box>
 
           {/* User Table */}
-          <Paper
-            elevation={6}
-            sx={{ p: 3, borderRadius: 3, bgcolor: "#e1f4ff" }}
-          >
+          <Paper elevation={6} sx={{ p: 3, borderRadius: 3, bgcolor: "#e1f4ff" }}>
             <TableContainer>
               <Table>
                 <TableHead>
@@ -246,9 +282,7 @@ export default function UserManagementPage() {
                     <TableCell sx={{ fontWeight: "bold" }}>Name</TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>Email</TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>Role</TableCell>
-                    <TableCell sx={{ fontWeight: "bold" }}>
-                      Last Active
-                    </TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Last Active</TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
@@ -336,18 +370,12 @@ export default function UserManagementPage() {
           onClose={handleEditClose}
           maxWidth="sm"
           fullWidth
-          PaperProps={{
-            sx: { overflow: 'visible' }
-          }}
         >
           <DialogTitle sx={{ bgcolor: "#5a88ad", color: "#fff" }}>
             Edit User
           </DialogTitle>
-          <DialogContent sx={{ 
-            mt: 2,
-            overflow: 'visible'
-          }}>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <DialogContent sx={{ mt: 2 }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}>
               <TextField
                 label="Name"
                 fullWidth
@@ -405,17 +433,17 @@ const navButtonStyle = {
   },
   textTransform: "none",
   fontWeight: "bold",
+  position: 'relative',
   '&.active': {
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    height: '100%',
-    width: '4px',
-    backgroundColor: '#0073c1',
-    borderRadius: '0 4px 4px 0'
-  }
-}
-
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      height: '100%',
+      width: '4px',
+      backgroundColor: 'black',
+      borderRadius: '0 4px 4px 0',
+    },
+  },
 };
