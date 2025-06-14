@@ -34,6 +34,7 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import logo2 from "../assets/logo2.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 export default function CandidateSkillsPage() {
   const navigate = useNavigate();
@@ -154,6 +155,23 @@ export default function CandidateSkillsPage() {
 
         {/* Skills Content */}
         <Box sx={{ p: 3 }}>
+
+ <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate('/candidates')}
+            sx={{
+              mb: 2,
+              color: '#0073c1',
+              fontWeight: "bold",
+              textTransform: "none",
+              '&:hover': {
+                backgroundColor: 'rgba(0, 115, 193, 0.1)'
+              }
+            }}
+          >
+            Back to Candidates
+          </Button>
+
           <Typography variant="h4" sx={{ fontWeight: "bold", mb: 2 }}>
             Jane Smith
           </Typography>
