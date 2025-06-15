@@ -20,6 +20,7 @@ import {
   DialogActions,
   TextField,
   Divider,
+  Chip,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
@@ -388,9 +389,23 @@ export default function UploadCVPage() {
             >
               <Box>
                 <Typography>Name: {processedData.name}</Typography>
-                <Typography>
-                  Skills: {processedData.skills.join(", ")}
-                </Typography>
+                <Box
+                  sx={{ display: "flex", flexWrap: "wrap", gap: 1, my: 1 }}
+                >
+                  {processedData.skills.map((skill: string, idx: number) => (
+                    <Chip
+                      key={idx}
+                      label={skill}
+                      sx={{
+                        borderRadius: "16px",
+                        bgcolor: "#e0e0e0",
+                        color: "#333",
+                        fontWeight: "bold",
+                        fontSize: "0.95em",
+                      }}
+                    />
+                  ))}
+                </Box>
                 <Typography>Experience: {processedData.experience}</Typography>
               </Box>
               <Box>
