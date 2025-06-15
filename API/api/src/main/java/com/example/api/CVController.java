@@ -149,8 +149,6 @@ public class CVController {
         
     
         HttpEntity<String> requestEntity = new HttpEntity<>(cvText, headers);
-        
-        // Send POST request to the engine
         System.out.println("Sending request to CV engine: " + cvEngineUrl);
         
         ResponseEntity<String> response = restTemplate.exchange(
