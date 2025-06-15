@@ -370,8 +370,17 @@ export default function UploadCVPage() {
           sx: { backgroundColor: "#5a88ad" },
         }}
       >
-        <DialogTitle>Processed CV Data</DialogTitle>
-        <Divider sx={{ mb: 2 }} /> {/* Segment header from content */}
+        <DialogTitle
+          sx={{
+            bgcolor: "#181c2f",
+            color: "#fff",
+            fontWeight: "bold",
+            fontSize: "1.3rem",
+          }}
+        >
+          Processed CV Data
+        </DialogTitle>
+        <Divider sx={{ mb: 2 }} />
         <DialogContent>
           {processedData && (
             <Box
