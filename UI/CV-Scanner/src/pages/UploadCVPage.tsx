@@ -406,8 +406,22 @@ export default function UploadCVPage() {
           )}
         </DialogContent>
         <Divider sx={{ mt: 2, mb: 1 }} /> {/* Segment content from footer */}
-        <DialogActions>
-          <Button onClick={handleCloseModal} color="primary">
+        <DialogActions sx={{ bgcolor: "#181c2f", justifyContent: "flex-end" }}>
+          <Button
+            onClick={handleCloseModal}
+            sx={{
+              bgcolor: "#e0e0e0",
+              color: "#333",
+              fontWeight: "bold",
+              textTransform: "none",
+              boxShadow: "none",
+              "&:hover": {
+                bgcolor: "#cccccc",
+                color: "#222",
+              },
+            }}
+            variant="contained"
+          >
             Close
           </Button>
         </DialogActions>
