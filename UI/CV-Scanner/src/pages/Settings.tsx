@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useLocation } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -30,6 +31,8 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   
+const location = useLocation();
+
   // Form states
   const [profileForm, setProfileForm] = useState({
     firstName: "Admin",
@@ -366,4 +369,16 @@ const navButtonStyle = {
   },
   textTransform: "none",
   fontWeight: "bold",
+  '&.active': {
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    height: '100%',
+    width: '4px',
+    backgroundColor: '#0073c1',
+    borderRadius: '0 4px 4px 0'
+  }
+}
 };

@@ -16,6 +16,7 @@ import {
   Badge,
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import SearchIcon from '@mui/icons-material/Search';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -28,11 +29,14 @@ import logo2 from '../assets/logo2.png';
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 
 export default function Search() {
+  const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const [searchText, setSearchText] = useState('');
   const [selectedSkills, setSelectedSkills] = useState([]);
   const [selectedFits, setSelectedFits] = useState([]);
   const [selectedDetails, setSelectedDetails] = useState([]);
+
+const location = useLocation();
 
   const candidates = [
     {
@@ -110,29 +114,109 @@ export default function Search() {
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#181c2f', color: '#fff' }}>
       {/* Sidebar */}
-      <Box sx={{ width: 220, bgcolor: '#5a88ad', display: 'flex', flexDirection: 'column', p: 2 }}>
-        <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
-          <img src={logo2} alt="Team Logo" style={{ width: 120 }} />
-        </Box>
-        <Button fullWidth sx={navButtonStyle} startIcon={<DashboardIcon />} onClick={() => navigate('/dashboard')}>
-          Dashboard
-        </Button>
-        <Button fullWidth sx={navButtonStyle} startIcon={<UploadFileIcon />} onClick={() => navigate('/upload')}>
-          Upload CV
-        </Button>
-        <Button fullWidth sx={navButtonStyle} startIcon={<PeopleIcon />} onClick={() => navigate('/candidates')}>
-          Candidates
-        </Button>
-        <Button fullWidth sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }} startIcon={<SearchIcon />} onClick={() => navigate('/search')}>
-          Search
-        </Button>
-      </Box>
+      {!collapsed ? (
+             <Box
+               sx={{
+                 width: 220,
+                 bgcolor: '#5a88ad',
+                 display: 'flex',
+                 flexDirection: 'column',
+                 p: 2,
+                 position: 'relative',
+               }}
+             >
+               {/* Collapse Button */}
+               <IconButton
+                 onClick={() => setCollapsed(true)}
+                 sx={{
+                   color: '#fff',
+                   position: 'absolute',
+                   top: 8,
+                   left: 8,
+                   zIndex: 1,
+                 }}
+               >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                   <rect x="3" y="6" width="18" height="2" fill="currentColor" />
+                   <rect x="3" y="11" width="18" height="2" fill="currentColor" />
+                   <rect x="3" y="16" width="18" height="2" fill="currentColor" />
+                 </svg>
+               </IconButton>
+     
+               <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3, mt: 5 }}>
+                 <img src={logo2} alt="Team Logo" style={{ width: 120 }} />
+               </Box>
+     
+               <Button
+                 fullWidth
+                 sx={navButtonStyle}
+                 className={location.pathname === '/dashboard' ? 'active' : ''}
+                 startIcon={<DashboardIcon />}
+                 onClick={() => navigate('/dashboard')}
+               >
+                 Dashboard
+               </Button>
+     
+               <Button
+                 fullWidth
+                 sx={navButtonStyle}
+                 className={location.pathname === '/upload' ? 'active' : ''}
+                 startIcon={<UploadFileIcon />}
+                 onClick={() => navigate('/upload')}
+               >
+                 Upload CV
+               </Button>
+     
+               <Button
+                 fullWidth
+                 sx={navButtonStyle}
+                 className={location.pathname === '/candidates' ? 'active' : ''}
+                 startIcon={<PeopleIcon />}
+                 onClick={() => navigate('/candidates')}
+               >
+                 Candidates
+               </Button>
+     
+               <Button
+                 fullWidth
+                 sx={{ ...navButtonStyle, bgcolor: '#d8f0ff', color: '#000' }}
+                 className={location.pathname === '/search' ? 'active' : ''}
+                 startIcon={<SearchIcon />}
+                 onClick={() => navigate('/search')}
+               >
+                 Search
+               </Button>
+     
+               
+             </Box>
+           ) : (
+             <Box
+               sx={{
+                 width: 40,
+                 bgcolor: '#5a88ad',
+                 display: 'flex',
+                 justifyContent: 'center',
+                 alignItems: 'flex-start',
+                 pt: 1,
+               }}
+             >
+               <IconButton onClick={() => setCollapsed(false)} sx={{ color: '#fff' }}>
+                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                   <rect x="3" y="6" width="18" height="2" fill="currentColor" />
+                   <rect x="3" y="11" width="18" height="2" fill="currentColor" />
+                   <rect x="3" y="16" width="18" height="2" fill="currentColor" />
+                 </svg>
+               </IconButton>
+             </Box>
+           )}
 
       {/* Main Content */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1 ,
+       
+      }}>
         {/* Top Bar */}
         <AppBar position="static" sx={{ bgcolor: '#5a88ad', boxShadow: 'none' }}>
-          <Toolbar sx={{ justifyContent: 'flex-end' }}>
+          <Toolbar sx={{ justifyContent: 'flex-end', }}>
             <IconButton color="inherit">
               <Badge badgeContent={4} color="error">
                 <NotificationsIcon />
@@ -249,7 +333,18 @@ export default function Search() {
             {/* Candidate Cards */}
             {filteredCandidates.length > 0 ? (
   filteredCandidates.map((candidate, idx) => (
-    <Paper key={idx} elevation={3} sx={{ p: 3, mb: 3, borderRadius: 3, backgroundColor: '#e1f4ff' }}>
+    <Paper key={idx} elevation={3} sx={{ p: 3, mb: 3, borderRadius: 3, backgroundColor: '#e1f4ff' ,
+      cursor: 'pointer', // Shows it's clickable
+        '&:hover': {
+          boxShadow: '0 4px 8px rgba(0,0,0,0.2)', // Visual feedback
+          transform: 'translateY(-2px)'
+        },
+        transition: 'all 0.2s ease'
+    }}
+      onClick={() => navigate('/candidate-review')} // Correct placement
+>
+
+    
       <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 3 }}>
         <Avatar sx={{ bgcolor: '#0073c1', width: 56, height: 56, fontSize: '1.5rem' }}>
           {candidate.initials}
@@ -296,4 +391,17 @@ const navButtonStyle = {
   },
   textTransform: 'none',
   fontWeight: 'bold',
+  '&.active': {
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    height: '100%',
+    width: '4px',
+    backgroundColor: 'black',
+    borderRadius: '0 4px 4px 0'
+  }
+}
+
 };
