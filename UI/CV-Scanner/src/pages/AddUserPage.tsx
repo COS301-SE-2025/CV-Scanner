@@ -1,0 +1,345 @@
+import React from "react";
+import {
+  Box,
+  Typography,
+  Paper,
+  Button,
+  TextField,
+  Select,
+  MenuItem,
+  AppBar,
+  Toolbar,
+  IconButton,
+  Badge,
+  FormControl,
+  InputLabel,
+  FormHelperText,
+} from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import NotificationsIcon from "@mui/icons-material/Notifications";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
+import PeopleIcon from "@mui/icons-material/People";
+import SearchIcon from "@mui/icons-material/Search";
+import SettingsIcon from "@mui/icons-material/Settings";
+import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import logo from "../assets/logo.png";
+
+export default function AddUserPage() {
+  const navigate = useNavigate();
+  const userRole = "Admin";
+
+  const [formData, setFormData] = React.useState({
+    name: "",
+    email: "",
+    role: "",
+    password: "",
+    confirmPassword: "",
+  });
+
+  const [errors, setErrors] = React.useState({
+    name: "",
+    email: "",
+    role: "",
+    password: "",
+    confirmPassword: "",
+  });
+
+  const validateForm = () => {
+    let isValid = true;
+    const newErrors = { ...errors };
+
+    // Name validation
+    if (!formData.name.trim()) {
+      newErrors.name = "Name is required";
+      isValid = false;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      newErrors.email = "Invalid email address";
+      isValid = false;
+    }
+
+    // Role validation
+    if (!formData.role) {
+      newErrors.role = "Role is required";
+      isValid = false;
+    }
+
+    // Password validation
+    if (formData.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters";
+      isValid = false;
+    }
+
+    // Confirm password validation
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match";
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
+  const handleSubmit = () => {
+    if (validateForm()) {
+      // Here you would typically make an API call to create the user
+      console.log("Creating user:", formData);
+      navigate("/user-management");
+    }
+  };
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        bgcolor: "#181c2f",
+        color: "#fff",
+      }}
+    >
+      {/* Sidebar */}
+      <Box
+        sx={{
+          width: 220,
+          bgcolor: "#5a88ad",
+          display: "flex",
+          flexDirection: "column",
+          p: 2,
+        }}
+      >
+        <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
+          <img src={logo} alt="Entelect Logo" style={{ width: 120 }} />
+        </Box>
+        <Button
+          fullWidth
+          sx={navButtonStyle}
+          startIcon={<DashboardIcon />}
+          onClick={() => navigate("/dashboard")}
+        >
+          Dashboard
+        </Button>
+        <Button
+          fullWidth
+          sx={navButtonStyle}
+          startIcon={<UploadFileIcon />}
+          onClick={() => navigate("/upload")}
+        >
+          Upload CV
+        </Button>
+        <Button
+          fullWidth
+          sx={navButtonStyle}
+          startIcon={<PeopleIcon />}
+          onClick={() => navigate("/candidates")}
+        >
+          Candidates
+        </Button>
+        <Button
+          fullWidth
+          sx={navButtonStyle}
+          startIcon={<SearchIcon />}
+          onClick={() => navigate("/search")}
+        >
+          Search
+        </Button>
+        {userRole === "Admin" && (
+          <Button
+            fullWidth
+            sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
+            startIcon={<SettingsIcon />}
+            onClick={() => navigate("/user-management")}
+          >
+            User Management
+          </Button>
+        )}
+      </Box>
+
+      {/* Main Content */}
+      <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+        {/* Top App Bar */}
+        <AppBar
+          position="static"
+          sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
+        >
+          <Toolbar sx={{ justifyContent: "flex-end" }}>
+            <IconButton color="inherit">
+              <Badge badgeContent={4} color="error">
+                <NotificationsIcon />
+              </Badge>
+            </IconButton>
+            <Box sx={{ display: "flex", alignItems: "center", ml: 2 }}>
+              <AccountCircleIcon sx={{ mr: 1 }} />
+              <Typography variant="subtitle1">Admin User</Typography>
+            </Box>
+            <IconButton color="inherit" onClick={() => navigate("/login")}>
+              <ExitToAppIcon />
+            </IconButton>
+          </Toolbar>
+        </AppBar>
+
+        {/* Add User Content */}
+        <Box
+          sx={{
+            p: 3,
+            display: "flex",
+            flexDirection: "column",
+            height: "100%", // Take full height of container
+          }}
+        >
+          {/* Keep header at top */}
+          <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+            <IconButton
+              onClick={() => navigate("/user-management")}
+              sx={{ color: "#fff", mr: 2 }}
+            >
+              <ArrowBackIcon />
+            </IconButton>
+            <Typography variant="h4" sx={{ fontWeight: "bold" }}>
+              Add New User
+            </Typography>
+          </Box>
+
+          {/* Center form vertically and horizontally */}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              flex: 1, // Take remaining space
+            }}
+          >
+            <Paper
+              elevation={6}
+              sx={{
+                p: 3,
+                borderRadius: 3,
+                bgcolor: "#e1f4ff",
+                width: "100%",
+                maxWidth: 600,
+              }}
+            >
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                <FormControl error={!!errors.name}>
+                  <TextField
+                    label="Full Name"
+                    fullWidth
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    error={!!errors.name}
+                    helperText={errors.name}
+                  />
+                </FormControl>
+
+                <FormControl error={!!errors.email}>
+                  <TextField
+                    label="Email Address"
+                    fullWidth
+                    value={formData.email}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
+                    error={!!errors.email}
+                    helperText={errors.email}
+                  />
+                </FormControl>
+
+                <FormControl error={!!errors.role}>
+                  <InputLabel>Role</InputLabel>
+                  <Select
+                    value={formData.role}
+                    label="Role"
+                    onChange={(e) =>
+                      setFormData({ ...formData, role: e.target.value })
+                    }
+                  >
+                    <MenuItem value="Admin">Admin</MenuItem>
+                    <MenuItem value="Editor">Editor</MenuItem>
+                    <MenuItem value="Uploader">Uploader</MenuItem>
+                  </Select>
+                  {errors.role && (
+                    <FormHelperText>{errors.role}</FormHelperText>
+                  )}
+                </FormControl>
+
+                <FormControl error={!!errors.password}>
+                  <TextField
+                    label="Password"
+                    type="password"
+                    fullWidth
+                    value={formData.password}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
+                    error={!!errors.password}
+                    helperText={errors.password}
+                  />
+                </FormControl>
+
+                <FormControl error={!!errors.confirmPassword}>
+                  <TextField
+                    label="Confirm Password"
+                    type="password"
+                    fullWidth
+                    value={formData.confirmPassword}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        confirmPassword: e.target.value,
+                      })
+                    }
+                    error={!!errors.confirmPassword}
+                    helperText={errors.confirmPassword}
+                  />
+                </FormControl>
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    gap: 2,
+                    mt: 2,
+                  }}
+                >
+                  <Button
+                    variant="outlined"
+                    onClick={() => navigate("/user-management")}
+                    sx={{ bgcolor: "lightgrey"  ,color: "#666" }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="contained"
+                    onClick={handleSubmit}
+                    sx={{ bgcolor: "#4caf50", color: "#fff" }}
+                  >
+                    Create User
+                  </Button>
+                </Box>
+              </Box>
+            </Paper>
+          </Box>
+        </Box>
+      </Box>
+    </Box>
+  );
+}
+
+const navButtonStyle = {
+  justifyContent: "flex-start",
+  mb: 1,
+  color: "#fff",
+  backgroundColor: "transparent",
+  "&:hover": {
+    backgroundColor: "#487DA6",
+  },
+  textTransform: "none",
+  fontWeight: "bold",
+};

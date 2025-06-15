@@ -113,6 +113,7 @@ export default function UserManagementPage() {
             p: 2,
             position: 'relative',
           }}
+
         >
           {/* Collapse Button */}
           <IconButton

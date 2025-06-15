@@ -24,6 +24,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import SettingsIcon from '@mui/icons-material/Settings';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 
 export default function CandidatesDashboard() {
   const [collapsed, setCollapsed] = useState(false);

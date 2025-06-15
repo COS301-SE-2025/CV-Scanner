@@ -268,6 +268,29 @@ export default function LoginPage() {
               {loading ? "Signing in..." : "Sign in"}
             </Button>
 
+            {/* Add this new temporary access button */}
+            <Button
+              fullWidth
+              variant="outlined"
+              size="large"
+              onClick={() => navigate("/dashboard")}
+              sx={{
+                mb: 2,
+                py: 1.5,
+                fontWeight: "bold",
+                fontSize: "1.1rem",
+                color: "#b0e0ff",
+                borderColor: "#b0e0ff",
+                "&:hover": {
+                  borderColor: "#fff",
+                  color: "#fff",
+                  bgcolor: "rgba(255, 255, 255, 0.1)",
+                },
+              }}
+            >
+              Temporary Dashboard Access
+            </Button>
+
             <Typography align="center" sx={{ mt: 2 }}>
               Don't have an account?{" "}
               <Link

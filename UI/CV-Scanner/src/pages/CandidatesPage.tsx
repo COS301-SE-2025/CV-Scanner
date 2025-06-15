@@ -26,6 +26,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import logo2 from '../assets/logo2.png';
+import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 
 export default function CandidatesPage() {
   const [collapsed, setCollapsed] = useState(false);
@@ -172,6 +173,14 @@ export default function CandidatesPage() {
               <AccountCircleIcon sx={{ mr: 1 }} />
               <Typography variant="subtitle1">Admin User</Typography>
             </Box>
+            <IconButton
+              color="inherit"
+              onClick={() => {
+                navigate("/login"); // Redirect to login page
+              }}
+            >
+              <ExitToAppIcon />
+              </IconButton>
           </Toolbar>
         </AppBar>
 
