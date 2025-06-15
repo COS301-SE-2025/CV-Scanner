@@ -372,8 +372,8 @@ export default function UploadCVPage() {
             backgroundColor: "#5a88ad",
             maxWidth: "60vw",
             width: "60vw",
-            height: "60vw", // Keep height similar to width for a square modal
-            maxHeight: "90vh", // Prevent overflow on very wide screens
+            height: "60vw",
+            maxHeight: "90vh",
             minHeight: "40vh",
           },
         }}
@@ -392,13 +392,53 @@ export default function UploadCVPage() {
         <DialogContent>
           {processedData && (
             <Box
-              sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 6,
+                px: 2,
+                py: 1,
+              }}
             >
+              {/* Left Column */}
               <Box>
-                <Typography sx={{ mb: 2 }}>
-                  Name: {processedData.name}
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    color: "#232a3b",
+                    mb: 2,
+                    fontWeight: "bold",
+                    letterSpacing: 1,
+                  }}
+                >
+                  Personal Details
                 </Typography>
-                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, my: 2 }}>
+                <Typography sx={{ mb: 3, fontWeight: "bold" }}>
+                  Name:{" "}
+                  <span style={{ fontWeight: 400 }}>{processedData.name}</span>
+                </Typography>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    color: "#232a3b",
+                    mb: 1,
+                    fontWeight: "bold",
+                    letterSpacing: 1,
+                  }}
+                >
+                  Skills:
+                  
+                </Typography>
+                <Box
+                  sx={{
+                    color: "#232a3b",
+                    display: "flex",
+                    fontWeight: "bold",
+                    flexWrap: "wrap",
+                    gap: 1.5,
+                    mb: 3,
+                  }}
+                >
                   {processedData.skills.map((skill: string, idx: number) => (
                     <Chip
                       key={idx}
@@ -409,24 +449,54 @@ export default function UploadCVPage() {
                         color: "#333",
                         fontWeight: "bold",
                         fontSize: "0.95em",
-                        mb: 1,
+                        px: 2,
+                        py: 0.5,
                       }}
                     />
                   ))}
                 </Box>
-                <Typography sx={{ mt: 2 }}>
-                  Experience: {processedData.experience}
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                  Experience:
+                  <span
+                    style={{
+                      fontWeight: 400,
+                      marginLeft: 6,
+                    }}
+                  >
+                    {processedData.experience}
+                  </span>
                 </Typography>
               </Box>
+              {/* Right Column */}
               <Box>
-                <Typography sx={{ mb: 2 }}>
-                  Education: {processedData.education}
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    color: "#232a3b",
+                    mb: 2,
+                    fontWeight: "bold",
+                    letterSpacing: 1,
+                  }}
+                >
+                  Other Information
                 </Typography>
-                <Typography sx={{ mb: 2 }}>
-                  Contact Info: {processedData.contactInfo}
+                <Typography sx={{ mb: 3 }}>
+                  <span style={{ fontWeight: "bold" }}>Education:</span>
+                  <span style={{ marginLeft: 6 }}>
+                    {processedData.education}
+                  </span>
                 </Typography>
-                <Typography sx={{ mb: 2 }}>
-                  Additional Info: {processedData.additionalInfo}
+                <Typography sx={{ mb: 3 }}>
+                  <span style={{ fontWeight: "bold" }}>Contact Info:</span>
+                  <span style={{ marginLeft: 6 }}>
+                    {processedData.contactInfo}
+                  </span>
+                </Typography>
+                <Typography sx={{ mb: 3 }}>
+                  <span style={{ fontWeight: "bold" }}>Additional Info:</span>
+                  <span style={{ marginLeft: 6 }}>
+                    {processedData.additionalInfo}
+                  </span>
                 </Typography>
               </Box>
             </Box>
