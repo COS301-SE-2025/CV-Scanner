@@ -19,6 +19,7 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  Divider,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
@@ -370,6 +371,7 @@ export default function UploadCVPage() {
         }}
       >
         <DialogTitle>Processed CV Data</DialogTitle>
+        <Divider sx={{ mb: 2 }} /> {/* Segment header from content */}
         <DialogContent>
           {processedData && (
             <Box
@@ -394,6 +396,7 @@ export default function UploadCVPage() {
             </Box>
           )}
         </DialogContent>
+        <Divider sx={{ mt: 2, mb: 1 }} /> {/* Segment content from footer */}
         <DialogActions>
           <Button onClick={handleCloseModal} color="primary">
             Close
