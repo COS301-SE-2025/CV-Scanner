@@ -147,7 +147,7 @@ public class CVController {
         headers.setContentType(MediaType.TEXT_PLAIN);
         headers.set("User-Agent", "CV-Document-Processor/1.0");
         
-        // Create the request entity
+    
         HttpEntity<String> requestEntity = new HttpEntity<>(cvText, headers);
         
         // Send POST request to the engine
