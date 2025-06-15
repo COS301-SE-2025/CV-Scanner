@@ -105,7 +105,7 @@ public class CVController {
         try (PDDocument document = PDDocument.load(file.getInputStream())) {
             PDFTextStripper pdfStripper = new PDFTextStripper();
             
-            // Configure the stripper for better text extraction
+
             pdfStripper.setSortByPosition(true);
             pdfStripper.setLineSeparator("\n");
             
