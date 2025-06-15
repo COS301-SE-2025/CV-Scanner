@@ -67,7 +67,7 @@ public class CVController {
             System.out.println("Extracted text length: " + extractedText.length());
             System.out.println("First 200 chars: " + extractedText.substring(0, Math.min(200, extractedText.length())));
             
-            // Send text to CV processing engine
+            
             ResponseEntity<String> engineResponse = sendToCvEngine(extractedText);
             
             // Return the response from the engine
