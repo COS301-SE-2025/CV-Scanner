@@ -126,7 +126,6 @@ public class CVController {
                 }
             }
             
-            // Extract text from tables
             for (XWPFTable table : doc.getTables()) {
                 for (XWPFTableRow row : table.getRows()) {
                     for (XWPFTableCell cell : row.getTableCells()) {
