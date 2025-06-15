@@ -368,7 +368,14 @@ export default function UploadCVPage() {
         open={isModalOpen}
         onClose={handleCloseModal}
         PaperProps={{
-          sx: { backgroundColor: "#5a88ad" },
+          sx: {
+            backgroundColor: "#5a88ad",
+            maxWidth: "60vw",
+            width: "60vw",
+            height: "60vw", // Keep height similar to width for a square modal
+            maxHeight: "90vh", // Prevent overflow on very wide screens
+            minHeight: "40vh",
+          },
         }}
       >
         <DialogTitle
