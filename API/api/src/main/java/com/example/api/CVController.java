@@ -143,7 +143,6 @@ public class CVController {
     }
     
     private ResponseEntity<String> sendToCvEngine(String cvText) {
-        // Set up headers
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.TEXT_PLAIN);
         headers.set("User-Agent", "CV-Document-Processor/1.0");
