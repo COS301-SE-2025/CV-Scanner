@@ -119,7 +119,6 @@ public class CVController {
             
             StringBuilder sb = new StringBuilder();
             
-            // Extract text from paragraphs
             for (XWPFParagraph paragraph : doc.getParagraphs()) {
                 String paragraphText = paragraph.getText();
                 if (paragraphText != null && !paragraphText.trim().isEmpty()) {
