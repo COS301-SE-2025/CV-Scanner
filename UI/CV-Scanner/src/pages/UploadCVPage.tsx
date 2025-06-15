@@ -385,13 +385,13 @@ export default function UploadCVPage() {
         <DialogContent>
           {processedData && (
             <Box
-              sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}
+              sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}
             >
               <Box>
-                <Typography>Name: {processedData.name}</Typography>
-                <Box
-                  sx={{ display: "flex", flexWrap: "wrap", gap: 1, my: 1 }}
-                >
+                <Typography sx={{ mb: 2 }}>
+                  Name: {processedData.name}
+                </Typography>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, my: 2 }}>
                   {processedData.skills.map((skill: string, idx: number) => (
                     <Chip
                       key={idx}
@@ -402,25 +402,29 @@ export default function UploadCVPage() {
                         color: "#333",
                         fontWeight: "bold",
                         fontSize: "0.95em",
+                        mb: 1,
                       }}
                     />
                   ))}
                 </Box>
-                <Typography>Experience: {processedData.experience}</Typography>
+                <Typography sx={{ mt: 2 }}>
+                  Experience: {processedData.experience}
+                </Typography>
               </Box>
               <Box>
-                <Typography>Education: {processedData.education}</Typography>
-                <Typography>
+                <Typography sx={{ mb: 2 }}>
+                  Education: {processedData.education}
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
                   Contact Info: {processedData.contactInfo}
                 </Typography>
-                <Typography>
+                <Typography sx={{ mb: 2 }}>
                   Additional Info: {processedData.additionalInfo}
                 </Typography>
               </Box>
             </Box>
           )}
         </DialogContent>
-        <Divider sx={{ mt: 2, mb: 1 }} /> {/* Segment content from footer */}
         <DialogActions sx={{ bgcolor: "#181c2f", justifyContent: "flex-end" }}>
           <Button
             onClick={handleCloseModal}
