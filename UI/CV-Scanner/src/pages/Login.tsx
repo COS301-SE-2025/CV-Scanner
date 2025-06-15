@@ -60,26 +60,26 @@ export default function LoginPage() {
           boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
         }}
       >
-    <Box sx={{
-  display: "flex",
-  alignItems: "center",
-  backgroundColor: "#3a7ca5", // Same as navbar
-  padding: "4px 8px",
-  borderRadius: "4px",
-    marginRight: 2,
-    
-}}>
-  <img
-    src={logo}
-    alt="Team Logo"
-    style={{
-    height: 50,
-    width: "auto",
-    imageRendering: 'crisp-edges', // or 'crisp-edges'
- 
-  }}
-  />
-</Box>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            backgroundColor: "#3a7ca5", // Same as navbar
+            padding: "4px 8px",
+            borderRadius: "4px",
+            marginRight: 2,
+          }}
+        >
+          <img
+            src={logo}
+            alt="Team Logo"
+            style={{
+              height: 50,
+              width: "auto",
+              imageRendering: "crisp-edges", // or 'crisp-edges'
+            }}
+          />
+        </Box>
       </Box>
 
       {/* Main Content */}
@@ -201,6 +201,29 @@ export default function LoginPage() {
               }}
             >
               {loading ? "Signing in..." : "Sign in"}
+            </Button>
+
+            {/* Add this new temporary access button */}
+            <Button
+              fullWidth
+              variant="outlined"
+              size="large"
+              onClick={() => navigate("/dashboard")}
+              sx={{
+                mb: 2,
+                py: 1.5,
+                fontWeight: "bold",
+                fontSize: "1.1rem",
+                color: "#b0e0ff",
+                borderColor: "#b0e0ff",
+                "&:hover": {
+                  borderColor: "#fff",
+                  color: "#fff",
+                  bgcolor: "rgba(255, 255, 255, 0.1)",
+                },
+              }}
+            >
+              Temporary Dashboard Access
             </Button>
 
             <Typography align="center" sx={{ mt: 2 }}>
