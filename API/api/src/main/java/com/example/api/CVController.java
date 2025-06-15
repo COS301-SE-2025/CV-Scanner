@@ -33,7 +33,7 @@ import org.springframework.web.multipart.MultipartFile;
 @CrossOrigin(origins = "*") 
 public class CVController {
     
-    // Configure this in application.properties
+    
     @Value("${cv.engine.url:http://localhost:8080/process-cv}")
     private String cvEngineUrl;
     
