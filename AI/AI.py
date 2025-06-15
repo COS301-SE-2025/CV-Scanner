@@ -118,16 +118,6 @@ def process_pdf_bytes(pdf_bytes: bytes):
 
     return result
 
-def process_pdf_bytes(pdf_bytes: bytes):
-    tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-    try:
-        tmp_file.write(pdf_bytes)
-        tmp_file.close()
-        result = process_pdf_file(tmp_file.name)
-    finally:
-        os.unlink(tmp_file.name)
-
-    return result
 
 
 @app.post("/upload_pdf/")
