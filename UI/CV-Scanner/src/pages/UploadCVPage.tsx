@@ -362,7 +362,13 @@ export default function UploadCVPage() {
       </Box>
 
       {/* Modal for Processed Data */}
-      <Dialog open={isModalOpen} onClose={handleCloseModal}>
+      <Dialog
+        open={isModalOpen}
+        onClose={handleCloseModal}
+        PaperProps={{
+          sx: { backgroundColor: "#5a88ad" },
+        }}
+      >
         <DialogTitle>Processed CV Data</DialogTitle>
         <DialogContent>
           {processedData && (
