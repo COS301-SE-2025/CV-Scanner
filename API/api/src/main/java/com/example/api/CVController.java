@@ -57,7 +57,7 @@ public class CVController {
         }
         
         try {
-            // Extract text based on file type
+            
             String extractedText = extractTextFromFile(file);
             
             if (extractedText.trim().isEmpty()) {
