@@ -105,28 +105,7 @@ def process_pdf_file(pdf_path):
 
     return prepare_json_data(categorized)
 
-def process_pdf_file(pdf_path):
-    try:
-        parsed = parser.from_file(pdf_path)
-        cv_text = parsed.get('content', '')
-        if not cv_text:
-            return None
-    except Exception:
-        return None
 
-    categorized = categorize_cv_nlp(cv_text)
-    contact_info = extract_contact_info(cv_text)
-
-    contact_section = categorized.get("contact", [])
-    contact_section.extend([
-        f"Name: {contact_info['name']}",
-        *[f"Email: {email}" for email in contact_info['emails']],
-        *[f"Phone: {phone}" for phone in contact_info['phones']],
-        *[f"Link: {url}" for url in contact_info['urls']]
-    ])
-    categorized["contact"] = contact_section
-
-    return prepare_json_data(categorized)
 
 def process_pdf_bytes(pdf_bytes: bytes):
     tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
