@@ -1,3 +1,7 @@
+
+#added imports for ai 
+
+
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from tika import parser
@@ -6,6 +10,8 @@ import json
 import os
 from transformers import pipeline
 import re
+
+#fixed import 
 import spacy
 nlp = spacy.load("en_core_web_sm")
 
@@ -15,11 +21,12 @@ nlp = spacy.load("en_core_web_sm")
 app = FastAPI()
 
 classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+#added label
 
 labels = ["profile", "education", "skills", "languages", "projects", "achievements", "contact", "experience"]
 
 
-
+#added nlp
 def categorize_cv_nlp(text: str):
     categories = {label: [] for label in labels}
     categories["other"] = []
@@ -42,6 +49,7 @@ def categorize_cv_nlp(text: str):
     return categories
 
 
+#added extraction
 def extract_contact_info(text: str):
     doc = nlp(text)
 
@@ -110,6 +118,8 @@ def process_pdf_bytes(pdf_bytes: bytes):
 
     return result
 
+
+
 @app.post("/upload_pdf/")
 async def upload_pdf(file: UploadFile = File(...)):
     if file.content_type != "application/pdf":
@@ -126,3 +136,4 @@ async def upload_pdf(file: UploadFile = File(...)):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8081)
+    
