@@ -417,17 +417,8 @@ export default function UploadCVPage() {
                   Name:{" "}
                   <span style={{ fontWeight: 400 }}>{processedData.name}</span>
                 </Typography>
-                <Typography
-                  variant="subtitle2"
-                  sx={{
-                    color: "#232a3b",
-                    mb: 1,
-                    fontWeight: "bold",
-                    letterSpacing: 1,
-                  }}
-                >
+                <Typography sx={{ mb: 1, fontWeight: "bold" }}>
                   Skills:
-                  
                 </Typography>
                 <Box
                   sx={{
