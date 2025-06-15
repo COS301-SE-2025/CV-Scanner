@@ -21,7 +21,7 @@ import {
   TextField,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import { useLocation } from 'react-router-dom';
+import { useLocation } from "react-router-dom";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -73,7 +73,9 @@ export default function UploadCVPage() {
   };
 
   const handleBrowseClick = () => {
-    const fileInput = document.getElementById("file-upload") as HTMLInputElement;
+    const fileInput = document.getElementById(
+      "file-upload"
+    ) as HTMLInputElement;
     if (fileInput) {
       fileInput.click();
     }
@@ -93,65 +95,65 @@ export default function UploadCVPage() {
       }}
     >
       {/* Sidebar */}
-     {!collapsed ? (
+      {!collapsed ? (
         <Box
           sx={{
             width: 220,
-            bgcolor: '#5a88ad',
-            display: 'flex',
-            flexDirection: 'column',
+            bgcolor: "#5a88ad",
+            display: "flex",
+            flexDirection: "column",
             p: 2,
-            position: 'relative',
+            position: "relative",
           }}
         >
           {/* Collapse Button */}
           <IconButton
             onClick={() => setCollapsed(true)}
             sx={{
-              color: '#fff',
-              position: 'absolute',
+              color: "#fff",
+              position: "absolute",
               top: 8,
               left: 8,
               zIndex: 1,
             }}
           >
-             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <rect x="3" y="6" width="18" height="2" fill="currentColor" />
               <rect x="3" y="11" width="18" height="2" fill="currentColor" />
               <rect x="3" y="16" width="18" height="2" fill="currentColor" />
             </svg>
           </IconButton>
 
-          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3, mt: 5 }}>
+          <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
             <img src={logo2} alt="Team Logo" style={{ width: 120 }} />
           </Box>
 
           <Button
             fullWidth
             sx={navButtonStyle}
-            className={location.pathname === '/dashboard' ? 'active' : ''}
+            className={location.pathname === "/dashboard" ? "active" : ""}
             startIcon={<DashboardIcon />}
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate("/dashboard")}
           >
             Dashboard
           </Button>
 
           <Button
             fullWidth
-            sx={{ ...navButtonStyle, bgcolor: '#d8f0ff', color: '#000' }}
-            className={location.pathname === '/upload' ? 'active' : ''}
+            sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
+            className={location.pathname === "/upload" ? "active" : ""}
             startIcon={<UploadFileIcon />}
-            onClick={() => navigate('/upload')}
+            onClick={() => navigate("/upload")}
           >
             Upload CV
           </Button>
 
           <Button
-           fullWidth
+            fullWidth
             sx={navButtonStyle}
-            className={location.pathname === '/candidates' ? 'active' : ''}
+            className={location.pathname === "/candidates" ? "active" : ""}
             startIcon={<PeopleIcon />}
-            onClick={() => navigate('/candidates')}
+            onClick={() => navigate("/candidates")}
           >
             Candidates
           </Button>
@@ -159,39 +161,45 @@ export default function UploadCVPage() {
           <Button
             fullWidth
             sx={navButtonStyle}
-            className={location.pathname === '/search' ? 'active' : ''}
+            className={location.pathname === "/search" ? "active" : ""}
             startIcon={<SearchIcon />}
-            onClick={() => navigate('/search')}
+            onClick={() => navigate("/search")}
           >
             Search
           </Button>
-      </Box>
+        </Box>
       ) : (
-              // Expand Icon when sidebar is collapsed
-              <Box
-                sx={{
-                  width: 40,
-                  bgcolor: '#5a88ad',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'flex-start',
-                  pt: 1,
-                }}
-              >
-                <IconButton onClick={() => setCollapsed(false)} sx={{ color: '#fff' }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <rect x="3" y="6" width="18" height="2" fill="currentColor" />
-                    <rect x="3" y="11" width="18" height="2" fill="currentColor" />
-                    <rect x="3" y="16" width="18" height="2" fill="currentColor" />
-                  </svg>
-                </IconButton>
-              </Box>
-            )}
+        // Expand Icon when sidebar is collapsed
+        <Box
+          sx={{
+            width: 40,
+            bgcolor: "#5a88ad",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "flex-start",
+            pt: 1,
+          }}
+        >
+          <IconButton
+            onClick={() => setCollapsed(false)}
+            sx={{ color: "#fff" }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="6" width="18" height="2" fill="currentColor" />
+              <rect x="3" y="11" width="18" height="2" fill="currentColor" />
+              <rect x="3" y="16" width="18" height="2" fill="currentColor" />
+            </svg>
+          </IconButton>
+        </Box>
+      )}
 
       {/* Main Content with Top Bar */}
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
         {/* Top App Bar */}
-        <AppBar position="static" sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}>
+        <AppBar
+          position="static"
+          sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
+        >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
             <IconButton color="inherit">
               <Badge badgeContent={4} color="error">
@@ -199,19 +207,19 @@ export default function UploadCVPage() {
               </Badge>
             </IconButton>
             <Box
-  sx={{
-    display: 'flex',
-    alignItems: 'center',
-    ml: 2,
-    cursor: 'pointer',
-    '&:hover': { opacity: 0.8 },
-  }}
-  onClick={() => navigate('/settings')}
->
-  <AccountCircleIcon sx={{ mr: 1 }} />
-  <Typography variant="subtitle1">Admin User</Typography>
-</Box>
-<IconButton
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                ml: 2,
+                cursor: "pointer",
+                "&:hover": { opacity: 0.8 },
+              }}
+              onClick={() => navigate("/settings")}
+            >
+              <AccountCircleIcon sx={{ mr: 1 }} />
+              <Typography variant="subtitle1">Admin User</Typography>
+            </Box>
+            <IconButton
               color="inherit"
               onClick={() => {
                 navigate("/login"); // Redirect to login page
@@ -219,7 +227,6 @@ export default function UploadCVPage() {
             >
               <ExitToAppIcon />
             </IconButton>
-
           </Toolbar>
         </AppBar>
 
@@ -305,7 +312,9 @@ export default function UploadCVPage() {
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: "bold" }}>File Name</TableCell>
+                      <TableCell sx={{ fontWeight: "bold" }}>
+                        File Name
+                      </TableCell>
                       <TableCell sx={{ fontWeight: "bold" }}>Size</TableCell>
                       <TableCell sx={{ fontWeight: "bold" }}>Action</TableCell>
                     </TableRow>
@@ -357,13 +366,25 @@ export default function UploadCVPage() {
         <DialogTitle>Processed CV Data</DialogTitle>
         <DialogContent>
           {processedData && (
-            <Box>
-              <Typography>Name: {processedData.name}</Typography>
-              <Typography>Skills: {processedData.skills.join(", ")}</Typography>
-              <Typography>Experience: {processedData.experience}</Typography>
-              <Typography>Education: {processedData.education}</Typography>
-              <Typography>Contact Info: {processedData.contactInfo}</Typography>
-              <Typography>Additional Info: {processedData.additionalInfo}</Typography>
+            <Box
+              sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}
+            >
+              <Box>
+                <Typography>Name: {processedData.name}</Typography>
+                <Typography>
+                  Skills: {processedData.skills.join(", ")}
+                </Typography>
+                <Typography>Experience: {processedData.experience}</Typography>
+              </Box>
+              <Box>
+                <Typography>Education: {processedData.education}</Typography>
+                <Typography>
+                  Contact Info: {processedData.contactInfo}
+                </Typography>
+                <Typography>
+                  Additional Info: {processedData.additionalInfo}
+                </Typography>
+              </Box>
             </Box>
           )}
         </DialogContent>
@@ -390,19 +411,18 @@ const navButtonStyle = {
   },
   textTransform: "none",
   fontWeight: "bold",
-  '&.active': {
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    height: '100%',
-    width: '4px',
-    backgroundColor: 'black',
-    borderRadius: '0 4px 4px 0'
-  }
-}
-
+  "&.active": {
+    "&::before": {
+      content: '""',
+      position: "absolute",
+      left: 0,
+      top: 0,
+      height: "100%",
+      width: "4px",
+      backgroundColor: "black",
+      borderRadius: "0 4px 4px 0",
+    },
+  },
 };
 
 const reviewButtonStyle = {
