@@ -36,7 +36,7 @@ function App() {
              <Route path="/settings" element={<Settings />} />
              <Route path="/add-user" element={<AddUserPage />} />
              <Route path="/landing-page" element={<LandingPage />} />
-       <Route path="*" element={<LoginPage />} />
+       <Route path="*" element={<LandingPage />} />
       </Routes>
     </BrowserRouter>
   );

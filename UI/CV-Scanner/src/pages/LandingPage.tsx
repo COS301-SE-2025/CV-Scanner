@@ -33,10 +33,13 @@ export default function LandingPage() {
           <Typography variant="h6" sx={{ mb: 4, color: '#bce4ff' }}>
             Effortlessly upload, filter, and match candidate CVs with our intelligent scanning system.
           </Typography>
+          <Typography variant="body1" sx={{ mb: 2, color: '#fff' }}>
+            Don't have an account?
+          </Typography>
           <Button
             variant="contained"
             endIcon={<ArrowForwardIcon />}
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/register')}
             sx={{
               background: 'linear-gradient(90deg, #232a3b 0%, #6ddf6d 100%)',
               color: '#fff',
@@ -50,11 +53,10 @@ export default function LandingPage() {
               },
             }}
           >
-            Enter Dashboard
+            Register
           </Button>
         </Box>
-      </Box>
-
+      </Box>
 
          {/* Footer */}
       <Box sx={{ textAlign: 'center', py: 2, bgcolor: '#5a88ad', color: '#fff' }}>
