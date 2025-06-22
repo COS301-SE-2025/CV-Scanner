@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -21,6 +21,7 @@ import {
   TextField,
   Divider,
   Chip,
+  Popover,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
@@ -43,6 +44,12 @@ export default function UploadCVPage() {
   const [isModalOpen, setIsModalOpen] = useState(false); // State for modal visibility
   const [contactInfo, setContactInfo] = useState(""); // State for contact information
   const [additionalInfo, setAdditionalInfo] = useState(""); // State for additional information
+  const [tutorialStep, setTutorialStep] = useState(0); // 0: Upload, 1: Additional Info, 2: Process
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+
+  const uploadBoxRef = useRef<HTMLDivElement>(null);
+  const additionalInfoRef = useRef<HTMLInputElement>(null);
+  const processBtnRef = useRef<HTMLButtonElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -86,6 +93,20 @@ export default function UploadCVPage() {
   const navigate = useNavigate();
 
   const location = useLocation();
+
+  // Set anchorEl when tutorialStep changes
+  useEffect(() => {
+    if (tutorialStep === 0 && uploadBoxRef.current)
+      setAnchorEl(uploadBoxRef.current);
+    else if (tutorialStep === 1 && additionalInfoRef.current)
+      setAnchorEl(additionalInfoRef.current);
+    else if (tutorialStep === 2 && processBtnRef.current)
+      setAnchorEl(processBtnRef.current);
+    else setAnchorEl(null);
+  }, [tutorialStep]);
+
+  const handleNext = () => setTutorialStep((prev) => prev + 1);
+  const handleCloseTutorial = () => setTutorialStep(-1);
 
   return (
     <Box
@@ -252,6 +273,7 @@ export default function UploadCVPage() {
 
             {/* Upload Box */}
             <Box
+              ref={uploadBoxRef}
               sx={{
                 border: "2px dashed #999",
                 borderRadius: 2,
@@ -306,6 +328,7 @@ export default function UploadCVPage() {
               value={additionalInfo}
               onChange={(e) => setAdditionalInfo(e.target.value)}
               sx={{ mb: 3 }}
+              inputRef={additionalInfoRef}
             />
 
             {/* File Table */}
@@ -345,6 +368,7 @@ export default function UploadCVPage() {
                 disabled={!file}
                 sx={reviewButtonStyle}
                 onClick={handleProcess}
+                ref={processBtnRef}
               >
                 Process CV
               </Button>
@@ -513,6 +537,105 @@ export default function UploadCVPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Tutorial Popover */}
+      <Popover
+        open={tutorialStep >= 0 && tutorialStep <= 2 && Boolean(anchorEl)}
+        anchorEl={anchorEl}
+        onClose={handleCloseTutorial}
+        anchorOrigin={{
+          vertical: "top",
+          horizontal: "center",
+        }}
+        transformOrigin={{
+          vertical: "bottom",
+          horizontal: "center",
+        }}
+        PaperProps={{
+          sx: {
+            p: 2,
+            bgcolor: "#fff",
+            color: "#181c2f",
+            borderRadius: 2,
+            boxShadow: 6,
+            minWidth: 280,
+            zIndex: 1500,
+            textAlign: "center",
+          },
+        }}
+      >
+        {tutorialStep === 0 && (
+          <>
+            <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+              Step 1: Upload a CV
+            </Typography>
+            <Typography sx={{ mb: 2 }}>
+              Start by uploading a candidate's CV here. You can drag and drop or
+              browse for a file.
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={handleNext}
+              sx={{
+                bgcolor: "#5a88ad",
+                color: "#fff",
+                fontWeight: "bold",
+                textTransform: "none",
+                "&:hover": { bgcolor: "#487DA6" },
+              }}
+            >
+              Next
+            </Button>
+          </>
+        )}
+        {tutorialStep === 1 && (
+          <>
+            <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+              Step 2: Additional Information
+            </Typography>
+            <Typography sx={{ mb: 2 }}>
+              Fill in any extra details about the candidate or the CV here.
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={handleNext}
+              sx={{
+                bgcolor: "#5a88ad",
+                color: "#fff",
+                fontWeight: "bold",
+                textTransform: "none",
+                "&:hover": { bgcolor: "#487DA6" },
+              }}
+            >
+              Next
+            </Button>
+          </>
+        )}
+        {tutorialStep === 2 && (
+          <>
+            <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+              Step 3: Process the CV
+            </Typography>
+            <Typography sx={{ mb: 2 }}>
+              When you're ready, click <b>Process CV</b> to extract skills and
+              information from the uploaded file.
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={handleCloseTutorial}
+              sx={{
+                bgcolor: "#5a88ad",
+                color: "#fff",
+                fontWeight: "bold",
+                textTransform: "none",
+                "&:hover": { bgcolor: "#487DA6" },
+              }}
+            >
+              Got it!
+            </Button>
+          </>
+        )}
+      </Popover>
     </Box>
   );
 }
