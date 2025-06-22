@@ -3,6 +3,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useNavigate } from 'react-router-dom';
 import logo2 from '../assets/logo2.png';
 import { useState } from 'react';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 
 export default function HelpPage() {
@@ -38,14 +39,14 @@ const filteredFaqs = faqs.filter(
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#181c2f', color: '#fff', display: 'flex', flexDirection: 'column' }}>
-      {/* Top App Bar */}
+          {/* Top App Bar */}
       <AppBar position="static" sx={{ bgcolor: '#5a88ad', boxShadow: 'none' }}>
         <Toolbar sx={{ justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <img src={logo2} alt="Logo" style={{ width: 100 }} />
             <Typography variant="h6" sx={{ ml: 2, fontWeight: 'bold' }}>CV Scanner Help</Typography>
           </Box>
-          <Button color="inherit" onClick={() => navigate('/dashboard')}>
+          <Button color="inherit" startIcon={<ArrowBackIcon />} onClick={() => navigate('/dashboard')}>
             Back to Dashboard
           </Button>
         </Toolbar>
@@ -83,6 +84,7 @@ const filteredFaqs = faqs.filter(
              </Paper>
         )}
       </Box>
+
 
 
       {/* Footer */}
