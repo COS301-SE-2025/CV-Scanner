@@ -596,19 +596,36 @@ export default function UploadCVPage() {
             <Typography sx={{ mb: 2 }}>
               Fill in any extra details about the candidate or the CV here.
             </Typography>
-            <Button
-              variant="contained"
-              onClick={handleNext}
-              sx={{
-                bgcolor: "#5a88ad",
-                color: "#fff",
-                fontWeight: "bold",
-                textTransform: "none",
-                "&:hover": { bgcolor: "#487DA6" },
-              }}
+            <Box
+              sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}
             >
-              Next
-            </Button>
+              <Button
+                variant="outlined"
+                onClick={() => setTutorialStep(tutorialStep - 1)}
+                sx={{
+                  color: "#5a88ad",
+                  borderColor: "#5a88ad",
+                  fontWeight: "bold",
+                  textTransform: "none",
+                  "&:hover": { borderColor: "#487DA6", color: "#487DA6" },
+                }}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="contained"
+                onClick={handleNext}
+                sx={{
+                  bgcolor: "#5a88ad",
+                  color: "#fff",
+                  fontWeight: "bold",
+                  textTransform: "none",
+                  "&:hover": { bgcolor: "#487DA6" },
+                }}
+              >
+                Next
+              </Button>
+            </Box>
           </>
         )}
         {tutorialStep === 2 && (
@@ -620,19 +637,36 @@ export default function UploadCVPage() {
               When you're ready, click <b>Process CV</b> to extract skills and
               information from the uploaded file.
             </Typography>
-            <Button
-              variant="contained"
-              onClick={handleCloseTutorial}
-              sx={{
-                bgcolor: "#5a88ad",
-                color: "#fff",
-                fontWeight: "bold",
-                textTransform: "none",
-                "&:hover": { bgcolor: "#487DA6" },
-              }}
+            <Box
+              sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}
             >
-              Got it!
-            </Button>
+              <Button
+                variant="outlined"
+                onClick={() => setTutorialStep(tutorialStep - 1)}
+                sx={{
+                  color: "#5a88ad",
+                  borderColor: "#5a88ad",
+                  fontWeight: "bold",
+                  textTransform: "none",
+                  "&:hover": { borderColor: "#487DA6", color: "#487DA6" },
+                }}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="contained"
+                onClick={handleCloseTutorial}
+                sx={{
+                  bgcolor: "#5a88ad",
+                  color: "#fff",
+                  fontWeight: "bold",
+                  textTransform: "none",
+                  "&:hover": { bgcolor: "#487DA6" },
+                }}
+              >
+                Finish
+              </Button>
+            </Box>
           </>
         )}
       </Popover>
