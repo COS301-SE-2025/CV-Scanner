@@ -527,7 +527,10 @@ export default function Search() {
               }}
             >
               <Pagination
-                count={Math.max(1, Math.ceil(filteredCandidates.length / itemsPerPage))}
+                count={Math.max(
+                  1,
+                  Math.ceil(filteredCandidates.length / itemsPerPage)
+                )}
                 page={page}
                 onChange={(_, value) => setPage(value)}
                 siblingCount={1}
