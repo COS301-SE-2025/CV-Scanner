@@ -15,9 +15,9 @@ nlp = spacy.load("en_core_web_sm")
 app = FastAPI()
 classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
+
 #added label
 labels = ["profile", "education", "skills", "languages", "projects", "achievements", "contact", "experience"]
-
 
 
 def categorize_cv_nlp(text: str):
