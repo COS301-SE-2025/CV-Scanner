@@ -22,6 +22,7 @@ import {
   Divider,
   Chip,
   Popover,
+  Fade,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
@@ -44,7 +45,8 @@ export default function UploadCVPage() {
   const [isModalOpen, setIsModalOpen] = useState(false); // State for modal visibility
   const [contactInfo, setContactInfo] = useState(""); // State for contact information
   const [additionalInfo, setAdditionalInfo] = useState(""); // State for additional information
-  const [tutorialStep, setTutorialStep] = useState(0); // 0: Upload, 1: Additional Info, 2: Process
+  const [tutorialStep, setTutorialStep] = useState(0);
+  const [fadeIn, setFadeIn] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
   const uploadBoxRef = useRef<HTMLDivElement>(null);
@@ -105,7 +107,14 @@ export default function UploadCVPage() {
     else setAnchorEl(null);
   }, [tutorialStep]);
 
-  const handleNext = () => setTutorialStep((prev) => prev + 1);
+  const handleStepChange = (nextStep: number) => {
+    setFadeIn(false);
+    setTimeout(() => {
+      setTutorialStep(nextStep);
+      setFadeIn(true);
+    }, 250); // match Fade timeout
+  };
+
   const handleCloseTutorial = () => setTutorialStep(-1);
 
   return (
@@ -564,111 +573,123 @@ export default function UploadCVPage() {
           },
         }}
       >
-        {tutorialStep === 0 && (
-          <>
-            <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-              Step 1: Upload a CV
-            </Typography>
-            <Typography sx={{ mb: 2 }}>
-              Start by uploading a candidate's CV here. You can drag and drop or
-              browse for a file.
-            </Typography>
-            <Button
-              variant="contained"
-              onClick={handleNext}
-              sx={{
-                bgcolor: "#5a88ad",
-                color: "#fff",
-                fontWeight: "bold",
-                textTransform: "none",
-                "&:hover": { bgcolor: "#487DA6" },
-              }}
-            >
-              Next
-            </Button>
-          </>
-        )}
-        {tutorialStep === 1 && (
-          <>
-            <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-              Step 2: Additional Information
-            </Typography>
-            <Typography sx={{ mb: 2 }}>
-              Fill in any extra details about the candidate or the CV here.
-            </Typography>
-            <Box
-              sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}
-            >
-              <Button
-                variant="outlined"
-                onClick={() => setTutorialStep(tutorialStep - 1)}
-                sx={{
-                  color: "#5a88ad",
-                  borderColor: "#5a88ad",
-                  fontWeight: "bold",
-                  textTransform: "none",
-                  "&:hover": { borderColor: "#487DA6", color: "#487DA6" },
-                }}
-              >
-                Previous
-              </Button>
-              <Button
-                variant="contained"
-                onClick={handleNext}
-                sx={{
-                  bgcolor: "#5a88ad",
-                  color: "#fff",
-                  fontWeight: "bold",
-                  textTransform: "none",
-                  "&:hover": { bgcolor: "#487DA6" },
-                }}
-              >
-                Next
-              </Button>
-            </Box>
-          </>
-        )}
-        {tutorialStep === 2 && (
-          <>
-            <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-              Step 3: Process the CV
-            </Typography>
-            <Typography sx={{ mb: 2 }}>
-              When you're ready, click <b>Process CV</b> to extract skills and
-              information from the uploaded file.
-            </Typography>
-            <Box
-              sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}
-            >
-              <Button
-                variant="outlined"
-                onClick={() => setTutorialStep(tutorialStep - 1)}
-                sx={{
-                  color: "#5a88ad",
-                  borderColor: "#5a88ad",
-                  fontWeight: "bold",
-                  textTransform: "none",
-                  "&:hover": { borderColor: "#487DA6", color: "#487DA6" },
-                }}
-              >
-                Previous
-              </Button>
-              <Button
-                variant="contained"
-                onClick={handleCloseTutorial}
-                sx={{
-                  bgcolor: "#5a88ad",
-                  color: "#fff",
-                  fontWeight: "bold",
-                  textTransform: "none",
-                  "&:hover": { bgcolor: "#487DA6" },
-                }}
-              >
-                Finish
-              </Button>
-            </Box>
-          </>
-        )}
+        <Fade in={fadeIn} timeout={250}>
+          <Box>
+            {tutorialStep === 0 && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Step 1: Upload a CV
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  Start by uploading a candidate's CV here. You can drag and
+                  drop or browse for a file.
+                </Typography>
+                <Button
+                  variant="contained"
+                  onClick={() => handleStepChange(1)}
+                  sx={{
+                    bgcolor: "#5a88ad",
+                    color: "#fff",
+                    fontWeight: "bold",
+                    textTransform: "none",
+                    "&:hover": { bgcolor: "#487DA6" },
+                  }}
+                >
+                  Next
+                </Button>
+              </>
+            )}
+            {tutorialStep === 1 && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Step 2: Additional Information
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  Fill in any extra details about the candidate or the CV here.
+                </Typography>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 2,
+                  }}
+                >
+                  <Button
+                    variant="outlined"
+                    onClick={() => handleStepChange(0)}
+                    sx={{
+                      color: "#5a88ad",
+                      borderColor: "#5a88ad",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": { borderColor: "#487DA6", color: "#487DA6" },
+                    }}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="contained"
+                    onClick={() => handleStepChange(2)}
+                    sx={{
+                      bgcolor: "#5a88ad",
+                      color: "#fff",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": { bgcolor: "#487DA6" },
+                    }}
+                  >
+                    Next
+                  </Button>
+                </Box>
+              </>
+            )}
+            {tutorialStep === 2 && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Step 3: Process the CV
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  When you're ready, click <b>Process CV</b> to extract skills
+                  and information from the uploaded file.
+                </Typography>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 2,
+                  }}
+                >
+                  <Button
+                    variant="outlined"
+                    onClick={() => handleStepChange(1)}
+                    sx={{
+                      color: "#5a88ad",
+                      borderColor: "#5a88ad",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": { borderColor: "#487DA6", color: "#487DA6" },
+                    }}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="contained"
+                    onClick={handleCloseTutorial}
+                    sx={{
+                      bgcolor: "#5a88ad",
+                      color: "#fff",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": { bgcolor: "#487DA6" },
+                    }}
+                  >
+                    Finish
+                  </Button>
+                </Box>
+              </>
+            )}
+          </Box>
+        </Fade>
       </Popover>
     </Box>
   );
