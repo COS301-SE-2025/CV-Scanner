@@ -101,6 +101,7 @@ def process_pdf_file(pdf_path):
     return prepare_json_data(categorized)
 
 
+#added extraction
 
 def process_pdf_bytes(pdf_bytes: bytes):
     tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
