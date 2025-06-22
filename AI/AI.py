@@ -70,6 +70,9 @@ def extract_contact_info(text: str):
     }
 
 
+#added 
+
+
 def prepare_json_data(categories: dict):
     json_data = {}
     for section, content in categories.items():
