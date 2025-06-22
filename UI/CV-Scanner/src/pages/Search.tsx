@@ -16,6 +16,7 @@ import {
   Badge,
   Popover,
   Fade,
+  Pagination,
 } from "@mui/material";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
@@ -40,6 +41,8 @@ export default function Search() {
   const [tutorialStep, setTutorialStep] = useState(0);
   const [fadeIn, setFadeIn] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 10;
 
   const location = useLocation();
 
@@ -143,6 +146,17 @@ export default function Search() {
     }, 250);
   };
   const handleCloseTutorial = () => setTutorialStep(-1);
+
+  // Reset to first page when filters/search change
+  useEffect(() => {
+    setPage(1);
+  }, [searchText, selectedSkills, selectedFits, selectedDetails]);
+
+  // Calculate paginated candidates
+  const paginatedCandidates = filteredCandidates.slice(
+    (page - 1) * itemsPerPage,
+    page * itemsPerPage
+  );
 
   return (
     <Box
@@ -418,8 +432,8 @@ export default function Search() {
 
             {/* Candidate Cards */}
             <div ref={resultsRef}>
-              {filteredCandidates.length > 0 ? (
-                filteredCandidates.map((candidate, idx) => (
+              {paginatedCandidates.length > 0 ? (
+                paginatedCandidates.map((candidate, idx) => (
                   <Paper
                     key={idx}
                     elevation={3}
@@ -502,6 +516,31 @@ export default function Search() {
                 </Typography>
               )}
             </div>
+
+            {/* Always reserve space for pagination */}
+            <Box
+              sx={{
+                minHeight: 64,
+                mt: 4,
+                display: "flex",
+                justifyContent: "center",
+              }}
+            >
+              <Pagination
+                count={Math.max(1, Math.ceil(filteredCandidates.length / itemsPerPage))}
+                page={page}
+                onChange={(_, value) => setPage(value)}
+                siblingCount={1}
+                boundaryCount={1}
+                color="primary"
+                sx={{
+                  bgcolor: "#fff",
+                  borderRadius: 2,
+                  p: 1,
+                  boxShadow: 1,
+                }}
+              />
+            </Box>
           </Paper>
         </Box>
       </Box>
