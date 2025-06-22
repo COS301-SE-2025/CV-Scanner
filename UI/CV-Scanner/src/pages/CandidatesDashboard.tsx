@@ -275,7 +275,7 @@ export default function CandidatesDashboard() {
                         <Button
                           variant="contained"
                           sx={reviewButtonStyle}
-                          onClick={() => navigate('/candidate-review')}
+                          onClick={() => navigate("/candidate-review")}
                           ref={idx === 0 ? reviewBtnRef : null} // Only first button gets the ref
                         >
                           Review
@@ -287,12 +287,12 @@ export default function CandidatesDashboard() {
                             anchorEl={anchorEl}
                             onClose={handleCloseTutorial}
                             anchorOrigin={{
-                              vertical: 'top',
-                              horizontal: 'center',
+                              vertical: "top",
+                              horizontal: "center",
                             }}
                             transformOrigin={{
-                              vertical: 'bottom',
-                              horizontal: 'center',
+                              vertical: "bottom",
+                              horizontal: "center",
                             }}
                             PaperProps={{
                               sx: {
@@ -304,10 +304,13 @@ export default function CandidatesDashboard() {
                                 minWidth: 280,
                                 zIndex: 1500,
                                 textAlign: "center",
-                              }
+                              },
                             }}
                           >
-                            <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                            <Typography
+                              variant="h6"
+                              sx={{ fontWeight: "bold", mb: 1 }}
+                            >
                               Quick Tip
                             </Typography>
                             <Typography sx={{ mb: 2 }}>
