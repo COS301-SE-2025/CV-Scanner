@@ -1,7 +1,5 @@
 
 #added imports for ai 
-
-
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from tika import parser
@@ -14,7 +12,6 @@ import re
 #fixed import 
 import spacy
 nlp = spacy.load("en_core_web_sm")
-
 
 
 
