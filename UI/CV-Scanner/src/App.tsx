@@ -14,7 +14,7 @@ import UserManagementPage from './pages/UserManagementPage';
 import Settings from './pages/Settings';
 import AddUserPage from './pages/AddUserPage';
 import LandingPage from './pages/LandingPage';
-
+import Help from './pages/Help';
 
 function App() {
   return (
@@ -36,6 +36,7 @@ function App() {
              <Route path="/settings" element={<Settings />} />
              <Route path="/add-user" element={<AddUserPage />} />
              <Route path="/landing-page" element={<LandingPage />} />
+             <Route path="/help" element={<Help />} />
        <Route path="*" element={<LandingPage />} />
       </Routes>
     </BrowserRouter>
