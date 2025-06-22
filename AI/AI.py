@@ -1,7 +1,5 @@
 
 #added imports for ai 
-
-
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from tika import parser
@@ -10,27 +8,22 @@ import json
 import os
 from transformers import pipeline
 import re
-
-#fixed import 
 import spacy
 nlp = spacy.load("en_core_web_sm")
 
 
-
-
 app = FastAPI()
-
 classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
-#added label
 
+
+#added label
 labels = ["profile", "education", "skills", "languages", "projects", "achievements", "contact", "experience"]
 
 
-#added nlp
 def categorize_cv_nlp(text: str):
     categories = {label: [] for label in labels}
     categories["other"] = []
-
+#added label
  
     lines = [line.strip() for line in text.splitlines() if line.strip()]
 
@@ -50,6 +43,7 @@ def categorize_cv_nlp(text: str):
 
 
 #added extraction
+
 def extract_contact_info(text: str):
     doc = nlp(text)
 
@@ -82,6 +76,7 @@ def prepare_json_data(categories: dict):
         json_data[section] = "\n".join(content).strip()
     return json_data
 
+
 def process_pdf_file(pdf_path):
     try:
         parsed = parser.from_file(pdf_path)
@@ -104,7 +99,6 @@ def process_pdf_file(pdf_path):
     categorized["contact"] = contact_section
 
     return prepare_json_data(categorized)
-
 
 
 def process_pdf_bytes(pdf_bytes: bytes):
