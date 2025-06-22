@@ -42,10 +42,11 @@ def categorize_cv_nlp(text: str):
     return categories
 
 
-#added extraction
+
+
 def extract_contact_info(text: str):
     doc = nlp(text)
-
+#added extraction
     emails = list(set([ent.text for ent in doc.ents if ent.label_ == "EMAIL"]))
     phones = re.findall(r"\+?\d[\d\-\(\) ]{7,}\d", text)
     urls = re.findall(r"https?://[^\s]+", text)
