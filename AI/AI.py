@@ -42,11 +42,11 @@ def categorize_cv_nlp(text: str):
     return categories
 
 
-
+#added extraction
 
 def extract_contact_info(text: str):
     doc = nlp(text)
-#added extraction
+
     emails = list(set([ent.text for ent in doc.ents if ent.label_ == "EMAIL"]))
     phones = re.findall(r"\+?\d[\d\-\(\) ]{7,}\d", text)
     urls = re.findall(r"https?://[^\s]+", text)
@@ -100,8 +100,6 @@ def process_pdf_file(pdf_path):
 
     return prepare_json_data(categorized)
 
-
-#added extraction
 
 def process_pdf_bytes(pdf_bytes: bytes):
     tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
