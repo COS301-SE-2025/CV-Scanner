@@ -8,13 +8,14 @@ export default function LandingPage() {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#181c2f', color: '#fff', display: 'flex', flexDirection: 'column' }}>
-      {/* Top App Bar */}
       
-
-      {/* Main Section */}
      
 
-      {/* Footer */}
-    
+         {/* Footer */}
+      <Box sx={{ textAlign: 'center', py: 2, bgcolor: '#5a88ad', color: '#fff' }}>
+        <Typography variant="body2">&copy; {new Date().getFullYear()} Quantum Stack CV Scanner. All rights reserved.</Typography>
+      </Box>
+    </Box>
+
   );
 }
