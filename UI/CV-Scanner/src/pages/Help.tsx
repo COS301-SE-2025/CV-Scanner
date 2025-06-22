@@ -40,7 +40,23 @@ export default function HelpPage() {
         </Toolbar>
       </AppBar>
 
-      
+      {/* FAQ Section */}
+      <Box sx={{ p: 4, flexGrow: 1 }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 4, color: '#e1f4ff' }}>
+          Frequently Asked Questions
+        </Typography>
+
+        {faqs.map((faq, index) => (
+          <Accordion key={index} sx={{ mb: 2, bgcolor: '#e1f4ff', color: '#000', borderRadius: 2 }}>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{faq.question}</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Typography variant="body1">{faq.answer}</Typography>
+            </AccordionDetails>
+          </Accordion>
+        ))}
+      </Box>
 
       {/* Footer */}
       <Box sx={{ textAlign: 'center', py: 2, bgcolor: '#5a88ad', color: '#fff' }}>
