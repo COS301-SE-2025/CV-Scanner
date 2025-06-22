@@ -24,6 +24,36 @@ export default function LandingPage() {
         </Toolbar>
       </AppBar>
 
+     {/* Main Section */}
+      <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
+        <Box sx={{ maxWidth: 600, textAlign: 'center' }}>
+          <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 3, color: '#e1f4ff' }}>
+            Welcome to CV Scanner
+          </Typography>
+          <Typography variant="h6" sx={{ mb: 4, color: '#bce4ff' }}>
+            Effortlessly upload, filter, and match candidate CVs with our intelligent scanning system.
+          </Typography>
+          <Button
+            variant="contained"
+            endIcon={<ArrowForwardIcon />}
+            onClick={() => navigate('/dashboard')}
+            sx={{
+              background: 'linear-gradient(90deg, #232a3b 0%, #6ddf6d 100%)',
+              color: '#fff',
+              fontSize: '1rem',
+              fontWeight: 'bold',
+              px: 4,
+              py: 1.5,
+              borderRadius: 2,
+              '&:hover': {
+                background: 'linear-gradient(90deg, #232a3b 0%, #4bb34b 100%)',
+              },
+            }}
+          >
+            Enter Dashboard
+          </Button>
+        </Box>
+      </Box>
 
 
          {/* Footer */}
