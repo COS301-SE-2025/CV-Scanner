@@ -13,6 +13,7 @@ import CandidateNotesPage from './pages/CandidateNotesPage';
 import UserManagementPage from './pages/UserManagementPage';
 import Settings from './pages/Settings';
 import AddUserPage from './pages/AddUserPage';
+import LandingPage from './pages/LandingPage';
 
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
             <Route path="/user-management" element={<UserManagementPage />} />
              <Route path="/settings" element={<Settings />} />
              <Route path="/add-user" element={<AddUserPage />} />
+             <Route path="/landing-page" element={<LandingPage />} />
        <Route path="*" element={<LoginPage />} />
       </Routes>
     </BrowserRouter>
