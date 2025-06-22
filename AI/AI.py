@@ -12,20 +12,18 @@ import spacy
 nlp = spacy.load("en_core_web_sm")
 
 
-
 app = FastAPI()
-
 classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
 #added label
 labels = ["profile", "education", "skills", "languages", "projects", "achievements", "contact", "experience"]
 
 
-#added nlp
+
 def categorize_cv_nlp(text: str):
     categories = {label: [] for label in labels}
     categories["other"] = []
-
+#added label
  
     lines = [line.strip() for line in text.splitlines() if line.strip()]
 
