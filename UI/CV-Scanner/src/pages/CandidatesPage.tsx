@@ -14,106 +14,153 @@ import {
   AppBar,
   Toolbar,
   IconButton,
-  Badge
-} from '@mui/material';
-import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import UploadFileIcon from '@mui/icons-material/UploadFile';
-import PeopleIcon from '@mui/icons-material/People';
-import SearchIcon from '@mui/icons-material/Search';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import logo2 from '../assets/logo2.png';
+  Badge,
+  Popover,
+  Fade,
+  Box as MuiBox,
+} from "@mui/material";
+import { useEffect, useState, useRef } from "react";
+import { useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
+import PeopleIcon from "@mui/icons-material/People";
+import SearchIcon from "@mui/icons-material/Search";
+import NotificationsIcon from "@mui/icons-material/Notifications";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import logo2 from "../assets/logo2.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 
 export default function CandidatesPage() {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
-  const [searchInput, setSearchInput] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [tutorialStep, setTutorialStep] = useState(0);
+  const [fadeIn, setFadeIn] = useState(true);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
   const location = useLocation();
+  const searchRef = useRef<HTMLInputElement>(null);
+  const reviewBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    document.title = 'Candidates';
+    document.title = "Candidates";
   }, []);
 
+  useEffect(() => {
+    if (tutorialStep === 0 && searchRef.current) setAnchorEl(searchRef.current);
+    else if (tutorialStep === 1 && reviewBtnRef.current)
+      setAnchorEl(reviewBtnRef.current);
+    else setAnchorEl(null);
+  }, [tutorialStep]);
+
   const candidates = [
-    { name: 'Jane Smith', skills: '.NET, Azure, SQL', experience: '5 Years', fit: 'Technical (92%)' },
-    { name: 'Mike Johnson', skills: 'React, Node.js', experience: '3 Years', fit: 'Collaborative (85%)' },
-    { name: 'Peter Griffin', skills: 'C++, C, Python', experience: '4 Years', fit: 'Technical (64%)' },
+    {
+      name: "Jane Smith",
+      skills: ".NET, Azure, SQL",
+      experience: "5 Years",
+      fit: "Technical (92%)",
+    },
+    {
+      name: "Mike Johnson",
+      skills: "React, Node.js",
+      experience: "3 Years",
+      fit: "Collaborative (85%)",
+    },
+    {
+      name: "Peter Griffin",
+      skills: "C++, C, Python",
+      experience: "4 Years",
+      fit: "Technical (64%)",
+    },
   ];
 
-  const filteredCandidates = candidates.filter(candidate =>
-    candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    candidate.skills.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    candidate.fit.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredCandidates = candidates.filter(
+    (candidate) =>
+      candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      candidate.skills.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      candidate.fit.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleStepChange = (nextStep: number) => {
+    setFadeIn(false);
+    setTimeout(() => {
+      setTutorialStep(nextStep);
+      setFadeIn(true);
+    }, 250);
+  };
+  const handleCloseTutorial = () => setTutorialStep(-1);
+
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#181c2f', color: '#fff' }}>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        bgcolor: "#181c2f",
+        color: "#fff",
+      }}
+    >
       {/* Sidebar */}
       {!collapsed ? (
         <Box
           sx={{
             width: 220,
-            bgcolor: '#5a88ad',
-            display: 'flex',
-            flexDirection: 'column',
+            bgcolor: "#5a88ad",
+            display: "flex",
+            flexDirection: "column",
             p: 2,
-            position: 'relative',
+            position: "relative",
           }}
         >
           {/* Collapse Button */}
           <IconButton
             onClick={() => setCollapsed(true)}
             sx={{
-              color: '#fff',
-              position: 'absolute',
+              color: "#fff",
+              position: "absolute",
               top: 8,
               left: 8,
               zIndex: 1,
             }}
           >
-             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <rect x="3" y="6" width="18" height="2" fill="currentColor" />
               <rect x="3" y="11" width="18" height="2" fill="currentColor" />
               <rect x="3" y="16" width="18" height="2" fill="currentColor" />
             </svg>
           </IconButton>
 
-          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3, mt: 5 }}>
+          <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
             <img src={logo2} alt="Team Logo" style={{ width: 120 }} />
           </Box>
 
           <Button
             fullWidth
             sx={navButtonStyle}
-            className={location.pathname === '/dashboard' ? 'active' : ''}
+            className={location.pathname === "/dashboard" ? "active" : ""}
             startIcon={<DashboardIcon />}
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate("/dashboard")}
           >
             Dashboard
           </Button>
 
           <Button
             fullWidth
-           sx={navButtonStyle}
-            className={location.pathname === '/upload' ? 'active' : ''}
+            sx={navButtonStyle}
+            className={location.pathname === "/upload" ? "active" : ""}
             startIcon={<UploadFileIcon />}
-            onClick={() => navigate('/upload')}
+            onClick={() => navigate("/upload")}
           >
             Upload CV
           </Button>
 
           <Button
-           fullWidth
-            sx={{ ...navButtonStyle, bgcolor: '#d8f0ff', color: '#000' }}
-            className={location.pathname === '/candidates' ? 'active' : ''}
+            fullWidth
+            sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
+            className={location.pathname === "/candidates" ? "active" : ""}
             startIcon={<PeopleIcon />}
-            onClick={() => navigate('/candidates')}
+            onClick={() => navigate("/candidates")}
           >
             Candidates
           </Button>
@@ -121,40 +168,46 @@ export default function CandidatesPage() {
           <Button
             fullWidth
             sx={navButtonStyle}
-            className={location.pathname === '/search' ? 'active' : ''}
+            className={location.pathname === "/search" ? "active" : ""}
             startIcon={<SearchIcon />}
-            onClick={() => navigate('/search')}
+            onClick={() => navigate("/search")}
           >
             Search
           </Button>
-      </Box>
+        </Box>
       ) : (
-              // Expand Icon when sidebar is collapsed
-              <Box
-                sx={{
-                  width: 40,
-                  bgcolor: '#5a88ad',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'flex-start',
-                  pt: 1,
-                }}
-              >
-                <IconButton onClick={() => setCollapsed(false)} sx={{ color: '#fff' }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <rect x="3" y="6" width="18" height="2" fill="currentColor" />
-                    <rect x="3" y="11" width="18" height="2" fill="currentColor" />
-                    <rect x="3" y="16" width="18" height="2" fill="currentColor" />
-                  </svg>
-                </IconButton>
-              </Box>
-            )}
+        // Expand Icon when sidebar is collapsed
+        <Box
+          sx={{
+            width: 40,
+            bgcolor: "#5a88ad",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "flex-start",
+            pt: 1,
+          }}
+        >
+          <IconButton
+            onClick={() => setCollapsed(false)}
+            sx={{ color: "#fff" }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="6" width="18" height="2" fill="currentColor" />
+              <rect x="3" y="11" width="18" height="2" fill="currentColor" />
+              <rect x="3" y="16" width="18" height="2" fill="currentColor" />
+            </svg>
+          </IconButton>
+        </Box>
+      )}
 
       {/* Main Content */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+      <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
         {/* Top App Bar */}
-        <AppBar position="static" sx={{ bgcolor: '#5a88ad', boxShadow: 'none' }}>
-          <Toolbar sx={{ justifyContent: 'flex-end' }}>
+        <AppBar
+          position="static"
+          sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
+        >
+          <Toolbar sx={{ justifyContent: "flex-end" }}>
             <IconButton color="inherit">
               <Badge badgeContent={4} color="error">
                 <NotificationsIcon />
@@ -162,13 +215,13 @@ export default function CandidatesPage() {
             </IconButton>
             <Box
               sx={{
-                display: 'flex',
-                alignItems: 'center',
+                display: "flex",
+                alignItems: "center",
                 ml: 2,
-                cursor: 'pointer',
-                '&:hover': { opacity: 0.8 },
+                cursor: "pointer",
+                "&:hover": { opacity: 0.8 },
               }}
-              onClick={() => navigate('/settings')}
+              onClick={() => navigate("/settings")}
             >
               <AccountCircleIcon sx={{ mr: 1 }} />
               <Typography variant="subtitle1">Admin User</Typography>
@@ -180,19 +233,25 @@ export default function CandidatesPage() {
               }}
             >
               <ExitToAppIcon />
-              </IconButton>
+            </IconButton>
           </Toolbar>
         </AppBar>
 
         {/* Main Page Content */}
         <Box sx={{ p: 3 }}>
-          <Paper elevation={6} sx={{ p: 3, borderRadius: 3, backgroundColor: '#d0f0ff' }}>
-            <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#0073c1', mb: 2 }}>
+          <Paper
+            elevation={6}
+            sx={{ p: 3, borderRadius: 3, backgroundColor: "#d0f0ff" }}
+          >
+            <Typography
+              variant="h5"
+              sx={{ fontWeight: "bold", color: "#0073c1", mb: 2 }}
+            >
               Candidate Directory
             </Typography>
 
             {/* Search Controls */}
-            <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+            <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
               <TextField
                 fullWidth
                 placeholder="Search by name, skills, or project type..."
@@ -200,21 +259,22 @@ export default function CandidatesPage() {
                 size="small"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                sx={{ backgroundColor: '#fff', borderRadius: 1 }}
+                sx={{ backgroundColor: "#fff", borderRadius: 1 }}
+                inputRef={searchRef}
               />
               <Button
                 variant="contained"
-                sx={{ backgroundColor: '#4cb0ff', color: '#fff' }}
+                sx={{ backgroundColor: "#4cb0ff", color: "#fff" }}
                 onClick={() => setSearchTerm(searchInput)}
               >
                 Search
               </Button>
               <Button
                 variant="contained"
-                sx={{ backgroundColor: '#d0d0d0', color: '#000' }}
+                sx={{ backgroundColor: "#d0d0d0", color: "#000" }}
                 onClick={() => {
-                  setSearchInput('');
-                  setSearchTerm('');
+                  setSearchInput("");
+                  setSearchTerm("");
                 }}
               >
                 Clear
@@ -226,11 +286,21 @@ export default function CandidatesPage() {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell><b>Candidate</b></TableCell>
-                    <TableCell><b>Top Skills</b></TableCell>
-                    <TableCell><b>Experience</b></TableCell>
-                    <TableCell><b>Project Fits</b></TableCell>
-                    <TableCell><b>Actions</b></TableCell>
+                    <TableCell>
+                      <b>Candidate</b>
+                    </TableCell>
+                    <TableCell>
+                      <b>Top Skills</b>
+                    </TableCell>
+                    <TableCell>
+                      <b>Experience</b>
+                    </TableCell>
+                    <TableCell>
+                      <b>Project Fits</b>
+                    </TableCell>
+                    <TableCell>
+                      <b>Actions</b>
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -245,7 +315,8 @@ export default function CandidatesPage() {
                           <Button
                             variant="contained"
                             sx={reviewButtonStyle}
-                            onClick={() => navigate('/candidate-review')}
+                            onClick={() => navigate("/candidate-review")}
+                            ref={idx === 0 ? reviewBtnRef : null}
                           >
                             Review
                           </Button>
@@ -263,51 +334,156 @@ export default function CandidatesPage() {
               </Table>
             </TableContainer>
 
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-              <Pagination count={1} page={1} siblingCount={1} boundaryCount={1} />
+            <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+              <Pagination
+                count={1}
+                page={1}
+                siblingCount={1}
+                boundaryCount={1}
+              />
             </Box>
           </Paper>
         </Box>
       </Box>
+
+      {/* Tutorial Popover */}
+      <Popover
+        open={tutorialStep >= 0 && tutorialStep <= 1 && Boolean(anchorEl)}
+        anchorEl={anchorEl}
+        onClose={handleCloseTutorial}
+        anchorOrigin={{
+          vertical: "top",
+          horizontal: "center",
+        }}
+        transformOrigin={{
+          vertical: "bottom",
+          horizontal: "center",
+        }}
+        PaperProps={{
+          sx: {
+            p: 2,
+            bgcolor: "#fff",
+            color: "#181c2f",
+            borderRadius: 2,
+            boxShadow: 6,
+            minWidth: 280,
+            zIndex: 1500,
+            textAlign: "center",
+          },
+        }}
+      >
+        <Fade in={fadeIn} timeout={250}>
+          <MuiBox>
+            {tutorialStep === 0 && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Search Candidates
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  Use this search bar to find candidates by <b>name</b>,{" "}
+                  <b>skills</b>, or <b>project fit</b>.
+                </Typography>
+                <Button
+                  variant="contained"
+                  onClick={() => handleStepChange(1)}
+                  sx={{
+                    bgcolor: "#5a88ad",
+                    color: "#fff",
+                    fontWeight: "bold",
+                    textTransform: "none",
+                    "&:hover": { bgcolor: "#487DA6" },
+                  }}
+                >
+                  Next
+                </Button>
+              </>
+            )}
+            {tutorialStep === 1 && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Review a Candidate
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  Click <b>Review</b> to view and assess this candidate's CV and
+                  fit.
+                </Typography>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 2,
+                  }}
+                >
+                  <Button
+                    variant="outlined"
+                    onClick={() => handleStepChange(0)}
+                    sx={{
+                      color: "#5a88ad",
+                      borderColor: "#5a88ad",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": { borderColor: "#487DA6", color: "#487DA6" },
+                    }}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="contained"
+                    onClick={handleCloseTutorial}
+                    sx={{
+                      bgcolor: "#5a88ad",
+                      color: "#fff",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": { bgcolor: "#487DA6" },
+                    }}
+                  >
+                    Finish
+                  </Button>
+                </Box>
+              </>
+            )}
+          </MuiBox>
+        </Fade>
+      </Popover>
     </Box>
   );
 }
 
 // Sidebar button style
 const navButtonStyle = {
-  justifyContent: 'flex-start',
+  justifyContent: "flex-start",
   mb: 1,
-  color: '#fff',
-  backgroundColor: 'transparent',
-  '&:hover': {
-    backgroundColor: '#487DA6',
+  color: "#fff",
+  backgroundColor: "transparent",
+  "&:hover": {
+    backgroundColor: "#487DA6",
   },
-  textTransform: 'none',
-  fontWeight: 'bold',
-  '&.active': {
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    height: '100%',
-    width: '4px',
-    backgroundColor: 'black',
-    borderRadius: '0 4px 4px 0'
-  }
-}
-
+  textTransform: "none",
+  fontWeight: "bold",
+  "&.active": {
+    "&::before": {
+      content: '""',
+      position: "absolute",
+      left: 0,
+      top: 0,
+      height: "100%",
+      width: "4px",
+      backgroundColor: "black",
+      borderRadius: "0 4px 4px 0",
+    },
+  },
 };
 
 // Review button style
 const reviewButtonStyle = {
-  background: 'linear-gradient(45deg, #0a1172 0%, #00b300 100%)',
-  color: 'white',
-  fontWeight: 'bold',
-  padding: '6px 16px',
-  borderRadius: '4px',
-  textTransform: 'none',
-  '&:hover': {
-    background: 'linear-gradient(45deg, #081158 0%, #009a00 100%)',
+  background: "linear-gradient(45deg, #0a1172 0%, #00b300 100%)",
+  color: "white",
+  fontWeight: "bold",
+  padding: "6px 16px",
+  borderRadius: "4px",
+  textTransform: "none",
+  "&:hover": {
+    background: "linear-gradient(45deg, #081158 0%, #009a00 100%)",
   },
 };
