@@ -18,6 +18,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @WebMvcTest({AuthController.class, CVController.class})
 public class ApiApplicationTests {
@@ -166,6 +170,51 @@ public class ApiApplicationTests {
                 .param("email", "notfound@example.com"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().string("User not found."));
+    }
+
+        
+
+    @Test
+    void getAllUsers_success() throws Exception {
+        
+        List<Map<String, Object>> users = new ArrayList<>();
+        Map<String, Object> user1 = new HashMap<>();
+        user1.put("username", "user1");
+        user1.put("email", "user1@example.com");
+        user1.put("first_name", "User");
+        user1.put("last_name", "One");
+        user1.put("role", "Admin");
+        user1.put("lastActive", "2024-06-23 12:00:00");
+        users.add(user1);
+
+        Map<String, Object> user2 = new HashMap<>();
+        user2.put("username", "user2");
+        user2.put("email", "user2@example.com");
+        user2.put("first_name", "User");
+        user2.put("last_name", "Two");
+        user2.put("role", "Editor");
+        user2.put("lastActive", "2024-06-23 13:00:00");
+        users.add(user2);
+
+        Mockito.when(jdbcTemplate.queryForList(anyString()))
+                .thenReturn(users);
+
+        mockMvc.perform(get("/auth/all-users"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].username").value("user1"))
+                .andExpect(jsonPath("$[1].username").value("user2"))
+                .andExpect(jsonPath("$[0].role").value("Admin"))
+                .andExpect(jsonPath("$[1].role").value("Editor"));
+    }
+
+    @Test
+    void getAllUsers_failure() throws Exception {
+        Mockito.when(jdbcTemplate.queryForList(anyString()))
+                .thenThrow(new RuntimeException("DB error"));
+
+        mockMvc.perform(get("/auth/all-users"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().string("Failed to fetch users."));
     }
 
 
