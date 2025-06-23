@@ -23,6 +23,7 @@ import {
   Chip,
   Popover,
   Fade,
+  Tooltip,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
@@ -35,6 +36,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import SettingsIcon from "@mui/icons-material/Settings";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 
@@ -48,6 +50,7 @@ export default function UploadCVPage() {
   const [tutorialStep, setTutorialStep] = useState(0);
   const [fadeIn, setFadeIn] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [showTutorial, setShowTutorial] = useState(false); // New state for tutorial visibility
 
   const uploadBoxRef = useRef<HTMLDivElement>(null);
   const additionalInfoRef = useRef<HTMLInputElement>(null);
@@ -115,7 +118,7 @@ export default function UploadCVPage() {
     }, 250); // match Fade timeout
   };
 
-  const handleCloseTutorial = () => setTutorialStep(-1);
+  const handleCloseTutorial = () => setShowTutorial(false); // Updated to use showTutorial state
 
   return (
     <Box
@@ -251,6 +254,19 @@ export default function UploadCVPage() {
               <AccountCircleIcon sx={{ mr: 1 }} />
               <Typography variant="subtitle1">Admin User</Typography>
             </Box>
+            <Tooltip title="Run Tutorial" arrow>
+              <IconButton
+                color="primary"
+                sx={{ ml: 1 }}
+                onClick={() => {
+                  setShowTutorial(true);
+                  setTutorialStep(0);
+                  setFadeIn(true);
+                }}
+              >
+                <HelpOutlineIcon />
+              </IconButton>
+            </Tooltip>
             <IconButton
               color="inherit"
               onClick={() => {
@@ -259,6 +275,7 @@ export default function UploadCVPage() {
             >
               <ExitToAppIcon />
             </IconButton>
+            {/* Help icon button for tutorial */}
           </Toolbar>
         </AppBar>
 
@@ -549,9 +566,14 @@ export default function UploadCVPage() {
 
       {/* Tutorial Popover */}
       <Popover
-        open={tutorialStep >= 0 && tutorialStep <= 2 && Boolean(anchorEl)}
+        open={
+          showTutorial &&
+          tutorialStep >= 0 &&
+          tutorialStep <= 2 &&
+          Boolean(anchorEl)
+        }
         anchorEl={anchorEl}
-        onClose={handleCloseTutorial}
+        onClose={() => setShowTutorial(false)}
         anchorOrigin={{
           vertical: "top",
           horizontal: "center",
@@ -620,7 +642,7 @@ export default function UploadCVPage() {
               <Button
                 variant="text"
                 size="small"
-                onClick={handleCloseTutorial}
+                onClick={() => setShowTutorial(false)}
                 sx={{
                   color: "#888",
                   fontSize: "0.85rem",
@@ -664,7 +686,7 @@ export default function UploadCVPage() {
                 ) : (
                   <Button
                     variant="contained"
-                    onClick={handleCloseTutorial}
+                    onClick={() => setShowTutorial(false)}
                     sx={{
                       bgcolor: "#5a88ad",
                       color: "#fff",

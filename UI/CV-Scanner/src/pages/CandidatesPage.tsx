@@ -18,6 +18,7 @@ import {
   Popover,
   Fade,
   Box as MuiBox,
+  Tooltip,
 } from "@mui/material";
 import { useEffect, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
@@ -28,6 +29,7 @@ import PeopleIcon from "@mui/icons-material/People";
 import SearchIcon from "@mui/icons-material/Search";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 
@@ -226,6 +228,19 @@ export default function CandidatesPage() {
               <AccountCircleIcon sx={{ mr: 1 }} />
               <Typography variant="subtitle1">Admin User</Typography>
             </Box>
+            {/* Add the Tutorial button here */}
+            <Tooltip title="Run Tutorial" arrow>
+              <IconButton
+                color="primary"
+                sx={{ ml: 1 }}
+                onClick={() => {
+                  setTutorialStep(0);
+                  setFadeIn(true);
+                }}
+              >
+                <HelpOutlineIcon />
+              </IconButton>
+            </Tooltip>
             <IconButton
               color="inherit"
               onClick={() => {
