@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   Typography,
@@ -21,6 +21,9 @@ import {
   TextField,
   Divider,
   Chip,
+  Popover,
+  Fade,
+  Tooltip,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
@@ -33,6 +36,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import SettingsIcon from "@mui/icons-material/Settings";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 
@@ -48,15 +52,32 @@ export default function UploadCVPage() {
     last_name?: string;
     username?: string;
   } | null>(null);
+  const [tutorialStep, setTutorialStep] = useState(0);
+  const [fadeIn, setFadeIn] = useState(true);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  const uploadBoxRef = useRef<HTMLDivElement>(null);
+  const additionalInfoRef = useRef<HTMLInputElement>(null);
+  const processBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    
     const email = localStorage.getItem("userEmail") || "admin@email.com";
     fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
       .then((res) => res.json())
       .then((data) => setUser(data))
       .catch(() => setUser(null));
   }, []);
+
+  useEffect(() => {
+    if (tutorialStep === 0 && uploadBoxRef.current)
+      setAnchorEl(uploadBoxRef.current);
+    else if (tutorialStep === 1 && additionalInfoRef.current)
+      setAnchorEl(additionalInfoRef.current);
+    else if (tutorialStep === 2 && processBtnRef.current)
+      setAnchorEl(processBtnRef.current);
+    else setAnchorEl(null);
+  }, [tutorialStep]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -96,6 +117,15 @@ export default function UploadCVPage() {
       fileInput.click();
     }
   };
+
+  const handleStepChange = (nextStep: number) => {
+    setFadeIn(false);
+    setTimeout(() => {
+      setTutorialStep(nextStep);
+      setFadeIn(true);
+    }, 250);
+  };
+  const handleCloseTutorial = () => setShowTutorial(false);
 
   const navigate = useNavigate();
 
@@ -244,6 +274,19 @@ export default function UploadCVPage() {
                   : "User"}
               </Typography>
             </Box>
+            <Tooltip title="Run Tutorial" arrow>
+              <IconButton
+                color="primary"
+                sx={{ ml: 1 }}
+                onClick={() => {
+                  setShowTutorial(true);
+                  setTutorialStep(0);
+                  setFadeIn(true);
+                }}
+              >
+                <HelpOutlineIcon />
+              </IconButton>
+            </Tooltip>
             <IconButton
               color="inherit"
               onClick={() => {
@@ -286,6 +329,7 @@ export default function UploadCVPage() {
                 mb: 3,
                 bgcolor: "#fff",
               }}
+              ref={uploadBoxRef}
             >
               <CloudUploadIcon fontSize="large" />
               <Typography variant="body2">
@@ -329,6 +373,7 @@ export default function UploadCVPage() {
               value={additionalInfo}
               onChange={(e) => setAdditionalInfo(e.target.value)}
               sx={{ mb: 3 }}
+              inputRef={additionalInfoRef}
             />
 
             {/* File Table */}
@@ -368,6 +413,7 @@ export default function UploadCVPage() {
                 disabled={!file}
                 sx={reviewButtonStyle}
                 onClick={handleProcess}
+                ref={processBtnRef}
               >
                 Process CV
               </Button>
@@ -536,6 +582,146 @@ export default function UploadCVPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Tutorial Popover */}
+      <Popover
+        open={
+          showTutorial &&
+          tutorialStep >= 0 &&
+          tutorialStep <= 2 &&
+          Boolean(anchorEl)
+        }
+        anchorEl={anchorEl}
+        onClose={handleCloseTutorial}
+        anchorOrigin={{
+          vertical: "top",
+          horizontal: "center",
+        }}
+        transformOrigin={{
+          vertical: "bottom",
+          horizontal: "center",
+        }}
+        PaperProps={{
+          sx: {
+            p: 2,
+            bgcolor: "#fff",
+            color: "#181c2f",
+            borderRadius: 2,
+            boxShadow: 6,
+            minWidth: 280,
+            zIndex: 1500,
+            textAlign: "center",
+          },
+        }}
+      >
+        <Fade in={fadeIn} timeout={250}>
+          <Box sx={{ position: "relative" }}>
+            {tutorialStep === 0 && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Step 1: Upload a CV
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  Start by uploading a candidate's CV here. You can drag and
+                  drop or browse for a file.
+                </Typography>
+              </>
+            )}
+            {tutorialStep === 1 && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Step 2: Additional Information
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  Fill in any extra details about the candidate or the CV here.
+                </Typography>
+              </>
+            )}
+            {tutorialStep === 2 && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Step 3: Process the CV
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  When you're ready, click <b>Process CV</b> to extract skills
+                  and information from the uploaded file.
+                </Typography>
+              </>
+            )}
+            {/* Shared navigation buttons */}
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mt: 3,
+                gap: 2,
+              }}
+            >
+              <Button
+                variant="text"
+                size="small"
+                onClick={handleCloseTutorial}
+                sx={{
+                  color: "#888",
+                  fontSize: "0.85rem",
+                  textTransform: "none",
+                  minWidth: "auto",
+                  p: 0,
+                }}
+              >
+                End Tutorial
+              </Button>
+              <Box sx={{ display: "flex", gap: 2 }}>
+                {tutorialStep > 0 && (
+                  <Button
+                    variant="outlined"
+                    onClick={() => handleStepChange(tutorialStep - 1)}
+                    sx={{
+                      color: "#5a88ad",
+                      borderColor: "#5a88ad",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": { borderColor: "#487DA6", color: "#487DA6" },
+                    }}
+                  >
+                    Previous
+                  </Button>
+                )}
+                {tutorialStep < 2 ? (
+                  <Button
+                    variant="contained"
+                    onClick={() => handleStepChange(tutorialStep + 1)}
+                    sx={{
+                      bgcolor: "#5a88ad",
+                      color: "#fff",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": { bgcolor: "#487DA6" },
+                    }}
+                  >
+                    Next
+                  </Button>
+                ) : (
+                  <Button
+                    variant="contained"
+                    onClick={handleCloseTutorial}
+                    sx={{
+                      bgcolor: "#5a88ad",
+                      color: "#fff",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": { bgcolor: "#487DA6" },
+                    }}
+                  >
+                    Finish
+                  </Button>
+                )}
+              </Box>
+            </Box>
+          </Box>
+        </Fade>
+      </Popover>
     </Box>
   );
 }

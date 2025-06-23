@@ -14,32 +14,41 @@ import {
   AppBar,
   Toolbar,
   IconButton,
-  Badge
-} from '@mui/material';
-import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import UploadFileIcon from '@mui/icons-material/UploadFile';
-import PeopleIcon from '@mui/icons-material/People';
-import SearchIcon from '@mui/icons-material/Search';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import logo2 from '../assets/logo2.png';
+  Badge,
+} from "@mui/material";
+import { useEffect, useState, useRef } from "react";
+import { useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
+import PeopleIcon from "@mui/icons-material/People";
+import SearchIcon from "@mui/icons-material/Search";
+import NotificationsIcon from "@mui/icons-material/Notifications";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import logo2 from "../assets/logo2.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import Popover from "@mui/material/Popover";
+import Fade from "@mui/material/Fade";
+import Tooltip from "@mui/material/Tooltip";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 
 export default function CandidatesPage() {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
-  const [searchInput, setSearchInput] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [user, setUser] = useState<{
     first_name?: string;
     last_name?: string;
     username?: string;
   } | null>(null);
+  const [tutorialStep, setTutorialStep] = useState(-1); // -1 means not showing
+  const [fadeIn, setFadeIn] = useState(true);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
   const location = useLocation();
+  const searchRef = useRef<HTMLInputElement>(null);
+  const reviewBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const email = localStorage.getItem("userEmail") || "admin@email.com";
@@ -49,17 +58,49 @@ export default function CandidatesPage() {
       .catch(() => setUser(null));
   }, []);
 
+  useEffect(() => {
+    if (tutorialStep === 0 && searchRef.current) setAnchorEl(searchRef.current);
+    else if (tutorialStep === 1 && reviewBtnRef.current)
+      setAnchorEl(reviewBtnRef.current);
+    else setAnchorEl(null);
+  }, [tutorialStep]);
+
   const candidates = [
-    { name: 'Jane Smith', skills: '.NET, Azure, SQL', experience: '5 Years', fit: 'Technical (92%)' },
-    { name: 'Mike Johnson', skills: 'React, Node.js', experience: '3 Years', fit: 'Collaborative (85%)' },
-    { name: 'Peter Griffin', skills: 'C++, C, Python', experience: '4 Years', fit: 'Technical (64%)' },
+    {
+      name: "Jane Smith",
+      skills: ".NET, Azure, SQL",
+      experience: "5 Years",
+      fit: "Technical (92%)",
+    },
+    {
+      name: "Mike Johnson",
+      skills: "React, Node.js",
+      experience: "3 Years",
+      fit: "Collaborative (85%)",
+    },
+    {
+      name: "Peter Griffin",
+      skills: "C++, C, Python",
+      experience: "4 Years",
+      fit: "Technical (64%)",
+    },
   ];
 
-  const filteredCandidates = candidates.filter(candidate =>
-    candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    candidate.skills.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    candidate.fit.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredCandidates = candidates.filter(
+    (candidate) =>
+      candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      candidate.skills.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      candidate.fit.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleStepChange = (nextStep: number) => {
+    setFadeIn(false);
+    setTimeout(() => {
+      setTutorialStep(nextStep);
+      setFadeIn(true);
+    }, 250);
+  };
+  const handleCloseTutorial = () => setTutorialStep(-1);
 
   return (
     <Box
@@ -204,6 +245,19 @@ export default function CandidatesPage() {
                   : "User"}
               </Typography>
             </Box>
+            {/* Tutorial Icon - left of logout */}
+            <Tooltip title="Run Tutorial" arrow>
+              <IconButton
+                color="primary"
+                sx={{ ml: 1 }}
+                onClick={() => {
+                  setTutorialStep(0);
+                  setFadeIn(true);
+                }}
+              >
+                <HelpOutlineIcon />
+              </IconButton>
+            </Tooltip>
             <IconButton
               color="inherit"
               onClick={() => {
@@ -238,6 +292,7 @@ export default function CandidatesPage() {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 sx={{ backgroundColor: "#fff", borderRadius: 1 }}
+                inputRef={searchRef}
               />
               <Button
                 variant="contained"
@@ -293,6 +348,7 @@ export default function CandidatesPage() {
                             variant="contained"
                             sx={reviewButtonStyle}
                             onClick={() => navigate("/candidate-review")}
+                            ref={idx === 0 ? reviewBtnRef : null}
                           >
                             Review
                           </Button>
@@ -321,45 +377,169 @@ export default function CandidatesPage() {
           </Paper>
         </Box>
       </Box>
+
+      {/* Tutorial Popover */}
+      <Popover
+        open={tutorialStep >= 0 && tutorialStep <= 1 && Boolean(anchorEl)}
+        anchorEl={anchorEl}
+        onClose={handleCloseTutorial}
+        anchorOrigin={{
+          vertical: "top",
+          horizontal: "center",
+        }}
+        transformOrigin={{
+          vertical: "bottom",
+          horizontal: "center",
+        }}
+        PaperProps={{
+          sx: {
+            p: 2,
+            bgcolor: "#fff",
+            color: "#181c2f",
+            borderRadius: 2,
+            boxShadow: 6,
+            minWidth: 280,
+            zIndex: 1500,
+            textAlign: "center",
+          },
+        }}
+      >
+        <Fade in={fadeIn} timeout={250}>
+          <Box sx={{ position: "relative" }}>
+            {tutorialStep === 0 && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Search Candidates
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  Use this search bar to find candidates by <b>name</b>,{" "}
+                  <b>skills</b>, or <b>project fit</b>.
+                </Typography>
+              </>
+            )}
+            {tutorialStep === 1 && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Review a Candidate
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  Click <b>Review</b> to view and assess this candidate's CV and
+                  fit.
+                </Typography>
+              </>
+            )}
+            {/* Shared navigation buttons */}
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mt: 3,
+                gap: 2,
+              }}
+            >
+              <Button
+                variant="text"
+                size="small"
+                onClick={handleCloseTutorial}
+                sx={{
+                  color: "#888",
+                  fontSize: "0.85rem",
+                  textTransform: "none",
+                  minWidth: "auto",
+                  p: 0,
+                }}
+              >
+                End Tutorial
+              </Button>
+              <Box sx={{ display: "flex", gap: 2 }}>
+                {tutorialStep > 0 && (
+                  <Button
+                    variant="outlined"
+                    onClick={() => handleStepChange(tutorialStep - 1)}
+                    sx={{
+                      color: "#5a88ad",
+                      borderColor: "#5a88ad",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": { borderColor: "#487DA6", color: "#487DA6" },
+                    }}
+                  >
+                    Previous
+                  </Button>
+                )}
+                {tutorialStep < 1 ? (
+                  <Button
+                    variant="contained"
+                    onClick={() => handleStepChange(tutorialStep + 1)}
+                    sx={{
+                      bgcolor: "#5a88ad",
+                      color: "#fff",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": { bgcolor: "#487DA6" },
+                    }}
+                  >
+                    Next
+                  </Button>
+                ) : (
+                  <Button
+                    variant="contained"
+                    onClick={handleCloseTutorial}
+                    sx={{
+                      bgcolor: "#5a88ad",
+                      color: "#fff",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": { bgcolor: "#487DA6" },
+                    }}
+                  >
+                    Finish
+                  </Button>
+                )}
+              </Box>
+            </Box>
+          </Box>
+        </Fade>
+      </Popover>
     </Box>
   );
 }
 
 // Sidebar button style
 const navButtonStyle = {
-  justifyContent: 'flex-start',
+  justifyContent: "flex-start",
   mb: 1,
-  color: '#fff',
-  backgroundColor: 'transparent',
-  '&:hover': {
-    backgroundColor: '#487DA6',
+  color: "#fff",
+  backgroundColor: "transparent",
+  "&:hover": {
+    backgroundColor: "#487DA6",
   },
-  textTransform: 'none',
-  fontWeight: 'bold',
-  '&.active': {
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    height: '100%',
-    width: '4px',
-    backgroundColor: 'black',
-    borderRadius: '0 4px 4px 0'
-  }
-}
-
+  textTransform: "none",
+  fontWeight: "bold",
+  "&.active": {
+    "&::before": {
+      content: '""',
+      position: "absolute",
+      left: 0,
+      top: 0,
+      height: "100%",
+      width: "4px",
+      backgroundColor: "black",
+      borderRadius: "0 4px 4px 0",
+    },
+  },
 };
 
 // Review button style
 const reviewButtonStyle = {
-  background: 'linear-gradient(45deg, #0a1172 0%, #00b300 100%)',
-  color: 'white',
-  fontWeight: 'bold',
-  padding: '6px 16px',
-  borderRadius: '4px',
-  textTransform: 'none',
-  '&:hover': {
-    background: 'linear-gradient(45deg, #081158 0%, #009a00 100%)',
+  background: "linear-gradient(45deg, #0a1172 0%, #00b300 100%)",
+  color: "white",
+  fontWeight: "bold",
+  padding: "6px 16px",
+  borderRadius: "4px",
+  textTransform: "none",
+  "&:hover": {
+    background: "linear-gradient(45deg, #081158 0%, #009a00 100%)",
   },
 };
