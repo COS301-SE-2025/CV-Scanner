@@ -5,9 +5,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -50,7 +52,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-public ResponseEntity<String> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<String> login(@RequestBody LoginRequest request) {
     if (request.email == null || request.password == null) {
         return ResponseEntity.badRequest().body("Email and password are required.");
     }
@@ -70,6 +72,20 @@ public ResponseEntity<String> login(@RequestBody LoginRequest request) {
         }
     } catch (EmptyResultDataAccessException e) {
         return ResponseEntity.status(401).body("Invalid email or password.");
+    }
+}
+
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(@RequestParam String email) {
+    try {
+        // Query user info by email (you can use session/JWT in production)
+        var user = jdbcTemplate.queryForMap(
+            "SELECT username, email, first_name, last_name, role FROM users WHERE email = ? AND is_active = 1",
+            email
+        );
+        return ResponseEntity.ok(user);
+    } catch (Exception e) {
+        return ResponseEntity.status(404).body("User not found.");
     }
 }
 

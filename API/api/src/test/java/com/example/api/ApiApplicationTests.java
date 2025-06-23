@@ -129,4 +129,45 @@ public class ApiApplicationTests {
                 .andExpect(content().string("Invalid email or password."));
     }
 
+    
+    @Test
+    void getCurrentUser_success() throws Exception {
+        // Mock user data returned from the database
+        var userMap = new java.util.HashMap<String, Object>();
+        userMap.put("username", "testuser");
+        userMap.put("email", "test@example.com");
+        userMap.put("first_name", "Test");
+        userMap.put("last_name", "User");
+        userMap.put("role", "user");
+
+        Mockito.when(jdbcTemplate.queryForMap(
+                anyString(),
+                eq("test@example.com")
+        )).thenReturn(userMap);
+
+        mockMvc.perform(get("/auth/me")
+                .param("email", "test@example.com"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value("testuser"))
+                .andExpect(jsonPath("$.email").value("test@example.com"))
+                .andExpect(jsonPath("$.first_name").value("Test"))
+                .andExpect(jsonPath("$.last_name").value("User"))
+                .andExpect(jsonPath("$.role").value("user"));
+    }
+
+    @Test
+    void getCurrentUser_notFound() throws Exception {
+        Mockito.when(jdbcTemplate.queryForMap(
+                anyString(),
+                eq("notfound@example.com")
+        )).thenThrow(new org.springframework.dao.EmptyResultDataAccessException(1));
+
+        mockMvc.perform(get("/auth/me")
+                .param("email", "notfound@example.com"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("User not found."));
+    }
+
+
+
 }

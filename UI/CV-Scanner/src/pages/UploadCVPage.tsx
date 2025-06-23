@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -43,6 +43,20 @@ export default function UploadCVPage() {
   const [isModalOpen, setIsModalOpen] = useState(false); // State for modal visibility
   const [contactInfo, setContactInfo] = useState(""); // State for contact information
   const [additionalInfo, setAdditionalInfo] = useState(""); // State for additional information
+  const [user, setUser] = useState<{
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    
+    const email = localStorage.getItem("userEmail") || "admin@email.com";
+    fetch(`http://localhost:8080/auth/me?email=${encodeURIComponent(email)}`)
+      .then((res) => res.json())
+      .then((data) => setUser(data))
+      .catch(() => setUser(null));
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -219,7 +233,13 @@ export default function UploadCVPage() {
               onClick={() => navigate("/settings")}
             >
               <AccountCircleIcon sx={{ mr: 1 }} />
-              <Typography variant="subtitle1">Admin User</Typography>
+              <Typography variant="subtitle1">
+                {user
+                  ? user.first_name
+                    ? `${user.first_name} ${user.last_name || ""}`
+                    : user.username || "User"
+                  : "User"}
+              </Typography>
             </Box>
             <IconButton
               color="inherit"
