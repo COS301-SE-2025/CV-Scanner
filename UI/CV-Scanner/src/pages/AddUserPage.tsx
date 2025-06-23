@@ -32,7 +32,9 @@ export default function AddUserPage() {
   const userRole = "Admin";
 
   const [formData, setFormData] = React.useState({
-    name: "",
+    username: "",
+    first_name: "",
+    last_name: "",
     email: "",
     role: "",
     password: "",
@@ -40,7 +42,9 @@ export default function AddUserPage() {
   });
 
   const [errors, setErrors] = React.useState({
-    name: "",
+    username: "",
+    first_name: "",
+    last_name: "",
     email: "",
     role: "",
     password: "",
@@ -51,10 +55,20 @@ export default function AddUserPage() {
     let isValid = true;
     const newErrors = { ...errors };
 
-    // Name validation
-    if (!formData.name.trim()) {
-      newErrors.name = "Name is required";
+    // First Name validation
+    if (!formData.first_name.trim()) {
+      newErrors.first_name = "First name is required";
       isValid = false;
+    } else {
+      newErrors.first_name = "";
+    }
+
+    // Last Name validation
+    if (!formData.last_name.trim()) {
+      newErrors.last_name = "Last name is required";
+      isValid = false;
+    } else {
+      newErrors.last_name = "";
     }
 
     // Email validation
@@ -80,6 +94,14 @@ export default function AddUserPage() {
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
       isValid = false;
+    }
+
+    // Username validation
+    if (!formData.username.trim()) {
+      newErrors.username = "Username is required";
+      isValid = false;
+    } else {
+      newErrors.username = "";
     }
 
     setErrors(newErrors);
@@ -225,16 +247,42 @@ export default function AddUserPage() {
               }}
             >
               <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                <FormControl error={!!errors.name}>
+                <FormControl error={!!errors.username}>
                   <TextField
-                    label="Full Name"
+                    label="Username"
                     fullWidth
-                    value={formData.name}
+                    value={formData.username}
                     onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
+                      setFormData({ ...formData, username: e.target.value })
                     }
-                    error={!!errors.name}
-                    helperText={errors.name}
+                    error={!!errors.username}
+                    helperText={errors.username}
+                  />
+                </FormControl>
+
+                <FormControl error={!!errors.first_name}>
+                  <TextField
+                    label="First Name"
+                    fullWidth
+                    value={formData.first_name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, first_name: e.target.value })
+                    }
+                    error={!!errors.first_name}
+                    helperText={errors.first_name}
+                  />
+                </FormControl>
+
+                <FormControl error={!!errors.last_name}>
+                  <TextField
+                    label="Last Name"
+                    fullWidth
+                    value={formData.last_name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, last_name: e.target.value })
+                    }
+                    error={!!errors.last_name}
+                    helperText={errors.last_name}
                   />
                 </FormControl>
 
@@ -311,7 +359,7 @@ export default function AddUserPage() {
                   <Button
                     variant="outlined"
                     onClick={() => navigate("/user-management")}
-                    sx={{ bgcolor: "lightgrey"  ,color: "#666" }}
+                    sx={{ bgcolor: "lightgrey", color: "#666" }}
                   >
                     Cancel
                   </Button>
