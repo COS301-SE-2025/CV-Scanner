@@ -49,7 +49,7 @@ export default function UserManagementPage() {
 
   const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
-
+  const [roleFilter, setRoleFilter] = useState("All Roles");
 
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -80,9 +80,26 @@ export default function UserManagementPage() {
   };
 
   const handleDeleteUser = (user) => {
-    console.log("Deleting user:", user);
+    if (!window.confirm(`Are you sure you want to delete ${user.email}?`))
+      return;
+    fetch(
+      `http://localhost:8081/auth/delete-user?email=${encodeURIComponent(
+        user.email
+      )}`,
+      {
+        method: "DELETE",
+      }
+    )
+      .then((res) => res.text())
+      .then((msg) => {
+        // Optionally show a toast/snackbar here
+        // Refresh the user list
+        setUsers((prev) => prev.filter((u) => u.email !== user.email));
+      })
+      .catch(() => {
+        // Optionally show an error toast/snackbar here
+      });
   };
-
   useEffect(() => {
     const email = localStorage.getItem("userEmail") || "admin@email.com";
     fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
@@ -119,6 +136,19 @@ export default function UserManagementPage() {
     };
     fetchUsers();
   }, [search]);
+
+  useEffect(() => {
+    let url = "http://localhost:8081/auth/all-users";
+    if (roleFilter !== "All Roles") {
+      url = `http://localhost:8081/auth/filter-users?role=${encodeURIComponent(
+        roleFilter
+      )}`;
+    }
+    fetch(url)
+      .then((res) => res.json())
+      .then((data) => setUsers(data))
+      .catch(() => setUsers([]));
+  }, [roleFilter]);
 
   return (
     <Box
@@ -300,13 +330,14 @@ export default function UserManagementPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
             <Select
-              defaultValue="All Roles"
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
               sx={{ bgcolor: "#fff", borderRadius: 1, minWidth: 150 }}
             >
               <MenuItem value="All Roles">All Roles</MenuItem>
               <MenuItem value="Admin">Admin</MenuItem>
               <MenuItem value="Editor">Editor</MenuItem>
-              <MenuItem value="Uploader">Uploader</MenuItem>
+              <MenuItem value="User">User</MenuItem>
             </Select>
             <Button
               variant="contained"

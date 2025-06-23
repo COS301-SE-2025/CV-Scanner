@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -122,6 +123,38 @@ public ResponseEntity<?> searchUsers(@RequestParam String query) {
         return ResponseEntity.status(500).body("Failed to search users.");
     }
 }
+
+    @GetMapping("/filter-users")
+    public ResponseEntity<?> filterUsers(@RequestParam String role) {
+        try {
+            String sql = """
+                SELECT username, email, first_name, last_name, role, last_login as lastActive
+                FROM users
+                WHERE is_active = 1 AND LOWER(role) = ?
+            """;
+            var users = jdbcTemplate.queryForList(sql, role.toLowerCase());
+            return ResponseEntity.ok(users);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Failed to filter users.");
+        }
+    }
+
+    @DeleteMapping("/delete-user")
+    public ResponseEntity<?> deleteUser(@RequestParam String email) {
+        try {
+            int updated = jdbcTemplate.update(
+                "UPDATE users SET is_active = 0 WHERE email = ?",
+                email
+            );
+            if (updated > 0) {
+                return ResponseEntity.ok("User deleted successfully.");
+            } else {
+                return ResponseEntity.status(404).body("User not found.");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Failed to delete user.");
+        }
+    }
 
 }
 
