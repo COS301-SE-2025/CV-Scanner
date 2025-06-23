@@ -219,6 +219,14 @@ export default function CandidatesDashboard() {
                 <HelpOutlineIcon />
               </IconButton>
             </Tooltip>
+            <IconButton
+              color="inherit"
+              onClick={() => {
+                navigate("/login"); // Redirect to login page
+              }}
+            >
+              <ExitToAppIcon />
+            </IconButton>
           </Toolbar>
         </AppBar>
 
