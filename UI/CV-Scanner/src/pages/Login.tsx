@@ -33,6 +33,7 @@ export default function LoginPage() {
       .then((res) => res.text())
       .then((data) => {
         if (data.toLowerCase().includes("success")) {
+          localStorage.setItem("userEmail", email); // <--- Add this line
           navigate("/dashboard"); // or wherever you want to redirect
         } else {
           setError(data);

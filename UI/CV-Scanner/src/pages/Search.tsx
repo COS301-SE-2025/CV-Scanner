@@ -39,6 +39,7 @@ export default function Search() {
     first_name?: string;
     last_name?: string;
     username?: string;
+    role?: string;
   } | null>(null);
 
   const location = useLocation();
@@ -119,12 +120,14 @@ export default function Search() {
 
   useEffect(() => {
     const email = localStorage.getItem("userEmail") || "admin@email.com";
-    fetch(`http://localhost:8080/auth/me?email=${encodeURIComponent(email)}`)
+    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
       .then((res) => res.json())
-      .then((data) => setUser(data))
+      .then((data) => {
+        console.log("Fetched user:", data);
+        setUser(data);
+      })
       .catch(() => setUser(null));
   }, []);
-
   return (
     <Box
       sx={{
