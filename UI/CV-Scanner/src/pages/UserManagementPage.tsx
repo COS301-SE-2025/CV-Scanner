@@ -413,7 +413,11 @@ export default function UserManagementPage() {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: "bold" }}>Name</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Username</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>
+                      First Name
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Last Name</TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>Email</TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>Role</TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>
@@ -425,10 +429,9 @@ export default function UserManagementPage() {
                 <TableBody>
                   {users.map((user, idx) => (
                     <TableRow key={idx}>
-                      <TableCell>
-                        {user.first_name || ""} {user.last_name || ""}{" "}
-                        {user.username ? `(${user.username})` : ""}
-                      </TableCell>
+                      <TableCell>{user.username || ""}</TableCell>
+                      <TableCell>{user.first_name || ""}</TableCell>
+                      <TableCell>{user.last_name || ""}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
                         <Button
@@ -531,7 +534,10 @@ export default function UserManagementPage() {
                 fullWidth
                 value={editFormData.first_name}
                 onChange={(e) =>
-                  setEditFormData({ ...editFormData, first_name: e.target.value })
+                  setEditFormData({
+                    ...editFormData,
+                    first_name: e.target.value,
+                  })
                 }
               />
               <TextField
@@ -539,7 +545,10 @@ export default function UserManagementPage() {
                 fullWidth
                 value={editFormData.last_name}
                 onChange={(e) =>
-                  setEditFormData({ ...editFormData, last_name: e.target.value })
+                  setEditFormData({
+                    ...editFormData,
+                    last_name: e.target.value,
+                  })
                 }
               />
               <TextField
@@ -613,8 +622,8 @@ export default function UserManagementPage() {
                     Search Users
                   </Typography>
                   <Typography sx={{ mb: 2 }}>
-                    Use this bar to search for users by{" "}
-                    <b>name</b>, <b>email</b>, or <b>role</b>.
+                    Use this bar to search for users by <b>name</b>,{" "}
+                    <b>email</b>, or <b>role</b>.
                   </Typography>
                 </>
               )}
