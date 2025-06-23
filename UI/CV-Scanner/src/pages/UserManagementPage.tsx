@@ -76,14 +76,14 @@ export default function UserManagementPage() {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
   const searchRef = useRef<HTMLInputElement>(null);
-  const filterRef = useRef<HTMLDivElement>(null);
+  const filterBoxRef = useRef<HTMLDivElement>(null);
   const addUserRef = useRef<HTMLButtonElement>(null);
   const firstEditRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (tutorialStep === 0 && searchRef.current) setAnchorEl(searchRef.current);
-    else if (tutorialStep === 1 && filterRef.current)
-      setAnchorEl(filterRef.current);
+    else if (tutorialStep === 1 && filterBoxRef.current)
+      setAnchorEl(filterBoxRef.current);
     else if (tutorialStep === 2 && addUserRef.current)
       setAnchorEl(addUserRef.current);
     else if (tutorialStep === 3 && firstEditRef.current)
@@ -101,8 +101,8 @@ export default function UserManagementPage() {
     // Wait for the next element to mount before setting anchorEl
     setTimeout(() => {
       if (nextStep === 0 && searchRef.current) setAnchorEl(searchRef.current);
-      else if (nextStep === 1 && filterRef.current)
-        setAnchorEl(filterRef.current);
+      else if (nextStep === 1 && filterBoxRef.current)
+        setAnchorEl(filterBoxRef.current);
       else if (nextStep === 2 && addUserRef.current)
         setAnchorEl(addUserRef.current);
       else if (nextStep === 3 && firstEditRef.current)
@@ -305,15 +305,17 @@ export default function UserManagementPage() {
               fullWidth
               sx={{ bgcolor: "#fff", borderRadius: 1 }}
             />
-            <Select
-              defaultValue="All Roles"
-              sx={{ bgcolor: "#fff", borderRadius: 1, minWidth: 150 }}
-            >
-              <MenuItem value="All Roles">All Roles</MenuItem>
-              <MenuItem value="Admin">Admin</MenuItem>
-              <MenuItem value="Editor">Editor</MenuItem>
-              <MenuItem value="Uploader">Uploader</MenuItem>
-            </Select>
+            <div ref={filterBoxRef}>
+              <Select
+                defaultValue="All Roles"
+                sx={{ bgcolor: "#fff", borderRadius: 1, minWidth: 150 }}
+              >
+                <MenuItem value="All Roles">All Roles</MenuItem>
+                <MenuItem value="Admin">Admin</MenuItem>
+                <MenuItem value="Editor">Editor</MenuItem>
+                <MenuItem value="Uploader">Uploader</MenuItem>
+              </Select>
+            </div>
             <Button
               variant="contained"
               sx={{ bgcolor: "#4caf50", color: "#fff", textTransform: "none" }}
