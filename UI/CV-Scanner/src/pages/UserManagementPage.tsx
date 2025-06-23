@@ -44,21 +44,28 @@ export default function UserManagementPage() {
   const location = useLocation();
   const userRole = "Admin";
 
+  // 1. Update your users array:
   const users = [
     {
-      name: "Admin User",
+      username: "adminuser",
+      first_name: "Admin",
+      last_name: "User",
       email: "admin@entelect.co.za",
       role: "Admin",
       lastActive: "Today 09:15",
     },
     {
-      name: "Editor User",
+      username: "editoruser",
+      first_name: "Editor",
+      last_name: "User",
       email: "editor@entelect.co.za",
       role: "Editor",
       lastActive: "Yesterday, 14:30",
     },
     {
-      name: "Uploader User",
+      username: "uploaderuser",
+      first_name: "Uploader",
+      last_name: "User",
       email: "uploader@entelect.co.za",
       role: "Uploader",
       lastActive: "2 days ago",
@@ -68,7 +75,9 @@ export default function UserManagementPage() {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [editFormData, setEditFormData] = useState({
-    name: "",
+    username: "",
+    first_name: "",
+    last_name: "",
     email: "",
     role: "",
   });
@@ -117,9 +126,11 @@ export default function UserManagementPage() {
   const handleEditClick = (user) => {
     setEditingUser(user);
     setEditFormData({
-      name: user.name,
-      email: user.email,
-      role: user.role,
+      username: user.username || "",
+      first_name: user.first_name || "",
+      last_name: user.last_name || "",
+      email: user.email || "",
+      role: user.role || "",
     });
     setOpenEditDialog(true);
   };
@@ -348,9 +359,14 @@ export default function UserManagementPage() {
           >
             <TableContainer>
               <Table>
+                {/* 2. Update the table headers: */}
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: "bold" }}>Name</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Username</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>
+                      First Name
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Last Name</TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>Email</TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>Role</TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>
@@ -359,10 +375,13 @@ export default function UserManagementPage() {
                     <TableCell sx={{ fontWeight: "bold" }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
+                {/* 3. Update the table rows: */}
                 <TableBody>
                   {users.map((user, idx) => (
-                    <TableRow key={user.name}>
-                      <TableCell>{user.name}</TableCell>
+                    <TableRow key={user.username}>
+                      <TableCell>{user.username}</TableCell>
+                      <TableCell>{user.first_name}</TableCell>
+                      <TableCell>{user.last_name}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
                         <Button
@@ -453,11 +472,33 @@ export default function UserManagementPage() {
               sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}
             >
               <TextField
-                label="Name"
+                label="Username"
                 fullWidth
-                value={editFormData.name}
+                value={editFormData.username}
                 onChange={(e) =>
-                  setEditFormData({ ...editFormData, name: e.target.value })
+                  setEditFormData({ ...editFormData, username: e.target.value })
+                }
+              />
+              <TextField
+                label="First Name"
+                fullWidth
+                value={editFormData.first_name}
+                onChange={(e) =>
+                  setEditFormData({
+                    ...editFormData,
+                    first_name: e.target.value,
+                  })
+                }
+              />
+              <TextField
+                label="Last Name"
+                fullWidth
+                value={editFormData.last_name}
+                onChange={(e) =>
+                  setEditFormData({
+                    ...editFormData,
+                    last_name: e.target.value,
+                  })
                 }
               />
               <TextField
