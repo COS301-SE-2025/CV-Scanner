@@ -89,6 +89,18 @@ public class AuthController {
     }
 }
 
+@GetMapping("/all-users")
+public ResponseEntity<?> getAllUsers() {
+    try {
+        var users = jdbcTemplate.queryForList(
+            "SELECT username, email, first_name, last_name, role, last_login as lastActive FROM users WHERE is_active = 1"
+        );
+        return ResponseEntity.ok(users);
+    } catch (Exception e) {
+        return ResponseEntity.status(500).body("Failed to fetch users.");
+    }
+}
+
 }
 
 class RegisterRequest {
