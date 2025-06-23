@@ -101,6 +101,28 @@ public ResponseEntity<?> getAllUsers() {
     }
 }
 
+@GetMapping("/search-users")
+public ResponseEntity<?> searchUsers(@RequestParam String query) {
+    try {
+        String sql = """
+            SELECT username, email, first_name, last_name, role, last_login as lastActive
+            FROM users
+            WHERE is_active = 1 AND (
+                LOWER(username) LIKE ? OR
+                LOWER(email) LIKE ? OR
+                LOWER(first_name) LIKE ? OR
+                LOWER(last_name) LIKE ? OR
+                LOWER(role) LIKE ?
+            )
+        """;
+        String likeQuery = "%" + query.toLowerCase() + "%";
+        var users = jdbcTemplate.queryForList(sql, likeQuery, likeQuery, likeQuery, likeQuery, likeQuery);
+        return ResponseEntity.ok(users);
+    } catch (Exception e) {
+        return ResponseEntity.status(500).body("Failed to search users.");
+    }
+}
+
 }
 
 class RegisterRequest {

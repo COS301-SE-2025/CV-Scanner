@@ -48,6 +48,7 @@ export default function UserManagementPage() {
   } | null>(null);
 
   const [users, setUsers] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
 
 
   const [openEditDialog, setOpenEditDialog] = useState(false);
@@ -102,6 +103,22 @@ export default function UserManagementPage() {
       .then((data) => setUsers(data))
       .catch(() => setUsers([]));
   }, []);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      let url = "http://localhost:8081/auth/all-users";
+      if (search.trim() !== "") {
+        url = `http://localhost:8081/auth/search-users?query=${encodeURIComponent(
+          search
+        )}`;
+      }
+      fetch(url)
+        .then((res) => res.json())
+        .then((data) => setUsers(data))
+        .catch(() => setUsers([]));
+    };
+    fetchUsers();
+  }, [search]);
 
   return (
     <Box
@@ -279,6 +296,8 @@ export default function UserManagementPage() {
               variant="outlined"
               fullWidth
               sx={{ bgcolor: "#fff", borderRadius: 1 }}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
             />
             <Select
               defaultValue="All Roles"
