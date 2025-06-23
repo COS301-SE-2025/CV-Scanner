@@ -14,8 +14,11 @@ import {
   Toolbar,
   IconButton,
   Badge,
+  Popover,
+  Fade,
+  Tooltip,
 } from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import SearchIcon from "@mui/icons-material/Search";
@@ -25,6 +28,7 @@ import PeopleIcon from "@mui/icons-material/People";
 import SettingsIcon from "@mui/icons-material/Settings";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 
@@ -41,6 +45,9 @@ export default function Search() {
     username?: string;
     role?: string;
   } | null>(null);
+  const [tutorialStep, setTutorialStep] = useState(-1); // -1 means not showing
+  const [fadeIn, setFadeIn] = useState(true);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
   const location = useLocation();
 
@@ -128,6 +135,30 @@ export default function Search() {
       })
       .catch(() => setUser(null));
   }, []);
+
+  const searchBarRef = useRef<HTMLInputElement>(null);
+  const checkboxesRef = useRef<HTMLDivElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (tutorialStep === 0 && searchBarRef.current)
+      setAnchorEl(searchBarRef.current);
+    else if (tutorialStep === 1 && checkboxesRef.current)
+      setAnchorEl(checkboxesRef.current);
+    else if (tutorialStep === 2 && resultsRef.current)
+      setAnchorEl(resultsRef.current);
+    else setAnchorEl(null);
+  }, [tutorialStep]);
+
+  const handleStepChange = (nextStep: number) => {
+    setFadeIn(false);
+    setTimeout(() => {
+      setTutorialStep(nextStep);
+      setFadeIn(true);
+    }, 250);
+  };
+  const handleCloseTutorial = () => setTutorialStep(-1);
+
   return (
     <Box
       sx={{
@@ -270,6 +301,19 @@ export default function Search() {
                   : "User"}
               </Typography>
             </Box>
+            {/* Tutorial Icon - left of logout */}
+            <Tooltip title="Run Tutorial" arrow>
+              <IconButton
+                color="primary"
+                sx={{ ml: 1 }}
+                onClick={() => {
+                  setTutorialStep(0);
+                  setFadeIn(true);
+                }}
+              >
+                <HelpOutlineIcon />
+              </IconButton>
+            </Tooltip>
             <IconButton
               color="inherit"
               onClick={() => {
@@ -305,6 +349,7 @@ export default function Search() {
                 px: 2,
                 py: 1,
               }}
+              ref={searchBarRef}
             >
               <SearchIcon color="action" />
               <InputBase
@@ -317,7 +362,7 @@ export default function Search() {
             </Box>
 
             {/* Filters */}
-            <Box sx={{ display: "flex", gap: 6, mb: 4 }}>
+            <Box sx={{ display: "flex", gap: 6, mb: 4 }} ref={checkboxesRef}>
               <Box>
                 <Typography
                   variant="subtitle1"
@@ -409,92 +454,232 @@ export default function Search() {
             </Typography>
 
             {/* Candidate Cards */}
-            {filteredCandidates.length > 0 ? (
-              filteredCandidates.map((candidate, idx) => (
-                <Paper
-                  key={idx}
-                  elevation={3}
-                  sx={{
-                    p: 3,
-                    mb: 3,
-                    borderRadius: 3,
-                    backgroundColor: "#e1f4ff",
-                    cursor: "pointer", // Shows it's clickable
-                    "&:hover": {
-                      boxShadow: "0 4px 8px rgba(0,0,0,0.2)", // Visual feedback
-                      transform: "translateY(-2px)",
-                    },
-                    transition: "all 0.2s ease",
-                  }}
-                  onClick={() => navigate("/candidate-review")} // Correct placement
-                >
-                  <Box
-                    sx={{ display: "flex", alignItems: "flex-start", gap: 3 }}
+            <div ref={resultsRef}>
+              {filteredCandidates.length > 0 ? (
+                filteredCandidates.map((candidate, idx) => (
+                  <Paper
+                    key={idx}
+                    elevation={3}
+                    sx={{
+                      p: 3,
+                      mb: 3,
+                      borderRadius: 3,
+                      backgroundColor: "#e1f4ff",
+                      cursor: "pointer", // Shows it's clickable
+                      "&:hover": {
+                        boxShadow: "0 4px 8px rgba(0,0,0,0.2)", // Visual feedback
+                        transform: "translateY(-2px)",
+                      },
+                      transition: "all 0.2s ease",
+                    }}
+                    onClick={() => navigate("/candidate-review")} // Correct placement
                   >
-                    <Avatar
-                      sx={{
-                        bgcolor: "#0073c1",
-                        width: 56,
-                        height: 56,
-                        fontSize: "1.5rem",
-                      }}
+                    <Box
+                      sx={{ display: "flex", alignItems: "flex-start", gap: 3 }}
                     >
-                      {candidate.initials}
-                    </Avatar>
-                    <Box sx={{ flexGrow: 1 }}>
-                      <Typography
-                        variant="h6"
-                        sx={{ fontWeight: "bold", mb: 0.5 }}
-                      >
-                        {candidate.name}
-                      </Typography>
-                      <Typography variant="body1" sx={{ mb: 1 }}>
-                        {candidate.project}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ mb: 1.5, color: "#555" }}
-                      >
-                        Uploaded: {candidate.uploaded}
-                      </Typography>
-                      <Box
+                      <Avatar
                         sx={{
-                          display: "flex",
-                          gap: 1,
-                          flexWrap: "wrap",
-                          mb: 1.5,
+                          bgcolor: "#0073c1",
+                          width: 56,
+                          height: 56,
+                          fontSize: "1.5rem",
                         }}
                       >
-                        {candidate.skills.map((skill, i) => (
-                          <Chip
-                            key={i}
-                            label={skill}
-                            size="small"
-                            sx={{ backgroundColor: "#d0e8ff" }}
-                          />
-                        ))}
+                        {candidate.initials}
+                      </Avatar>
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Typography
+                          variant="h6"
+                          sx={{ fontWeight: "bold", mb: 0.5 }}
+                        >
+                          {candidate.name}
+                        </Typography>
+                        <Typography variant="body1" sx={{ mb: 1 }}>
+                          {candidate.project}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ mb: 1.5, color: "#555" }}
+                        >
+                          Uploaded: {candidate.uploaded}
+                        </Typography>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            gap: 1,
+                            flexWrap: "wrap",
+                            mb: 1.5,
+                          }}
+                        >
+                          {candidate.skills.map((skill, i) => (
+                            <Chip
+                              key={i}
+                              label={skill}
+                              size="small"
+                              sx={{ backgroundColor: "#d0e8ff" }}
+                            />
+                          ))}
+                        </Box>
+                        <Typography
+                          variant="body2"
+                          sx={{ color: "#0073c1", fontWeight: "bold" }}
+                        >
+                          Match: {candidate.match}
+                        </Typography>
                       </Box>
-                      <Typography
-                        variant="body2"
-                        sx={{ color: "#0073c1", fontWeight: "bold" }}
-                      >
-                        Match: {candidate.match}
-                      </Typography>
                     </Box>
-                  </Box>
-                </Paper>
-              ))
-            ) : (
-              <Typography
-                variant="body1"
-                sx={{ mt: 2, fontStyle: "italic", color: "#555" }}
-              >
-                No results found. Try adjusting your search or filters.
-              </Typography>
-            )}
+                  </Paper>
+                ))
+              ) : (
+                <Typography
+                  variant="body1"
+                  sx={{ mt: 2, fontStyle: "italic", color: "#555" }}
+                >
+                  No results found. Try adjusting your search or filters.
+                </Typography>
+              )}
+            </div>
+
+            {/* Pagination ... */}
           </Paper>
         </Box>
       </Box>
+
+      {/* Tutorial Popover */}
+      <Popover
+        open={tutorialStep >= 0 && tutorialStep <= 2 && Boolean(anchorEl)}
+        anchorEl={anchorEl}
+        onClose={handleCloseTutorial}
+        anchorOrigin={{
+          vertical: "top",
+          horizontal: "center",
+        }}
+        transformOrigin={{
+          vertical: "bottom",
+          horizontal: "center",
+        }}
+        PaperProps={{
+          sx: {
+            p: 2,
+            bgcolor: "#fff",
+            color: "#181c2f",
+            borderRadius: 2,
+            boxShadow: 6,
+            minWidth: 280,
+            zIndex: 1500,
+            textAlign: "center",
+          },
+        }}
+      >
+        <Fade in={fadeIn} timeout={250}>
+          <Box sx={{ position: "relative" }}>
+            {tutorialStep === 0 && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Search Bar
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  Use this bar to search for candidates by <b>name</b>,{" "}
+                  <b>skills</b>, or <b>project type</b>.
+                </Typography>
+              </>
+            )}
+            {tutorialStep === 1 && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Filters
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  Use these checkboxes to filter candidates by <b>skills</b>,{" "}
+                  <b>project fit</b>, or <b>upload details</b>.
+                </Typography>
+              </>
+            )}
+            {tutorialStep === 2 && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Results
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  Here you’ll see the candidates that match your search and
+                  filters.
+                </Typography>
+              </>
+            )}
+            {/* Shared navigation buttons */}
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mt: 3,
+                gap: 2,
+              }}
+            >
+              <Button
+                variant="text"
+                size="small"
+                onClick={handleCloseTutorial}
+                sx={{
+                  color: "#888",
+                  fontSize: "0.85rem",
+                  textTransform: "none",
+                  minWidth: "auto",
+                  p: 0,
+                }}
+              >
+                End Tutorial
+              </Button>
+              <Box sx={{ display: "flex", gap: 2 }}>
+                {tutorialStep > 0 && (
+                  <Button
+                    variant="outlined"
+                    onClick={() => handleStepChange(tutorialStep - 1)}
+                    sx={{
+                      color: "#5a88ad",
+                      borderColor: "#5a88ad",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": { borderColor: "#487DA6", color: "#487DA6" },
+                    }}
+                  >
+                    Previous
+                  </Button>
+                )}
+                {tutorialStep < 2 ? (
+                  <Button
+                    variant="contained"
+                    onClick={() => handleStepChange(tutorialStep + 1)}
+                    sx={{
+                      bgcolor: "#5a88ad",
+                      color: "#fff",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": { bgcolor: "#487DA6" },
+                    }}
+                  >
+                    Next
+                  </Button>
+                ) : (
+                  <Button
+                    variant="contained"
+                    onClick={handleCloseTutorial}
+                    sx={{
+                      bgcolor: "#5a88ad",
+                      color: "#fff",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": { bgcolor: "#487DA6" },
+                    }}
+                  >
+                    Finish
+                  </Button>
+                )}
+              </Box>
+            </Box>
+          </Box>
+        </Fade>
+      </Popover>
     </Box>
   );
 }

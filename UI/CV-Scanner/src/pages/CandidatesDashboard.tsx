@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from "react";
 import {
   Box,
   Typography,
@@ -14,17 +14,21 @@ import {
   Toolbar,
   IconButton,
   Badge,
-} from '@mui/material';
-import { useNavigate, useLocation } from 'react-router-dom';
-import logo2 from '../assets/logo2.png';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import UploadFileIcon from '@mui/icons-material/UploadFile';
-import PeopleIcon from '@mui/icons-material/People';
-import SearchIcon from '@mui/icons-material/Search';
-import SettingsIcon from '@mui/icons-material/Settings';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+} from "@mui/material";
+import { useNavigate, useLocation } from "react-router-dom";
+import logo2 from "../assets/logo2.png";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
+import PeopleIcon from "@mui/icons-material/People";
+import SearchIcon from "@mui/icons-material/Search";
+import SettingsIcon from "@mui/icons-material/Settings";
+import NotificationsIcon from "@mui/icons-material/Notifications";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import Popover from "@mui/material/Popover";
+import Tooltip from "@mui/material/Tooltip";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import Fade from "@mui/material/Fade";
 
 export default function CandidatesDashboard() {
   const [collapsed, setCollapsed] = useState(false);
@@ -35,6 +39,11 @@ export default function CandidatesDashboard() {
     last_name?: string;
     username?: string;
   } | null>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [tutorialStep, setTutorialStep] = useState(0);
+  const [fadeIn, setFadeIn] = useState(true);
+  const reviewBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     document.title = "Candidates Dashboard";
@@ -45,6 +54,12 @@ export default function CandidatesDashboard() {
       .then((data) => setUser(data))
       .catch(() => setUser(null));
   }, []);
+
+  useEffect(() => {
+    if (reviewBtnRef.current) {
+      setAnchorEl(reviewBtnRef.current);
+    }
+  }, [showTutorial]);
 
   return (
     <Box
@@ -199,6 +214,19 @@ export default function CandidatesDashboard() {
                   : "User"}
               </Typography>
             </Box>
+            <Tooltip title="Run Tutorial" arrow>
+              <IconButton
+                color="primary"
+                sx={{ ml: 1 }}
+                onClick={() => {
+                  setShowTutorial(true);
+                  setTutorialStep(0);
+                  setFadeIn(true);
+                }}
+              >
+                <HelpOutlineIcon />
+              </IconButton>
+            </Tooltip>
           </Toolbar>
         </AppBar>
 
@@ -280,9 +308,91 @@ export default function CandidatesDashboard() {
                           variant="contained"
                           sx={reviewButtonStyle}
                           onClick={() => navigate("/candidate-review")}
+                          ref={idx === 0 ? reviewBtnRef : null}
                         >
                           Review
                         </Button>
+                        {idx === 0 && (
+                          <Popover
+                            open={showTutorial && Boolean(anchorEl)}
+                            anchorEl={anchorEl}
+                            onClose={() => setShowTutorial(false)}
+                            anchorOrigin={{
+                              vertical: "top",
+                              horizontal: "center",
+                            }}
+                            transformOrigin={{
+                              vertical: "bottom",
+                              horizontal: "center",
+                            }}
+                            PaperProps={{
+                              sx: {
+                                p: 2,
+                                bgcolor: "#fff",
+                                color: "#181c2f",
+                                borderRadius: 2,
+                                boxShadow: 6,
+                                minWidth: 280,
+                                zIndex: 1500,
+                                textAlign: "center",
+                              },
+                            }}
+                          >
+                            <Fade in={fadeIn} timeout={250}>
+                              <Box sx={{ position: "relative" }}>
+                                <Typography
+                                  variant="h6"
+                                  sx={{ fontWeight: "bold", mb: 1 }}
+                                >
+                                  Quick Tip
+                                </Typography>
+                                <Typography sx={{ mb: 2 }}>
+                                  Click <b>Review</b> to view and assess this
+                                  candidate's CV.
+                                </Typography>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    mt: 3,
+                                    gap: 2,
+                                  }}
+                                >
+                                  <Button
+                                    variant="text"
+                                    size="small"
+                                    onClick={() => setShowTutorial(false)}
+                                    sx={{
+                                      color: "#888",
+                                      fontSize: "0.85rem",
+                                      textTransform: "none",
+                                      minWidth: "auto",
+                                      p: 0,
+                                    }}
+                                  >
+                                    End Tutorial
+                                  </Button>
+                                  <Box sx={{ display: "flex", gap: 2 }}>
+                                    <Button
+                                      variant="contained"
+                                      onClick={() => setShowTutorial(false)}
+                                      sx={{
+                                        bgcolor: "#5a88ad",
+                                        color: "#fff",
+                                        fontWeight: "bold",
+                                        textTransform: "none",
+                                        "&:hover": { bgcolor: "#487DA6" },
+                                      }}
+                                    >
+                                      Finish
+                                    </Button>
+                                  </Box>
+                                </Box>
+                              </Box>
+                            </Fade>
+                          </Popover>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -298,26 +408,26 @@ export default function CandidatesDashboard() {
 
 // Styles
 const navButtonStyle = {
-  justifyContent: 'flex-start',
+  justifyContent: "flex-start",
   mb: 1,
-  color: '#fff',
-  backgroundColor: 'transparent',
-  '&:hover': {
-    backgroundColor: '#487DA6',
+  color: "#fff",
+  backgroundColor: "transparent",
+  "&:hover": {
+    backgroundColor: "#487DA6",
   },
-  textTransform: 'none',
-  fontWeight: 'bold',
-  position: 'relative',
-  '&.active': {
-    '&::before': {
+  textTransform: "none",
+  fontWeight: "bold",
+  position: "relative",
+  "&.active": {
+    "&::before": {
       content: '""',
-      position: 'absolute',
+      position: "absolute",
       left: 0,
       top: 0,
-      height: '100%',
-      width: '4px',
-      backgroundColor: 'black',
-      borderRadius: '0 4px 4px 0',
+      height: "100%",
+      width: "4px",
+      backgroundColor: "black",
+      borderRadius: "0 4px 4px 0",
     },
   },
 };
@@ -326,39 +436,34 @@ const statCardStyle = {
   p: 2,
   minWidth: 140,
   borderRadius: 3,
-  backgroundColor: '#e1f4ff',
-  textAlign: 'center',
-  color: '#000',
+  backgroundColor: "#e1f4ff",
+  textAlign: "center",
+  color: "#000",
 };
 
 const reviewButtonStyle = {
-  background: 'linear-gradient(45deg, #0a1172 0%, #032c3b 50%, #00b300 100%)',
-  color: 'white',
- fontWeight: 'bold',
-  padding: '8px 20px',
-  borderRadius: '4px',
-  boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-  '&:hover': {
-    background: 'linear-gradient(45deg, #081158 0%, #022028 50%, #009a00 100%)',
-    transform: 'translateY(-1px)',
+  background: "linear-gradient(45deg, #0a1172 0%, #032c3b 50%, #00b300 100%)",
+  color: "white",
+  fontWeight: "bold",
+  padding: "8px 20px",
+  borderRadius: "4px",
+  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+  "&:hover": {
+    background: "linear-gradient(45deg, #081158 0%, #022028 50%, #009a00 100%)",
+    transform: "translateY(-1px)",
   },
-  textTransform: 'none',
-  transition: 'all 0.3s ease',
-  position: 'relative',
-  overflow: 'hidden',
-  '&::after': {
+  textTransform: "none",
+  transition: "all 0.3s ease",
+  position: "relative",
+  overflow: "hidden",
+  "&::after": {
     content: '""',
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
     background:
-      'linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)',
-  },
+      "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
+  },
 };
-
-
-
-
-
