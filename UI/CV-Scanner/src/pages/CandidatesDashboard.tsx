@@ -40,7 +40,7 @@ export default function CandidatesDashboard() {
     document.title = "Candidates Dashboard";
     // Fetch user info from API
     const email = localStorage.getItem("userEmail") || "admin@email.com";
-    fetch(`http://localhost:8080/auth/me?email=${encodeURIComponent(email)}`)
+    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
       .then((res) => res.json())
       .then((data) => setUser(data))
       .catch(() => setUser(null));
@@ -191,8 +191,11 @@ export default function CandidatesDashboard() {
               <Typography variant="subtitle1">
                 {user
                   ? user.first_name
-                    ? `${user.first_name} ${user.last_name || ""}`
-                    : user.username || "User"
+                    ? `${user.first_name} ${user.last_name || ""} (${
+                        user.role || "User"
+                      })`
+                    : (user.username || user.email) +
+                      (user.role ? ` (${user.role})` : "")
                   : "User"}
               </Typography>
             </Box>
