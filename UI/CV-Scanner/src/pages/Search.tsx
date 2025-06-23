@@ -575,7 +575,7 @@ export default function Search() {
         }}
       >
         <Fade in={fadeIn} timeout={250}>
-          <Box>
+          <Box sx={{ position: "relative" }}>
             {tutorialStep === 0 && (
               <>
                 <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
@@ -585,19 +585,6 @@ export default function Search() {
                   Use this bar to search for candidates by <b>name</b>,{" "}
                   <b>skills</b>, or <b>project type</b>.
                 </Typography>
-                <Button
-                  variant="contained"
-                  onClick={() => handleStepChange(1)}
-                  sx={{
-                    bgcolor: "#5a88ad",
-                    color: "#fff",
-                    fontWeight: "bold",
-                    textTransform: "none",
-                    "&:hover": { bgcolor: "#487DA6" },
-                  }}
-                >
-                  Next
-                </Button>
               </>
             )}
             {tutorialStep === 1 && (
@@ -609,40 +596,6 @@ export default function Search() {
                   Use these checkboxes to filter candidates by <b>skills</b>,{" "}
                   <b>project fit</b>, or <b>upload details</b>.
                 </Typography>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 2,
-                  }}
-                >
-                  <Button
-                    variant="outlined"
-                    onClick={() => handleStepChange(0)}
-                    sx={{
-                      color: "#5a88ad",
-                      borderColor: "#5a88ad",
-                      fontWeight: "bold",
-                      textTransform: "none",
-                      "&:hover": { borderColor: "#487DA6", color: "#487DA6" },
-                    }}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="contained"
-                    onClick={() => handleStepChange(2)}
-                    sx={{
-                      bgcolor: "#5a88ad",
-                      color: "#fff",
-                      fontWeight: "bold",
-                      textTransform: "none",
-                      "&:hover": { bgcolor: "#487DA6" },
-                    }}
-                  >
-                    Next
-                  </Button>
-                </Box>
               </>
             )}
             {tutorialStep === 2 && (
@@ -654,16 +607,37 @@ export default function Search() {
                   Here you’ll see the candidates that match your search and
                   filters.
                 </Typography>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 2,
-                  }}
-                >
+              </>
+            )}
+            {/* Shared navigation buttons */}
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mt: 3,
+                gap: 2,
+              }}
+            >
+              <Button
+                variant="text"
+                size="small"
+                onClick={handleCloseTutorial}
+                sx={{
+                  color: "#888",
+                  fontSize: "0.85rem",
+                  textTransform: "none",
+                  minWidth: "auto",
+                  p: 0,
+                }}
+              >
+                End Tutorial
+              </Button>
+              <Box sx={{ display: "flex", gap: 2 }}>
+                {tutorialStep > 0 && (
                   <Button
                     variant="outlined"
-                    onClick={() => handleStepChange(1)}
+                    onClick={() => handleStepChange(tutorialStep - 1)}
                     sx={{
                       color: "#5a88ad",
                       borderColor: "#5a88ad",
@@ -674,6 +648,22 @@ export default function Search() {
                   >
                     Previous
                   </Button>
+                )}
+                {tutorialStep < 2 ? (
+                  <Button
+                    variant="contained"
+                    onClick={() => handleStepChange(tutorialStep + 1)}
+                    sx={{
+                      bgcolor: "#5a88ad",
+                      color: "#fff",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": { bgcolor: "#487DA6" },
+                    }}
+                  >
+                    Next
+                  </Button>
+                ) : (
                   <Button
                     variant="contained"
                     onClick={handleCloseTutorial}
@@ -687,9 +677,9 @@ export default function Search() {
                   >
                     Finish
                   </Button>
-                </Box>
-              </>
-            )}
+                )}
+              </Box>
+            </Box>
           </Box>
         </Fade>
       </Popover>
