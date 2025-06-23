@@ -23,6 +23,7 @@ import {
   DialogActions,
   Popover,
   Fade,
+  Tooltip,
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import NotificationsIcon from "@mui/icons-material/Notifications";
@@ -34,6 +35,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import SettingsIcon from "@mui/icons-material/Settings";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import DeleteIcon from "@mui/icons-material/Delete";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
 
 export default function UserManagementPage() {
@@ -279,10 +281,23 @@ export default function UserManagementPage() {
               <AccountCircleIcon sx={{ mr: 1 }} />
               <Typography variant="subtitle1">Admin User</Typography>
             </Box>
+            {/* Add the Tutorial button here */}
+            <Tooltip title="Run Tutorial" arrow>
+              <IconButton
+                color="primary"
+                sx={{ ml: 1 }}
+                onClick={() => {
+                  setTutorialStep(0);
+                  setFadeIn(true);
+                }}
+              >
+                <HelpOutlineIcon />
+              </IconButton>
+            </Tooltip>
             <IconButton
               color="inherit"
               onClick={() => {
-                navigate("/login");
+                navigate("/login"); // Redirect to login page
               }}
             >
               <ExitToAppIcon />
