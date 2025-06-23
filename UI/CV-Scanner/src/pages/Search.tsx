@@ -259,8 +259,11 @@ export default function Search() {
               <Typography variant="subtitle1">
                 {user
                   ? user.first_name
-                    ? `${user.first_name} ${user.last_name || ""}`
-                    : user.username || "User"
+                    ? `${user.first_name} ${user.last_name || ""} (${
+                        user.role || "User"
+                      })`
+                    : (user.username || user.email) +
+                      (user.role ? ` (${user.role})` : "")
                   : "User"}
               </Typography>
             </Box>
