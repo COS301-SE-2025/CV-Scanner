@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   Typography,
@@ -21,6 +21,9 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Popover,
+  Fade,
+  Tooltip,
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import NotificationsIcon from "@mui/icons-material/Notifications";
@@ -32,6 +35,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import SettingsIcon from "@mui/icons-material/Settings";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import DeleteIcon from "@mui/icons-material/Delete";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
 
 export default function UserManagementPage() {
@@ -54,17 +58,31 @@ export default function UserManagementPage() {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [editFormData, setEditFormData] = useState({
-    name: "",
+    username: "",
+    first_name: "",
+    last_name: "",
     email: "",
     role: "",
   });
 
+  const [tutorialStep, setTutorialStep] = useState(-1); // -1 means not showing
+  const [fadeIn, setFadeIn] = useState(true);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+
+  // Tutorial refs
+  const searchRef = useRef<HTMLInputElement>(null);
+  const filterBoxRef = useRef<HTMLDivElement>(null);
+  const addUserRef = useRef<HTMLButtonElement>(null);
+  const firstEditRef = useRef<HTMLButtonElement>(null);
+
   const handleEditClick = (user) => {
     setEditingUser(user);
     setEditFormData({
-      name: user.name,
-      email: user.email,
-      role: user.role,
+      username: user.username || "",
+      first_name: user.first_name || "",
+      last_name: user.last_name || "",
+      email: user.email || "",
+      role: user.role || "",
     });
     setOpenEditDialog(true);
   };
@@ -149,6 +167,27 @@ export default function UserManagementPage() {
       .then((data) => setUsers(data))
       .catch(() => setUsers([]));
   }, [roleFilter]);
+
+  // Set anchorEl for tutorial popover
+  useEffect(() => {
+    if (tutorialStep === 0 && searchRef.current) setAnchorEl(searchRef.current);
+    else if (tutorialStep === 1 && filterBoxRef.current)
+      setAnchorEl(filterBoxRef.current);
+    else if (tutorialStep === 2 && addUserRef.current)
+      setAnchorEl(addUserRef.current);
+    else if (tutorialStep === 3 && firstEditRef.current)
+      setAnchorEl(firstEditRef.current);
+    else setAnchorEl(null);
+  }, [tutorialStep]);
+
+  const handleStepChange = (nextStep: number) => {
+    setFadeIn(false);
+    setTimeout(() => {
+      setTutorialStep(nextStep);
+      setFadeIn(true);
+    }, 250);
+  };
+  const handleCloseTutorial = () => setTutorialStep(-1);
 
   return (
     <Box
@@ -302,6 +341,19 @@ export default function UserManagementPage() {
                   : "User"}
               </Typography>
             </Box>
+            {/* Tutorial Icon - left of logout */}
+            <Tooltip title="Run Tutorial" arrow>
+              <IconButton
+                color="primary"
+                sx={{ ml: 1 }}
+                onClick={() => {
+                  setTutorialStep(0);
+                  setFadeIn(true);
+                }}
+              >
+                <HelpOutlineIcon />
+              </IconButton>
+            </Tooltip>
             <IconButton
               color="inherit"
               onClick={() => {
@@ -322,6 +374,7 @@ export default function UserManagementPage() {
           {/* Search and Filter Section */}
           <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
             <TextField
+              inputRef={searchRef}
               placeholder="Search users..."
               variant="outlined"
               fullWidth
@@ -329,20 +382,23 @@ export default function UserManagementPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <Select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              sx={{ bgcolor: "#fff", borderRadius: 1, minWidth: 150 }}
-            >
-              <MenuItem value="All Roles">All Roles</MenuItem>
-              <MenuItem value="Admin">Admin</MenuItem>
-              <MenuItem value="Editor">Editor</MenuItem>
-              <MenuItem value="User">User</MenuItem>
-            </Select>
+            <div ref={filterBoxRef}>
+              <Select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                sx={{ bgcolor: "#fff", borderRadius: 1, minWidth: 150 }}
+              >
+                <MenuItem value="All Roles">All Roles</MenuItem>
+                <MenuItem value="Admin">Admin</MenuItem>
+                <MenuItem value="Editor">Editor</MenuItem>
+                <MenuItem value="User">User</MenuItem>
+              </Select>
+            </div>
             <Button
               variant="contained"
               sx={{ bgcolor: "#4caf50", color: "#fff", textTransform: "none" }}
               onClick={() => navigate("/add-user")}
+              ref={addUserRef}
             >
               + Add New User
             </Button>
@@ -404,6 +460,7 @@ export default function UserManagementPage() {
                             mr: 1,
                           }}
                           onClick={() => handleEditClick(user)}
+                          ref={idx === 0 ? firstEditRef : null}
                         >
                           Edit
                         </Button>
@@ -462,11 +519,27 @@ export default function UserManagementPage() {
               sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}
             >
               <TextField
-                label="Name"
+                label="Username"
                 fullWidth
-                value={editFormData.name}
+                value={editFormData.username}
                 onChange={(e) =>
-                  setEditFormData({ ...editFormData, name: e.target.value })
+                  setEditFormData({ ...editFormData, username: e.target.value })
+                }
+              />
+              <TextField
+                label="First Name"
+                fullWidth
+                value={editFormData.first_name}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, first_name: e.target.value })
+                }
+              />
+              <TextField
+                label="Last Name"
+                fullWidth
+                value={editFormData.last_name}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, last_name: e.target.value })
                 }
               />
               <TextField
@@ -483,7 +556,9 @@ export default function UserManagementPage() {
                   setEditFormData({ ...editFormData, role: e.target.value })
                 }
                 fullWidth
+                displayEmpty
               >
+                <MenuItem value="">Select Role</MenuItem>
                 <MenuItem value="Admin">Admin</MenuItem>
                 <MenuItem value="Editor">Editor</MenuItem>
                 <MenuItem value="Uploader">Uploader</MenuItem>
@@ -503,6 +578,153 @@ export default function UserManagementPage() {
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Tutorial Popover */}
+        <Popover
+          open={tutorialStep >= 0 && tutorialStep <= 3 && Boolean(anchorEl)}
+          anchorEl={anchorEl}
+          onClose={handleCloseTutorial}
+          anchorOrigin={{
+            vertical: "top",
+            horizontal: "center",
+          }}
+          transformOrigin={{
+            vertical: "bottom",
+            horizontal: "center",
+          }}
+          PaperProps={{
+            sx: {
+              p: 2,
+              bgcolor: "#fff",
+              color: "#181c2f",
+              borderRadius: 2,
+              boxShadow: 6,
+              minWidth: 280,
+              zIndex: 1500,
+              textAlign: "center",
+            },
+          }}
+        >
+          <Fade in={fadeIn} timeout={250}>
+            <Box sx={{ position: "relative" }}>
+              {tutorialStep === 0 && (
+                <>
+                  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                    Search Users
+                  </Typography>
+                  <Typography sx={{ mb: 2 }}>
+                    Use this bar to search for users by{" "}
+                    <b>name</b>, <b>email</b>, or <b>role</b>.
+                  </Typography>
+                </>
+              )}
+              {tutorialStep === 1 && (
+                <>
+                  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                    Filter by Role
+                  </Typography>
+                  <Typography sx={{ mb: 2 }}>
+                    Use these filters to view <b>Admins</b>, <b>Editors</b>,{" "}
+                    <b>Users</b>, or <b>All</b>.
+                  </Typography>
+                </>
+              )}
+              {tutorialStep === 2 && (
+                <>
+                  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                    Add a User
+                  </Typography>
+                  <Typography sx={{ mb: 2 }}>
+                    Click <b>Add User</b> to invite a new user to your
+                    organization.
+                  </Typography>
+                </>
+              )}
+              {tutorialStep === 3 && (
+                <>
+                  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                    Edit or Delete Users
+                  </Typography>
+                  <Typography sx={{ mb: 2 }}>
+                    Use <b>Edit</b> to update user details or <b>Delete</b> to
+                    remove a user.
+                  </Typography>
+                </>
+              )}
+              {/* Shared navigation buttons */}
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mt: 3,
+                  gap: 2,
+                }}
+              >
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={handleCloseTutorial}
+                  sx={{
+                    color: "#888",
+                    fontSize: "0.85rem",
+                    textTransform: "none",
+                    minWidth: "auto",
+                    p: 0,
+                  }}
+                >
+                  End Tutorial
+                </Button>
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  {tutorialStep > 0 && (
+                    <Button
+                      variant="outlined"
+                      onClick={() => handleStepChange(tutorialStep - 1)}
+                      sx={{
+                        color: "#5a88ad",
+                        borderColor: "#5a88ad",
+                        fontWeight: "bold",
+                        textTransform: "none",
+                        "&:hover": { borderColor: "#487DA6", color: "#487DA6" },
+                      }}
+                    >
+                      Previous
+                    </Button>
+                  )}
+                  {tutorialStep < 3 ? (
+                    <Button
+                      variant="contained"
+                      onClick={() => handleStepChange(tutorialStep + 1)}
+                      sx={{
+                        bgcolor: "#5a88ad",
+                        color: "#fff",
+                        fontWeight: "bold",
+                        textTransform: "none",
+                        "&:hover": { bgcolor: "#487DA6" },
+                      }}
+                    >
+                      Next
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="contained"
+                      onClick={handleCloseTutorial}
+                      sx={{
+                        bgcolor: "#5a88ad",
+                        color: "#fff",
+                        fontWeight: "bold",
+                        textTransform: "none",
+                        "&:hover": { bgcolor: "#487DA6" },
+                      }}
+                    >
+                      Finish
+                    </Button>
+                  )}
+                </Box>
+              </Box>
+            </Box>
+          </Fade>
+        </Popover>
       </Box>
     </Box>
   );
