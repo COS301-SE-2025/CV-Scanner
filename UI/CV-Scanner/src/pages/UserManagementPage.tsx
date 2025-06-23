@@ -47,26 +47,8 @@ export default function UserManagementPage() {
     email?: string;
   } | null>(null);
 
-  const users = [
-    {
-      name: "Admin User",
-      email: "admin@entelect.co.za",
-      role: "Admin",
-      lastActive: "Today 09:15",
-    },
-    {
-      name: "Editor User",
-      email: "editor@entelect.co.za",
-      role: "Editor",
-      lastActive: "Yesterday, 14:30",
-    },
-    {
-      name: "Uploader User",
-      email: "uploader@entelect.co.za",
-      role: "Uploader",
-      lastActive: "2 days ago",
-    },
-  ];
+  const [users, setUsers] = useState<any[]>([]);
+
 
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -110,9 +92,16 @@ export default function UserManagementPage() {
 
   useEffect(() => {
     if (user && user.role && user.role.toLowerCase() !== "admin") {
-      navigate("/dashboard"); // or another page
+      navigate("/dashboard");
     }
   }, [user, navigate]);
+
+  useEffect(() => {
+    fetch("http://localhost:8081/auth/all-users")
+      .then((res) => res.json())
+      .then((data) => setUsers(data))
+      .catch(() => setUsers([]));
+  }, []);
 
   return (
     <Box
@@ -330,7 +319,10 @@ export default function UserManagementPage() {
                 <TableBody>
                   {users.map((user, idx) => (
                     <TableRow key={idx}>
-                      <TableCell>{user.name}</TableCell>
+                      <TableCell>
+                        {user.first_name || ""} {user.last_name || ""}{" "}
+                        {user.username ? `(${user.username})` : ""}
+                      </TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
                         <Button
@@ -351,7 +343,7 @@ export default function UserManagementPage() {
                           {user.role}
                         </Button>
                       </TableCell>
-                      <TableCell>{user.lastActive}</TableCell>
+                      <TableCell>{user.lastActive || "N/A"}</TableCell>
                       <TableCell>
                         <Button
                           variant="contained"
