@@ -33,11 +33,20 @@ export default function CandidatesPage() {
   const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [user, setUser] = useState<{
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+  } | null>(null);
 
   const location = useLocation();
 
   useEffect(() => {
-    document.title = 'Candidates';
+    const email = localStorage.getItem("userEmail") || "admin@email.com";
+    fetch(`http://localhost:8080/auth/me?email=${encodeURIComponent(email)}`)
+      .then((res) => res.json())
+      .then((data) => setUser(data))
+      .catch(() => setUser(null));
   }, []);
 
   const candidates = [
@@ -53,67 +62,74 @@ export default function CandidatesPage() {
   );
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#181c2f', color: '#fff' }}>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        bgcolor: "#181c2f",
+        color: "#fff",
+      }}
+    >
       {/* Sidebar */}
       {!collapsed ? (
         <Box
           sx={{
             width: 220,
-            bgcolor: '#5a88ad',
-            display: 'flex',
-            flexDirection: 'column',
+            bgcolor: "#5a88ad",
+            display: "flex",
+            flexDirection: "column",
             p: 2,
-            position: 'relative',
+            position: "relative",
           }}
         >
           {/* Collapse Button */}
           <IconButton
             onClick={() => setCollapsed(true)}
             sx={{
-              color: '#fff',
-              position: 'absolute',
+              color: "#fff",
+              position: "absolute",
               top: 8,
               left: 8,
               zIndex: 1,
             }}
           >
-             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <rect x="3" y="6" width="18" height="2" fill="currentColor" />
               <rect x="3" y="11" width="18" height="2" fill="currentColor" />
               <rect x="3" y="16" width="18" height="2" fill="currentColor" />
             </svg>
           </IconButton>
 
-          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3, mt: 5 }}>
+          <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
             <img src={logo2} alt="Team Logo" style={{ width: 120 }} />
           </Box>
 
           <Button
             fullWidth
             sx={navButtonStyle}
-            className={location.pathname === '/dashboard' ? 'active' : ''}
+            className={location.pathname === "/dashboard" ? "active" : ""}
             startIcon={<DashboardIcon />}
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate("/dashboard")}
           >
             Dashboard
           </Button>
 
           <Button
             fullWidth
-           sx={navButtonStyle}
-            className={location.pathname === '/upload' ? 'active' : ''}
+            sx={navButtonStyle}
+            className={location.pathname === "/upload" ? "active" : ""}
             startIcon={<UploadFileIcon />}
-            onClick={() => navigate('/upload')}
+            onClick={() => navigate("/upload")}
           >
             Upload CV
           </Button>
 
           <Button
-           fullWidth
-            sx={{ ...navButtonStyle, bgcolor: '#d8f0ff', color: '#000' }}
-            className={location.pathname === '/candidates' ? 'active' : ''}
+            fullWidth
+            sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
+            className={location.pathname === "/candidates" ? "active" : ""}
             startIcon={<PeopleIcon />}
-            onClick={() => navigate('/candidates')}
+            onClick={() => navigate("/candidates")}
           >
             Candidates
           </Button>
@@ -121,40 +137,46 @@ export default function CandidatesPage() {
           <Button
             fullWidth
             sx={navButtonStyle}
-            className={location.pathname === '/search' ? 'active' : ''}
+            className={location.pathname === "/search" ? "active" : ""}
             startIcon={<SearchIcon />}
-            onClick={() => navigate('/search')}
+            onClick={() => navigate("/search")}
           >
             Search
           </Button>
-      </Box>
+        </Box>
       ) : (
-              // Expand Icon when sidebar is collapsed
-              <Box
-                sx={{
-                  width: 40,
-                  bgcolor: '#5a88ad',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'flex-start',
-                  pt: 1,
-                }}
-              >
-                <IconButton onClick={() => setCollapsed(false)} sx={{ color: '#fff' }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <rect x="3" y="6" width="18" height="2" fill="currentColor" />
-                    <rect x="3" y="11" width="18" height="2" fill="currentColor" />
-                    <rect x="3" y="16" width="18" height="2" fill="currentColor" />
-                  </svg>
-                </IconButton>
-              </Box>
-            )}
+        // Expand Icon when sidebar is collapsed
+        <Box
+          sx={{
+            width: 40,
+            bgcolor: "#5a88ad",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "flex-start",
+            pt: 1,
+          }}
+        >
+          <IconButton
+            onClick={() => setCollapsed(false)}
+            sx={{ color: "#fff" }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="6" width="18" height="2" fill="currentColor" />
+              <rect x="3" y="11" width="18" height="2" fill="currentColor" />
+              <rect x="3" y="16" width="18" height="2" fill="currentColor" />
+            </svg>
+          </IconButton>
+        </Box>
+      )}
 
       {/* Main Content */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+      <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
         {/* Top App Bar */}
-        <AppBar position="static" sx={{ bgcolor: '#5a88ad', boxShadow: 'none' }}>
-          <Toolbar sx={{ justifyContent: 'flex-end' }}>
+        <AppBar
+          position="static"
+          sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
+        >
+          <Toolbar sx={{ justifyContent: "flex-end" }}>
             <IconButton color="inherit">
               <Badge badgeContent={4} color="error">
                 <NotificationsIcon />
@@ -162,16 +184,22 @@ export default function CandidatesPage() {
             </IconButton>
             <Box
               sx={{
-                display: 'flex',
-                alignItems: 'center',
+                display: "flex",
+                alignItems: "center",
                 ml: 2,
-                cursor: 'pointer',
-                '&:hover': { opacity: 0.8 },
+                cursor: "pointer",
+                "&:hover": { opacity: 0.8 },
               }}
-              onClick={() => navigate('/settings')}
+              onClick={() => navigate("/settings")}
             >
               <AccountCircleIcon sx={{ mr: 1 }} />
-              <Typography variant="subtitle1">Admin User</Typography>
+              <Typography variant="subtitle1">
+                {user
+                  ? user.first_name
+                    ? `${user.first_name} ${user.last_name || ""}`
+                    : user.username || "User"
+                  : "User"}
+              </Typography>
             </Box>
             <IconButton
               color="inherit"
@@ -180,19 +208,25 @@ export default function CandidatesPage() {
               }}
             >
               <ExitToAppIcon />
-              </IconButton>
+            </IconButton>
           </Toolbar>
         </AppBar>
 
         {/* Main Page Content */}
         <Box sx={{ p: 3 }}>
-          <Paper elevation={6} sx={{ p: 3, borderRadius: 3, backgroundColor: '#d0f0ff' }}>
-            <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#0073c1', mb: 2 }}>
+          <Paper
+            elevation={6}
+            sx={{ p: 3, borderRadius: 3, backgroundColor: "#d0f0ff" }}
+          >
+            <Typography
+              variant="h5"
+              sx={{ fontWeight: "bold", color: "#0073c1", mb: 2 }}
+            >
               Candidate Directory
             </Typography>
 
             {/* Search Controls */}
-            <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+            <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
               <TextField
                 fullWidth
                 placeholder="Search by name, skills, or project type..."
@@ -200,21 +234,21 @@ export default function CandidatesPage() {
                 size="small"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                sx={{ backgroundColor: '#fff', borderRadius: 1 }}
+                sx={{ backgroundColor: "#fff", borderRadius: 1 }}
               />
               <Button
                 variant="contained"
-                sx={{ backgroundColor: '#4cb0ff', color: '#fff' }}
+                sx={{ backgroundColor: "#4cb0ff", color: "#fff" }}
                 onClick={() => setSearchTerm(searchInput)}
               >
                 Search
               </Button>
               <Button
                 variant="contained"
-                sx={{ backgroundColor: '#d0d0d0', color: '#000' }}
+                sx={{ backgroundColor: "#d0d0d0", color: "#000" }}
                 onClick={() => {
-                  setSearchInput('');
-                  setSearchTerm('');
+                  setSearchInput("");
+                  setSearchTerm("");
                 }}
               >
                 Clear
@@ -226,11 +260,21 @@ export default function CandidatesPage() {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell><b>Candidate</b></TableCell>
-                    <TableCell><b>Top Skills</b></TableCell>
-                    <TableCell><b>Experience</b></TableCell>
-                    <TableCell><b>Project Fits</b></TableCell>
-                    <TableCell><b>Actions</b></TableCell>
+                    <TableCell>
+                      <b>Candidate</b>
+                    </TableCell>
+                    <TableCell>
+                      <b>Top Skills</b>
+                    </TableCell>
+                    <TableCell>
+                      <b>Experience</b>
+                    </TableCell>
+                    <TableCell>
+                      <b>Project Fits</b>
+                    </TableCell>
+                    <TableCell>
+                      <b>Actions</b>
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -245,7 +289,7 @@ export default function CandidatesPage() {
                           <Button
                             variant="contained"
                             sx={reviewButtonStyle}
-                            onClick={() => navigate('/candidate-review')}
+                            onClick={() => navigate("/candidate-review")}
                           >
                             Review
                           </Button>
@@ -263,8 +307,13 @@ export default function CandidatesPage() {
               </Table>
             </TableContainer>
 
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-              <Pagination count={1} page={1} siblingCount={1} boundaryCount={1} />
+            <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+              <Pagination
+                count={1}
+                page={1}
+                siblingCount={1}
+                boundaryCount={1}
+              />
             </Box>
           </Paper>
         </Box>
