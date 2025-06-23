@@ -217,6 +217,43 @@ public class ApiApplicationTests {
                 .andExpect(content().string("Failed to fetch users."));
     }
 
+                @Test
+        void deleteUser_success() throws Exception {
+            Mockito.when(jdbcTemplate.update(
+                    Mockito.anyString(),
+                    Mockito.<Object[]>any()
+            )).thenReturn(1);
 
+            mockMvc.perform(delete("/auth/delete-user")
+                    .param("email", "user1@example.com"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("User deleted successfully."));
+        }
+
+        @Test
+        void deleteUser_notFound() throws Exception {
+            Mockito.when(jdbcTemplate.update(
+                    Mockito.anyString(),
+                    Mockito.<Object[]>any()
+            )).thenReturn(0);
+
+            mockMvc.perform(delete("/auth/delete-user")
+                    .param("email", "notfound@example.com"))
+                    .andExpect(status().isNotFound())
+                    .andExpect(content().string("User not found."));
+        }
+
+        @Test
+        void deleteUser_failure() throws Exception {
+            Mockito.when(jdbcTemplate.update(
+                    Mockito.anyString(),
+                    Mockito.<Object[]>any()
+            )).thenThrow(new RuntimeException("DB error"));
+
+            mockMvc.perform(delete("/auth/delete-user")
+                    .param("email", "user1@example.com"))
+                    .andExpect(status().isInternalServerError())
+                    .andExpect(content().string("Failed to delete user."));
+        }
 
 }
