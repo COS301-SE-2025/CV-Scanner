@@ -34,6 +34,8 @@ export default function CandidatesDashboard() {
   const [collapsed, setCollapsed] = useState(false);
   const [showTutorial, setShowTutorial] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [tutorialStep, setTutorialStep] = useState(0); // For future multi-step
+  const [fadeIn, setFadeIn] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
   const reviewBtnRef = useRef<HTMLButtonElement>(null);
@@ -49,6 +51,13 @@ export default function CandidatesDashboard() {
     }
   }, []);
 
+  const handleStepChange = (nextStep: number) => {
+    setFadeIn(false);
+    setTimeout(() => {
+      setTutorialStep(nextStep);
+      setFadeIn(true);
+    }, 250);
+  };
   const handleCloseTutorial = () => setShowTutorial(false);
 
   return (
@@ -307,29 +316,60 @@ export default function CandidatesDashboard() {
                               },
                             }}
                           >
-                            <Typography
-                              variant="h6"
-                              sx={{ fontWeight: "bold", mb: 1 }}
-                            >
-                              Quick Tip
-                            </Typography>
-                            <Typography sx={{ mb: 2 }}>
-                              Click <b>Review</b> to view and assess this
-                              candidate's CV.
-                            </Typography>
-                            <Button
-                              variant="contained"
-                              onClick={handleCloseTutorial}
-                              sx={{
-                                bgcolor: "#5a88ad",
-                                color: "#fff",
-                                fontWeight: "bold",
-                                textTransform: "none",
-                                "&:hover": { bgcolor: "#487DA6" },
-                              }}
-                            >
-                              Got it!
-                            </Button>
+                            <Fade in={fadeIn} timeout={250}>
+                              <Box sx={{ position: "relative" }}>
+                                <Typography
+                                  variant="h6"
+                                  sx={{ fontWeight: "bold", mb: 1 }}
+                                >
+                                  Quick Tip
+                                </Typography>
+                                <Typography sx={{ mb: 2 }}>
+                                  Click <b>Review</b> to view and assess this
+                                  candidate's CV.
+                                </Typography>
+                                {/* Shared navigation buttons */}
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    mt: 3,
+                                    gap: 2,
+                                  }}
+                                >
+                                  <Button
+                                    variant="text"
+                                    size="small"
+                                    onClick={handleCloseTutorial}
+                                    sx={{
+                                      color: "#888",
+                                      fontSize: "0.85rem",
+                                      textTransform: "none",
+                                      minWidth: "auto",
+                                      p: 0,
+                                    }}
+                                  >
+                                    End Tutorial
+                                  </Button>
+                                  <Box sx={{ display: "flex", gap: 2 }}>
+                                    <Button
+                                      variant="contained"
+                                      onClick={handleCloseTutorial}
+                                      sx={{
+                                        bgcolor: "#5a88ad",
+                                        color: "#fff",
+                                        fontWeight: "bold",
+                                        textTransform: "none",
+                                        "&:hover": { bgcolor: "#487DA6" },
+                                      }}
+                                    >
+                                      Finish
+                                    </Button>
+                                  </Box>
+                                </Box>
+                              </Box>
+                            </Fade>
                           </Popover>
                         )}
                       </TableCell>
