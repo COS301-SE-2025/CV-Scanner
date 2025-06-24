@@ -88,116 +88,7 @@ export default function CandidateExperiencePage() {
       }}
     >
 
-      {/* Sidebar */}
-      {!collapsed ? (
-        <Box
-          sx={{
-            width: 220,
-            bgcolor: "#1A82AE",
-            display: "flex",
-            flexDirection: "column",
-            p: 2,
-            position: "relative",
-          }}
-        >
-          {/* Collapse Button */}
-          <IconButton
-            onClick={() => setCollapsed(true)}
-            sx={{
-              color: "#fff",
-              position: "absolute",
-              top: 8,
-              left: 8,
-              zIndex: 1,
-            }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
-            <img src={logo} alt="Team Logo" style={{ width: 120 }} />
-          </Box>
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/dashboard" ? "active" : ""}
-            startIcon={<DashboardIcon />}
-            onClick={() => navigate("/dashboard")}
-          >
-            Dashboard
-          </Button>
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/upload" ? "active" : ""}
-            startIcon={<UploadFileIcon />}
-            onClick={() => navigate("/upload")}
-          >
-            Upload CV
-          </Button>
-          <Button
-            fullWidth
-            sx={{
-              ...navButtonStyle,
-              ...(location.pathname.startsWith("/candidate") ||
-              location.pathname === "/candidates"
-                ? { bgcolor: "#d8f0ff", color: "#000" }
-                : {}),
-            }}
-            className={
-              location.pathname.startsWith("/candidate") ||
-              location.pathname === "/candidates"
-                ? "active"
-                : ""
-            }
-            startIcon={<PeopleIcon />}
-            onClick={() => navigate("/candidates")}
-          >
-            Candidates
-          </Button>
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/search" ? "active" : ""}
-            startIcon={<SearchIcon />}
-            onClick={() => navigate("/search")}
-          >
-            Search
-          </Button>
-          {/* Only show User Management if user is Admin */}
-          {user?.role === "Admin" && (
-            <Button
-              fullWidth
-              sx={navButtonStyle}
-              className={
-                location.pathname === "/user-management" ? "active" : ""
-              }
-              startIcon={<SettingsIcon />}
-              onClick={() => navigate("/user-management")}
-            >
-              User Management
-            </Button>
-          )}
-
-        </Box>
-      ) : (
-        <Box
-          sx={{
-            width: 40,
-            bgcolor: "#1A82AE",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "flex-start",
-            pt: 1,
-          }}
-        >
-          <IconButton
-            onClick={() => setCollapsed(false)}
-            sx={{ color: "#fff" }}
-          >
-            <ChevronRightIcon />
-          </IconButton>
-        </Box>
-      )}
+     
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
@@ -205,7 +96,7 @@ export default function CandidateExperiencePage() {
   <Toolbar sx={{ justifyContent: "space-between" }}>
     {/* Left: Logo */}
     <Box sx={{ display: 'flex', alignItems: 'center' }}>
-      <img src={logo2} alt="Logo" style={{ width: 80 }} />
+      <img src={logo} alt="Logo" style={{ width: 80 }} />
       {/* Optional title next to logo */}
       <Typography variant="h6" sx={{ ml: 2, fontWeight: 'bold' }}>Candidate Experience</Typography> 
     </Box>
