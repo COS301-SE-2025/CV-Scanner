@@ -11,6 +11,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.springframework.mock.web.MockMultipartFile;
 
 import static org.mockito.ArgumentMatchers.*;
@@ -254,6 +257,120 @@ public class ApiApplicationTests {
                     .param("email", "user1@example.com"))
                     .andExpect(status().isInternalServerError())
                     .andExpect(content().string("Failed to delete user."));
+        }
+
+       
+        @Test
+        void addUser_success() throws Exception {
+        Map<String, Object> user = new HashMap<>();
+        user.put("username", "janedoe");
+        user.put("email", "jane.doe@example.com");
+        user.put("first_name", "Jane");
+        user.put("last_name", "Doe");
+        user.put("role", "User");
+        user.put("password", "securePassword123");
+
+        Mockito.when(jdbcTemplate.update(
+                Mockito.anyString(),
+                Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),
+                Mockito.anyString(), Mockito.anyString(), Mockito.anyInt(), Mockito.anyString()
+        )).thenReturn(1);
+
+        mockMvc.perform(post("/auth/add-user")
+                .contentType("application/json")
+                .content(new ObjectMapper().writeValueAsString(user)))
+                .andExpect(status().isOk())
+                .andExpect(content().string("User added successfully."));
+        }
+
+        @Test
+        void addUser_failure() throws Exception {
+        Map<String, Object> user = new HashMap<>();
+        user.put("username", "janedoe");
+        user.put("email", "jane.doe@example.com");
+        user.put("first_name", "Jane");
+        user.put("last_name", "Doe");
+        user.put("role", "User");
+        user.put("password", "securePassword123");
+
+        Mockito.when(jdbcTemplate.update(
+                Mockito.anyString(),
+                Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),
+                Mockito.anyString(), Mockito.anyString(), Mockito.anyInt(), Mockito.anyString()
+        )).thenThrow(new RuntimeException("DB error"));
+
+        mockMvc.perform(post("/auth/add-user")
+                .contentType("application/json")
+                .content(new ObjectMapper().writeValueAsString(user)))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Failed to add user.")));
+        }
+
+        // Test for /auth/edit-user
+        @Test
+        void editUser_success() throws Exception {
+        Map<String, Object> user = new HashMap<>();
+        user.put("username", "janedoe");
+        user.put("email", "jane.doe@example.com");
+        user.put("first_name", "Jane");
+        user.put("last_name", "Doe");
+        user.put("role", "Admin");
+
+        Mockito.when(jdbcTemplate.update(
+                Mockito.anyString(),
+                Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),
+                Mockito.anyString(), Mockito.anyString()
+        )).thenReturn(1);
+
+        mockMvc.perform(put("/auth/edit-user")
+                .contentType("application/json")
+                .content(new ObjectMapper().writeValueAsString(user)))
+                .andExpect(status().isOk())
+                .andExpect(content().string("User updated successfully."));
+        }
+
+        @Test
+        void editUser_notFound() throws Exception {
+        Map<String, Object> user = new HashMap<>();
+        user.put("username", "janedoe");
+        user.put("email", "jane.doe@example.com");
+        user.put("first_name", "Jane");
+        user.put("last_name", "Doe");
+        user.put("role", "Admin");
+
+        Mockito.when(jdbcTemplate.update(
+                Mockito.anyString(),
+                Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),
+                Mockito.anyString(), Mockito.anyString()
+        )).thenReturn(0);
+
+        mockMvc.perform(put("/auth/edit-user")
+                .contentType("application/json")
+                .content(new ObjectMapper().writeValueAsString(user)))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("User not found."));
+        }
+
+        @Test
+        void editUser_failure() throws Exception {
+        Map<String, Object> user = new HashMap<>();
+        user.put("username", "janedoe");
+        user.put("email", "jane.doe@example.com");
+        user.put("first_name", "Jane");
+        user.put("last_name", "Doe");
+        user.put("role", "Admin");
+
+        Mockito.when(jdbcTemplate.update(
+                Mockito.anyString(),
+                Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),
+                Mockito.anyString(), Mockito.anyString()
+        )).thenThrow(new RuntimeException("DB error"));
+
+        mockMvc.perform(put("/auth/edit-user")
+                .contentType("application/json")
+                .content(new ObjectMapper().writeValueAsString(user)))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Failed to update user.")));
         }
 
 }
