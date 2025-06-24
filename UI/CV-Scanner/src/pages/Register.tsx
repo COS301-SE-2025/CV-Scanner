@@ -95,7 +95,7 @@ export default function RegisterPage() {
   sx={{
     display: "flex",
     alignItems: "center",
-    bgcolor: "#3a7ca5",
+    bgcolor: "#1A82AE",
     color: "#fff",
     px: 2,
     py: 2,

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -14,16 +14,13 @@ import {
   AppBar,
   Toolbar,
   Badge,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
   Chip,
   Tooltip,
+  Fade,
+  Popover,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
-import { useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from "react-router-dom";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -33,16 +30,60 @@ import SearchIcon from "@mui/icons-material/Search";
 import SettingsIcon from "@mui/icons-material/Settings";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import logo2 from "../assets/logo2.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
-import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
-//import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import MenuIcon from "@mui/icons-material/Menu";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import logo2 from "../assets/logo2.png";
+import logo from "../assets/logo.png";
 
 export default function CandidateReviewSummary() {
   const navigate = useNavigate();
+  const location = useLocation();
 
-   const location = useLocation();
+  // User info state and fetch (copied from UserManagementPage)
+  const [user, setUser] = useState<{
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+    role?: string;
+    email?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    const email = localStorage.getItem("userEmail") || "admin@email.com";
+    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
+      .then((res) => res.json())
+      .then((data) => setUser(data))
+      .catch(() => setUser(null));
+  }, []);
+
+  // Tutorial logic (copied from UserManagementPage)
+  const [tutorialStep, setTutorialStep] = useState(-1); // -1 means not showing
+  const [fadeIn, setFadeIn] = useState(true);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+
+  // Example refs for tutorial (add more as needed)
+  const helpIconRef = React.useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (tutorialStep === 0 && helpIconRef.current)
+      setAnchorEl(helpIconRef.current);
+    else setAnchorEl(null);
+  }, [tutorialStep]);
+
+  const handleStepChange = (nextStep: number) => {
+    setFadeIn(false);
+    setTimeout(() => {
+      setTutorialStep(nextStep);
+      setFadeIn(true);
+    }, 250);
+  };
+  const handleCloseTutorial = () => setTutorialStep(-1);
+
+  const [collapsed, setCollapsed] = useState(false);
 
   return (
     <Box
@@ -53,7 +94,115 @@ export default function CandidateReviewSummary() {
         color: "#fff",
       }}
     >
-   
+      {/* Sidebar */}
+      {!collapsed ? (
+        <Box
+          sx={{
+            width: 220,
+            bgcolor: "#1A82AE",
+            display: "flex",
+            flexDirection: "column",
+            p: 2,
+            position: "relative",
+          }}
+        >
+          {/* Collapse Button */}
+          <IconButton
+            onClick={() => setCollapsed(true)}
+            sx={{
+              color: "#fff",
+              position: "absolute",
+              top: 8,
+              left: 8,
+              zIndex: 1,
+            }}
+          >
+            <MenuIcon />
+          </IconButton>
+          <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
+            <img src={logo} alt="Team Logo" style={{ width: 120 }} />
+          </Box>
+          <Button
+            fullWidth
+            sx={navButtonStyle}
+            className={location.pathname === "/dashboard" ? "active" : ""}
+            startIcon={<DashboardIcon />}
+            onClick={() => navigate("/dashboard")}
+          >
+            Dashboard
+          </Button>
+          <Button
+            fullWidth
+            sx={navButtonStyle}
+            className={location.pathname === "/upload" ? "active" : ""}
+            startIcon={<UploadFileIcon />}
+            onClick={() => navigate("/upload")}
+          >
+            Upload CV
+          </Button>
+          <Button
+            fullWidth
+            sx={{
+              ...navButtonStyle,
+              ...(location.pathname.startsWith("/candidate") ||
+              location.pathname === "/candidates"
+                ? { bgcolor: "#d8f0ff", color: "#000" }
+                : {}),
+            }}
+            className={
+              location.pathname.startsWith("/candidate") ||
+              location.pathname === "/candidates"
+                ? "active"
+                : ""
+            }
+            startIcon={<PeopleIcon />}
+            onClick={() => navigate("/candidates")}
+          >
+            Candidates
+          </Button>
+          <Button
+            fullWidth
+            sx={navButtonStyle}
+            className={location.pathname === "/search" ? "active" : ""}
+            startIcon={<SearchIcon />}
+            onClick={() => navigate("/search")}
+          >
+            Search
+          </Button>
+          {/* Only show User Management if user is Admin */}
+          {user?.role === "Admin" && (
+            <Button
+              fullWidth
+              sx={navButtonStyle}
+              className={
+                location.pathname === "/user-management" ? "active" : ""
+              }
+              startIcon={<SettingsIcon />}
+              onClick={() => navigate("/user-management")}
+            >
+              User Management
+            </Button>
+          )}
+        </Box>
+      ) : (
+        <Box
+          sx={{
+            width: 40,
+            bgcolor: "#1A82AE",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "flex-start",
+            pt: 1,
+          }}
+        >
+          <IconButton
+            onClick={() => setCollapsed(false)}
+            sx={{ color: "#fff" }}
+          >
+            <ChevronRightIcon />
+          </IconButton>
+        </Box>
+      )}
 
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
@@ -69,19 +218,6 @@ export default function CandidateReviewSummary() {
           
               {/* Right: Icons */}
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                {/*<Tooltip title="Run Tutorial" arrow>
-                  <IconButton
-                    onClick={() => {
-                      setShowTutorial(true);
-                      setTutorialStep(0);
-                      setFadeIn(true);
-                    }}
-                    sx={{ ml: 1, color: '#FFEB3B' }}
-                  >
-                    <LightbulbRoundedIcon />
-                  </IconButton>
-                </Tooltip>*/}
-          
                 <Tooltip title="Go to Help Page" arrow>
                   <IconButton
                     onClick={() => navigate("/help")}
@@ -103,8 +239,15 @@ export default function CandidateReviewSummary() {
                 >
                   <AccountCircleIcon sx={{ mr: 1 }} />
                   <Typography variant="subtitle1">
-                    User
-                  </Typography>
+                {user
+                  ? user.first_name
+                    ? `${user.first_name} ${user.last_name || ""} (${
+                        user.role || "User"
+                      })`
+                    : (user.username || user.email) +
+                      (user.role ? ` (${user.role})` : "")
+                  : "User"}
+              </Typography>
                 </Box>
           
                 <IconButton
@@ -117,25 +260,86 @@ export default function CandidateReviewSummary() {
               </Box>
             </Toolbar>
           </AppBar>
-          
+         
+
+        {/* Tutorial Popover */}
+        <Popover
+          open={tutorialStep === 0 && Boolean(anchorEl)}
+          anchorEl={anchorEl}
+          onClose={handleCloseTutorial}
+          anchorOrigin={{
+            vertical: "top",
+            horizontal: "center",
+          }}
+          transformOrigin={{
+            vertical: "bottom",
+            horizontal: "center",
+          }}
+          PaperProps={{
+            sx: {
+              p: 2,
+              bgcolor: "#fff",
+              color: "#181c2f",
+              borderRadius: 2,
+              boxShadow: 6,
+              minWidth: 280,
+              zIndex: 1500,
+              textAlign: "center",
+            },
+          }}
+        >
+          <Fade in={fadeIn} timeout={250}>
+            <Box sx={{ position: "relative" }}>
+              <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                Page Tutorial
+              </Typography>
+              <Typography sx={{ mb: 2 }}>
+                This is the help/tutorial popover. Add more steps as needed.
+              </Typography>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  alignItems: "center",
+                  mt: 3,
+                  gap: 2,
+                }}
+              >
+                <Button
+                  variant="contained"
+                  onClick={handleCloseTutorial}
+                  sx={{
+                    bgcolor: "#5a88ad",
+                    color: "#fff",
+                    fontWeight: "bold",
+                    textTransform: "none",
+                    "&:hover": { bgcolor: "#487DA6" },
+                  }}
+                >
+                  Finish
+                </Button>
+              </Box>
+            </Box>
+          </Fade>
+        </Popover>
 
         {/* Candidate Details */}
         <Box sx={{ p: 3 }}>
           <Button
-                      startIcon={<ArrowBackIcon />}
-                      onClick={() => navigate('/candidates')}
-                      sx={{
-                        mb: 2,
-                        color: '#0073c1',
-                        fontWeight: "bold",
-                        textTransform: "none",
-                        '&:hover': {
-                          backgroundColor: 'rgba(0, 115, 193, 0.1)'
-                        }
-                      }}
-                    >
-                      Back to Candidates
-                    </Button>
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate("/candidates")}
+            sx={{
+              mb: 2,
+              color: "#0073c1",
+              fontWeight: "bold",
+              textTransform: "none",
+              "&:hover": {
+                backgroundColor: "rgba(0, 115, 193, 0.1)",
+              },
+            }}
+          >
+            Back to Candidates
+          </Button>
           <Typography variant="h4" sx={{ fontWeight: "bold", mb: 2 }}>
             Jane Smith
           </Typography>
@@ -302,16 +506,17 @@ const navButtonStyle = {
   },
   textTransform: "none",
   fontWeight: "bold",
-   '&.active': {
-    '&::before': {
+  position: "relative",
+  "&.active": {
+    "&::before": {
       content: '""',
-      position: 'absolute',
+      position: "absolute",
       left: 0,
       top: 0,
-      height: '100%',
-      width: '4px',
-      backgroundColor: 'black',
-      borderRadius: '0 4px 4px 0'
-    }
-  }
+      height: "100%",
+      width: "4px",
+      backgroundColor: "black",
+      borderRadius: "0 4px 4px 0",
+    },
+  },
 };

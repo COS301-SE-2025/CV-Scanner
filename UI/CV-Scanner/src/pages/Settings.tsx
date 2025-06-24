@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLocation } from 'react-router-dom';
+import { useLocation } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -27,10 +27,15 @@ import LockResetIcon from '@mui/icons-material/LockReset';
 import logo2 from '../assets/logo2.png';
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
-//import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
+import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
+import MenuIcon from "@mui/icons-material/Menu";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import logo from "../assets/logo.png";
+
 
 export default function SettingsPage() {
   const navigate = useNavigate();
+  const [collapsed, setCollapsed] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -47,17 +52,17 @@ export default function SettingsPage() {
     lastName: "User",
     email: "admin@entelect.co.za",
   });
-   useEffect(() => {
-     const email = localStorage.getItem("userEmail");
-     if (!email) return;
-     fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
-       .then((res) => res.json())
-       .then((data) => setUser(data))
-       .catch(() => setUser(null));
-   }, []);
+  useEffect(() => {
+    const email = localStorage.getItem("userEmail");
+    if (!email) return;
+    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
+      .then((res) => res.json())
+      .then((data) => setUser(data))
+      .catch(() => setUser(null));
+  }, []);
 
-const location = useLocation();
-  
+  const location = useLocation();
+
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
@@ -86,14 +91,17 @@ const location = useLocation();
     setSuccess("");
 
     try {
-      const response = await fetch("http://localhost:8081/auth/update-profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(profileForm),
-      });
-      
+      const response = await fetch(
+        "http://localhost:8081/auth/update-profile",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(profileForm),
+        }
+      );
+
       const data = await response.json();
-      
+
       if (response.ok) {
         setSuccess("Profile updated successfully");
       } else {
@@ -120,17 +128,20 @@ const location = useLocation();
     }
 
     try {
-      const response = await fetch("http://localhost:8081/auth/change-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          currentPassword: passwordForm.currentPassword,
-          newPassword: passwordForm.newPassword,
-        }),
-      });
-      
+      const response = await fetch(
+        "http://localhost:8081/auth/change-password",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            currentPassword: passwordForm.currentPassword,
+            newPassword: passwordForm.newPassword,
+          }),
+        }
+      );
+
       const data = await response.json();
-      
+
       if (response.ok) {
         setSuccess("Password changed successfully");
         setPasswordForm({
@@ -155,7 +166,7 @@ const location = useLocation();
     navigate("/login");
   };
 
- /* const handleLogout = async () => {
+  /* const handleLogout = async () => {
   try {
     // Optional: Tell backend to clear session / cookies
     await fetch("http://localhost:8081/auth/logout", {
@@ -174,16 +185,17 @@ const location = useLocation();
   navigate("/login");
 };*/
 
-
   // Handle form changes
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setProfileForm(prev => ({ ...prev, [name]: value }));
+    setProfileForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handlePasswordChangeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePasswordChangeInput = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const { name, value } = e.target;
-    setPasswordForm(prev => ({ ...prev, [name]: value }));
+    setPasswordForm((prev) => ({ ...prev, [name]: value }));
   };
 
   return (
@@ -196,77 +208,109 @@ const location = useLocation();
       }}
     >
       {/* Sidebar */}
-      <Box
-        sx={{
-          width: 220,
-          bgcolor: "#5a88ad",
-          display: "flex",
-          flexDirection: "column",
-          p: 2,
-        }}
-      >
-        <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
-          <img src={logo2} alt="Team Logo" style={{ width: 120 }} />
+      {!collapsed ? (
+        <Box
+          sx={{
+            width: 220,
+            bgcolor: "#1A82AE",
+            display: "flex",
+            flexDirection: "column",
+            p: 2,
+            position: "relative",
+          }}
+        >
+          {/* Collapse Button */}
+          <IconButton
+            onClick={() => setCollapsed(true)}
+            sx={{
+              color: "#fff",
+              position: "absolute",
+              top: 8,
+              left: 8,
+              zIndex: 1,
+            }}
+          >
+            <MenuIcon />
+          </IconButton>
+          <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
+            <img src={logo} alt="Team Logo" style={{ width: 120 }} />
+          </Box>
+          <Button
+            fullWidth
+            sx={navButtonStyle}
+            startIcon={<DashboardIcon />}
+            onClick={() => navigate("/dashboard")}
+          >
+            Dashboard
+          </Button>
+          <Button
+            fullWidth
+            sx={navButtonStyle}
+            startIcon={<UploadFileIcon />}
+            onClick={() => navigate("/upload")}
+          >
+            Upload CV
+          </Button>
+          <Button
+            fullWidth
+            sx={navButtonStyle}
+            startIcon={<PeopleIcon />}
+            onClick={() => navigate("/candidates")}
+          >
+            Candidates
+          </Button>
+          <Button
+            fullWidth
+            sx={navButtonStyle}
+            startIcon={<SearchIcon />}
+            onClick={() => navigate("/search")}
+          >
+            Search
+          </Button>
+          {/* Only show User Management if user is Admin */}
+          {user?.role === "Admin" && (
+            <Button
+              fullWidth
+              sx={navButtonStyle}
+              className={
+                location.pathname === "/user-management" ? "active" : ""
+              }
+              startIcon={<SettingsIcon />}
+              onClick={() => navigate("/user-management")}
+            >
+              User Management
+            </Button>
+          )}
+          <Box sx={{ flexGrow: 1 }} />
         </Box>
-        <Button
-          fullWidth
-          sx={navButtonStyle}
-          startIcon={<DashboardIcon />}
-          onClick={() => navigate("/dashboard")}
+      ) : (
+        <Box
+          sx={{
+            width: 40,
+            bgcolor: "#1A82AE",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "flex-start",
+            pt: 1,
+          }}
         >
-          Dashboard
-        </Button>
-        <Button
-          fullWidth
-          sx={navButtonStyle}
-          startIcon={<UploadFileIcon />}
-          onClick={() => navigate("/upload")}
-        >
-          Upload CV
-        </Button>
-        <Button
-          fullWidth
-          sx={navButtonStyle}
-          startIcon={<PeopleIcon />}
-          onClick={() => navigate("/candidates")}
-        >
-          Candidates
-        </Button>
-        <Button
-          fullWidth
-          sx={navButtonStyle}
-          startIcon={<SearchIcon />}
-          onClick={() => navigate("/search")}
-        >
-          Search
-        </Button>
-        {/* <Button fullWidth sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }} startIcon={<SettingsIcon />}>
-          Settings
-        </Button> */}
-        <Box sx={{ flexGrow: 1 }} />
-      </Box>
+          <IconButton
+            onClick={() => setCollapsed(false)}
+            sx={{ color: "#fff" }}
+          >
+            <ChevronRightIcon />
+          </IconButton>
+        </Box>
+      )}
 
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
          <AppBar
                                      position="static"
-                                     sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
+                                     sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
                                    >
                                      <Toolbar sx={{ justifyContent: "flex-end" }}>
-                             {/* Tutorial icon */}
-                             {/*<Tooltip title="Run Tutorial" arrow>
-                               <IconButton
-                                 onClick={() => {
-                                   setShowTutorial(true);
-                                   setTutorialStep(0);
-                                   setFadeIn(true);
-                                 }}
-                                    sx={{ml: 1, color: '#FFEB3B'}}
-                               >
-                                 <LightbulbRoundedIcon />
-                               </IconButton>
-                             </Tooltip>*/}
                            
                              {/* Help / FAQ icon */}
                              <Tooltip title="Go to Help Page" arrow>
@@ -291,8 +335,15 @@ const location = useLocation();
                              >
                                <AccountCircleIcon sx={{ mr: 1 }} />
                                <Typography variant="subtitle1">
-                                 User
-                               </Typography>
+                {user
+                  ? user.first_name
+                    ? `${user.first_name} ${user.last_name || ""} (${
+                        user.role || "User"
+                      })`
+                    : (user.username || user.email) +
+                      (user.role ? ` (${user.role})` : "")
+                  : "User"}
+              </Typography>
                              </Box>
                            
                              {/* Logout */}
@@ -516,16 +567,16 @@ const navButtonStyle = {
   },
   textTransform: "none",
   fontWeight: "bold",
-  '&.active': {
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    height: '100%',
-    width: '4px',
-    backgroundColor: '#0073c1',
-    borderRadius: '0 4px 4px 0'
-  }
-}
+  "&.active": {
+    "&::before": {
+      content: '""',
+      position: "absolute",
+      left: 0,
+      top: 0,
+      height: "100%",
+      width: "4px",
+      backgroundColor: "#0073c1",
+      borderRadius: "0 4px 4px 0",
+    },
+  },
 };

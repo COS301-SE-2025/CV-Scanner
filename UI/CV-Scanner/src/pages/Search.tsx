@@ -30,8 +30,10 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
+import logo from "../assets/logo.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
 export default function Search() {
   const [collapsed, setCollapsed] = useState(false);
@@ -176,7 +178,7 @@ export default function Search() {
         <Box
           sx={{
             width: 220,
-            bgcolor: "#5a88ad",
+            bgcolor: "#1A82AE",
             display: "flex",
             flexDirection: "column",
             p: 2,
@@ -202,7 +204,7 @@ export default function Search() {
           </IconButton>
 
           <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
-            <img src={logo2} alt="Team Logo" style={{ width: 120 }} />
+            <img src={logo} alt="Team Logo" style={{ width: 120 }} />
           </Box>
 
           <Button
@@ -261,7 +263,7 @@ export default function Search() {
         <Box
           sx={{
             width: 40,
-            bgcolor: "#5a88ad",
+            bgcolor: "#1A82AE",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
@@ -272,11 +274,7 @@ export default function Search() {
             onClick={() => setCollapsed(false)}
             sx={{ color: "#fff" }}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <rect x="3" y="6" width="18" height="2" fill="currentColor" />
-              <rect x="3" y="11" width="18" height="2" fill="currentColor" />
-              <rect x="3" y="16" width="18" height="2" fill="currentColor" />
-            </svg>
+            <ChevronRightIcon />
           </IconButton>
         </Box>
       )}
@@ -286,7 +284,7 @@ export default function Search() {
         {/* Top Bar */}
           <AppBar
                    position="static"
-                   sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
+                   sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
                  >
                    <Toolbar sx={{ justifyContent: "flex-end" }}>
            {/* Tutorial icon */}
