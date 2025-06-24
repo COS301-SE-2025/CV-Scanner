@@ -319,8 +319,7 @@ export default function Search() {
             {/* Tutorial Icon - left of logout */}
             <Tooltip title="Run Tutorial" arrow>
               <IconButton
-                color="primary"
-                sx={{ ml: 1 }}
+                sx={{ ml: 1, color: "lightgreen" }}
                 onClick={() => {
                   setTutorialStep(0);
                   setFadeIn(true);

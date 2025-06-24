@@ -177,7 +177,7 @@ export default function AddUserPage() {
       <Box
         sx={{
           width: 220,
-          bgcolor: "#5a88ad",
+          bgcolor: "#1A82AE",
           display: "flex",
           flexDirection: "column",
           p: 2,
@@ -241,7 +241,7 @@ export default function AddUserPage() {
         {/* Top App Bar */}
         <AppBar
           position="static"
-          sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
+          sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
         >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
             <IconButton color="inherit">

@@ -306,8 +306,7 @@ export default function UploadCVPage() {
             </Box>
             <Tooltip title="Run Tutorial" arrow>
               <IconButton
-                color="primary"
-                sx={{ ml: 1 }}
+                sx={{ ml: 1, color: "lightgreen" }}
                 onClick={() => {
                   setShowTutorial(true);
                   setTutorialStep(0);
