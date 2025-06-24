@@ -66,121 +66,70 @@ export default function CandidateSkillsPage() {
         color: "#fff",
       }}
     >
-      {/* Sidebar */}
-       <Box sx={{ width: 220, bgcolor: '#5a88ad', display: 'flex', flexDirection: 'column', p: 2 }}>
-             <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
-               <img src={logo2} alt="Team Logo" style={{ width: 120 }} />
-             </Box>
-          <Button
-       fullWidth
-       sx={navButtonStyle}
-       className={location.pathname === '/dashboard' ? 'active' : ''}
-       startIcon={<DashboardIcon />}
-       onClick={() => navigate('/dashboard')}
-     >
-       Dashboard
-     </Button>
-     
-     <Button
-       fullWidth
-       sx={navButtonStyle}
-       className={location.pathname === '/upload' ? 'active' : ''}
-       startIcon={<UploadFileIcon />}
-       onClick={() => navigate('/upload')}
-     >
-       Upload CV
-     </Button>
-     
-    <Button
-  fullWidth
-  sx={{
-    ...navButtonStyle,
-    ...(location.pathname.startsWith('/candidate') || location.pathname === '/candidates') 
-      ? { bgcolor: "#d8f0ff", color: "#000" } 
-      : {}
-  }}
-  className={
-    location.pathname.startsWith('/candidate') || location.pathname === '/candidates' 
-      ? 'active' 
-      : ''
-  }
-  startIcon={<PeopleIcon />}
-  onClick={() => navigate('/candidates')}
->
-  Candidates
-</Button>
-     
-     <Button
-       fullWidth
-       sx={navButtonStyle}
-       className={location.pathname === '/search' ? 'active' : ''}
-       startIcon={<SearchIcon />}
-       onClick={() => navigate('/search')}
-     >
-       Search
-     </Button>
-           </Box>
 
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
-          <AppBar
-                            position="static"
-                            sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
-                          >
-                            <Toolbar sx={{ justifyContent: "flex-end" }}>
-                    {/* Tutorial icon */}
-                    {/*<Tooltip title="Run Tutorial" arrow>
-                      <IconButton
-                        onClick={() => {
-                          setShowTutorial(true);
-                          setTutorialStep(0);
-                          setFadeIn(true);
-                        }}
-                           sx={{ml: 1, color: '#FFEB3B'}}
-                      >
-                        <LightbulbRoundedIcon />
-                      </IconButton>
-                    </Tooltip>*/}
-                  
-                    {/* Help / FAQ icon */}
-                    <Tooltip title="Go to Help Page" arrow>
-                      <IconButton
-                        onClick={() => navigate("/help")}
-                        sx={{ ml: 1, color: '#90ee90' }}
-                      >
-                        <HelpOutlineIcon />
-                      </IconButton>
-                    </Tooltip>
-                  
-                    {/* User Info */}
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        ml: 2,
-                        cursor: "pointer",
-                        "&:hover": { opacity: 0.8 },
-                      }}
-                      onClick={() => navigate("/settings")}
-                    >
-                      <AccountCircleIcon sx={{ mr: 1 }} />
-                      <Typography variant="subtitle1">
-                        User
-                      </Typography>
-                    </Box>
-                  
-                    {/* Logout */}
-                    <IconButton
-                      color="inherit"
-                      onClick={() => navigate("/login")}
-                      sx={{ ml: 1 }}
-                    >
-                      <ExitToAppIcon />
-                    </IconButton>
-                  </Toolbar>
-                            
-                          </AppBar>
+          <AppBar position="static" sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}>
+  <Toolbar sx={{ justifyContent: "space-between" }}>
+    {/* Left: Logo */}
+    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+      <img src={logo2} alt="Logo" style={{ width: 80 }} />
+      {/* Optional title next to logo */}
+      <Typography variant="h6" sx={{ ml: 2, fontWeight: 'bold' }}>Candidate Skills</Typography> 
+    </Box>
+
+    {/* Right: Icons */}
+    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+      {/*<Tooltip title="Run Tutorial" arrow>
+        <IconButton
+          onClick={() => {
+            setShowTutorial(true);
+            setTutorialStep(0);
+            setFadeIn(true);
+          }}
+          sx={{ ml: 1, color: '#FFEB3B' }}
+        >
+          <LightbulbRoundedIcon />
+        </IconButton>
+      </Tooltip>*/}
+
+      <Tooltip title="Go to Help Page" arrow>
+        <IconButton
+          onClick={() => navigate("/help")}
+          sx={{ ml: 1, color: '#90ee90' }}
+        >
+          <HelpOutlineIcon />
+        </IconButton>
+      </Tooltip>
+
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          ml: 2,
+          cursor: "pointer",
+          "&:hover": { opacity: 0.8 },
+        }}
+        onClick={() => navigate("/settings")}
+      >
+        <AccountCircleIcon sx={{ mr: 1 }} />
+        <Typography variant="subtitle1">
+          User
+        </Typography>
+      </Box>
+
+      <IconButton
+        color="inherit"
+        onClick={() => navigate("/login")}
+        sx={{ ml: 1 }}
+      >
+        <ExitToAppIcon />
+      </IconButton>
+    </Box>
+  </Toolbar>
+</AppBar>
+
 
         {/* Skills Content */}
         <Box sx={{ p: 3 }}>
