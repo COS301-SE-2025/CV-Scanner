@@ -32,6 +32,7 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import SettingsIcon from "@mui/icons-material/Settings";
 
 export default function CandidatesPage() {
   const [collapsed, setCollapsed] = useState(false);
@@ -190,6 +191,18 @@ export default function CandidatesPage() {
           >
             Search
           </Button>
+                    {/* Only show User Management if user is Admin */}
+          {user?.role === "Admin" && (
+            <Button
+              fullWidth
+              sx={navButtonStyle}
+              className={location.pathname === "/user-management" ? "active" : ""}
+              startIcon={<SettingsIcon />}
+              onClick={() => navigate("/user-management")}
+            >
+              User Management
+            </Button>
+          )}
         </Box>
       ) : (
         // Expand Icon when sidebar is collapsed

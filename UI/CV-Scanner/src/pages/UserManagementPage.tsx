@@ -291,15 +291,18 @@ export default function UserManagementPage() {
             Search
           </Button>
 
-          <Button
-            fullWidth
-            sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
-            className={location.pathname === "/user-management" ? "active" : ""}
-            startIcon={<SettingsIcon />}
-            onClick={() => navigate("/user-management")}
-          >
-            User Management
-          </Button>
+          {/* Only show User Management if user is Admin */}
+          {user?.role === "Admin" && (
+            <Button
+              fullWidth
+              sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
+              className={location.pathname === "/user-management" ? "active" : ""}
+              startIcon={<SettingsIcon />}
+              onClick={() => navigate("/user-management")}
+            >
+              User Management
+            </Button>
+          )}
         </Box>
       ) : (
         <Box

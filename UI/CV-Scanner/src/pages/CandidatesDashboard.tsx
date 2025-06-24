@@ -34,7 +34,7 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 
 export default function CandidatesDashboard() {
   const [collapsed, setCollapsed] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(true);
+  const [showTutorial, setShowTutorial] = useState(false);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [tutorialStep, setTutorialStep] = useState(0); // For future multi-step
   const [fadeIn, setFadeIn] = useState(true);
@@ -160,15 +160,18 @@ export default function CandidatesDashboard() {
             Search
           </Button>
 
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/user-management" ? "active" : ""}
-            startIcon={<SettingsIcon />}
-            onClick={() => navigate("/user-management")}
-          >
-            User Management
-          </Button>
+          {/* Only show User Management if user is Admin */}
+          {user?.role === "Admin" && (
+            <Button
+              fullWidth
+              sx={navButtonStyle}
+              className={location.pathname === "/user-management" ? "active" : ""}
+              startIcon={<SettingsIcon />}
+              onClick={() => navigate("/user-management")}
+            >
+              User Management
+            </Button>
+          )}
         </Box>
       ) : (
         // Expand Icon when sidebar is collapsed
