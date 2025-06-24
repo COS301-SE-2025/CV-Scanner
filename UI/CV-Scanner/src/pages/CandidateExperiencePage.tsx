@@ -53,7 +53,7 @@ export default function CandidateExperiencePage() {
         color: "#fff",
       }}
     >
-      {/* Sidebar */}
+      {/*
      <Box sx={{ width: 220, bgcolor: '#5a88ad', display: 'flex', flexDirection: 'column', p: 2 }}>
         <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
           <img src={logo2} alt="Team Logo" style={{ width: 120 }} />
@@ -106,7 +106,9 @@ export default function CandidateExperiencePage() {
 >
   Search
 </Button>
-      </Box>
+      </Box>*/}
+
+
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}

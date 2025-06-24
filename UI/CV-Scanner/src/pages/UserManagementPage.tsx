@@ -340,12 +340,12 @@ export default function UserManagementPage() {
                    {/* Tutorial icon */}
                    <Tooltip title="Run Tutorial" arrow>
                      <IconButton
-                       color="inherit"
                        onClick={() => {
                          setShowTutorial(true);
                          setTutorialStep(0);
                          setFadeIn(true);
                        }}
+                       sx={{ml: 1, color: '#FFEB3B'}}
                      >
                        <LightbulbRoundedIcon />
                      </IconButton>
@@ -354,9 +354,8 @@ export default function UserManagementPage() {
                    {/* Help / FAQ icon */}
                    <Tooltip title="Go to Help Page" arrow>
                      <IconButton
-                       color="inherit"
                        onClick={() => navigate("/help")}
-                       sx={{ ml: 1 }}
+                       sx={{ ml: 1, color: '#90ee90' }}
                      >
                        <HelpOutlineIcon />
                      </IconButton>
