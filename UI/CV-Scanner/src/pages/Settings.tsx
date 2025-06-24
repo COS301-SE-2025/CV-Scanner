@@ -24,6 +24,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LockResetIcon from '@mui/icons-material/LockReset';
 import logo2 from '../assets/logo2.png';
+import logo from '../assets/logo.png';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -195,14 +196,14 @@ const location = useLocation();
       <Box
         sx={{
           width: 220,
-          bgcolor: "#5a88ad",
+          bgcolor: "#1A82AE",
           display: "flex",
           flexDirection: "column",
           p: 2,
         }}
       >
         <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
-          <img src={logo2} alt="Team Logo" style={{ width: 120 }} />
+          <img src={logo} alt="Team Logo" style={{ width: 120 }} />
         </Box>
         <Button
           fullWidth
@@ -236,6 +237,18 @@ const location = useLocation();
         >
           Search
         </Button>
+        {/* Only show User Management if user is Admin */}
+        {user?.role === "Admin" && (
+          <Button
+            fullWidth
+              sx={navButtonStyle}
+              className={location.pathname === "/user-management" ? "active" : ""}
+              startIcon={<SettingsIcon />}
+              onClick={() => navigate("/user-management")}
+            >
+              User Management
+          </Button>
+        )}
         {/* <Button fullWidth sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }} startIcon={<SettingsIcon />}>
           Settings
         </Button> */}
@@ -247,7 +260,7 @@ const location = useLocation();
         {/* Top App Bar */}
         <AppBar
           position="static"
-          sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
+          sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
         >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
             <IconButton color="inherit">

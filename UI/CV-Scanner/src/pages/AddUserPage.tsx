@@ -15,7 +15,7 @@ import {
   InputLabel,
   FormHelperText,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -26,7 +26,6 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import logo from "../assets/logo.png";
-import { useLocation } from "react-router-dom";
 
 export default function AddUserPage() {
   const navigate = useNavigate();
@@ -124,30 +123,29 @@ export default function AddUserPage() {
     return isValid;
   };
 
-    const handleSubmit = () => {
-      if (validateForm()) {
-        fetch("http://localhost:8081/auth/add-user", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username: formData.username,
-            first_name: formData.first_name,
-            last_name: formData.last_name,
-            email: formData.email,
-            role: formData.role,
-            password: formData.password,
-          }),
+  const handleSubmit = () => {
+    if (validateForm()) {
+      fetch("http://localhost:8081/auth/add-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: formData.username,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          email: formData.email,
+          role: formData.role,
+          password: formData.password,
+        }),
+      })
+        .then((res) => res.text())
+        .then((msg) => {
+          navigate("/user-management");
         })
-          .then((res) => res.text())
-          .then((msg) => {
-          
-            navigate("/user-management");
-          })
-          .catch(() => {
-            // Optionally show an error toast/snackbar here
-          });
-      }
-    };
+        .catch(() => {
+          // Optionally show an error toast/snackbar here
+        });
+    }
+  };
 
   const [user, setUser] = React.useState<{
     first_name?: string;
@@ -191,6 +189,7 @@ export default function AddUserPage() {
         <Button
           fullWidth
           sx={navButtonStyle}
+          className={location.pathname === "/dashboard" ? "active" : ""}
           startIcon={<DashboardIcon />}
           onClick={() => navigate("/dashboard")}
         >
@@ -199,6 +198,7 @@ export default function AddUserPage() {
         <Button
           fullWidth
           sx={navButtonStyle}
+          className={location.pathname === "/upload" ? "active" : ""}
           startIcon={<UploadFileIcon />}
           onClick={() => navigate("/upload")}
         >
@@ -207,6 +207,7 @@ export default function AddUserPage() {
         <Button
           fullWidth
           sx={navButtonStyle}
+          className={location.pathname === "/candidates" ? "active" : ""}
           startIcon={<PeopleIcon />}
           onClick={() => navigate("/candidates")}
         >
@@ -215,6 +216,7 @@ export default function AddUserPage() {
         <Button
           fullWidth
           sx={navButtonStyle}
+          className={location.pathname === "/search" ? "active" : ""}
           startIcon={<SearchIcon />}
           onClick={() => navigate("/search")}
         >
@@ -247,7 +249,16 @@ export default function AddUserPage() {
                 <NotificationsIcon />
               </Badge>
             </IconButton>
-            <Box sx={{ display: "flex", alignItems: "center", ml: 2 }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                ml: 2,
+                cursor: "pointer",
+                "&:hover": { opacity: 0.8 },
+              }}
+              onClick={() => navigate("/settings")}
+            >
               <AccountCircleIcon sx={{ mr: 1 }} />
               <Typography variant="subtitle1">
                 {user
@@ -371,7 +382,7 @@ export default function AddUserPage() {
                   >
                     <MenuItem value="Admin">Admin</MenuItem>
                     <MenuItem value="Editor">Editor</MenuItem>
-                    <MenuItem value="Uploader">Uploader</MenuItem>
+                    <MenuItem value="User">User</MenuItem>
                   </Select>
                   {errors.role && (
                     <FormHelperText>{errors.role}</FormHelperText>

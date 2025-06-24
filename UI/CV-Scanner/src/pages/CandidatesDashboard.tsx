@@ -22,6 +22,7 @@ import {
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import logo2 from "../assets/logo2.png";
+import logo from "../assets/logo.png";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import PeopleIcon from "@mui/icons-material/People";
@@ -91,7 +92,7 @@ export default function CandidatesDashboard() {
         <Box
           sx={{
             width: 220,
-            bgcolor: "#5a88ad",
+            bgcolor: "#1A82AE",
             display: "flex",
             flexDirection: "column",
             p: 2,
@@ -117,7 +118,7 @@ export default function CandidatesDashboard() {
           </IconButton>
 
           <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
-            <img src={logo2} alt="Team Logo" style={{ width: 120 }} />
+            <img src={logo} alt="Team Logo" style={{ width: 120 }} />
           </Box>
 
           <Button
@@ -203,7 +204,7 @@ export default function CandidatesDashboard() {
         {/* Top AppBar */}
         <AppBar
           position="static"
-          sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
+          sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
         >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
             <IconButton color="inherit">

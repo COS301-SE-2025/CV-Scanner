@@ -31,6 +31,7 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
+import logo from "../assets/logo.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import SettingsIcon from "@mui/icons-material/Settings";
 
@@ -123,7 +124,7 @@ export default function CandidatesPage() {
         <Box
           sx={{
             width: 220,
-            bgcolor: "#5a88ad",
+            bgcolor: "#1A82AE",
             display: "flex",
             flexDirection: "column",
             p: 2,
@@ -149,7 +150,7 @@ export default function CandidatesPage() {
           </IconButton>
 
           <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
-            <img src={logo2} alt="Team Logo" style={{ width: 120 }} />
+            <img src={logo} alt="Team Logo" style={{ width: 120 }} />
           </Box>
 
           <Button
@@ -234,7 +235,7 @@ export default function CandidatesPage() {
         {/* Top App Bar */}
         <AppBar
           position="static"
-          sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
+          sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
         >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
             <IconButton color="inherit">
