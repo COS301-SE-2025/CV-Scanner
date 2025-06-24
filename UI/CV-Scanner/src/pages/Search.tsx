@@ -291,7 +291,6 @@ export default function Search() {
            <Tooltip title="Run Tutorial" arrow>
              <IconButton
                onClick={() => {
-                 setShowTutorial(true);
                  setTutorialStep(0);
                  setFadeIn(true);
                }}
