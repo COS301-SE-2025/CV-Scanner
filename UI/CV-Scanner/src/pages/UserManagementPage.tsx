@@ -38,6 +38,7 @@ import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import DeleteIcon from "@mui/icons-material/Delete";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
+import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 
 export default function UserManagementPage() {
   const [collapsed, setCollapsed] = useState(false);

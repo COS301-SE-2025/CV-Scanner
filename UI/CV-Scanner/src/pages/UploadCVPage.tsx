@@ -40,6 +40,7 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 
 export default function UploadCVPage() {
   const [collapsed, setCollapsed] = useState(false);

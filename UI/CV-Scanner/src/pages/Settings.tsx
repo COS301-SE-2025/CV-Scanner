@@ -24,6 +24,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LockResetIcon from '@mui/icons-material/LockReset';
 import logo2 from '../assets/logo2.png';
+import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
