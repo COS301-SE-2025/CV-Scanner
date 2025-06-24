@@ -283,7 +283,7 @@ export default function AddUserPage() {
 
            <AppBar
                                      position="static"
-                                     sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
+                                     sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
                                    >
                                      <Toolbar sx={{ justifyContent: "flex-end" }}>
           
