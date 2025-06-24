@@ -38,6 +38,7 @@ import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import DeleteIcon from "@mui/icons-material/Delete";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
+import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import logo from "../assets/logo.png";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
@@ -329,62 +330,68 @@ export default function UserManagementPage() {
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
-        <AppBar
-          position="static"
-          sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
-        >
-          <Toolbar sx={{ justifyContent: "flex-end" }}>
-            <IconButton color="inherit">
-              <Badge badgeContent={4} color="error">
-                <NotificationsIcon />
-              </Badge>
-            </IconButton>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                ml: 2,
-                cursor: "pointer",
-                "&:hover": { opacity: 0.8 },
-              }}
-              onClick={() => navigate("/settings")}
-            >
-              <AccountCircleIcon sx={{ mr: 1 }} />
-              <Typography variant="subtitle1">
-                {user
-                  ? user.first_name
-                    ? `${user.first_name} ${user.last_name || ""} (${
-                        user.role || "User"
-                      })`
-                    : (user.username || user.email) +
-                      (user.role ? ` (${user.role})` : "")
-                  : "User"}
-              </Typography>
-            </Box>
-
-            {/* Tutorial Icon - left of logout */}
-
-            <Tooltip title="Run Tutorial" arrow>
-              <IconButton
-                sx={{ ml: 1, color: "lightgreen" }}
-                onClick={() => {
-                  setTutorialStep(0);
-                  setFadeIn(true);
-                }}
-              >
-                <HelpOutlineIcon />
-              </IconButton>
-            </Tooltip>
-            <IconButton
-              color="inherit"
-              onClick={() => {
-                navigate("/login"); // Redirect to login page
-              }}
-            >
-              <ExitToAppIcon />
-            </IconButton>
-          </Toolbar>
-        </AppBar>
+         <AppBar
+                           position="static"
+                           sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
+                         >
+                           <Toolbar sx={{ justifyContent: "flex-end" }}>
+                   {/* Tutorial icon */}
+                   <Tooltip title="Run Tutorial" arrow>
+                     <IconButton
+                       onClick={() => {
+                         setShowTutorial(true);
+                         setTutorialStep(0);
+                         setFadeIn(true);
+                       }}
+                       sx={{ml: 1, color: '#FFEB3B'}}
+                     >
+                       <LightbulbRoundedIcon />
+                     </IconButton>
+                   </Tooltip>
+                 
+                   {/* Help / FAQ icon */}
+                   <Tooltip title="Go to Help Page" arrow>
+                     <IconButton
+                       onClick={() => navigate("/help")}
+                       sx={{ ml: 1, color: '#90ee90' }}
+                     >
+                       <HelpOutlineIcon />
+                     </IconButton>
+                   </Tooltip>
+                 
+                   {/* User Info */}
+                   <Box
+                     sx={{
+                       display: "flex",
+                       alignItems: "center",
+                       ml: 2,
+                       cursor: "pointer",
+                       "&:hover": { opacity: 0.8 },
+                     }}
+                     onClick={() => navigate("/settings")}
+                   >
+                     <AccountCircleIcon sx={{ mr: 1 }} />
+                     <Typography variant="subtitle1">
+                       {user
+                         ? user.first_name
+                           ? `${user.first_name} ${user.last_name || ""} (${user.role || "User"})`
+                           : (user.username || user.email) +
+                             (user.role ? ` (${user.role})` : "")
+                         : "User"}
+                     </Typography>
+                   </Box>
+                 
+                   {/* Logout */}
+                   <IconButton
+                     color="inherit"
+                     onClick={() => navigate("/login")}
+                     sx={{ ml: 1 }}
+                   >
+                     <ExitToAppIcon />
+                   </IconButton>
+                 </Toolbar>
+                           
+                         </AppBar>
 
         {/* User Management Content */}
         <Box sx={{ p: 3 }}>

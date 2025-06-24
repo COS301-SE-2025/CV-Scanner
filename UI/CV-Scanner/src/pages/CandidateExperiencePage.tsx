@@ -23,12 +23,16 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+
+import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
+
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import logo2 from "../assets/logo2.png";
 import logo from "../assets/logo.png"; // Assuming you have a logo image
+
 
 export default function CandidateExperiencePage() {
   const navigate = useNavigate();
@@ -83,6 +87,7 @@ export default function CandidateExperiencePage() {
         color: "#fff",
       }}
     >
+
       {/* Sidebar */}
       {!collapsed ? (
         <Box
@@ -172,6 +177,7 @@ export default function CandidateExperiencePage() {
               User Management
             </Button>
           )}
+
         </Box>
       ) : (
         <Box
@@ -192,32 +198,41 @@ export default function CandidateExperiencePage() {
           </IconButton>
         </Box>
       )}
-
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
-        <AppBar
-          position="static"
-          sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
+         <AppBar position="static" sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}>
+  <Toolbar sx={{ justifyContent: "space-between" }}>
+    {/* Left: Logo */}
+    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+      <img src={logo2} alt="Logo" style={{ width: 80 }} />
+      {/* Optional title next to logo */}
+      <Typography variant="h6" sx={{ ml: 2, fontWeight: 'bold' }}>Candidate Experience</Typography> 
+    </Box>
+
+    {/* Right: Icons */}
+    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+      <Tooltip title="Go to Help Page" arrow>
+        <IconButton
+          onClick={() => navigate("/help")}
+          sx={{ ml: 1, color: '#90ee90' }}
         >
-          <Toolbar sx={{ justifyContent: "flex-end" }}>
-            <IconButton color="inherit">
-              <Badge badgeContent={4} color="error">
-                <NotificationsIcon />
-              </Badge>
-            </IconButton>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                ml: 2,
-                cursor: "pointer",
-                "&:hover": { opacity: 0.8 },
-              }}
-              onClick={() => navigate("/settings")}
-            >
-              <AccountCircleIcon sx={{ mr: 1 }} />
-              <Typography variant="subtitle1">
+          <HelpOutlineIcon />
+        </IconButton>
+      </Tooltip>
+
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          ml: 2,
+          cursor: "pointer",
+          "&:hover": { opacity: 0.8 },
+        }}
+        onClick={() => navigate("/settings")}
+      >
+        <AccountCircleIcon sx={{ mr: 1 }} />
+        <Typography variant="subtitle1">
                 {user
                   ? user.first_name
                     ? `${user.first_name} ${user.last_name || ""} (${
@@ -227,30 +242,18 @@ export default function CandidateExperiencePage() {
                       (user.role ? ` (${user.role})` : "")
                   : "User"}
               </Typography>
-            </Box>
-            {/* Tutorial Icon - left of logout */}
-            <Tooltip title="Run Tutorial" arrow>
-              <IconButton
-                sx={{ ml: 1, color: "lightgreen" }}
-                onClick={() => {
-                  setTutorialStep(0);
-                  setFadeIn(true);
-                }}
-                ref={helpIconRef}
-              >
-                <HelpOutlineIcon />
-              </IconButton>
-            </Tooltip>
-            <IconButton
-              color="inherit"
-              onClick={() => {
-                navigate("/login"); // Redirect to login page
-              }}
-            >
-              <ExitToAppIcon />
-            </IconButton>
-          </Toolbar>
-        </AppBar>
+      </Box>
+
+      <IconButton
+        color="inherit"
+        onClick={() => navigate("/login")}
+        sx={{ ml: 1 }}
+      >
+        <ExitToAppIcon />
+      </IconButton>
+    </Box>
+  </Toolbar>
+</AppBar>
 
         {/* Tutorial Popover */}
         <Popover

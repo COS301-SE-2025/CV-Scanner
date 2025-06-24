@@ -14,6 +14,7 @@ import {
   FormControl,
   InputLabel,
   FormHelperText,
+  Tooltip,
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import NotificationsIcon from "@mui/icons-material/Notifications";
@@ -25,6 +26,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import SettingsIcon from "@mui/icons-material/Settings";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import logo from "../assets/logo.png";
@@ -278,28 +280,36 @@ export default function AddUserPage() {
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
-        <AppBar
-          position="static"
-          sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
-        >
-          <Toolbar sx={{ justifyContent: "flex-end" }}>
-            <IconButton color="inherit">
-              <Badge badgeContent={4} color="error">
-                <NotificationsIcon />
-              </Badge>
-            </IconButton>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                ml: 2,
-                cursor: "pointer",
-                "&:hover": { opacity: 0.8 },
-              }}
-              onClick={() => navigate("/settings")}
-            >
-              <AccountCircleIcon sx={{ mr: 1 }} />
-              <Typography variant="subtitle1">
+
+           <AppBar
+                                     position="static"
+                                     sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
+                                   >
+                                     <Toolbar sx={{ justifyContent: "flex-end" }}>
+          
+                             {/* Help / FAQ icon */}
+                             <Tooltip title="Go to Help Page" arrow>
+                               <IconButton
+                                 onClick={() => navigate("/help")}
+                                 sx={{ ml: 1, color: '#90ee90' }}
+                               >
+                                 <HelpOutlineIcon />
+                               </IconButton>
+                             </Tooltip>
+                           
+                             {/* User Info */}
+                             <Box
+                               sx={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 ml: 2,
+                                 cursor: "pointer",
+                                 "&:hover": { opacity: 0.8 },
+                               }}
+                               onClick={() => navigate("/settings")}
+                             >
+                               <AccountCircleIcon sx={{ mr: 1 }} />
+                               <Typography variant="subtitle1">
                 {user
                   ? user.first_name
                     ? `${user.first_name} ${user.last_name || ""} (${
@@ -309,12 +319,19 @@ export default function AddUserPage() {
                       (user.role ? ` (${user.role})` : "")
                   : "User"}
               </Typography>
-            </Box>
-            <IconButton color="inherit" onClick={() => navigate("/login")}>
-              <ExitToAppIcon />
-            </IconButton>
-          </Toolbar>
-        </AppBar>
+                             </Box>
+                           
+                             {/* Logout */}
+                             <IconButton
+                               color="inherit"
+                               onClick={() => navigate("/login")}
+                               sx={{ ml: 1 }}
+                             >
+                               <ExitToAppIcon />
+                             </IconButton>
+                           </Toolbar>
+                                     
+                                   </AppBar>
 
         {/* Add User Content */}
         <Box
