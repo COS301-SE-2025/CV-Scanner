@@ -26,11 +26,11 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import logo from "../assets/logo.png";
+import { useLocation } from "react-router-dom";
 
 export default function AddUserPage() {
   const navigate = useNavigate();
-  const userRole = "Admin";
-
+  const location = useLocation();
   const [formData, setFormData] = React.useState({
     username: "",
     first_name: "",
@@ -220,10 +220,12 @@ export default function AddUserPage() {
         >
           Search
         </Button>
-        {userRole === "Admin" && (
+        {/* Only show User Management if user is Admin */}
+        {user?.role === "Admin" && (
           <Button
             fullWidth
-            sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
+            sx={navButtonStyle}
+            className={location.pathname === "/user-management" ? "active" : ""}
             startIcon={<SettingsIcon />}
             onClick={() => navigate("/user-management")}
           >
