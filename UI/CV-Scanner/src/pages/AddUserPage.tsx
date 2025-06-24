@@ -116,13 +116,30 @@ export default function AddUserPage() {
     return isValid;
   };
 
-  const handleSubmit = () => {
-    if (validateForm()) {
-      // Here you would typically make an API call to create the user
-      console.log("Creating user:", formData);
-      navigate("/user-management");
-    }
-  };
+    const handleSubmit = () => {
+      if (validateForm()) {
+        fetch("http://localhost:8081/auth/add-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: formData.username,
+            first_name: formData.first_name,
+            last_name: formData.last_name,
+            email: formData.email,
+            role: formData.role,
+            password: formData.password,
+          }),
+        })
+          .then((res) => res.text())
+          .then((msg) => {
+          
+            navigate("/user-management");
+          })
+          .catch(() => {
+            // Optionally show an error toast/snackbar here
+          });
+      }
+    };
 
   const [user, setUser] = React.useState<{
     first_name?: string;

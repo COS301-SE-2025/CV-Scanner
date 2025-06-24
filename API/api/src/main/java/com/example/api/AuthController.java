@@ -1,4 +1,6 @@
 package com.example.api;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.ResponseEntity;
@@ -153,6 +155,43 @@ public ResponseEntity<?> searchUsers(@RequestParam String query) {
             }
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Failed to delete user.");
+        }
+    }
+
+    @PostMapping("/add-user")
+    public ResponseEntity<?> addUser(@RequestBody Map<String, Object> user) {
+        try {
+            System.out.println("Received add-user request: " + user);
+    
+            String username = (String) user.get("username");
+            String email = (String) user.get("email");
+            String firstName = (String) user.get("first_name");
+            String lastName = (String) user.get("last_name");
+            String role = (String) user.get("role");
+            String password = (String) user.get("password");
+    
+            System.out.println("Parsed fields - username: " + username + ", email: " + email + ", first_name: " + firstName + ", last_name: " + lastName + ", role: " + role + ", password: " + (password != null ? "[PROVIDED]" : "[NULL]"));
+    
+            int inserted = jdbcTemplate.update(
+                "INSERT INTO users (username, email, first_name, last_name, role, is_active, password_hash) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                username,
+                email,
+                firstName,
+                lastName,
+                role,
+                1, // is_active
+                passwordEncoder.encode(password)
+            );
+            System.out.println("Insert result: " + inserted);
+    
+            if (inserted > 0) {
+                return ResponseEntity.ok("User added successfully.");
+            } else {
+                return ResponseEntity.status(400).body("Failed to add user.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Failed to add user. Exception: " + e.getMessage());
         }
     }
 
