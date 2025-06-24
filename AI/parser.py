@@ -4,16 +4,16 @@ SECTION_HEADERS = {
     "summary": ["summary", "objective", "profile", "about me"],
     "experience": ["experience", "work history", "employment"],
     "education": ["education", "qualifications", "academic"],
-    "skills": ["skills", "technologies", "tools", "competencies"],
+    "skills": ["skills", "technologies", "tools", "competencies", "languages"],
     "certifications": ["certifications", "licenses", "certified", "certification"],
-    "projects": ["projects", "portfolio"],
+    "projects": ["projects", "portfolio", "case studies"],
     "other": ["interests", "references", "hobbies", "miscellaneous"],
 }
 
 CERT_KEYWORDS = ["certification", "certified", "microsoft", "aws", "oracle", "license"]
-PROJECT_KEYWORDS = ["project", "developed", "built", "designed", "created", "simulation", "database", "website", "application"]
-PROJECT_PATTERNS = [r"\b[A-Z][a-z]+ \d{4}\b", r"Technologies Used:", r"http[s]?://", r"github\.com"]
-SKILL_KEYWORDS = ["python", "java", "c++", "sql", "html", "css", "javascript", "php", "nodejs"]
+PROJECT_KEYWORDS = ["project", "developed", "designed", "created", "interior", "exhibit", "conference", "client", "build", "renovation"]
+PROJECT_PATTERNS = [r"http[s]?://", r"github\.com", r"\b\d{4}\b", r"@.+", r"PG\. ?\d+"]
+SKILL_KEYWORDS = ["python", "java", "c++", "sql", "html", "css", "javascript", "php", "nodejs", "teamwork", "communication"]
 
 ALL_SECTIONS = [
     "personal_info",
@@ -47,19 +47,14 @@ def looks_like_project(line):
 
 def looks_like_contact_info(line):
     email_pattern = r"[\w\.-]+@[\w\.-]+\.\w+"
-    phone_pattern = r"\b(?:\+?\d{1,3}[-.\s]?)?(?:\(?\d{2,4}\)?[-.\s]?)*\d{3,4}[-.\s]?\d{3,4}\b"
-    github_pattern = r"github\.com\/[A-Za-z0-9_-]+"
-    address_keywords = ["address", "street", "road", "ave", "crescent", "lane", "drive", "city", "zip", "postal"]
+    phone_pattern = r"\+?\d[\d\s\(\)\-]{7,}"
+    return (
+        re.search(email_pattern, line, re.IGNORECASE) or
+        re.search(phone_pattern, line, re.IGNORECASE)
+    )
 
-    if re.search(email_pattern, line, re.IGNORECASE):
-        return True
-    if re.search(phone_pattern, line, re.IGNORECASE):
-        return True
-    if re.search(github_pattern, line, re.IGNORECASE):
-        return True
-    if any(word in line.lower() for word in address_keywords):
-        return True
-    return False
+def looks_like_name_or_title(line):
+    return bool(re.match(r"^[A-Z][a-z]+ [A-Z][a-z]+$", line)) or "designer" in line.lower()
 
 def extract_cv_sections(text):
     lines = [line.strip() for line in text.split('\n') if line.strip()]
@@ -67,53 +62,66 @@ def extract_cv_sections(text):
 
     current_section = "personal_info"
     section_started = False
-    buffer = []
+    project_buffer = []
+    previous_was_project = False
 
     for line in lines:
+        # New section header?
         detected = identify_section(line)
-
         if detected:
-            # Dump any buffered lines to current section before changing
-            if buffer:
-                sections[current_section].extend(buffer)
-                buffer.clear()
-
+            if project_buffer:
+                sections["projects"].extend(project_buffer)
+                project_buffer.clear()
             current_section = detected
             section_started = True
             continue
 
-        # Priority detection for contact info
+        # Contact info overrides all section guesses
         if looks_like_contact_info(line):
             sections["personal_info"].append(line)
             continue
 
-        # Before any section header, assume personal info
+        # Handle name/title
+        if looks_like_name_or_title(line):
+            sections["personal_info"].append(line)
+            continue
+
+        # Special case: Project detection
+        if looks_like_project(line):
+            project_buffer.append(line)
+            previous_was_project = True
+            continue
+
+        # If we're still seeing project lines, keep grouping them until a major break
+        if previous_was_project:
+            if len(line) < 2 or identify_section(line) or looks_like_contact_info(line):
+                # End of project block
+                sections["projects"].extend(project_buffer)
+                project_buffer.clear()
+                previous_was_project = False
+            else:
+                project_buffer.append(line)
+                continue
+
+        # Heuristic: early lines go to personal_info
         if not section_started:
             sections["personal_info"].append(line)
             continue
 
-        # Accumulate lines for possible multi-line sections
-        buffer.append(line)
-
-        # Try to classify based on line content
-        if looks_like_certification(line):
-            sections["certifications"].append(line)
-            buffer.clear()
-        elif looks_like_project(line):
-            sections["projects"].append(line)
-            buffer.clear()
-        elif current_section == "skills" and any(skill in line.lower() for skill in SKILL_KEYWORDS):
+        # Classify by section
+        if current_section == "skills" and any(skill in line.lower() for skill in SKILL_KEYWORDS):
             sections["skills"].append(line)
-            buffer.clear()
-        elif current_section in sections:
-            # Leave line in buffer — it’ll be dumped to current_section later
-            pass
+        elif current_section == "experience":
+            sections["experience"].append(line)
+        elif current_section == "education":
+            sections["education"].append(line)
+        elif current_section == "summary":
+            sections["summary"].append(line)
         else:
-            sections["uncategorized"].append(line)
-            buffer.clear()
+            sections[current_section].append(line)
 
-    # Flush any remaining buffered lines
-    if buffer:
-        sections[current_section].extend(buffer)
+    # Flush remaining project block
+    if project_buffer:
+        sections["projects"].extend(project_buffer)
 
     return sections
