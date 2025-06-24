@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import logo from "../assets/logo.png";
+import logo2 from "../assets/logo2.png"; // Import the second logo if needed
 import {
   Box,
   Button,
@@ -53,7 +54,7 @@ export default function LoginPage() {
   sx={{
     display: "flex",
     alignItems: "center",
-    bgcolor: "#3a7ca5",
+    bgcolor: "#1A82AE",
     color: "#fff",
     px: 2,
     py: 2,
