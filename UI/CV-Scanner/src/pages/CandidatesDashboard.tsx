@@ -160,15 +160,18 @@ export default function CandidatesDashboard() {
             Search
           </Button>
 
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/user-management" ? "active" : ""}
-            startIcon={<SettingsIcon />}
-            onClick={() => navigate("/user-management")}
-          >
-            User Management
-          </Button>
+          {/* Only show User Management if user is Admin */}
+          {user?.role === "Admin" && (
+            <Button
+              fullWidth
+              sx={navButtonStyle}
+              className={location.pathname === "/user-management" ? "active" : ""}
+              startIcon={<SettingsIcon />}
+              onClick={() => navigate("/user-management")}
+            >
+              User Management
+            </Button>
+          )}
         </Box>
       ) : (
         // Expand Icon when sidebar is collapsed
