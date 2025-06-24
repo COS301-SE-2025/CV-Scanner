@@ -112,6 +112,14 @@ export default function AddUserPage() {
       newErrors.username = "";
     }
 
+    // Username validation
+    if (!formData.username.trim()) {
+      newErrors.username = "Username is required";
+      isValid = false;
+    } else {
+      newErrors.username = "";
+    }
+
     setErrors(newErrors);
     return isValid;
   };

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
@@ -51,9 +52,11 @@ export default function UserManagementPage() {
     email?: string;
   } | null>(null);
 
+
   const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All Roles");
+
 
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -64,6 +67,7 @@ export default function UserManagementPage() {
     email: "",
     role: "",
   });
+
 
   const [tutorialStep, setTutorialStep] = useState(-1); // -1 means not showing
   const [fadeIn, setFadeIn] = useState(true);
@@ -356,7 +360,9 @@ export default function UserManagementPage() {
                   : "User"}
               </Typography>
             </Box>
+
             {/* Tutorial Icon - left of logout */}
+
             <Tooltip title="Run Tutorial" arrow>
               <IconButton
                 color="primary"
@@ -372,7 +378,7 @@ export default function UserManagementPage() {
             <IconButton
               color="inherit"
               onClick={() => {
-                navigate("/login");
+                navigate("/login"); // Redirect to login page
               }}
             >
               <ExitToAppIcon />
@@ -399,14 +405,17 @@ export default function UserManagementPage() {
             />
             <div ref={filterBoxRef}>
               <Select
+
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
+
                 sx={{ bgcolor: "#fff", borderRadius: 1, minWidth: 150 }}
               >
                 <MenuItem value="All Roles">All Roles</MenuItem>
                 <MenuItem value="Admin">Admin</MenuItem>
                 <MenuItem value="Editor">Editor</MenuItem>
                 <MenuItem value="User">User</MenuItem>
+
               </Select>
             </div>
             <Button
@@ -426,6 +435,7 @@ export default function UserManagementPage() {
           >
             <TableContainer>
               <Table>
+                {/* 2. Update the table headers: */}
                 <TableHead>
                   <TableRow>
                     <TableCell sx={{ fontWeight: "bold" }}>Username</TableCell>
@@ -441,12 +451,15 @@ export default function UserManagementPage() {
                     <TableCell sx={{ fontWeight: "bold" }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
+                {/* 3. Update the table rows: */}
                 <TableBody>
                   {users.map((user, idx) => (
+
                     <TableRow key={idx}>
                       <TableCell>{user.username || ""}</TableCell>
                       <TableCell>{user.first_name || ""}</TableCell>
                       <TableCell>{user.last_name || ""}</TableCell>
+
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
                         <Button
@@ -536,6 +549,7 @@ export default function UserManagementPage() {
             <Box
               sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}
             >
+
               <TextField
                 label="Username"
                 fullWidth
@@ -549,6 +563,7 @@ export default function UserManagementPage() {
                 fullWidth
                 value={editFormData.first_name}
                 onChange={(e) =>
+
                   setEditFormData({
                     ...editFormData,
                     first_name: e.target.value,
@@ -648,7 +663,9 @@ export default function UserManagementPage() {
                     Filter by Role
                   </Typography>
                   <Typography sx={{ mb: 2 }}>
+
                     Use these filters to view <b>Admins</b>, <b>Editors</b>,{" "}
+
                     <b>Users</b>, or <b>All</b>.
                   </Typography>
                 </>

@@ -14,6 +14,11 @@ import {
   Toolbar,
   IconButton,
   Badge,
+  Modal,
+  Fade,
+  Backdrop,
+  Popover,
+  Tooltip,
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import logo2 from "../assets/logo2.png";
@@ -30,10 +35,16 @@ import Tooltip from "@mui/material/Tooltip";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import Fade from "@mui/material/Fade";
 
+
 export default function CandidatesDashboard() {
   const [collapsed, setCollapsed] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(true);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [tutorialStep, setTutorialStep] = useState(0); // For future multi-step
+  const [fadeIn, setFadeIn] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+
   const [user, setUser] = useState<{
     first_name?: string;
     last_name?: string;
@@ -43,10 +54,12 @@ export default function CandidatesDashboard() {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [tutorialStep, setTutorialStep] = useState(0);
   const [fadeIn, setFadeIn] = useState(true);
+
   const reviewBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     document.title = "Candidates Dashboard";
+
     // Fetch user info from API
     const email = localStorage.getItem("userEmail") || "admin@email.com";
     fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
@@ -60,6 +73,17 @@ export default function CandidatesDashboard() {
       setAnchorEl(reviewBtnRef.current);
     }
   }, [showTutorial]);
+
+
+  const handleStepChange = (nextStep: number) => {
+    setFadeIn(false);
+    setTimeout(() => {
+      setTutorialStep(nextStep);
+      setFadeIn(true);
+    }, 250);
+  };
+  const handleCloseTutorial = () => setShowTutorial(false);
+
 
   return (
     <Box
@@ -227,6 +251,14 @@ export default function CandidatesDashboard() {
                 <HelpOutlineIcon />
               </IconButton>
             </Tooltip>
+            <IconButton
+              color="inherit"
+              onClick={() => {
+                navigate("/login"); // Redirect to login page
+              }}
+            >
+              <ExitToAppIcon />
+            </IconButton>
           </Toolbar>
         </AppBar>
 
@@ -299,7 +331,7 @@ export default function CandidatesDashboard() {
                       fit: "Technical (64%)",
                     },
                   ].map((candidate, idx) => (
-                    <TableRow key={idx}>
+                    <TableRow key={candidate.name}>
                       <TableCell>{candidate.name}</TableCell>
                       <TableCell>{candidate.skills}</TableCell>
                       <TableCell>{candidate.fit}</TableCell>
@@ -312,11 +344,13 @@ export default function CandidatesDashboard() {
                         >
                           Review
                         </Button>
+
                         {idx === 0 && (
                           <Popover
                             open={showTutorial && Boolean(anchorEl)}
                             anchorEl={anchorEl}
-                            onClose={() => setShowTutorial(false)}
+
+                            onClose={handleCloseTutorial}
                             anchorOrigin={{
                               vertical: "top",
                               horizontal: "center",
@@ -350,6 +384,9 @@ export default function CandidatesDashboard() {
                                   Click <b>Review</b> to view and assess this
                                   candidate's CV.
                                 </Typography>
+
+                                {/* Shared navigation buttons */}
+
                                 <Box
                                   sx={{
                                     display: "flex",
@@ -362,7 +399,8 @@ export default function CandidatesDashboard() {
                                   <Button
                                     variant="text"
                                     size="small"
-                                    onClick={() => setShowTutorial(false)}
+                                    onClick={handleCloseTutorial}
+
                                     sx={{
                                       color: "#888",
                                       fontSize: "0.85rem",
@@ -376,7 +414,8 @@ export default function CandidatesDashboard() {
                                   <Box sx={{ display: "flex", gap: 2 }}>
                                     <Button
                                       variant="contained"
-                                      onClick={() => setShowTutorial(false)}
+
+                                      onClick={handleCloseTutorial}
                                       sx={{
                                         bgcolor: "#5a88ad",
                                         color: "#fff",

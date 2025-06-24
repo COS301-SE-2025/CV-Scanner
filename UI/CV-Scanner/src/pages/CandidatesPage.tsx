@@ -15,6 +15,10 @@ import {
   Toolbar,
   IconButton,
   Badge,
+  Popover,
+  Fade,
+  Box as MuiBox,
+  Tooltip,
 } from "@mui/material";
 import { useEffect, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
@@ -25,6 +29,7 @@ import PeopleIcon from "@mui/icons-material/People";
 import SearchIcon from "@mui/icons-material/Search";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import Popover from "@mui/material/Popover";
@@ -37,12 +42,14 @@ export default function CandidatesPage() {
   const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+
   const [user, setUser] = useState<{
     first_name?: string;
     last_name?: string;
     username?: string;
   } | null>(null);
   const [tutorialStep, setTutorialStep] = useState(-1); // -1 means not showing
+
   const [fadeIn, setFadeIn] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
@@ -51,6 +58,7 @@ export default function CandidatesPage() {
   const reviewBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
+    document.title = "Candidates";
     const email = localStorage.getItem("userEmail") || "admin@email.com";
     fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
       .then((res) => res.json())
@@ -246,6 +254,7 @@ export default function CandidatesPage() {
               </Typography>
             </Box>
             {/* Tutorial Icon - left of logout */}
+
             <Tooltip title="Run Tutorial" arrow>
               <IconButton
                 color="primary"
@@ -405,7 +414,9 @@ export default function CandidatesPage() {
         }}
       >
         <Fade in={fadeIn} timeout={250}>
+
           <Box sx={{ position: "relative" }}>
+
             {tutorialStep === 0 && (
               <>
                 <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
@@ -500,6 +511,7 @@ export default function CandidatesPage() {
               </Box>
             </Box>
           </Box>
+
         </Fade>
       </Popover>
     </Box>

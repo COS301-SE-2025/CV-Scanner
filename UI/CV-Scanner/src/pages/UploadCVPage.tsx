@@ -1,4 +1,6 @@
+
 import React, { useState, useEffect, useRef } from "react";
+
 import {
   Box,
   Typography,
@@ -47,6 +49,7 @@ export default function UploadCVPage() {
   const [isModalOpen, setIsModalOpen] = useState(false); // State for modal visibility
   const [contactInfo, setContactInfo] = useState(""); // State for contact information
   const [additionalInfo, setAdditionalInfo] = useState(""); // State for additional information
+
   const [user, setUser] = useState<{
     first_name?: string;
     last_name?: string;
@@ -57,9 +60,11 @@ export default function UploadCVPage() {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
 
+
   const uploadBoxRef = useRef<HTMLDivElement>(null);
   const additionalInfoRef = useRef<HTMLInputElement>(null);
   const processBtnRef = useRef<HTMLButtonElement>(null);
+
 
   useEffect(() => {
     const email = localStorage.getItem("userEmail") || "admin@email.com";
@@ -130,6 +135,27 @@ export default function UploadCVPage() {
   const navigate = useNavigate();
 
   const location = useLocation();
+
+  // Set anchorEl when tutorialStep changes
+  useEffect(() => {
+    if (tutorialStep === 0 && uploadBoxRef.current)
+      setAnchorEl(uploadBoxRef.current);
+    else if (tutorialStep === 1 && additionalInfoRef.current)
+      setAnchorEl(additionalInfoRef.current);
+    else if (tutorialStep === 2 && processBtnRef.current)
+      setAnchorEl(processBtnRef.current);
+    else setAnchorEl(null);
+  }, [tutorialStep]);
+
+  const handleStepChange = (nextStep: number) => {
+    setFadeIn(false);
+    setTimeout(() => {
+      setTutorialStep(nextStep);
+      setFadeIn(true);
+    }, 250); // match Fade timeout
+  };
+
+  const handleCloseTutorial = () => setShowTutorial(false); // Updated to use showTutorial state
 
   return (
     <Box
@@ -295,6 +321,7 @@ export default function UploadCVPage() {
             >
               <ExitToAppIcon />
             </IconButton>
+            {/* Help icon button for tutorial */}
           </Toolbar>
         </AppBar>
 
@@ -318,6 +345,7 @@ export default function UploadCVPage() {
 
             {/* Upload Box */}
             <Box
+              ref={uploadBoxRef}
               sx={{
                 border: "2px dashed #999",
                 borderRadius: 2,
@@ -592,6 +620,7 @@ export default function UploadCVPage() {
           Boolean(anchorEl)
         }
         anchorEl={anchorEl}
+
         onClose={handleCloseTutorial}
         anchorOrigin={{
           vertical: "top",
@@ -661,6 +690,7 @@ export default function UploadCVPage() {
               <Button
                 variant="text"
                 size="small"
+
                 onClick={handleCloseTutorial}
                 sx={{
                   color: "#888",
@@ -705,6 +735,7 @@ export default function UploadCVPage() {
                 ) : (
                   <Button
                     variant="contained"
+
                     onClick={handleCloseTutorial}
                     sx={{
                       bgcolor: "#5a88ad",

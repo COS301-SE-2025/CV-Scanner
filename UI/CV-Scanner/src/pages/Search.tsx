@@ -126,6 +126,8 @@ export default function Search() {
   };
 
   useEffect(() => {
+
+    document.title = "Search Candidates";
     const email = localStorage.getItem("userEmail") || "admin@email.com";
     fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
       .then((res) => res.json())
@@ -158,7 +160,6 @@ export default function Search() {
     }, 250);
   };
   const handleCloseTutorial = () => setTutorialStep(-1);
-
   return (
     <Box
       sx={{
@@ -468,6 +469,7 @@ export default function Search() {
                       cursor: "pointer", // Shows it's clickable
                       "&:hover": {
                         boxShadow: "0 4px 8px rgba(0,0,0,0.2)", // Visual feedback
+
                         transform: "translateY(-2px)",
                       },
                       transition: "all 0.2s ease",
@@ -541,6 +543,7 @@ export default function Search() {
             </div>
 
             {/* Pagination ... */}
+
           </Paper>
         </Box>
       </Box>
