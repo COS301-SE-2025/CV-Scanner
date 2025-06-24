@@ -35,6 +35,7 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import logo2 from "../assets/logo2.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 
 export default function CandidateNotesPage() {
   const navigate = useNavigate();

@@ -33,6 +33,7 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import SettingsIcon from "@mui/icons-material/Settings";
+import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 
 export default function CandidatesPage() {
   const [collapsed, setCollapsed] = useState(false);
