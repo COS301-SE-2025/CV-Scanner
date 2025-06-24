@@ -284,61 +284,69 @@ export default function Search() {
       {/* Main Content */}
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
         {/* Top Bar */}
-        <AppBar
-          position="static"
-          sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
-        >
-          <Toolbar sx={{ justifyContent: "flex-end" }}>
-            <IconButton color="inherit">
-              <Badge badgeContent={4} color="error">
-                <NotificationsIcon />
-              </Badge>
-            </IconButton>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                ml: 2,
-                cursor: "pointer",
-                "&:hover": { opacity: 0.8 },
-              }}
-              onClick={() => navigate("/settings")}
-            >
-              <AccountCircleIcon sx={{ mr: 1 }} />
-              <Typography variant="subtitle1">
-                {user
-                  ? user.first_name
-                    ? `${user.first_name} ${user.last_name || ""} (${
-                        user.role || "User"
-                      })`
-                    : (user.username || user.email) +
-                      (user.role ? ` (${user.role})` : "")
-                  : "User"}
-              </Typography>
-            </Box>
-            {/* Tutorial Icon - left of logout */}
-            <Tooltip title="Run Tutorial" arrow>
-              <IconButton
-                color="primary"
-                sx={{ ml: 1 }}
-                onClick={() => {
-                  setTutorialStep(0);
-                  setFadeIn(true);
-                }}
-              >
-                <HelpOutlineIcon />
-              </IconButton>
-            </Tooltip>
-            <IconButton
-              color="inherit"
-              onClick={() => {
-                navigate("/login"); // Redirect to login page
-              }}
-            >
-              <ExitToAppIcon />
-            </IconButton>
-          </Toolbar>
-        </AppBar>
+          <AppBar
+                   position="static"
+                   sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
+                 >
+                   <Toolbar sx={{ justifyContent: "flex-end" }}>
+           {/* Tutorial icon */}
+           <Tooltip title="Run Tutorial" arrow>
+             <IconButton
+               color="inherit"
+               onClick={() => {
+                 setShowTutorial(true);
+                 setTutorialStep(0);
+                 setFadeIn(true);
+               }}
+             >
+               <LightbulbRoundedIcon />
+             </IconButton>
+           </Tooltip>
+         
+           {/* Help / FAQ icon */}
+           <Tooltip title="Go to Help Page" arrow>
+             <IconButton
+               color="inherit"
+               onClick={() => navigate("/help")}
+               sx={{ ml: 1 }}
+             >
+               <HelpOutlineIcon />
+             </IconButton>
+           </Tooltip>
+         
+           {/* User Info */}
+           <Box
+             sx={{
+               display: "flex",
+               alignItems: "center",
+               ml: 2,
+               cursor: "pointer",
+               "&:hover": { opacity: 0.8 },
+             }}
+             onClick={() => navigate("/settings")}
+           >
+             <AccountCircleIcon sx={{ mr: 1 }} />
+             <Typography variant="subtitle1">
+               {user
+                 ? user.first_name
+                   ? `${user.first_name} ${user.last_name || ""} (${user.role || "User"})`
+                   : (user.username || user.email) +
+                     (user.role ? ` (${user.role})` : "")
+                 : "User"}
+             </Typography>
+           </Box>
+         
+           {/* Logout */}
+           <IconButton
+             color="inherit"
+             onClick={() => navigate("/login")}
+             sx={{ ml: 1 }}
+           >
+             <ExitToAppIcon />
+           </IconButton>
+         </Toolbar>
+                   
+                 </AppBar>
 
         {/* Page Content */}
         <Box sx={{ p: 3 }}>
