@@ -261,7 +261,7 @@ export default function Search() {
         <Box
           sx={{
             width: 40,
-            bgcolor: "#5a88ad",
+            bgcolor: "#1A82AE",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
