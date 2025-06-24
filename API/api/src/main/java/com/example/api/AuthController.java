@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -192,6 +193,34 @@ public ResponseEntity<?> searchUsers(@RequestParam String query) {
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(500).body("Failed to add user. Exception: " + e.getMessage());
+        }
+    }
+
+    @PutMapping("/edit-user")
+    public ResponseEntity<?> editUser(@RequestBody Map<String, Object> user) {
+        try {
+            String username = (String) user.get("username");
+            String email = (String) user.get("email");
+            String firstName = (String) user.get("first_name");
+            String lastName = (String) user.get("last_name");
+            String role = (String) user.get("role");
+
+            int updated = jdbcTemplate.update(
+                "UPDATE users SET username = ?, first_name = ?, last_name = ?, role = ? WHERE email = ? AND is_active = 1",
+                username,
+                firstName,
+                lastName,
+                role,
+                email
+            );
+            if (updated > 0) {
+                return ResponseEntity.ok("User updated successfully.");
+            } else {
+                return ResponseEntity.status(404).body("User not found.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Failed to update user. Exception: " + e.getMessage());
         }
     }
 

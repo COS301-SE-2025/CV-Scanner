@@ -93,10 +93,25 @@ export default function UserManagementPage() {
   };
 
   const handleEditSave = () => {
-    console.log("Saving user:", editFormData);
-    handleEditClose();
+    fetch("http://localhost:8081/auth/edit-user", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(editFormData),
+    })
+      .then((res) => res.text())
+      .then((msg) => {
+        // Optionally show a toast/snackbar here
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.email === editFormData.email ? { ...u, ...editFormData } : u
+          )
+        );
+        handleEditClose();
+      })
+      .catch(() => {
+        // Optionally show an error toast/snackbar here
+      });
   };
-
   const handleDeleteUser = (user) => {
     if (!window.confirm(`Are you sure you want to delete ${user.email}?`))
       return;
