@@ -30,7 +30,11 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import Popover from "@mui/material/Popover";
+import Tooltip from "@mui/material/Tooltip";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import Fade from "@mui/material/Fade";
+
 
 export default function CandidatesDashboard() {
   const [collapsed, setCollapsed] = useState(false);
@@ -40,18 +44,36 @@ export default function CandidatesDashboard() {
   const [fadeIn, setFadeIn] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [user, setUser] = useState<{
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+  } | null>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [tutorialStep, setTutorialStep] = useState(0);
+  const [fadeIn, setFadeIn] = useState(true);
+
   const reviewBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     document.title = "Candidates Dashboard";
+
+    // Fetch user info from API
+    const email = localStorage.getItem("userEmail") || "admin@email.com";
+    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
+      .then((res) => res.json())
+      .then((data) => setUser(data))
+      .catch(() => setUser(null));
   }, []);
 
   useEffect(() => {
-    // Set anchorEl after the button is mounted
     if (reviewBtnRef.current) {
       setAnchorEl(reviewBtnRef.current);
     }
-  }, []);
+  }, [showTutorial]);
+
 
   const handleStepChange = (nextStep: number) => {
     setFadeIn(false);
@@ -61,6 +83,7 @@ export default function CandidatesDashboard() {
     }, 250);
   };
   const handleCloseTutorial = () => setShowTutorial(false);
+
 
   return (
     <Box
@@ -204,7 +227,16 @@ export default function CandidatesDashboard() {
               onClick={() => navigate("/settings")}
             >
               <AccountCircleIcon sx={{ mr: 1 }} />
-              <Typography variant="subtitle1">Admin User</Typography>
+              <Typography variant="subtitle1">
+                {user
+                  ? user.first_name
+                    ? `${user.first_name} ${user.last_name || ""} (${
+                        user.role || "User"
+                      })`
+                    : (user.username || user.email) +
+                      (user.role ? ` (${user.role})` : "")
+                  : "User"}
+              </Typography>
             </Box>
             <Tooltip title="Run Tutorial" arrow>
               <IconButton
@@ -308,15 +340,16 @@ export default function CandidatesDashboard() {
                           variant="contained"
                           sx={reviewButtonStyle}
                           onClick={() => navigate("/candidate-review")}
-                          ref={idx === 0 ? reviewBtnRef : null} // Only first button gets the ref
+                          ref={idx === 0 ? reviewBtnRef : null}
                         >
                           Review
                         </Button>
-                        {/* Only render the Popover for the first button */}
+
                         {idx === 0 && (
                           <Popover
                             open={showTutorial && Boolean(anchorEl)}
                             anchorEl={anchorEl}
+
                             onClose={handleCloseTutorial}
                             anchorOrigin={{
                               vertical: "top",
@@ -351,7 +384,9 @@ export default function CandidatesDashboard() {
                                   Click <b>Review</b> to view and assess this
                                   candidate's CV.
                                 </Typography>
+
                                 {/* Shared navigation buttons */}
+
                                 <Box
                                   sx={{
                                     display: "flex",
@@ -365,6 +400,7 @@ export default function CandidatesDashboard() {
                                     variant="text"
                                     size="small"
                                     onClick={handleCloseTutorial}
+
                                     sx={{
                                       color: "#888",
                                       fontSize: "0.85rem",
@@ -378,6 +414,7 @@ export default function CandidatesDashboard() {
                                   <Box sx={{ display: "flex", gap: 2 }}>
                                     <Button
                                       variant="contained"
+
                                       onClick={handleCloseTutorial}
                                       sx={{
                                         bgcolor: "#5a88ad",

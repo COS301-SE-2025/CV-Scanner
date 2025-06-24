@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
+
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   Typography,
@@ -40,37 +41,22 @@ import logo2 from "../assets/logo2.png";
 
 export default function UserManagementPage() {
   const [collapsed, setCollapsed] = useState(false);
-  const navigate = useNavigate();
   const location = useLocation();
   const userRole = "Admin";
+  const navigate = useNavigate();
+  const [user, setUser] = useState<{
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+    role?: string;
+    email?: string;
+  } | null>(null);
 
-  // 1. Update your users array:
-  const users = [
-    {
-      username: "adminuser",
-      first_name: "Admin",
-      last_name: "User",
-      email: "admin@entelect.co.za",
-      role: "Admin",
-      lastActive: "Today 09:15",
-    },
-    {
-      username: "editoruser",
-      first_name: "Editor",
-      last_name: "User",
-      email: "editor@entelect.co.za",
-      role: "Editor",
-      lastActive: "Yesterday, 14:30",
-    },
-    {
-      username: "uploaderuser",
-      first_name: "Uploader",
-      last_name: "User",
-      email: "uploader@entelect.co.za",
-      role: "Uploader",
-      lastActive: "2 days ago",
-    },
-  ];
+
+  const [users, setUsers] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("All Roles");
+
 
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -82,46 +68,16 @@ export default function UserManagementPage() {
     role: "",
   });
 
-  const [tutorialStep, setTutorialStep] = useState(0);
+
+  const [tutorialStep, setTutorialStep] = useState(-1); // -1 means not showing
   const [fadeIn, setFadeIn] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
+  // Tutorial refs
   const searchRef = useRef<HTMLInputElement>(null);
   const filterBoxRef = useRef<HTMLDivElement>(null);
   const addUserRef = useRef<HTMLButtonElement>(null);
   const firstEditRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (tutorialStep === 0 && searchRef.current) setAnchorEl(searchRef.current);
-    else if (tutorialStep === 1 && filterBoxRef.current)
-      setAnchorEl(filterBoxRef.current);
-    else if (tutorialStep === 2 && addUserRef.current)
-      setAnchorEl(addUserRef.current);
-    else if (tutorialStep === 3 && firstEditRef.current)
-      setAnchorEl(firstEditRef.current);
-    else setAnchorEl(null);
-  }, [tutorialStep]);
-
-  const handleStepChange = (nextStep: number) => {
-    setFadeIn(false);
-    setTimeout(() => {
-      setTutorialStep(nextStep);
-      setFadeIn(true);
-    }, 250);
-
-    // Wait for the next element to mount before setting anchorEl
-    setTimeout(() => {
-      if (nextStep === 0 && searchRef.current) setAnchorEl(searchRef.current);
-      else if (nextStep === 1 && filterBoxRef.current)
-        setAnchorEl(filterBoxRef.current);
-      else if (nextStep === 2 && addUserRef.current)
-        setAnchorEl(addUserRef.current);
-      else if (nextStep === 3 && firstEditRef.current)
-        setAnchorEl(firstEditRef.current);
-      else setAnchorEl(null);
-    }, 300); // Slightly longer than fade timeout
-  };
-  const handleCloseTutorial = () => setTutorialStep(-1);
 
   const handleEditClick = (user) => {
     setEditingUser(user);
@@ -141,13 +97,116 @@ export default function UserManagementPage() {
   };
 
   const handleEditSave = () => {
-    console.log("Saving user:", editFormData);
-    handleEditClose();
+    fetch("http://localhost:8081/auth/edit-user", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(editFormData),
+    })
+      .then((res) => res.text())
+      .then((msg) => {
+        // Optionally show a toast/snackbar here
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.email === editFormData.email ? { ...u, ...editFormData } : u
+          )
+        );
+        handleEditClose();
+      })
+      .catch(() => {
+        // Optionally show an error toast/snackbar here
+      });
   };
-
   const handleDeleteUser = (user) => {
-    console.log("Deleting user:", user);
+    if (!window.confirm(`Are you sure you want to delete ${user.email}?`))
+      return;
+    fetch(
+      `http://localhost:8081/auth/delete-user?email=${encodeURIComponent(
+        user.email
+      )}`,
+      {
+        method: "DELETE",
+      }
+    )
+      .then((res) => res.text())
+      .then((msg) => {
+        // Optionally show a toast/snackbar here
+        // Refresh the user list
+        setUsers((prev) => prev.filter((u) => u.email !== user.email));
+      })
+      .catch(() => {
+        // Optionally show an error toast/snackbar here
+      });
   };
+  useEffect(() => {
+    const email = localStorage.getItem("userEmail") || "admin@email.com";
+    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
+      .then((res) => res.json())
+      .then((data) => setUser(data))
+      .catch(() => setUser(null));
+  }, []);
+
+  useEffect(() => {
+    if (user && user.role && user.role.toLowerCase() !== "admin") {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
+
+  useEffect(() => {
+    fetch("http://localhost:8081/auth/all-users")
+      .then((res) => res.json())
+      .then((data) => setUsers(data))
+      .catch(() => setUsers([]));
+  }, []);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      let url = "http://localhost:8081/auth/all-users";
+      if (search.trim() !== "") {
+        url = `http://localhost:8081/auth/search-users?query=${encodeURIComponent(
+          search
+        )}`;
+      }
+      fetch(url)
+        .then((res) => res.json())
+        .then((data) => setUsers(data))
+        .catch(() => setUsers([]));
+    };
+    fetchUsers();
+  }, [search]);
+
+  useEffect(() => {
+    let url = "http://localhost:8081/auth/all-users";
+    if (roleFilter !== "All Roles") {
+      url = `http://localhost:8081/auth/filter-users?role=${encodeURIComponent(
+        roleFilter
+      )}`;
+    }
+    fetch(url)
+      .then((res) => res.json())
+      .then((data) => setUsers(data))
+      .catch(() => setUsers([]));
+  }, [roleFilter]);
+
+  // Set anchorEl for tutorial popover
+  useEffect(() => {
+    if (tutorialStep === 0 && searchRef.current) setAnchorEl(searchRef.current);
+    else if (tutorialStep === 1 && filterBoxRef.current)
+      setAnchorEl(filterBoxRef.current);
+    else if (tutorialStep === 2 && addUserRef.current)
+      setAnchorEl(addUserRef.current);
+    else if (tutorialStep === 3 && firstEditRef.current)
+      setAnchorEl(firstEditRef.current);
+    else setAnchorEl(null);
+  }, [tutorialStep]);
+
+  const handleStepChange = (nextStep: number) => {
+    setFadeIn(false);
+    setTimeout(() => {
+      setTutorialStep(nextStep);
+      setFadeIn(true);
+    }, 250);
+  };
+  const handleCloseTutorial = () => setTutorialStep(-1);
 
   return (
     <Box
@@ -290,9 +349,20 @@ export default function UserManagementPage() {
               onClick={() => navigate("/settings")}
             >
               <AccountCircleIcon sx={{ mr: 1 }} />
-              <Typography variant="subtitle1">Admin User</Typography>
+              <Typography variant="subtitle1">
+                {user
+                  ? user.first_name
+                    ? `${user.first_name} ${user.last_name || ""} (${
+                        user.role || "User"
+                      })`
+                    : (user.username || user.email) +
+                      (user.role ? ` (${user.role})` : "")
+                  : "User"}
+              </Typography>
             </Box>
-            {/* Add the Tutorial button here */}
+
+            {/* Tutorial Icon - left of logout */}
+
             <Tooltip title="Run Tutorial" arrow>
               <IconButton
                 color="primary"
@@ -330,16 +400,22 @@ export default function UserManagementPage() {
               variant="outlined"
               fullWidth
               sx={{ bgcolor: "#fff", borderRadius: 1 }}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
             />
             <div ref={filterBoxRef}>
               <Select
-                defaultValue="All Roles"
+
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+
                 sx={{ bgcolor: "#fff", borderRadius: 1, minWidth: 150 }}
               >
                 <MenuItem value="All Roles">All Roles</MenuItem>
                 <MenuItem value="Admin">Admin</MenuItem>
                 <MenuItem value="Editor">Editor</MenuItem>
-                <MenuItem value="Uploader">Uploader</MenuItem>
+                <MenuItem value="User">User</MenuItem>
+
               </Select>
             </div>
             <Button
@@ -378,10 +454,12 @@ export default function UserManagementPage() {
                 {/* 3. Update the table rows: */}
                 <TableBody>
                   {users.map((user, idx) => (
-                    <TableRow key={user.username}>
-                      <TableCell>{user.username}</TableCell>
-                      <TableCell>{user.first_name}</TableCell>
-                      <TableCell>{user.last_name}</TableCell>
+
+                    <TableRow key={idx}>
+                      <TableCell>{user.username || ""}</TableCell>
+                      <TableCell>{user.first_name || ""}</TableCell>
+                      <TableCell>{user.last_name || ""}</TableCell>
+
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
                         <Button
@@ -402,7 +480,7 @@ export default function UserManagementPage() {
                           {user.role}
                         </Button>
                       </TableCell>
-                      <TableCell>{user.lastActive}</TableCell>
+                      <TableCell>{user.lastActive || "N/A"}</TableCell>
                       <TableCell>
                         <Button
                           variant="contained"
@@ -471,6 +549,7 @@ export default function UserManagementPage() {
             <Box
               sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}
             >
+
               <TextField
                 label="Username"
                 fullWidth
@@ -484,6 +563,7 @@ export default function UserManagementPage() {
                 fullWidth
                 value={editFormData.first_name}
                 onChange={(e) =>
+
                   setEditFormData({
                     ...editFormData,
                     first_name: e.target.value,
@@ -515,7 +595,9 @@ export default function UserManagementPage() {
                   setEditFormData({ ...editFormData, role: e.target.value })
                 }
                 fullWidth
+                displayEmpty
               >
+                <MenuItem value="">Select Role</MenuItem>
                 <MenuItem value="Admin">Admin</MenuItem>
                 <MenuItem value="Editor">Editor</MenuItem>
                 <MenuItem value="Uploader">Uploader</MenuItem>
@@ -581,7 +663,9 @@ export default function UserManagementPage() {
                     Filter by Role
                   </Typography>
                   <Typography sx={{ mb: 2 }}>
-                    Use these filters to view <b>Admins</b>, <b>Managers</b>,{" "}
+
+                    Use these filters to view <b>Admins</b>, <b>Editors</b>,{" "}
+
                     <b>Users</b>, or <b>All</b>.
                   </Typography>
                 </>

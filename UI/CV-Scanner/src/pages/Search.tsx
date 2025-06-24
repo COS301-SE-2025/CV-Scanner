@@ -16,7 +16,6 @@ import {
   Badge,
   Popover,
   Fade,
-  Pagination,
   Tooltip,
 } from "@mui/material";
 import { useEffect, useMemo, useState, useRef } from "react";
@@ -40,11 +39,15 @@ export default function Search() {
   const [selectedSkills, setSelectedSkills] = useState([]);
   const [selectedFits, setSelectedFits] = useState([]);
   const [selectedDetails, setSelectedDetails] = useState([]);
-  const [tutorialStep, setTutorialStep] = useState(0);
+  const [user, setUser] = useState<{
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+    role?: string;
+  } | null>(null);
+  const [tutorialStep, setTutorialStep] = useState(-1); // -1 means not showing
   const [fadeIn, setFadeIn] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const [page, setPage] = useState(1);
-  const itemsPerPage = 10;
 
   const location = useLocation();
 
@@ -123,7 +126,16 @@ export default function Search() {
   };
 
   useEffect(() => {
+
     document.title = "Search Candidates";
+    const email = localStorage.getItem("userEmail") || "admin@email.com";
+    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Fetched user:", data);
+        setUser(data);
+      })
+      .catch(() => setUser(null));
   }, []);
 
   const searchBarRef = useRef<HTMLInputElement>(null);
@@ -148,18 +160,6 @@ export default function Search() {
     }, 250);
   };
   const handleCloseTutorial = () => setTutorialStep(-1);
-
-  // Reset to first page when filters/search change
-  useEffect(() => {
-    setPage(1);
-  }, [searchText, selectedSkills, selectedFits, selectedDetails]);
-
-  // Calculate paginated candidates
-  const paginatedCandidates = filteredCandidates.slice(
-    (page - 1) * itemsPerPage,
-    page * itemsPerPage
-  );
-
   return (
     <Box
       sx={{
@@ -291,9 +291,18 @@ export default function Search() {
               onClick={() => navigate("/settings")}
             >
               <AccountCircleIcon sx={{ mr: 1 }} />
-              <Typography variant="subtitle1">Admin User</Typography>
+              <Typography variant="subtitle1">
+                {user
+                  ? user.first_name
+                    ? `${user.first_name} ${user.last_name || ""} (${
+                        user.role || "User"
+                      })`
+                    : (user.username || user.email) +
+                      (user.role ? ` (${user.role})` : "")
+                  : "User"}
+              </Typography>
             </Box>
-            {/* Add the Tutorial button here */}
+            {/* Tutorial Icon - left of logout */}
             <Tooltip title="Run Tutorial" arrow>
               <IconButton
                 color="primary"
@@ -447,8 +456,8 @@ export default function Search() {
 
             {/* Candidate Cards */}
             <div ref={resultsRef}>
-              {paginatedCandidates.length > 0 ? (
-                paginatedCandidates.map((candidate, idx) => (
+              {filteredCandidates.length > 0 ? (
+                filteredCandidates.map((candidate, idx) => (
                   <Paper
                     key={idx}
                     elevation={3}
@@ -457,14 +466,15 @@ export default function Search() {
                       mb: 3,
                       borderRadius: 3,
                       backgroundColor: "#e1f4ff",
-                      cursor: "pointer",
+                      cursor: "pointer", // Shows it's clickable
                       "&:hover": {
-                        boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
+                        boxShadow: "0 4px 8px rgba(0,0,0,0.2)", // Visual feedback
+
                         transform: "translateY(-2px)",
                       },
                       transition: "all 0.2s ease",
                     }}
-                    onClick={() => navigate("/candidate-review")}
+                    onClick={() => navigate("/candidate-review")} // Correct placement
                   >
                     <Box
                       sx={{ display: "flex", alignItems: "flex-start", gap: 3 }}
@@ -532,33 +542,8 @@ export default function Search() {
               )}
             </div>
 
-            {/* Always reserve space for pagination */}
-            <Box
-              sx={{
-                minHeight: 64,
-                mt: 4,
-                display: "flex",
-                justifyContent: "center",
-              }}
-            >
-              <Pagination
-                count={Math.max(
-                  1,
-                  Math.ceil(filteredCandidates.length / itemsPerPage)
-                )}
-                page={page}
-                onChange={(_, value) => setPage(value)}
-                siblingCount={1}
-                boundaryCount={1}
-                color="primary"
-                sx={{
-                  bgcolor: "#fff",
-                  borderRadius: 2,
-                  p: 1,
-                  boxShadow: 1,
-                }}
-              />
-            </Box>
+            {/* Pagination ... */}
+
           </Paper>
         </Box>
       </Box>

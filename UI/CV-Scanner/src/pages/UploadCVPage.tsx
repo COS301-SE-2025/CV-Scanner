@@ -1,4 +1,6 @@
-import React, { useState, useRef, useEffect } from "react";
+
+import React, { useState, useEffect, useRef } from "react";
+
 import {
   Box,
   Typography,
@@ -47,14 +49,40 @@ export default function UploadCVPage() {
   const [isModalOpen, setIsModalOpen] = useState(false); // State for modal visibility
   const [contactInfo, setContactInfo] = useState(""); // State for contact information
   const [additionalInfo, setAdditionalInfo] = useState(""); // State for additional information
+
+  const [user, setUser] = useState<{
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+  } | null>(null);
   const [tutorialStep, setTutorialStep] = useState(0);
   const [fadeIn, setFadeIn] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const [showTutorial, setShowTutorial] = useState(false); // New state for tutorial visibility
+  const [showTutorial, setShowTutorial] = useState(false);
+
 
   const uploadBoxRef = useRef<HTMLDivElement>(null);
   const additionalInfoRef = useRef<HTMLInputElement>(null);
   const processBtnRef = useRef<HTMLButtonElement>(null);
+
+
+  useEffect(() => {
+    const email = localStorage.getItem("userEmail") || "admin@email.com";
+    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
+      .then((res) => res.json())
+      .then((data) => setUser(data))
+      .catch(() => setUser(null));
+  }, []);
+
+  useEffect(() => {
+    if (tutorialStep === 0 && uploadBoxRef.current)
+      setAnchorEl(uploadBoxRef.current);
+    else if (tutorialStep === 1 && additionalInfoRef.current)
+      setAnchorEl(additionalInfoRef.current);
+    else if (tutorialStep === 2 && processBtnRef.current)
+      setAnchorEl(processBtnRef.current);
+    else setAnchorEl(null);
+  }, [tutorialStep]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -94,6 +122,15 @@ export default function UploadCVPage() {
       fileInput.click();
     }
   };
+
+  const handleStepChange = (nextStep: number) => {
+    setFadeIn(false);
+    setTimeout(() => {
+      setTutorialStep(nextStep);
+      setFadeIn(true);
+    }, 250);
+  };
+  const handleCloseTutorial = () => setShowTutorial(false);
 
   const navigate = useNavigate();
 
@@ -252,7 +289,16 @@ export default function UploadCVPage() {
               onClick={() => navigate("/settings")}
             >
               <AccountCircleIcon sx={{ mr: 1 }} />
-              <Typography variant="subtitle1">Admin User</Typography>
+              <Typography variant="subtitle1">
+                {user
+                  ? user.first_name
+                    ? `${user.first_name} ${user.last_name || ""} (${
+                        user.role || "User"
+                      })`
+                    : (user.username || user.email) +
+                      (user.role ? ` (${user.role})` : "")
+                  : "User"}
+              </Typography>
             </Box>
             <Tooltip title="Run Tutorial" arrow>
               <IconButton
@@ -311,6 +357,7 @@ export default function UploadCVPage() {
                 mb: 3,
                 bgcolor: "#fff",
               }}
+              ref={uploadBoxRef}
             >
               <CloudUploadIcon fontSize="large" />
               <Typography variant="body2">
@@ -573,7 +620,8 @@ export default function UploadCVPage() {
           Boolean(anchorEl)
         }
         anchorEl={anchorEl}
-        onClose={() => setShowTutorial(false)}
+
+        onClose={handleCloseTutorial}
         anchorOrigin={{
           vertical: "top",
           horizontal: "center",
@@ -642,7 +690,8 @@ export default function UploadCVPage() {
               <Button
                 variant="text"
                 size="small"
-                onClick={() => setShowTutorial(false)}
+
+                onClick={handleCloseTutorial}
                 sx={{
                   color: "#888",
                   fontSize: "0.85rem",
@@ -686,7 +735,8 @@ export default function UploadCVPage() {
                 ) : (
                   <Button
                     variant="contained"
-                    onClick={() => setShowTutorial(false)}
+
+                    onClick={handleCloseTutorial}
                     sx={{
                       bgcolor: "#5a88ad",
                       color: "#fff",

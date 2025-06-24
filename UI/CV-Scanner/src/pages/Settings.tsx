@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from 'react-router-dom';
 import {
@@ -30,21 +30,49 @@ export default function SettingsPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
-  
-const location = useLocation();
+  const [user, setUser] = useState<{
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+    role?: string;
+    email?: string;
+  } | null>(null);
 
-  // Form states
   const [profileForm, setProfileForm] = useState({
     firstName: "Admin",
     lastName: "User",
     email: "admin@entelect.co.za",
   });
+   useEffect(() => {
+     const email = localStorage.getItem("userEmail");
+     if (!email) return;
+     fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
+       .then((res) => res.json())
+       .then((data) => setUser(data))
+       .catch(() => setUser(null));
+   }, []);
+
+const location = useLocation();
   
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
+
+  useEffect(() => {
+    const email = localStorage.getItem("userEmail");
+    if (!email) return;
+    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setProfileForm({
+          firstName: data.first_name || "",
+          lastName: data.last_name || "",
+          email: data.email || "",
+        });
+      });
+  }, []);
 
   // Handle profile updates
   const handleProfileUpdate = async (e: React.FormEvent) => {
@@ -155,25 +183,60 @@ const location = useLocation();
   };
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#181c2f", color: "#fff" }}>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        bgcolor: "#181c2f",
+        color: "#fff",
+      }}
+    >
       {/* Sidebar */}
-      <Box sx={{ width: 220, bgcolor: "#5a88ad", display: "flex", flexDirection: "column", p: 2 }}>
+      <Box
+        sx={{
+          width: 220,
+          bgcolor: "#5a88ad",
+          display: "flex",
+          flexDirection: "column",
+          p: 2,
+        }}
+      >
         <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
           <img src={logo2} alt="Team Logo" style={{ width: 120 }} />
         </Box>
-        <Button fullWidth sx={navButtonStyle} startIcon={<DashboardIcon />} onClick={() => navigate("/dashboard")}>
+        <Button
+          fullWidth
+          sx={navButtonStyle}
+          startIcon={<DashboardIcon />}
+          onClick={() => navigate("/dashboard")}
+        >
           Dashboard
         </Button>
-        <Button fullWidth sx={navButtonStyle} startIcon={<UploadFileIcon />} onClick={() => navigate("/upload")}>
+        <Button
+          fullWidth
+          sx={navButtonStyle}
+          startIcon={<UploadFileIcon />}
+          onClick={() => navigate("/upload")}
+        >
           Upload CV
         </Button>
-        <Button fullWidth sx={navButtonStyle} startIcon={<PeopleIcon />} onClick={() => navigate("/candidates")}>
+        <Button
+          fullWidth
+          sx={navButtonStyle}
+          startIcon={<PeopleIcon />}
+          onClick={() => navigate("/candidates")}
+        >
           Candidates
         </Button>
-        <Button fullWidth sx={navButtonStyle} startIcon={<SearchIcon />} onClick={() => navigate("/search")}>
+        <Button
+          fullWidth
+          sx={navButtonStyle}
+          startIcon={<SearchIcon />}
+          onClick={() => navigate("/search")}
+        >
           Search
         </Button>
-       {/* <Button fullWidth sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }} startIcon={<SettingsIcon />}>
+        {/* <Button fullWidth sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }} startIcon={<SettingsIcon />}>
           Settings
         </Button> */}
         <Box sx={{ flexGrow: 1 }} />
@@ -182,7 +245,10 @@ const location = useLocation();
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
-        <AppBar position="static" sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}>
+        <AppBar
+          position="static"
+          sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
+        >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
             <IconButton color="inherit">
               <Badge badgeContent={4} color="error">
@@ -191,7 +257,16 @@ const location = useLocation();
             </IconButton>
             <Box sx={{ display: "flex", alignItems: "center", ml: 2 }}>
               <AccountCircleIcon sx={{ mr: 1 }} />
-              <Typography variant="subtitle1">Admin User</Typography>
+              <Typography variant="subtitle1">
+                {user
+                  ? user.first_name
+                    ? `${user.first_name} ${user.last_name || ""} (${
+                        user.role || "User"
+                      })`
+                    : (user.username || user.email) +
+                      (user.role ? ` (${user.role})` : "")
+                  : "User"}
+              </Typography>
             </Box>
           </Toolbar>
         </AppBar>
@@ -202,24 +277,49 @@ const location = useLocation();
             User Settings
           </Typography>
 
-          <Paper elevation={6} sx={{ p: 4, borderRadius: 3, bgcolor: "#e1f4ff", maxWidth: 800 }}>
+          <Paper
+            elevation={6}
+            sx={{ p: 4, borderRadius: 3, bgcolor: "#e1f4ff", maxWidth: 800 }}
+          >
             {/* Error/Success Alerts */}
-            {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
-            {success && <Alert severity="success" sx={{ mb: 3 }}>{success}</Alert>}
+            {error && (
+              <Alert severity="error" sx={{ mb: 3 }}>
+                {error}
+              </Alert>
+            )}
+            {success && (
+              <Alert severity="success" sx={{ mb: 3 }}>
+                {success}
+              </Alert>
+            )}
 
             {/* Profile Section */}
             <Box component="form" onSubmit={handleProfileUpdate} sx={{ mb: 4 }}>
-              <Typography variant="h6" sx={{ fontWeight: "bold", color: "#0073c1", mb: 2 }}>
+              <Typography
+                variant="h6"
+                sx={{ fontWeight: "bold", color: "#0073c1", mb: 2 }}
+              >
                 Profile Information
               </Typography>
-              
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                <Avatar sx={{ width: 80, height: 80, bgcolor: '#0073c1', fontSize: '2rem', mr: 3 }}>
-                  {profileForm.firstName[0]}{profileForm.lastName[0]}
+
+              <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+                <Avatar
+                  sx={{
+                    width: 80,
+                    height: 80,
+                    bgcolor: "#0073c1",
+                    fontSize: "2rem",
+                    mr: 3,
+                  }}
+                >
+                  {profileForm.firstName[0]}
+                  {profileForm.lastName[0]}
                 </Avatar>
               </Box>
 
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
+              <Box
+                sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3 }}
+              >
                 <TextField
                   name="firstName"
                   label="First Name"
@@ -228,7 +328,7 @@ const location = useLocation();
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: '#fff', borderRadius: 1 } }}
+                  InputProps={{ sx: { bgcolor: "#fff", borderRadius: 1 } }}
                 />
                 <TextField
                   name="lastName"
@@ -238,7 +338,7 @@ const location = useLocation();
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: '#fff', borderRadius: 1 } }}
+                  InputProps={{ sx: { bgcolor: "#fff", borderRadius: 1 } }}
                 />
                 <TextField
                   name="email"
@@ -248,21 +348,23 @@ const location = useLocation();
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: '#fff', borderRadius: 1 } }}
+                  InputProps={{ sx: { bgcolor: "#fff", borderRadius: 1 } }}
                 />
               </Box>
 
-              <Button 
+              <Button
                 type="submit"
                 variant="contained"
                 disabled={loading}
-                sx={{ 
+                sx={{
                   mt: 2,
-                  background: 'linear-gradient(90deg, #232a3b 0%, #6ddf6d 100%)',
-                  color: '#fff',
-                  '&:hover': {
-                    background: 'linear-gradient(90deg, #232a3b 0%, #4bb34b 100%)',
-                  }
+                  background:
+                    "linear-gradient(90deg, #232a3b 0%, #6ddf6d 100%)",
+                  color: "#fff",
+                  "&:hover": {
+                    background:
+                      "linear-gradient(90deg, #232a3b 0%, #4bb34b 100%)",
+                  },
                 }}
               >
                 {loading ? "Updating..." : "Update Profile"}
@@ -272,12 +374,21 @@ const location = useLocation();
             <Divider sx={{ my: 3 }} />
 
             {/* Password Section */}
-            <Box component="form" onSubmit={handlePasswordChange} sx={{ mb: 4 }}>
-              <Typography variant="h6" sx={{ fontWeight: "bold", color: "#0073c1", mb: 2 }}>
+            <Box
+              component="form"
+              onSubmit={handlePasswordChange}
+              sx={{ mb: 4 }}
+            >
+              <Typography
+                variant="h6"
+                sx={{ fontWeight: "bold", color: "#0073c1", mb: 2 }}
+              >
                 Change Password
               </Typography>
-              
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
+
+              <Box
+                sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3 }}
+              >
                 <TextField
                   name="currentPassword"
                   label="Current Password"
@@ -287,7 +398,7 @@ const location = useLocation();
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: '#fff', borderRadius: 1 } }}
+                  InputProps={{ sx: { bgcolor: "#fff", borderRadius: 1 } }}
                 />
                 <Box></Box>
                 <TextField
@@ -299,7 +410,7 @@ const location = useLocation();
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: '#fff', borderRadius: 1 } }}
+                  InputProps={{ sx: { bgcolor: "#fff", borderRadius: 1 } }}
                 />
                 <TextField
                   name="confirmPassword"
@@ -310,22 +421,24 @@ const location = useLocation();
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: '#fff', borderRadius: 1 } }}
+                  InputProps={{ sx: { bgcolor: "#fff", borderRadius: 1 } }}
                 />
               </Box>
 
-              <Button 
+              <Button
                 type="submit"
                 variant="contained"
                 disabled={loading}
                 startIcon={<LockResetIcon />}
-                sx={{ 
+                sx={{
                   mt: 2,
-                  background: 'linear-gradient(90deg, #232a3b 0%, #6ddf6d 100%)',
-                  color: '#fff',
-                  '&:hover': {
-                    background: 'linear-gradient(90deg, #232a3b 0%, #4bb34b 100%)',
-                  }
+                  background:
+                    "linear-gradient(90deg, #232a3b 0%, #6ddf6d 100%)",
+                  color: "#fff",
+                  "&:hover": {
+                    background:
+                      "linear-gradient(90deg, #232a3b 0%, #4bb34b 100%)",
+                  },
                 }}
               >
                 {loading ? "Updating..." : "Update Password"}
@@ -336,15 +449,13 @@ const location = useLocation();
 
             {/* Danger Zone */}
             <Box>
-              
-              
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <Button 
-                  variant="contained" 
-                  sx={{ 
-                    bgcolor: '#f44336',
-                    color: '#fff',
-                    '&:hover': { bgcolor: '#d32f2f' }
+              <Box sx={{ display: "flex", gap: 2 }}>
+                <Button
+                  variant="contained"
+                  sx={{
+                    bgcolor: "#f44336",
+                    color: "#fff",
+                    "&:hover": { bgcolor: "#d32f2f" },
                   }}
                   onClick={handleLogout}
                 >

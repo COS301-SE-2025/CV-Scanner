@@ -32,13 +32,24 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import Popover from "@mui/material/Popover";
+import Fade from "@mui/material/Fade";
+import Tooltip from "@mui/material/Tooltip";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 
 export default function CandidatesPage() {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [tutorialStep, setTutorialStep] = useState(0);
+
+  const [user, setUser] = useState<{
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+  } | null>(null);
+  const [tutorialStep, setTutorialStep] = useState(-1); // -1 means not showing
+
   const [fadeIn, setFadeIn] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
@@ -48,6 +59,11 @@ export default function CandidatesPage() {
 
   useEffect(() => {
     document.title = "Candidates";
+    const email = localStorage.getItem("userEmail") || "admin@email.com";
+    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
+      .then((res) => res.json())
+      .then((data) => setUser(data))
+      .catch(() => setUser(null));
   }, []);
 
   useEffect(() => {
@@ -226,9 +242,19 @@ export default function CandidatesPage() {
               onClick={() => navigate("/settings")}
             >
               <AccountCircleIcon sx={{ mr: 1 }} />
-              <Typography variant="subtitle1">Admin User</Typography>
+              <Typography variant="subtitle1">
+                {user
+                  ? user.first_name
+                    ? `${user.first_name} ${user.last_name || ""} (${
+                        user.role || "User"
+                      })`
+                    : (user.username || user.email) +
+                      (user.role ? ` (${user.role})` : "")
+                  : "User"}
+              </Typography>
             </Box>
-            {/* Add the Tutorial button here */}
+            {/* Tutorial Icon - left of logout */}
+
             <Tooltip title="Run Tutorial" arrow>
               <IconButton
                 color="primary"
@@ -388,7 +414,9 @@ export default function CandidatesPage() {
         }}
       >
         <Fade in={fadeIn} timeout={250}>
-          <MuiBox sx={{ position: "relative" }}>
+
+          <Box sx={{ position: "relative" }}>
+
             {tutorialStep === 0 && (
               <>
                 <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
@@ -482,7 +510,8 @@ export default function CandidatesPage() {
                 )}
               </Box>
             </Box>
-          </MuiBox>
+          </Box>
+
         </Fade>
       </Popover>
     </Box>

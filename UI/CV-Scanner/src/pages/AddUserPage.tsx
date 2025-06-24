@@ -76,24 +76,40 @@ export default function AddUserPage() {
     if (!emailRegex.test(formData.email)) {
       newErrors.email = "Invalid email address";
       isValid = false;
+    } else {
+      newErrors.email = "";
     }
 
     // Role validation
     if (!formData.role) {
       newErrors.role = "Role is required";
       isValid = false;
+    } else {
+      newErrors.role = "";
     }
 
     // Password validation
     if (formData.password.length < 8) {
       newErrors.password = "Password must be at least 8 characters";
       isValid = false;
+    } else {
+      newErrors.password = "";
     }
 
     // Confirm password validation
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
       isValid = false;
+    } else {
+      newErrors.confirmPassword = "";
+    }
+
+    // Username validation
+    if (!formData.username.trim()) {
+      newErrors.username = "Username is required";
+      isValid = false;
+    } else {
+      newErrors.username = "";
     }
 
     // Username validation
@@ -108,13 +124,47 @@ export default function AddUserPage() {
     return isValid;
   };
 
-  const handleSubmit = () => {
-    if (validateForm()) {
-      // Here you would typically make an API call to create the user
-      console.log("Creating user:", formData);
-      navigate("/user-management");
-    }
-  };
+    const handleSubmit = () => {
+      if (validateForm()) {
+        fetch("http://localhost:8081/auth/add-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: formData.username,
+            first_name: formData.first_name,
+            last_name: formData.last_name,
+            email: formData.email,
+            role: formData.role,
+            password: formData.password,
+          }),
+        })
+          .then((res) => res.text())
+          .then((msg) => {
+          
+            navigate("/user-management");
+          })
+          .catch(() => {
+            // Optionally show an error toast/snackbar here
+          });
+      }
+    };
+
+  const [user, setUser] = React.useState<{
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+    role?: string;
+    email?: string;
+  } | null>(null);
+
+  React.useEffect(() => {
+    const email = localStorage.getItem("userEmail");
+    if (!email) return;
+    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
+      .then((res) => res.json())
+      .then((data) => setUser(data))
+      .catch(() => setUser(null));
+  }, []);
 
   return (
     <Box
@@ -197,7 +247,16 @@ export default function AddUserPage() {
             </IconButton>
             <Box sx={{ display: "flex", alignItems: "center", ml: 2 }}>
               <AccountCircleIcon sx={{ mr: 1 }} />
-              <Typography variant="subtitle1">Admin User</Typography>
+              <Typography variant="subtitle1">
+                {user
+                  ? user.first_name
+                    ? `${user.first_name} ${user.last_name || ""} (${
+                        user.role || "User"
+                      })`
+                    : (user.username || user.email) +
+                      (user.role ? ` (${user.role})` : "")
+                  : "User"}
+              </Typography>
             </Box>
             <IconButton color="inherit" onClick={() => navigate("/login")}>
               <ExitToAppIcon />
