@@ -20,6 +20,7 @@ import {
   DialogActions,
   TextField,
   Chip,
+  Tooltip,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from 'react-router-dom';
@@ -35,7 +36,8 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import logo2 from "../assets/logo2.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
-import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+//import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 
 export default function CandidateExperiencePage() {
   const navigate = useNavigate();
@@ -108,40 +110,64 @@ export default function CandidateExperiencePage() {
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
-        <AppBar
-          position="static"
-          sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
-        >
-          <Toolbar sx={{ justifyContent: "flex-end" }}>
-            <IconButton color="inherit">
-              <Badge badgeContent={4} color="error">
-                <NotificationsIcon />
-              </Badge>
-            </IconButton>
+          <AppBar
+                   position="static"
+                   sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
+                 >
+                   <Toolbar sx={{ justifyContent: "flex-end" }}>
+           {/* Tutorial icon */}
+           {/*<Tooltip title="Run Tutorial" arrow>
+             <IconButton
+               color="inherit"
+               onClick={() => {
+                 setShowTutorial(true);
+                 setTutorialStep(0);
+                 setFadeIn(true);
+               }}
+             >
+               <LightbulbRoundedIcon />
+             </IconButton>
+           </Tooltip>*/}
+         
+           {/* Help / FAQ icon */}
+           <Tooltip title="Go to Help Page" arrow>
+             <IconButton
+               color="inherit"
+               onClick={() => navigate("/help")}
+               sx={{ ml: 1 }}
+             >
+               <HelpOutlineIcon />
+             </IconButton>
+           </Tooltip>
+         
+           {/* User Info */}
            <Box
-  sx={{
-    display: 'flex',
-    alignItems: 'center',
-    ml: 2,
-    cursor: 'pointer',
-    '&:hover': { opacity: 0.8 },
-  }}
-  onClick={() => navigate('/settings')}
->
-  <AccountCircleIcon sx={{ mr: 1 }} />
-  <Typography variant="subtitle1">Admin User</Typography>
-</Box>
-
-            <IconButton
-              color="inherit"
-              onClick={() => {
-                navigate("/login"); // Redirect to login page
-              }}
-            >
-              <ExitToAppIcon />
-            </IconButton>
-          </Toolbar>
-        </AppBar>
+             sx={{
+               display: "flex",
+               alignItems: "center",
+               ml: 2,
+               cursor: "pointer",
+               "&:hover": { opacity: 0.8 },
+             }}
+             onClick={() => navigate("/settings")}
+           >
+             <AccountCircleIcon sx={{ mr: 1 }} />
+             <Typography variant="subtitle1">
+               User
+             </Typography>
+           </Box>
+         
+           {/* Logout */}
+           <IconButton
+             color="inherit"
+             onClick={() => navigate("/login")}
+             sx={{ ml: 1 }}
+           >
+             <ExitToAppIcon />
+           </IconButton>
+         </Toolbar>
+                   
+                 </AppBar>
 
         {/* Experience Content */}
         <Box sx={{ p: 3 }}>

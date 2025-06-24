@@ -13,7 +13,8 @@ import {
   AppBar,
   Toolbar,
   IconButton,
-  Badge
+  Badge,
+  Tooltip,
 } from "@mui/material";
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
@@ -24,7 +25,9 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LockResetIcon from '@mui/icons-material/LockReset';
 import logo2 from '../assets/logo2.png';
-import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+//import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -246,31 +249,64 @@ const location = useLocation();
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
-        <AppBar
-          position="static"
-          sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
-        >
-          <Toolbar sx={{ justifyContent: "flex-end" }}>
-            <IconButton color="inherit">
-              <Badge badgeContent={4} color="error">
-                <NotificationsIcon />
-              </Badge>
-            </IconButton>
-            <Box sx={{ display: "flex", alignItems: "center", ml: 2 }}>
-              <AccountCircleIcon sx={{ mr: 1 }} />
-              <Typography variant="subtitle1">
-                {user
-                  ? user.first_name
-                    ? `${user.first_name} ${user.last_name || ""} (${
-                        user.role || "User"
-                      })`
-                    : (user.username || user.email) +
-                      (user.role ? ` (${user.role})` : "")
-                  : "User"}
-              </Typography>
-            </Box>
-          </Toolbar>
-        </AppBar>
+         <AppBar
+                                     position="static"
+                                     sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
+                                   >
+                                     <Toolbar sx={{ justifyContent: "flex-end" }}>
+                             {/* Tutorial icon */}
+                             {/*<Tooltip title="Run Tutorial" arrow>
+                               <IconButton
+                                 color="inherit"
+                                 onClick={() => {
+                                   setShowTutorial(true);
+                                   setTutorialStep(0);
+                                   setFadeIn(true);
+                                 }}
+                               >
+                                 <LightbulbRoundedIcon />
+                               </IconButton>
+                             </Tooltip>*/}
+                           
+                             {/* Help / FAQ icon */}
+                             <Tooltip title="Go to Help Page" arrow>
+                               <IconButton
+                                 color="inherit"
+                                 onClick={() => navigate("/help")}
+                                 sx={{ ml: 1 }}
+                               >
+                                 <HelpOutlineIcon />
+                               </IconButton>
+                             </Tooltip>
+                           
+                             {/* User Info */}
+                             <Box
+                               sx={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 ml: 2,
+                                 cursor: "pointer",
+                                 "&:hover": { opacity: 0.8 },
+                               }}
+                               onClick={() => navigate("/settings")}
+                             >
+                               <AccountCircleIcon sx={{ mr: 1 }} />
+                               <Typography variant="subtitle1">
+                                 User
+                               </Typography>
+                             </Box>
+                           
+                             {/* Logout */}
+                             <IconButton
+                               color="inherit"
+                               onClick={() => navigate("/login")}
+                               sx={{ ml: 1 }}
+                             >
+                               <ExitToAppIcon />
+                             </IconButton>
+                           </Toolbar>
+                                     
+                                   </AppBar>
 
         {/* Settings Content */}
         <Box sx={{ p: 3 }}>
