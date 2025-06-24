@@ -9,7 +9,6 @@ import {
   Toolbar,
   Badge,
   TextField,
-  Chip,
   Tooltip,
   Fade,
   Popover,
@@ -35,7 +34,7 @@ export default function CandidateNotesPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // User info state and fetch (like UserManagementPage)
+  // User info state and fetch
   const [user, setUser] = useState<{
     first_name?: string;
     last_name?: string;
@@ -52,22 +51,37 @@ export default function CandidateNotesPage() {
       .catch(() => setUser(null));
   }, []);
 
+  // Collapsing sidebar
+  const [collapsed, setCollapsed] = useState(false);
+
   // Tutorial logic
   const [tutorialStep, setTutorialStep] = useState(-1); // -1 means not showing
   const [fadeIn, setFadeIn] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const helpIconRef = useRef<HTMLButtonElement>(null);
+  const notesRef = useRef<HTMLDivElement>(null);
+  const saveButtonRef = useRef<HTMLButtonElement>(null);
+  const notesListRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (tutorialStep === 0 && helpIconRef.current)
-      setAnchorEl(helpIconRef.current);
+    if (tutorialStep === 0 && notesRef.current) setAnchorEl(notesRef.current);
+    else if (tutorialStep === 1 && saveButtonRef.current)
+      setAnchorEl(saveButtonRef.current);
+    else if (tutorialStep === 2 && notesListRef.current)
+      setAnchorEl(notesListRef.current);
     else setAnchorEl(null);
   }, [tutorialStep]);
 
-  const handleStepChange = (nextStep: number) => {
+  const handleNext = () => {
     setFadeIn(false);
     setTimeout(() => {
-      setTutorialStep(nextStep);
+      setTutorialStep((s) => s + 1);
+      setFadeIn(true);
+    }, 250);
+  };
+  const handleBack = () => {
+    setFadeIn(false);
+    setTimeout(() => {
+      setTutorialStep((s) => s - 1);
       setFadeIn(true);
     }, 250);
   };
@@ -95,8 +109,6 @@ export default function CandidateNotesPage() {
     }
   };
 
-  const [collapsed, setCollapsed] = useState(false);
-
   return (
     <Box
       sx={{
@@ -106,68 +118,84 @@ export default function CandidateNotesPage() {
         color: "#fff",
       }}
     >
-      
+      {/* Sidebar ...unchanged... */}
+
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
-          <AppBar position="static" sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}>
-  <Toolbar sx={{ justifyContent: "space-between" }}>
-    {/* Left: Logo */}
-    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-      <img src={logo} alt="Logo" style={{ width: 80 }} />
-      {/* Optional title next to logo */}
-      <Typography variant="h6" sx={{ ml: 2, fontWeight: 'bold' }}>Candidate Notes</Typography> 
-    </Box>
-
-    {/* Right: Icons */}
-    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-      <Tooltip title="Go to Help Page" arrow>
-        <IconButton
-          onClick={() => navigate("/help")}
-          sx={{ ml: 1, color: '#90ee90' }}
+        <AppBar
+          position="static"
+          sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
         >
-          <HelpOutlineIcon />
-        </IconButton>
-      </Tooltip>
-
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          ml: 2,
-          cursor: "pointer",
-          "&:hover": { opacity: 0.8 },
-        }}
-        onClick={() => navigate("/settings")}
-      >
-        <AccountCircleIcon sx={{ mr: 1 }} />
-        <Typography variant="subtitle1">
-                {user
-                  ? user.first_name
-                    ? `${user.first_name} ${user.last_name || ""} (${
-                        user.role || "User"
-                      })`
-                    : (user.username || user.email) +
-                      (user.role ? ` (${user.role})` : "")
-                  : "User"}
+          <Toolbar sx={{ justifyContent: "space-between" }}>
+            {/* Left: Logo and heading */}
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <img src={logo} alt="Logo" style={{ width: 80 }} />
+              <Typography variant="h6" sx={{ ml: 2, fontWeight: "bold" }}>
+                Candidate Notes
               </Typography>
-      </Box>
-
-      <IconButton
-        color="inherit"
-        onClick={() => navigate("/login")}
-        sx={{ ml: 1 }}
-      >
-        <ExitToAppIcon />
-      </IconButton>
-    </Box>
-  </Toolbar>
-</AppBar>
-
+            </Box>
+            {/* Right: Icons */}
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              {/* Tutorial icon */}
+              <Tooltip title="Run Tutorial" arrow>
+                <IconButton
+                  onClick={() => {
+                    setTutorialStep(0);
+                    setFadeIn(true);
+                  }}
+                  sx={{ ml: 1, color: "#FFEB3B" }}
+                >
+                  <LightbulbRoundedIcon />
+                </IconButton>
+              </Tooltip>
+              {/* Help icon */}
+              <Tooltip title="Go to Help Page" arrow>
+                <IconButton
+                  onClick={() => navigate("/help")}
+                  sx={{ ml: 1, color: "#90ee90" }}
+                >
+                  <HelpOutlineIcon />
+                </IconButton>
+              </Tooltip>
+              {/* User Info */}
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  ml: 2,
+                  cursor: "pointer",
+                  "&:hover": { opacity: 0.8 },
+                }}
+                onClick={() => navigate("/settings")}
+              >
+                <AccountCircleIcon sx={{ mr: 1 }} />
+                <Typography variant="subtitle1">
+                  {user
+                    ? user.first_name
+                      ? `${user.first_name} ${user.last_name || ""} (${
+                          user.role || "User"
+                        })`
+                      : (user.username || user.email) +
+                        (user.role ? ` (${user.role})` : "")
+                    : "User"}
+                </Typography>
+              </Box>
+              {/* Logout */}
+              <IconButton
+                color="inherit"
+                onClick={() => navigate("/login")}
+                sx={{ ml: 1 }}
+              >
+                <ExitToAppIcon />
+              </IconButton>
+            </Box>
+          </Toolbar>
+        </AppBar>
 
         {/* Tutorial Popover */}
         <Popover
-          open={tutorialStep === 0 && Boolean(anchorEl)}
+          open={tutorialStep >= 0 && Boolean(anchorEl)}
           anchorEl={anchorEl}
           onClose={handleCloseTutorial}
           anchorOrigin={{
@@ -185,7 +213,7 @@ export default function CandidateNotesPage() {
               color: "#181c2f",
               borderRadius: 2,
               boxShadow: 6,
-              minWidth: 280,
+              minWidth: 320,
               zIndex: 1500,
               textAlign: "center",
             },
@@ -194,33 +222,88 @@ export default function CandidateNotesPage() {
           <Fade in={fadeIn} timeout={250}>
             <Box sx={{ position: "relative" }}>
               <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-                Page Tutorial
+                {tutorialStep === 0
+                  ? "Recruiter Notes"
+                  : tutorialStep === 1
+                  ? "Save Notes"
+                  : "Saved Notes"}
               </Typography>
               <Typography sx={{ mb: 2 }}>
-                This is the help/tutorial popover. Add more steps as needed.
+                {tutorialStep === 0
+                  ? "Here you can add and view private notes about the candidate. These notes are only visible to recruiters."
+                  : tutorialStep === 1
+                  ? "Click this button to save your note for this candidate."
+                  : "Your saved notes will appear here below, with the newest at the top."}
               </Typography>
               <Box
                 sx={{
                   display: "flex",
-                  justifyContent: "flex-end",
+                  justifyContent: "space-between",
                   alignItems: "center",
                   mt: 3,
                   gap: 2,
                 }}
               >
                 <Button
-                  variant="contained"
+                  variant="text"
+                  size="small"
                   onClick={handleCloseTutorial}
                   sx={{
-                    bgcolor: "#5a88ad",
-                    color: "#fff",
-                    fontWeight: "bold",
+                    color: "#888",
+                    fontSize: "0.85rem",
                     textTransform: "none",
-                    "&:hover": { bgcolor: "#487DA6" },
+                    minWidth: "auto",
+                    p: 0,
+                    mr: "auto", // move to left
                   }}
                 >
-                  Finish
+                  End Tutorial
                 </Button>
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  {tutorialStep > 0 && (
+                    <Button
+                      variant="outlined"
+                      onClick={handleBack}
+                      sx={{
+                        color: "#0073c1",
+                        borderColor: "#0073c1",
+                        fontWeight: "bold",
+                        textTransform: "none",
+                      }}
+                    >
+                      Back
+                    </Button>
+                  )}
+                  {tutorialStep < 2 ? (
+                    <Button
+                      variant="contained"
+                      onClick={handleNext}
+                      sx={{
+                        bgcolor: "#5a88ad",
+                        color: "#fff",
+                        fontWeight: "bold",
+                        textTransform: "none",
+                        "&:hover": { bgcolor: "#487DA6" },
+                      }}
+                    >
+                      Next
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="contained"
+                      onClick={handleCloseTutorial}
+                      sx={{
+                        bgcolor: "#5a88ad",
+                        color: "#fff",
+                        fontWeight: "bold",
+                        textTransform: "none",
+                        "&:hover": { bgcolor: "#487DA6" },
+                      }}
+                    >
+                      Finish
+                    </Button>
+                  )}
+                </Box>
               </Box>
             </Box>
           </Fade>
@@ -280,6 +363,7 @@ export default function CandidateNotesPage() {
           <Paper
             elevation={6}
             sx={{ p: 3, borderRadius: 3, bgcolor: "#e1f4ff" }}
+            ref={notesRef}
           >
             <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
               Recruiter Notes
@@ -298,10 +382,11 @@ export default function CandidateNotesPage() {
               variant="contained"
               onClick={handleSaveNote}
               sx={{ bgcolor: "#0073c1" }}
+              ref={saveButtonRef}
             >
               Save Notes
             </Button>
-            <Box sx={{ mt: 3 }}>
+            <Box sx={{ mt: 3 }} ref={notesListRef}>
               {notes.map((note, idx) => (
                 <Box key={idx} sx={{ mb: 2 }}>
                   <Typography variant="body2" sx={{ fontWeight: "bold" }}>
