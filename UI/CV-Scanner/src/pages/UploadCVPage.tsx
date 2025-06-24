@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 
 import {
@@ -54,17 +53,17 @@ export default function UploadCVPage() {
     first_name?: string;
     last_name?: string;
     username?: string;
+    role?: string; // <-- add this
+    email?: string; // <-- and this
   } | null>(null);
   const [tutorialStep, setTutorialStep] = useState(0);
   const [fadeIn, setFadeIn] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
 
-
   const uploadBoxRef = useRef<HTMLDivElement>(null);
   const additionalInfoRef = useRef<HTMLInputElement>(null);
   const processBtnRef = useRef<HTMLButtonElement>(null);
-
 
   useEffect(() => {
     const email = localStorage.getItem("userEmail") || "admin@email.com";
@@ -130,6 +129,7 @@ export default function UploadCVPage() {
       setFadeIn(true);
     }, 250);
   };
+
   const handleCloseTutorial = () => setShowTutorial(false);
 
   const navigate = useNavigate();
@@ -147,15 +147,6 @@ export default function UploadCVPage() {
     else setAnchorEl(null);
   }, [tutorialStep]);
 
-  const handleStepChange = (nextStep: number) => {
-    setFadeIn(false);
-    setTimeout(() => {
-      setTutorialStep(nextStep);
-      setFadeIn(true);
-    }, 250); // match Fade timeout
-  };
-
-  const handleCloseTutorial = () => setShowTutorial(false); // Updated to use showTutorial state
 
   return (
     <Box
@@ -357,7 +348,6 @@ export default function UploadCVPage() {
                 mb: 3,
                 bgcolor: "#fff",
               }}
-              ref={uploadBoxRef}
             >
               <CloudUploadIcon fontSize="large" />
               <Typography variant="body2">
@@ -620,7 +610,6 @@ export default function UploadCVPage() {
           Boolean(anchorEl)
         }
         anchorEl={anchorEl}
-
         onClose={handleCloseTutorial}
         anchorOrigin={{
           vertical: "top",
@@ -690,7 +679,6 @@ export default function UploadCVPage() {
               <Button
                 variant="text"
                 size="small"
-
                 onClick={handleCloseTutorial}
                 sx={{
                   color: "#888",
@@ -735,7 +723,6 @@ export default function UploadCVPage() {
                 ) : (
                   <Button
                     variant="contained"
-
                     onClick={handleCloseTutorial}
                     sx={{
                       bgcolor: "#5a88ad",

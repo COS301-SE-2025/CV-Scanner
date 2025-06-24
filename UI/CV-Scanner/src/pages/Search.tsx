@@ -44,6 +44,7 @@ export default function Search() {
     last_name?: string;
     username?: string;
     role?: string;
+    email?: string;
   } | null>(null);
   const [tutorialStep, setTutorialStep] = useState(-1); // -1 means not showing
   const [fadeIn, setFadeIn] = useState(true);

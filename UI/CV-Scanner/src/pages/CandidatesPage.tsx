@@ -32,10 +32,6 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
-import Popover from "@mui/material/Popover";
-import Fade from "@mui/material/Fade";
-import Tooltip from "@mui/material/Tooltip";
-import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 
 export default function CandidatesPage() {
   const [collapsed, setCollapsed] = useState(false);
@@ -47,6 +43,8 @@ export default function CandidatesPage() {
     first_name?: string;
     last_name?: string;
     username?: string;
+    role?: string; // <-- add this
+    email?: string; // <-- and this
   } | null>(null);
   const [tutorialStep, setTutorialStep] = useState(-1); // -1 means not showing
 
@@ -414,9 +412,7 @@ export default function CandidatesPage() {
         }}
       >
         <Fade in={fadeIn} timeout={250}>
-
           <Box sx={{ position: "relative" }}>
-
             {tutorialStep === 0 && (
               <>
                 <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
@@ -511,7 +507,6 @@ export default function CandidatesPage() {
               </Box>
             </Box>
           </Box>
-
         </Fade>
       </Popover>
     </Box>

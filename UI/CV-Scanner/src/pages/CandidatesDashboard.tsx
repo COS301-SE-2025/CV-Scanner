@@ -30,11 +30,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
-import Popover from "@mui/material/Popover";
-import Tooltip from "@mui/material/Tooltip";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
-import Fade from "@mui/material/Fade";
-
 
 export default function CandidatesDashboard() {
   const [collapsed, setCollapsed] = useState(false);
@@ -49,11 +45,9 @@ export default function CandidatesDashboard() {
     first_name?: string;
     last_name?: string;
     username?: string;
+    role?: string; // <-- add this
+    email?: string; // <-- and this
   } | null>(null);
-  const [showTutorial, setShowTutorial] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const [tutorialStep, setTutorialStep] = useState(0);
-  const [fadeIn, setFadeIn] = useState(true);
 
   const reviewBtnRef = useRef<HTMLButtonElement>(null);
 
@@ -74,7 +68,6 @@ export default function CandidatesDashboard() {
     }
   }, [showTutorial]);
 
-
   const handleStepChange = (nextStep: number) => {
     setFadeIn(false);
     setTimeout(() => {
@@ -83,7 +76,6 @@ export default function CandidatesDashboard() {
     }, 250);
   };
   const handleCloseTutorial = () => setShowTutorial(false);
-
 
   return (
     <Box
@@ -349,7 +341,6 @@ export default function CandidatesDashboard() {
                           <Popover
                             open={showTutorial && Boolean(anchorEl)}
                             anchorEl={anchorEl}
-
                             onClose={handleCloseTutorial}
                             anchorOrigin={{
                               vertical: "top",
@@ -400,7 +391,6 @@ export default function CandidatesDashboard() {
                                     variant="text"
                                     size="small"
                                     onClick={handleCloseTutorial}
-
                                     sx={{
                                       color: "#888",
                                       fontSize: "0.85rem",
@@ -414,7 +404,6 @@ export default function CandidatesDashboard() {
                                   <Box sx={{ display: "flex", gap: 2 }}>
                                     <Button
                                       variant="contained"
-
                                       onClick={handleCloseTutorial}
                                       sx={{
                                         bgcolor: "#5a88ad",
