@@ -124,6 +124,23 @@ export default function AddUserPage() {
     }
   };
 
+  const [user, setUser] = React.useState<{
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+    role?: string;
+    email?: string;
+  } | null>(null);
+
+  React.useEffect(() => {
+    const email = localStorage.getItem("userEmail");
+    if (!email) return;
+    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
+      .then((res) => res.json())
+      .then((data) => setUser(data))
+      .catch(() => setUser(null));
+  }, []);
+
   return (
     <Box
       sx={{
@@ -205,7 +222,16 @@ export default function AddUserPage() {
             </IconButton>
             <Box sx={{ display: "flex", alignItems: "center", ml: 2 }}>
               <AccountCircleIcon sx={{ mr: 1 }} />
-              <Typography variant="subtitle1">Admin User</Typography>
+              <Typography variant="subtitle1">
+                {user
+                  ? user.first_name
+                    ? `${user.first_name} ${user.last_name || ""} (${
+                        user.role || "User"
+                      })`
+                    : (user.username || user.email) +
+                      (user.role ? ` (${user.role})` : "")
+                  : "User"}
+              </Typography>
             </Box>
             <IconButton color="inherit" onClick={() => navigate("/login")}>
               <ExitToAppIcon />
