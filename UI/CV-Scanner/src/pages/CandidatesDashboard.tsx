@@ -87,6 +87,38 @@ export default function CandidatesDashboard() {
   };
   const handleCloseTutorial = () => setShowTutorial(false);
 
+//Mock data for graphs 
+
+const candidateTrends = [
+  { month: 'Jan', candidates: 30 },
+  { month: 'Feb', candidates: 45 },
+  { month: 'Mar', candidates: 60 },
+  { month: 'Apr', candidates: 50 },
+  { month: 'May', candidates: 80 },
+];
+
+const skillDistribution = [
+  { name: '.NET', value: 400 },
+  { name: 'React', value: 300 },
+  { name: 'Java', value: 300 },
+  { name: 'Python', value: 200 },
+];
+
+const projectFitData = [
+  { type: 'Technical', value: 50 },
+  { type: 'Collaborative', value: 30 },
+  { type: 'Autonomous', value: 20 },
+];
+
+const stackedData = [
+  { name: 'Week 1', .NET: 40, React: 24, Python: 24 },
+  { name: 'Week 2', .NET: 30, React: 13, Python: 22 },
+  { name: 'Week 3', .NET: 20, React: 98, Python: 22 },
+  { name: 'Week 4', .NET: 27, React: 39, Python: 20 },
+];
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+
   return (
     <Box
       sx={{
