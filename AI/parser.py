@@ -180,38 +180,24 @@ class ImprovedCVClassifier:
     def is_likely_name(self, line: str) -> bool:
         """Detect if line is likely a person's name"""
         words = line.strip().split()
-        
         # Must be 2-4 words
         if not (2 <= len(words) <= 4):
             return False
-        
-        # Must be early in document (first 15 lines)
-        if self.line_number > 15:
+        # Must be very early in document (first 5 lines)
+        if self.line_number > 4:
             return False
-        
         # Check for all caps names (common in CVs)
-        if line.strip().isupper() and len(words) >= 2:
-            # All words should be alphabetic
-            if all(word.isalpha() and len(word) > 1 for word in words):
-                return True
-        
+        if line.strip().isupper() and all(word.isalpha() and len(word) > 1 for word in words):
+            return True
         # All words should be proper case and alphabetic
-        proper_case_match = True
-        for word in words:
-            if not (len(word) > 1 and word[0].isupper() and word[1:].islower() and word.isalpha()):
-                proper_case_match = False
-                break
-        
-        if not proper_case_match:
-            return False
-        
-        # Exclude common section headers that might match pattern
-        line_lower = line.lower()
-        excluded_words = ["computer science", "software engineer", "data analyst", "project manager"]
-        if any(phrase in line_lower for phrase in excluded_words):
-            return False
-        
-        return True
+        if all(word[0].isupper() and word[1:].islower() and word.isalpha() for word in words):
+            # Exclude common section headers that might match pattern
+            line_lower = line.lower()
+            excluded_words = ["computer science", "software engineer", "data analyst", "project manager"]
+            if any(phrase in line_lower for phrase in excluded_words):
+                return False
+            return True
+        return False
     
     def has_date_pattern(self, line: str) -> bool:
         """Check if line contains date patterns"""
@@ -304,19 +290,18 @@ class ImprovedCVClassifier:
         # 7. Skills detection (be more careful)
         tech_skills_found = sum(1 for skill in TECHNICAL_SKILLS if skill in line_lower)
         soft_skills_found = sum(1 for skill in SOFT_SKILLS if skill in line_lower)
-        
-        # Must have multiple skills or comma-separated format
-        is_skills_list = ',' in line and len(line.split(',')) >= 2
-        
-        # Exclude long descriptions and project descriptions
-        if len(line.split()) > 15:
-            tech_skills_found = max(0, tech_skills_found - 1)  # Reduce confidence for long lines
-        
-        if (tech_skills_found >= 2 or soft_skills_found >= 2 or 
-            (is_skills_list and (tech_skills_found >= 1 or soft_skills_found >= 1))):
-            # Make sure it's not a project description
+        is_skills_list = ',' in line and len([x for x in line.split(',') if x.strip()]) >= 2
+
+        # Only classify as skills if at least two found or comma-separated and not a single word/phrase
+        if ((tech_skills_found + soft_skills_found) >= 2 or is_skills_list) and len(line.split()) > 2:
             if project_matches == 0:
                 return "skills"
+        
+        # Prevent addresses and single-word lines from being skills
+        if re.match(r'^\d+\s+\w+', line):  # Looks like an address
+            return "uncategorized"
+        if len(line.split()) == 1 and (tech_skills_found + soft_skills_found) < 2:
+            return "uncategorized"
         
         # 8. Default to current section context or uncategorized
         if self.current_section != "personal_info":
@@ -342,18 +327,22 @@ def extract_cv_sections(text: str) -> Dict[str, List[str]]:
     for i, line in enumerate(lines):
         classifier.line_number = i
         classifier.current_section = current_section
-        
+
         # Check for section header
         detected_section = classifier.is_section_header(line)
         if detected_section:
             current_section = detected_section
             classifier.found_clear_sections.add(detected_section)
             continue
-        
+
         # Skip very short lines
         if len(line.strip()) <= 2:
             continue
-        
+
+        # Skip if line is a section header (extra safety)
+        if any(line.lower().strip().startswith(h) for sec in SECTION_HEADERS.values() for h in sec):
+            continue
+
         # Classify content
         classified_section = classifier.classify_line(line)
         sections[classified_section].append(line)
@@ -366,56 +355,59 @@ def extract_cv_sections(text: str) -> Dict[str, List[str]]:
 
 def _clean_personal_info_section(sections: Dict[str, List[str]]) -> Dict[str, List[str]]:
     """Clean up personal_info section to only include actual contact details and name"""
-    
+
     personal_items = sections["personal_info"]
     cleaned_personal = []
     items_to_redistribute = []
-    
-    for item in personal_items:
+
+    for idx, item in enumerate(personal_items):
         keep_in_personal = False
-        
+
         # Keep if it's actual contact info
         for pattern in CONTACT_PATTERNS.values():
             if re.search(pattern, item, re.IGNORECASE):
                 keep_in_personal = True
                 break
-        
+
         # Exclude standalone contact labels
         item_lower = item.lower().strip()
         if item_lower in ["phone:", "email:", "address:", "github:", "linkedin:", "website:"]:
             keep_in_personal = False
-        
-        # Keep if it looks like a name (but be strict)
+
+        # Keep if it looks like a name (very strict)
         words = item.strip().split()
+        # Only allow names if they are at the very top of the document (first 2 lines)
         if (2 <= len(words) <= 4 and 
-            all(len(word) > 1 and word.isalpha() for word in words)):
-            
+            all(len(word) > 1 and word.isalpha() for word in words) and
+            idx < 2):
             # Check for all caps names (common format)
             if item.strip().isupper():
                 keep_in_personal = True
             # Check for proper case names
             elif all(word[0].isupper() and word[1:].islower() for word in words):
-                # Extra check: not a job title
-                if not any(pattern for pattern in JOB_TITLE_PATTERNS 
-                          if re.search(pattern, item, re.IGNORECASE)):
+                # Extra check: not a job title or section header
+                if not any(re.search(pattern, item, re.IGNORECASE) for pattern in JOB_TITLE_PATTERNS):
                     keep_in_personal = True
-        
+
+        # Never allow single-word lines unless they match contact info
+        if len(words) == 1 and not keep_in_personal:
+            keep_in_personal = False
+
         if keep_in_personal:
             cleaned_personal.append(item)
         else:
             items_to_redistribute.append(item)
-    
+
     # Update personal_info section
     sections["personal_info"] = cleaned_personal
-    
+
     # Redistribute other items
     for item in items_to_redistribute:
-        # Try to classify properly
         classifier = ImprovedCVClassifier()
         new_section = classifier.classify_line(item)
         if new_section != "personal_info":
             sections[new_section].append(item)
         else:
             sections["uncategorized"].append(item)
-    
+
     return sections
