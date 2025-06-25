@@ -94,12 +94,14 @@ export default function CandidateExperiencePage() {
         color: "#fff",
       }}
     >
+
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
         <AppBar
           position="static"
           sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
+
         >
           <Toolbar sx={{ justifyContent: "space-between" }}>
             {/* Left: Logo and heading */}

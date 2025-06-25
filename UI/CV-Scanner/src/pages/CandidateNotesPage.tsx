@@ -118,11 +118,11 @@ export default function CandidateNotesPage() {
         color: "#fff",
       }}
     >
-      {/* Sidebar ...unchanged... */}
 
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
+
         <AppBar
           position="static"
           sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}

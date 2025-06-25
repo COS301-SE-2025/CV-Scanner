@@ -20,6 +20,13 @@ import {
   Popover,
   Tooltip,
 } from "@mui/material";
+import {
+  LineChart, Line,
+  BarChart, Bar,
+  PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip as RechartTooltip, Legend,
+  ResponsiveContainer
+} from 'recharts';
 import { useNavigate, useLocation } from "react-router-dom";
 import logo2 from "../assets/logo2.png";
 import logo from "../assets/logo.png";
@@ -79,6 +86,38 @@ export default function CandidatesDashboard() {
     }, 250);
   };
   const handleCloseTutorial = () => setShowTutorial(false);
+
+//Mock data for graphs 
+
+const candidateTrends = [
+  { month: 'Jan', candidates: 30 },
+  { month: 'Feb', candidates: 45 },
+  { month: 'Mar', candidates: 60 },
+  { month: 'Apr', candidates: 50 },
+  { month: 'May', candidates: 80 },
+];
+
+const skillDistribution = [
+  { name: '.NET', value: 400 },
+  { name: 'React', value: 300 },
+  { name: 'Java', value: 300 },
+  { name: 'Python', value: 200 },
+];
+
+const projectFitData = [
+  { type: 'Technical', value: 50 },
+  { type: 'Collaborative', value: 30 },
+  { type: 'Autonomous', value: 20 },
+];
+
+const groupedBarData = [
+  { name: 'Week 1', ".NET": 40, React: 24, Python: 24 },
+  { name: 'Week 2', ".NET": 30, React: 13, Python: 22 },
+  { name: 'Week 3', ".NET": 20, React: 98, Python: 22 },
+  { name: 'Week 4', ".NET": 27, React: 39, Python: 20 },
+];
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
   return (
     <Box
@@ -287,6 +326,152 @@ export default function CandidatesDashboard() {
               </Paper>
             ))}
           </Box>
+
+            {/* Dashboard Graphs */}
+        <Box sx={{ 
+  display: "flex", 
+  flexWrap: "wrap", 
+  gap: 4, 
+  mb: 4,
+  '& > *': { // Ensures all child elements have these properties
+    flex: "1 1 350px",
+    minWidth: 0 // Prevents overflow issues
+  }
+}}>
+
+   {/* Line Chart: Light Blue */}
+  <Paper sx={{ 
+    p: 2, 
+    borderRadius: 3, 
+    backgroundColor: "#e1f4ff", 
+    color: "#000",
+    transition: 'transform 0.2s',
+    '&:hover': { transform: 'translateY(-4px)' }
+  }}>
+    <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>Monthly Candidate Uploads</Typography>
+    <ResponsiveContainer width="100%" height={200}>
+      <LineChart data={candidateTrends}>
+        <CartesianGrid stroke="#ccc" strokeDasharray="3 3" />
+        <XAxis dataKey="month" />
+        <YAxis />
+        <Tooltip />
+        <Line 
+          type="monotone" 
+          dataKey="candidates" 
+          stroke="#1A82AE" 
+          strokeWidth={2}
+          dot={{ r: 4 }}
+          activeDot={{ r: 6, fill: "#1A82AE" }}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  </Paper>
+
+  {/* Bar Chart: Dark Blue */}
+  <Paper sx={{ 
+    p: 2, 
+    borderRadius: 3, 
+    backgroundColor: "#2b3a55", 
+    color: "#fff",
+    transition: 'transform 0.2s',
+    '&:hover': { transform: 'translateY(-4px)' }
+  }}>
+    <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>Weekly Tech Usage</Typography>
+    <ResponsiveContainer width="100%" height={200}>
+      <BarChart data={groupedBarData}>
+        <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
+        <XAxis dataKey="name" stroke="#fff" />
+        <YAxis stroke="#fff" />
+        <Tooltip 
+          contentStyle={{ 
+            backgroundColor: '#2b3a55',
+            borderColor: '#4a5568'
+          }}
+        />
+        <Legend />
+        <Bar dataKey=".NET" fill="#8884d8" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="React" fill="#82ca9d" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="Python" fill="#ffc658" radius={[4, 4, 0, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  </Paper>
+
+  {/* Pie Chart: Teal Accent */}
+  <Paper sx={{ 
+    p: 2, 
+    borderRadius: 3, 
+    backgroundColor: "#d2f3ef", 
+    color: "#000",
+    transition: 'transform 0.2s',
+    '&:hover': { transform: 'translateY(-4px)' }
+  }}>
+    <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>Skill Distribution</Typography>
+    <ResponsiveContainer width="100%" height={200}>
+      <PieChart>
+        <Pie
+          data={skillDistribution}
+          dataKey="value"
+          cx="50%"
+          cy="50%"
+          outerRadius={60}
+          labelLine={true}
+          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+        >
+          {skillDistribution.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+          ))}
+        </Pie>
+        <Tooltip 
+          formatter={(value, name, props) => [
+            value, 
+            `${name}: ${(props.payload.percent * 100).toFixed(1)}%`
+          ]}
+        />
+      </PieChart>
+    </ResponsiveContainer>
+  </Paper>
+
+  {/* Doughnut Chart: Dark Blue */}
+  <Paper sx={{ 
+    p: 2, 
+    borderRadius: 3, 
+    backgroundColor: "#2b3a55", 
+    color: "#fff",
+    transition: 'transform 0.2s',
+    '&:hover': { transform: 'translateY(-4px)' }
+  }}>
+    <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>Project Fit Types</Typography>
+    <ResponsiveContainer width="100%" height={200}>
+      <PieChart>
+        <Pie
+          data={projectFitData}
+          dataKey="value"
+          cx="50%"
+          cy="50%"
+          innerRadius={40}
+          outerRadius={60}
+          label={({ type, percent }) => `${type}: ${(percent * 100).toFixed(0)}%`}
+          labelLine={true}
+        >
+          {projectFitData.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+          ))}
+        </Pie>
+        <Tooltip 
+          contentStyle={{ 
+            backgroundColor: '#2b3a55',
+            borderColor: '#4a5568'
+          }}
+          formatter={(value, name, props) => [
+            value, 
+            `${name}: ${(props.payload.percent * 100).toFixed(1)}%`
+          ]}
+        />
+      </PieChart>
+    </ResponsiveContainer>
+  </Paper>
+
+</Box>
 
           {/* Recent Table */}
           <Paper
@@ -507,4 +692,15 @@ const reviewButtonStyle = {
     background:
       "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
   },
+};
+
+const graphCardBase = {
+  p: 2,
+  borderRadius: 3,
+  width: { xs: "100%", sm: "45%", md: "30%" },
+  minWidth: 300,
+  height: 300,
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "space-between",
 };
