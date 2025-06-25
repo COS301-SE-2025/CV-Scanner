@@ -547,3 +547,12 @@ const reviewButtonStyle = {
       "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
   },
 };
+
+const graphCardStyle = {
+  p: 2,
+  width: 340,
+  height: 280,
+  borderRadius: 3,
+  backgroundColor: "#e1f4ff",
+  color: "#000",
+};
