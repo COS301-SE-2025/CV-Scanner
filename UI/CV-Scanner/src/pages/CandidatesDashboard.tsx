@@ -365,18 +365,19 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
   <Typography variant="subtitle1" sx={{ mb: 1 }}>Skill Distribution</Typography>
   <ResponsiveContainer width="100%" height={200}>
     <PieChart>
-      <Pie 
-        data={skillDistribution} 
-        dataKey="value" 
-        cx="50%" 
-        cy="50%" 
-        outerRadius={60} 
-        label
-      >
-        {skillDistribution.map((entry, index) => (
-          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-        ))}
-      </Pie>
+<Pie 
+  data={skillDistribution} 
+  dataKey="value" 
+  cx="50%" 
+  cy="50%" 
+  outerRadius={60}
+  labelLine={true}
+  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+>
+  {skillDistribution.map((entry, index) => (
+    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+  ))}
+</Pie>
       <Tooltip />
     </PieChart>
   </ResponsiveContainer>
