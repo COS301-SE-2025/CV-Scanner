@@ -328,100 +328,150 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
           </Box>
 
             {/* Dashboard Graphs */}
-<Box sx={{ display: "flex", flexWrap: "wrap", gap: 4, mb: 4 }}>
-  {/* Line Chart: Candidate Trends */}
-  <Paper sx={graphCardStyle}>
-    <Typography variant="subtitle1" sx={{ mb: 1 }}>Monthly Candidate Uploads</Typography>
+        <Box sx={{ 
+  display: "flex", 
+  flexWrap: "wrap", 
+  gap: 4, 
+  mb: 4,
+  '& > *': { // Ensures all child elements have these properties
+    flex: "1 1 350px",
+    minWidth: 0 // Prevents overflow issues
+  }
+}}>
+
+   {/* Line Chart: Light Blue */}
+  <Paper sx={{ 
+    p: 2, 
+    borderRadius: 3, 
+    backgroundColor: "#e1f4ff", 
+    color: "#000",
+    transition: 'transform 0.2s',
+    '&:hover': { transform: 'translateY(-4px)' }
+  }}>
+    <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>Monthly Candidate Uploads</Typography>
     <ResponsiveContainer width="100%" height={200}>
       <LineChart data={candidateTrends}>
-        <CartesianGrid stroke="#ccc" />
+        <CartesianGrid stroke="#ccc" strokeDasharray="3 3" />
         <XAxis dataKey="month" />
         <YAxis />
-        <RechartTooltip />
-        <Line type="monotone" dataKey="candidates" stroke="#1A82AE" />
+        <Tooltip />
+        <Line 
+          type="monotone" 
+          dataKey="candidates" 
+          stroke="#1A82AE" 
+          strokeWidth={2}
+          dot={{ r: 4 }}
+          activeDot={{ r: 6, fill: "#1A82AE" }}
+        />
       </LineChart>
     </ResponsiveContainer>
   </Paper>
 
-    {/* Bar Chart: Stacked Skills */}
-  <Paper
-  elevation={6}
-  sx={{
-    p: 2,
-    borderRadius: 3,
-    mb: 4,
-    backgroundColor: "#2b3a55", // Match your dark theme
-    color: "#fff", // Ensure text stays readable
-  }}
->
-  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
-    Weekly Tech Usage
-  </Typography>
-  <ResponsiveContainer width="100%" height={300}>
-    <BarChart
-      data={groupedBarData}
-      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-    >
-      <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
-      <XAxis dataKey="name" stroke="#fff" />
-      <YAxis stroke="#fff" />
-      <Tooltip />
-      <Legend />
-      <Bar dataKey=".NET" fill="#8884d8" />
-      <Bar dataKey="React" fill="#82ca9d" />
-      <Bar dataKey="Python" fill="#ffc658" />
-    </BarChart>
-  </ResponsiveContainer>
-</Paper>
+  {/* Bar Chart: Dark Blue */}
+  <Paper sx={{ 
+    p: 2, 
+    borderRadius: 3, 
+    backgroundColor: "#2b3a55", 
+    color: "#fff",
+    transition: 'transform 0.2s',
+    '&:hover': { transform: 'translateY(-4px)' }
+  }}>
+    <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>Weekly Tech Usage</Typography>
+    <ResponsiveContainer width="100%" height={200}>
+      <BarChart data={groupedBarData}>
+        <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
+        <XAxis dataKey="name" stroke="#fff" />
+        <YAxis stroke="#fff" />
+        <Tooltip 
+          contentStyle={{ 
+            backgroundColor: '#2b3a55',
+            borderColor: '#4a5568'
+          }}
+        />
+        <Legend />
+        <Bar dataKey=".NET" fill="#8884d8" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="React" fill="#82ca9d" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="Python" fill="#ffc658" radius={[4, 4, 0, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  </Paper>
 
-
-{/* Pie Chart: Skill Distribution */}
-<Paper sx={graphCardStyle}>
-  <Typography variant="subtitle1" sx={{ mb: 1 }}>Skill Distribution</Typography>
-  <ResponsiveContainer width="100%" height={200}>
-    <PieChart>
-<Pie 
-  data={skillDistribution} 
-  dataKey="value" 
-  cx="50%" 
-  cy="50%" 
-  outerRadius={60}
-  labelLine={true}
-  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
->
-  {skillDistribution.map((entry, index) => (
-    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-  ))}
-</Pie>
-      <Tooltip />
-    </PieChart>
-  </ResponsiveContainer>
-</Paper>
-
-  {/* Doughnut Chart: Project Fit */}
-  <Paper sx={graphCardStyle}>
-    <Typography variant="subtitle1" sx={{ mb: 1 }}>Project Fit Types</Typography>
+  {/* Pie Chart: Teal Accent */}
+  <Paper sx={{ 
+    p: 2, 
+    borderRadius: 3, 
+    backgroundColor: "#d2f3ef", 
+    color: "#000",
+    transition: 'transform 0.2s',
+    '&:hover': { transform: 'translateY(-4px)' }
+  }}>
+    <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>Skill Distribution</Typography>
     <ResponsiveContainer width="100%" height={200}>
       <PieChart>
-   <Pie 
-  data={projectFitData} 
-  dataKey="value" 
-  cx="50%" 
-  cy="50%" 
-  innerRadius={40} 
-  outerRadius={60}
-  label={({ type, percent }) => `${type}: ${(percent * 100).toFixed(0)}%`}
->
-  {projectFitData.map((entry, index) => (
-    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-  ))}
-</Pie>
-        <RechartTooltip />
+        <Pie
+          data={skillDistribution}
+          dataKey="value"
+          cx="50%"
+          cy="50%"
+          outerRadius={60}
+          labelLine={true}
+          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+        >
+          {skillDistribution.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+          ))}
+        </Pie>
+        <Tooltip 
+          formatter={(value, name, props) => [
+            value, 
+            `${name}: ${(props.payload.percent * 100).toFixed(1)}%`
+          ]}
+        />
       </PieChart>
     </ResponsiveContainer>
-  </Paper>
+  </Paper>
 
-  </Box>
+  {/* Doughnut Chart: Dark Blue */}
+  <Paper sx={{ 
+    p: 2, 
+    borderRadius: 3, 
+    backgroundColor: "#2b3a55", 
+    color: "#fff",
+    transition: 'transform 0.2s',
+    '&:hover': { transform: 'translateY(-4px)' }
+  }}>
+    <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>Project Fit Types</Typography>
+    <ResponsiveContainer width="100%" height={200}>
+      <PieChart>
+        <Pie
+          data={projectFitData}
+          dataKey="value"
+          cx="50%"
+          cy="50%"
+          innerRadius={40}
+          outerRadius={60}
+          label={({ type, percent }) => `${type}: ${(percent * 100).toFixed(0)}%`}
+          labelLine={true}
+        >
+          {projectFitData.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+          ))}
+        </Pie>
+        <Tooltip 
+          contentStyle={{ 
+            backgroundColor: '#2b3a55',
+            borderColor: '#4a5568'
+          }}
+          formatter={(value, name, props) => [
+            value, 
+            `${name}: ${(props.payload.percent * 100).toFixed(1)}%`
+          ]}
+        />
+      </PieChart>
+    </ResponsiveContainer>
+  </Paper>
+
+</Box>
 
           {/* Recent Table */}
           <Paper
@@ -644,11 +694,13 @@ const reviewButtonStyle = {
   },
 };
 
-const graphCardStyle = {
+const graphCardBase = {
   p: 2,
-  width: 340,
-  height: 280,
   borderRadius: 3,
-  backgroundColor: "#e1f4ff",
-  color: "#000",
+  width: { xs: "100%", sm: "45%", md: "30%" },
+  minWidth: 300,
+  height: 300,
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "space-between",
 };
