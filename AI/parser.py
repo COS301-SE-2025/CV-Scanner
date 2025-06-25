@@ -170,11 +170,10 @@ class ImprovedCVClassifier:
             if re.search(pattern, line, re.IGNORECASE):
                 return True
         
-        # Contact labels
-        contact_labels = ["phone:", "email:", "address:", "github:", "linkedin:", "website:"]
+        # Exclude standalone contact labels
         line_lower = line.lower().strip()
-        if any(line_lower.startswith(label) for label in contact_labels):
-            return True
+        if line_lower in ["phone:", "email:", "address:", "github:", "linkedin:", "website:"]:
+            return False
         
         return False
     
@@ -186,14 +185,25 @@ class ImprovedCVClassifier:
         if not (2 <= len(words) <= 4):
             return False
         
-        # Must be early in document (first 10 lines)
-        if self.line_number > 10:
+        # Must be early in document (first 15 lines)
+        if self.line_number > 15:
             return False
         
+        # Check for all caps names (common in CVs)
+        if line.strip().isupper() and len(words) >= 2:
+            # All words should be alphabetic
+            if all(word.isalpha() and len(word) > 1 for word in words):
+                return True
+        
         # All words should be proper case and alphabetic
+        proper_case_match = True
         for word in words:
             if not (len(word) > 1 and word[0].isupper() and word[1:].islower() and word.isalpha()):
-                return False
+                proper_case_match = False
+                break
+        
+        if not proper_case_match:
+            return False
         
         # Exclude common section headers that might match pattern
         line_lower = line.lower()
@@ -208,6 +218,14 @@ class ImprovedCVClassifier:
         for pattern in DATE_PATTERNS:
             if re.search(pattern, line, re.IGNORECASE):
                 return True
+        return False
+    
+    def is_standalone_date(self, line: str) -> bool:
+        """Check if line is just a date fragment"""
+        line_clean = line.strip()
+        # Check if it's mostly just a date with little other content
+        if len(line_clean.split()) <= 3 and self.has_date_pattern(line):
+            return True
         return False
     
     def has_job_title_pattern(self, line: str) -> bool:
@@ -236,7 +254,11 @@ class ImprovedCVClassifier:
         if self.is_likely_name(line):
             return "personal_info"
         
-        # 3. Experience indicators (dates + job context)
+        # 3. Skip standalone date fragments
+        if self.is_standalone_date(line):
+            return "uncategorized"
+        
+        # 4. Experience indicators (dates + job context)
         has_date = self.has_date_pattern(line)
         has_job_title = self.has_job_title_pattern(line)
         has_company = self.has_company_pattern(line)
@@ -244,7 +266,7 @@ class ImprovedCVClassifier:
         if has_date and (has_job_title or has_company):
             return "experience"
         
-        # 4. Education indicators
+        # 5. Education indicators
         edu_score = 0
         for indicator in EDUCATION_INDICATORS:
             if indicator in line_lower:
@@ -254,32 +276,49 @@ class ImprovedCVClassifier:
         if re.search(r'\b(bachelor|master|phd|bsc|ba|ma|msc|diploma)\b', line_lower):
             edu_score += 2
         
+        # Education with dates
+        if has_date and edu_score >= 1:
+            return "education"
+        
         if edu_score >= 2:
             return "education"
         
-        # 5. Skills detection (be more careful)
+        # 6. Projects detection (improved)
+        project_keywords = ["project", "developed", "created", "built", "designed", "implemented", 
+                          "application", "system", "website", "software", "database", "simulation",
+                          "streaming", "nosql", "gui", "full-stack", "web application"]
+        project_matches = sum(1 for keyword in project_keywords if keyword in line_lower)
+        
+        # Strong project indicators
+        if project_matches >= 2:
+            return "projects"
+        
+        # Project with context (longer descriptions)
+        if project_matches >= 1 and len(line.split()) > 8:
+            return "projects"
+        
+        # Project titles (shorter lines with project keywords)
+        if project_matches >= 1 and len(line.split()) <= 4:
+            return "projects"
+        
+        # 7. Skills detection (be more careful)
         tech_skills_found = sum(1 for skill in TECHNICAL_SKILLS if skill in line_lower)
         soft_skills_found = sum(1 for skill in SOFT_SKILLS if skill in line_lower)
         
         # Must have multiple skills or comma-separated format
         is_skills_list = ',' in line and len(line.split(',')) >= 2
         
+        # Exclude long descriptions and project descriptions
+        if len(line.split()) > 15:
+            tech_skills_found = max(0, tech_skills_found - 1)  # Reduce confidence for long lines
+        
         if (tech_skills_found >= 2 or soft_skills_found >= 2 or 
             (is_skills_list and (tech_skills_found >= 1 or soft_skills_found >= 1))):
-            # Make sure it's not a sentence describing experience
-            if len(line.split()) <= 15:  # Skills lists are usually shorter
+            # Make sure it's not a project description
+            if project_matches == 0:
                 return "skills"
         
-        # 6. Projects (look for project-like descriptions)
-        project_keywords = ["project", "developed", "created", "built", "designed", "implemented", 
-                          "application", "system", "website", "software", "database"]
-        project_matches = sum(1 for keyword in project_keywords if keyword in line_lower)
-        
-        # Projects often have dates or are longer descriptions
-        if project_matches >= 2 or (project_matches >= 1 and has_date):
-            return "projects"
-        
-        # 7. Default to current section context or uncategorized
+        # 8. Default to current section context or uncategorized
         if self.current_section != "personal_info":
             return self.current_section
         
@@ -341,20 +380,25 @@ def _clean_personal_info_section(sections: Dict[str, List[str]]) -> Dict[str, Li
                 keep_in_personal = True
                 break
         
-        # Keep if it's a contact label
-        contact_labels = ["phone:", "email:", "address:", "github:", "linkedin:", "website:"]
-        if any(item.lower().strip().startswith(label) for label in contact_labels):
-            keep_in_personal = True
+        # Exclude standalone contact labels
+        item_lower = item.lower().strip()
+        if item_lower in ["phone:", "email:", "address:", "github:", "linkedin:", "website:"]:
+            keep_in_personal = False
         
         # Keep if it looks like a name (but be strict)
         words = item.strip().split()
-        if (2 <= len(words) <= 3 and 
-            all(len(word) > 1 and word[0].isupper() and word[1:].islower() and word.isalpha() 
-                for word in words)):
-            # Extra check: not a job title
-            if not any(pattern for pattern in JOB_TITLE_PATTERNS 
-                      if re.search(pattern, item, re.IGNORECASE)):
+        if (2 <= len(words) <= 4 and 
+            all(len(word) > 1 and word.isalpha() for word in words)):
+            
+            # Check for all caps names (common format)
+            if item.strip().isupper():
                 keep_in_personal = True
+            # Check for proper case names
+            elif all(word[0].isupper() and word[1:].islower() for word in words):
+                # Extra check: not a job title
+                if not any(pattern for pattern in JOB_TITLE_PATTERNS 
+                          if re.search(pattern, item, re.IGNORECASE)):
+                    keep_in_personal = True
         
         if keep_in_personal:
             cleaned_personal.append(item)
