@@ -133,8 +133,6 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
         <Box
           sx={{
             width: 220,
-            minWidth: "220px",     // Prevent shrinking
-            maxWidth: "220px",     // Prevent expanding
             bgcolor: "#1A82AE",
             display: "flex",
             flexDirection: "column",
