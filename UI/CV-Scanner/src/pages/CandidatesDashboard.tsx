@@ -388,11 +388,19 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
     <Typography variant="subtitle1" sx={{ mb: 1 }}>Project Fit Types</Typography>
     <ResponsiveContainer width="100%" height={200}>
       <PieChart>
-        <Pie data={projectFitData} dataKey="value" cx="50%" cy="50%" innerRadius={40} outerRadius={60}>
-          {projectFitData.map((entry, index) => (
-                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-          ))}
-        </Pie>
+   <Pie 
+  data={projectFitData} 
+  dataKey="value" 
+  cx="50%" 
+  cy="50%" 
+  innerRadius={40} 
+  outerRadius={60}
+  label={({ type, percent }) => `${type}: ${(percent * 100).toFixed(0)}%`}
+>
+  {projectFitData.map((entry, index) => (
+    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+  ))}
+</Pie>
         <RechartTooltip />
       </PieChart>
     </ResponsiveContainer>
