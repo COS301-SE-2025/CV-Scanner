@@ -312,7 +312,22 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
             Candidates Dashboard
           </Typography>
 
-           {/* Dashboard Graphs */}
+          {/* Stat Cards */}
+          <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap", mb: 4 }}>
+            {[
+              { label: "Candidates", value: "142" },
+              { label: "Pending Review", value: "24" },
+              { label: "Top Technology", value: ".NET" },
+              { label: "Technical Matches", value: "78%" },
+            ].map((stat, i) => (
+              <Paper key={i} elevation={6} sx={statCardStyle}>
+                <Typography variant="h4">{stat.value}</Typography>
+                <Typography variant="subtitle1">{stat.label}</Typography>
+              </Paper>
+            ))}
+          </Box>
+
+            {/* Dashboard Graphs */}
 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 4, mb: 4 }}>
   {/* Line Chart: Candidate Trends */}
   <Paper sx={graphCardStyle}>
@@ -407,22 +422,6 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
   </Paper>
 
   </Box>
-
-
-          {/* Stat Cards */}
-          <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap", mb: 4 }}>
-            {[
-              { label: "Candidates", value: "142" },
-              { label: "Pending Review", value: "24" },
-              { label: "Top Technology", value: ".NET" },
-              { label: "Technical Matches", value: "78%" },
-            ].map((stat, i) => (
-              <Paper key={i} elevation={6} sx={statCardStyle}>
-                <Typography variant="h4">{stat.value}</Typography>
-                <Typography variant="subtitle1">{stat.label}</Typography>
-              </Paper>
-            ))}
-          </Box>
 
           {/* Recent Table */}
           <Paper
