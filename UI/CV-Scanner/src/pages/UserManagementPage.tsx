@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
@@ -55,11 +54,11 @@ export default function UserManagementPage() {
     email?: string;
   } | null>(null);
 
-
   const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All Roles");
-
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 10;
 
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -70,7 +69,6 @@ export default function UserManagementPage() {
     email: "",
     role: "",
   });
-
 
   const [tutorialStep, setTutorialStep] = useState(-1); // -1 means not showing
   const [fadeIn, setFadeIn] = useState(true);
@@ -211,6 +209,13 @@ export default function UserManagementPage() {
   };
   const handleCloseTutorial = () => setTutorialStep(-1);
 
+  const paginatedUsers = users.slice(
+    (currentPage - 1) * usersPerPage,
+    currentPage * usersPerPage
+  );
+
+  const totalPages = Math.ceil(users.length / usersPerPage);
+
   return (
     <Box
       sx={{
@@ -299,7 +304,9 @@ export default function UserManagementPage() {
             <Button
               fullWidth
               sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
-              className={location.pathname === "/user-management" ? "active" : ""}
+              className={
+                location.pathname === "/user-management" ? "active" : ""
+              }
               startIcon={<SettingsIcon />}
               onClick={() => navigate("/user-management")}
             >
@@ -330,67 +337,68 @@ export default function UserManagementPage() {
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
-         <AppBar
-                           position="static"
-                           sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
-                         >
-                           <Toolbar sx={{ justifyContent: "flex-end" }}>
-                   {/* Tutorial icon */}
-                   <Tooltip title="Run Tutorial" arrow>
-                     <IconButton
-                       onClick={() => {
-                         setTutorialStep(0);
-                         setFadeIn(true);
-                       }}
-                       sx={{ml: 1, color: '#FFEB3B'}}
-                     >
-                       <LightbulbRoundedIcon />
-                     </IconButton>
-                   </Tooltip>
-                 
-                   {/* Help / FAQ icon */}
-                   <Tooltip title="Go to Help Page" arrow>
-                     <IconButton
-                       onClick={() => navigate("/help")}
-                       sx={{ ml: 1, color: '#90ee90' }}
-                     >
-                       <HelpOutlineIcon />
-                     </IconButton>
-                   </Tooltip>
-                 
-                   {/* User Info */}
-                   <Box
-                     sx={{
-                       display: "flex",
-                       alignItems: "center",
-                       ml: 2,
-                       cursor: "pointer",
-                       "&:hover": { opacity: 0.8 },
-                     }}
-                     onClick={() => navigate("/settings")}
-                   >
-                     <AccountCircleIcon sx={{ mr: 1 }} />
-                     <Typography variant="subtitle1">
-                       {user
-                         ? user.first_name
-                           ? `${user.first_name} ${user.last_name || ""} (${user.role || "User"})`
-                           : (user.username || user.email) +
-                             (user.role ? ` (${user.role})` : "")
-                         : "User"}
-                     </Typography>
-                   </Box>
-                 
-                   {/* Logout */}
-                   <IconButton
-                     color="inherit"
-                     onClick={() => navigate("/login")}
-                     sx={{ ml: 1 }}
-                   >
-                     <ExitToAppIcon />
-                   </IconButton>
-                 </Toolbar>
-                           
-                         </AppBar>
+        <AppBar
+          position="static"
+          sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
+        >
+          <Toolbar sx={{ justifyContent: "flex-end" }}>
+            {/* Tutorial icon */}
+            <Tooltip title="Run Tutorial" arrow>
+              <IconButton
+                onClick={() => {
+                  setTutorialStep(0);
+                  setFadeIn(true);
+                }}
+                sx={{ ml: 1, color: "#FFEB3B" }}
+              >
+                <LightbulbRoundedIcon />
+              </IconButton>
+            </Tooltip>
+
+            {/* Help / FAQ icon */}
+            <Tooltip title="Go to Help Page" arrow>
+              <IconButton
+                onClick={() => navigate("/help")}
+                sx={{ ml: 1, color: "#90ee90" }}
+              >
+                <HelpOutlineIcon />
+              </IconButton>
+            </Tooltip>
+
+            {/* User Info */}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                ml: 2,
+                cursor: "pointer",
+                "&:hover": { opacity: 0.8 },
+              }}
+              onClick={() => navigate("/settings")}
+            >
+              <AccountCircleIcon sx={{ mr: 1 }} />
+              <Typography variant="subtitle1">
+                {user
+                  ? user.first_name
+                    ? `${user.first_name} ${user.last_name || ""} (${
+                        user.role || "User"
+                      })`
+                    : (user.username || user.email) +
+                      (user.role ? ` (${user.role})` : "")
+                  : "User"}
+              </Typography>
+            </Box>
+
+            {/* Logout */}
+            <IconButton
+              color="inherit"
+              onClick={() => navigate("/login")}
+              sx={{ ml: 1 }}
+            >
+              <ExitToAppIcon />
+            </IconButton>
+          </Toolbar>
+        </AppBar>
 
         {/* User Management Content */}
         <Box sx={{ p: 3 }}>
@@ -411,17 +419,14 @@ export default function UserManagementPage() {
             />
             <div ref={filterBoxRef}>
               <Select
-
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-
                 sx={{ bgcolor: "#fff", borderRadius: 1, minWidth: 150 }}
               >
                 <MenuItem value="All Roles">All Roles</MenuItem>
                 <MenuItem value="Admin">Admin</MenuItem>
                 <MenuItem value="Editor">Editor</MenuItem>
                 <MenuItem value="User">User</MenuItem>
-
               </Select>
             </div>
             <Button
@@ -459,8 +464,7 @@ export default function UserManagementPage() {
                 </TableHead>
                 {/* 3. Update the table rows: */}
                 <TableBody>
-                  {users.map((user, idx) => (
-
+                  {paginatedUsers.map((user, idx) => (
                     <TableRow key={idx}>
                       <TableCell>{user.username || ""}</TableCell>
                       <TableCell>{user.first_name || ""}</TableCell>
@@ -523,19 +527,35 @@ export default function UserManagementPage() {
 
           {/* Pagination */}
           <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
-            <Button variant="text" sx={{ color: "#0073c1" }}>
+            <Button
+              variant="text"
+              sx={{ color: "#0073c1" }}
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
               Previous
             </Button>
-            <Button variant="text" sx={{ color: "#0073c1" }}>
-              1
-            </Button>
-            <Button variant="text" sx={{ color: "#0073c1" }}>
-              2
-            </Button>
-            <Button variant="text" sx={{ color: "#0073c1" }}>
-              3
-            </Button>
-            <Button variant="text" sx={{ color: "#0073c1" }}>
+            {[...Array(totalPages)].map((_, i) => (
+              <Button
+                key={i}
+                variant="text"
+                sx={{
+                  color: currentPage === i + 1 ? "#fff" : "#0073c1",
+                  bgcolor: currentPage === i + 1 ? "#0073c1" : "transparent",
+                }}
+                onClick={() => setCurrentPage(i + 1)}
+              >
+                {i + 1}
+              </Button>
+            ))}
+            <Button
+              variant="text"
+              sx={{ color: "#0073c1" }}
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
+              disabled={currentPage === totalPages}
+            >
               Next
             </Button>
           </Box>
@@ -555,7 +575,6 @@ export default function UserManagementPage() {
             <Box
               sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}
             >
-
               <TextField
                 label="Username"
                 fullWidth
@@ -569,7 +588,6 @@ export default function UserManagementPage() {
                 fullWidth
                 value={editFormData.first_name}
                 onChange={(e) =>
-
                   setEditFormData({
                     ...editFormData,
                     first_name: e.target.value,
@@ -669,9 +687,7 @@ export default function UserManagementPage() {
                     Filter by Role
                   </Typography>
                   <Typography sx={{ mb: 2 }}>
-
                     Use these filters to view <b>Admins</b>, <b>Editors</b>,{" "}
-
                     <b>Users</b>, or <b>All</b>.
                   </Typography>
                 </>
