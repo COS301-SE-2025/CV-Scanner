@@ -20,6 +20,13 @@ import {
   Popover,
   Tooltip,
 } from "@mui/material";
+import {
+  LineChart, Line,
+  BarChart, Bar,
+  PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip as RechartTooltip, Legend,
+  ResponsiveContainer
+} from 'recharts';
 import { useNavigate, useLocation } from "react-router-dom";
 import logo2 from "../assets/logo2.png";
 import logo from "../assets/logo.png";
