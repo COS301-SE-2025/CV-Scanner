@@ -2,151 +2,111 @@ import re
 from typing import Dict, List, Tuple, Optional
 from collections import defaultdict
 
-# Enhanced section keywords with more variations and context
+# Section keywords - keep simple and focused
 SECTION_HEADERS = {
     "summary": [
         "summary", "objective", "profile", "about", "personal statement", 
-        "career objective", "professional summary", "overview", "introduction",
-        "career profile", "professional profile"
+        "career objective", "professional summary", "overview", "introduction"
     ],
     "experience": [
         "experience", "work history", "employment", "work experience", 
         "professional experience", "career history", "employment history",
-        "work", "career", "professional background", "employment record",
-        "job history", "positions held"
+        "work", "career", "positions", "jobs"
     ],
     "education": [
         "education", "qualifications", "academic", "academic background", 
-        "educational background", "training", "degrees", "certifications and education",
-        "academic qualifications", "educational qualifications", "learning",
-        "studies", "academic history"
+        "educational background", "training", "degrees", "studies"
     ],
     "skills": [
         "skills", "technologies", "tools", "competencies", "technical skills", 
-        "core competencies", "key skills", "software", "expertise", "abilities",
-        "technical competencies", "proficiencies", "technical expertise",
-        "software skills", "programming languages"
+        "core competencies", "key skills", "software", "expertise", "abilities"
     ],
     "certifications": [
         "certifications", "licenses", "certified", "certification", 
-        "professional certifications", "credentials", "certificates",
-        "professional licenses", "accreditation"
+        "professional certifications", "credentials", "certificates"
     ],
     "projects": [
         "projects", "portfolio", "case studies", "key projects", 
-        "selected projects", "project experience", "notable projects",
-        "project portfolio", "work samples", "design projects"
+        "selected projects", "project experience", "notable projects"
     ],
     "other": [
-        "interests", "references", "hobbies", "miscellaneous", 
-        "additional information", "personal interests", "activities",
+        "interests", "references", "hobbies", "additional information", 
         "volunteer", "awards", "achievements", "honors", "publications",
-        "languages", "personal", "additional", "extras"
+        "languages", "personal", "additional"
     ]
 }
 
-# Enhanced technical skills with categories
-TECHNICAL_SKILLS = {
-    'design': [
-        "revit", "autocad", "adobe", "illustrator", "photoshop", "indesign", 
-        "3ds max", "sketchup", "twin motion", "rhino", "vectorworks", "archicad",
-        "maya", "blender", "cinema 4d", "after effects", "premiere", "figma",
-        "sketch", "invision", "axure"
-    ],
-    'programming': [
-        "python", "java", "javascript", "html", "css", "sql", "react", "angular", 
-        "vue", "nodejs", "php", "c++", "c#", ".net", "ruby", "swift", "kotlin",
-        "typescript", "go", "rust", "scala", "mysql", "nosql"
-    ],
-    'office': [
-        "excel", "powerpoint", "word", "outlook", "teams", "slack", "sharepoint",
-        "onedrive", "google workspace", "sheets", "docs", "slides"
-    ],
-    'database': [
-        "mysql", "postgresql", "mongodb", "oracle", "sqlite", "redis"
-    ],
-    'cloud': [
-        "aws", "azure", "gcp", "docker", "kubernetes", "jenkins"
-    ]
-}
-
-# Flatten technical skills for easier searching
-ALL_TECHNICAL_SKILLS = []
-for category in TECHNICAL_SKILLS.values():
-    ALL_TECHNICAL_SKILLS.extend(category)
-
-# Enhanced soft skills
-SOFT_SKILLS = [
-    "teamwork", "communication", "leadership", "problem solving", 
-    "analytical", "creative", "management", "organization", "planning",
-    "collaboration", "presentation", "negotiation", "time management",
-    "critical thinking", "adaptability", "initiative", "detail oriented",
-    "customer service", "project management", "multitasking", "mentoring",
-    "effective communication"
-]
-
-# Enhanced job title patterns
-JOB_TITLE_PATTERNS = [
-    r"\b(senior|junior|lead|principal|chief|head|assistant|associate)\s+\w+",
-    r"\b\w+\s+(designer|developer|engineer|manager|analyst|consultant|director|coordinator|specialist|administrator|technician|supervisor|assistant|architect|planner)\b",
-    r"\binterior\s+(designer|architect)\b",
-    r"\bproject\s+(manager|coordinator|lead)\b",
-    r"\bgraphic\s+designer\b",
-    r"\bsoftware\s+(developer|engineer|architect)\b",
-    r"\bfull\s+stack\s+(developer|engineer)\b",
-    r"\bdata\s+(scientist|analyst|engineer)\b",
-    r"\bcomputer\s+science\s+student\b"
-]
-
-# Enhanced company indicators
-COMPANY_PATTERNS = [
-    r"\b\w+\s+(inc|ltd|llc|corp|company|technologies|solutions|systems|services|group|pty|co\.)\b",
-    r"\|\s*[A-Z][a-z]+.*,\s*[A-Z]{2,3}\b",  # | Location pattern
-    r"@\s*[A-Z][A-Za-z\s]+",  # @ Company pattern
-    r"\b[A-Z][a-z]+\s+[A-Z][a-z]+\s*\|\s*[A-Z]",  # Company | Location
-]
-
-# Enhanced date patterns
-DATE_PATTERNS = [
-    r"\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4}\s*-\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4}\b",
-    r"\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4}\s*-\s*(present|current)\b",
-    r"\b\d{4}\s*-\s*\d{4}\b",
-    r"\b\d{1,2}/\d{4}\s*-\s*\d{1,2}/\d{4}\b",
-    r"\b\d{4}\s*-\s*(present|current)\b",
-    r"\b\d{1,2}/\d{2,4}\s*-\s*\d{1,2}/\d{2,4}\b"
-]
-
-# Contact patterns - FIXED AND IMPROVED
+# Core contact patterns - be very specific
 CONTACT_PATTERNS = {
-    'email': r"[\w\.-]+@[\w\.-]+\.\w+",
-    'phone': r"(\+\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}|\b\d{3}[\s-]\d{3}[\s-]\d{4}\b",
-    'linkedin': r"linkedin\.com/in/[\w\-]+",
-    'github': r"github\.com/[\w\-]+",
-    'address': r"\b\d+\s+\w+\s+(street|st|avenue|ave|road|rd|drive|dr|lane|ln|boulevard|blvd)\b"
+    'email': r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
+    'phone': r'(\+\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}|\b\d{3}[-.\s]\d{3}[-.\s]\d{4}\b',
+    'linkedin': r'linkedin\.com/in/[\w\-]+',
+    'github': r'github\.com/[\w\-]+',
+    'website': r'https?://[\w\.-]+\.\w+'
 }
 
-# Contact field labels - NEW
-CONTACT_LABELS = [
-    "phone", "email", "address", "github", "linkedin", "contact", 
-    "phone:", "email:", "address:", "github:", "linkedin:", "contact:",
-    "email address:", "phone number:", "mobile:", "cell:", "tel:", "website:"
+# Technical skills (broader categories)
+TECHNICAL_SKILLS = [
+    # Programming languages
+    "python", "java", "javascript", "typescript", "html", "css", "sql", "php", "c++", "c#", "c", 
+    "ruby", "swift", "kotlin", "go", "rust", "scala", "r", "matlab", "perl", "bash",
+    
+    # Frameworks/Libraries
+    "react", "angular", "vue", "nodejs", "django", "flask", "spring", "rails", ".net",
+    "jquery", "bootstrap", "tailwind", "express",
+    
+    # Design tools
+    "photoshop", "illustrator", "figma", "sketch", "adobe", "autocad", "revit", "sketchup",
+    "blender", "maya", "3ds max", "after effects", "premiere",
+    
+    # Databases
+    "mysql", "postgresql", "mongodb", "oracle", "sqlite", "redis", "nosql",
+    
+    # Cloud/DevOps
+    "aws", "azure", "gcp", "docker", "kubernetes", "jenkins", "git", "github", "gitlab",
+    
+    # Office
+    "excel", "powerpoint", "word", "outlook", "teams", "slack", "sharepoint"
 ]
 
-# Project indicators
-PROJECT_INDICATORS = [
-    "concept", "design", "renovation", "apartment", "kitchen", "conference",
-    "exhibit", "pavilion", "stand", "pg.", "client", "budget", "brief",
-    "prototype", "development", "implementation", "solution", "system",
-    "application", "streaming", "database", "simulation", "city", "gui",
-    "web application", "full-stack", "features", "ratings", "friends"
+# Soft skills
+SOFT_SKILLS = [
+    "teamwork", "communication", "leadership", "problem solving", "analytical", 
+    "creative", "management", "organization", "planning", "collaboration", 
+    "presentation", "negotiation", "time management", "critical thinking", 
+    "adaptability", "initiative", "detail oriented", "customer service", 
+    "project management", "multitasking", "mentoring"
+]
+
+# Date patterns - more comprehensive
+DATE_PATTERNS = [
+    r'\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{4}\s*[-–]\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{4}\b',
+    r'\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{4}\s*[-–]\s*(present|current|now)\b',
+    r'\b\d{4}\s*[-–]\s*\d{4}\b',
+    r'\b\d{4}\s*[-–]\s*(present|current|now)\b',
+    r'\b\d{1,2}/\d{4}\s*[-–]\s*\d{1,2}/\d{4}\b',
+    r'\b\d{1,2}/\d{2,4}\s*[-–]\s*\d{1,2}/\d{2,4}\b'
+]
+
+# Job title patterns
+JOB_TITLE_PATTERNS = [
+    r'\b(senior|junior|lead|principal|chief|head|assistant|associate|intern)\s+\w+',
+    r'\b\w+\s+(developer|engineer|designer|manager|analyst|consultant|director|coordinator|specialist|administrator|architect|planner)\b',
+    r'\bsoftware\s+(developer|engineer|architect)\b',
+    r'\bproject\s+(manager|coordinator|lead)\b',
+    r'\bdata\s+(scientist|analyst|engineer)\b'
+]
+
+# Company indicators
+COMPANY_INDICATORS = [
+    r'\b\w+\s+(inc|ltd|llc|corp|company|technologies|solutions|systems|services|group|pty)\b',
+    r'@\s*[A-Z][A-Za-z\s&]+(?=\s*[\|,]|\s*$)',  # @ Company pattern
 ]
 
 # Education indicators
 EDUCATION_INDICATORS = [
-    "university", "college", "degree", "bachelor", "master", "phd", "bsc", "ba", 
-    "ma", "diploma", "certificate", "matric", "grade", "academy", "school",
-    "institution", "gpa", "honors", "cum laude", "magna cum laude", "summa cum laude",
-    "faculty", "student", "bachelors", "masters"
+    "university", "college", "school", "institute", "academy", "degree", "bachelor", 
+    "master", "phd", "bsc", "ba", "ma", "msc", "diploma", "certificate", "gpa", "grade"
 ]
 
 ALL_SECTIONS = [
@@ -154,494 +114,264 @@ ALL_SECTIONS = [
     "skills", "certifications", "projects", "other", "uncategorized"
 ]
 
-class EnhancedCVSectionClassifier:
+class ImprovedCVClassifier:
     def __init__(self):
         self.current_section = "personal_info"
-        self.confidence_threshold = 0.4  # Lowered for better classification
-        self.section_context = []
         self.line_number = 0
-        self.found_name = False
         self.document_lines = []
-        
-    def set_document_lines(self, lines):
-        """Set the full document for context analysis"""
-        self.document_lines = lines
+        self.found_clear_sections = set()
         
     def is_section_header(self, line: str) -> Optional[str]:
-        """Enhanced section header detection with better formatting recognition"""
-        line_original = line
+        """Detect section headers with better accuracy"""
         line_clean = line.lower().strip().strip(":").strip("-").strip("_").strip()
-        
-        # Remove common formatting characters
         line_clean = re.sub(r'^[*•\-=_\s\|]+', '', line_clean)
         line_clean = re.sub(r'[*•\-=_\s\|]+$', '', line_clean)
         
-        # Check for obvious header formatting first
-        is_formatted_header = self._is_formatted_header(line_original)
+        # Check if this looks like a header (formatting cues)
+        is_formatted = self._looks_like_header(line)
         
-        # Direct keyword matches
+        # Direct matches
         for section, keywords in SECTION_HEADERS.items():
             for keyword in keywords:
-                # Exact match
                 if line_clean == keyword:
                     return section
-                
-                # Partial match with validation
-                if keyword in line_clean:
-                    # For short keywords, require more strict matching
-                    if len(keyword) <= 4:
-                        # Must be standalone word or in formatted header
-                        if (re.search(rf'\b{re.escape(keyword)}\b', line_clean) or 
-                            is_formatted_header):
-                            return section
-                    else:
-                        # Longer keywords can be partial matches
-                        if len(line_clean.split()) <= 4:  # But line should be short
-                            return section
-        
-        # Check for common section headers that might be missed
-        if line_clean == "contact":
-            return "personal_info"
-        
-        # Check for acronym headers (e.g., "BSc", "MSc")
-        if re.match(r'^[A-Z]{2,4}$', line_clean.upper()):
-            return "education"
+                # For formatted headers, allow partial matches
+                if is_formatted and keyword in line_clean and len(line_clean.split()) <= 3:
+                    return section
         
         return None
     
-    def _is_formatted_header(self, line: str) -> bool:
-        """Enhanced header format detection"""
-        line_stripped = line.strip()
+    def _looks_like_header(self, line: str) -> bool:
+        """Check if line has header formatting"""
+        line = line.strip()
         
-        # All caps and reasonable length
-        if line_stripped.isupper() and 3 <= len(line_stripped) <= 40:
+        # All caps (but not too long)
+        if line.isupper() and 3 <= len(line) <= 30:
             return True
         
         # Ends with colon
-        if line_stripped.endswith(':') and len(line_stripped.split()) <= 5:
-            return True
-        
-        # Has special formatting characters
-        if re.match(r'^[*=\-_•]{2,}.*[*=\-_•]{2,}$', line_stripped):
+        if line.endswith(':') and len(line.split()) <= 4:
             return True
         
         # Surrounded by special characters
-        if re.match(r'^[*=\-_•\|]\s*.+\s*[*=\-_•\|]$', line_stripped):
+        if re.match(r'^[*=\-_•\|]\s*.+\s*[*=\-_•\|]$', line):
             return True
         
-        # All letters with spaces (like "S k i l l s")
-        if re.match(r'^[A-Z]\s+[A-Z]\s+', line_stripped):
+        # Bold/emphasized (common header pattern)
+        if line.count('*') >= 2 or line.count('_') >= 2:
+            return True
+            
+        return False
+    
+    def is_contact_info(self, line: str) -> bool:
+        """Strict contact information detection"""
+        # Direct pattern matches
+        for pattern in CONTACT_PATTERNS.values():
+            if re.search(pattern, line, re.IGNORECASE):
+                return True
+        
+        # Contact labels
+        contact_labels = ["phone:", "email:", "address:", "github:", "linkedin:", "website:"]
+        line_lower = line.lower().strip()
+        if any(line_lower.startswith(label) for label in contact_labels):
             return True
         
         return False
     
-    def classify_personal_info(self, line: str) -> float:
-        """FIXED: Enhanced personal info classification with better contact detection"""
-        score = 0.0
-        line_lower = line.lower().strip()
-        line_original = line.strip()
+    def is_likely_name(self, line: str) -> bool:
+        """Detect if line is likely a person's name"""
+        words = line.strip().split()
         
-        # HIGHEST PRIORITY: Contact information patterns
-        for pattern_type, pattern in CONTACT_PATTERNS.items():
-            if re.search(pattern, line, re.IGNORECASE):
-                score += 1.0  # Maximum score for contact info
-                return score
+        # Must be 2-4 words
+        if not (2 <= len(words) <= 4):
+            return False
         
-        # Contact field labels (like "Phone:", "Email:", etc.)
-        for label in CONTACT_LABELS:
-            if line_lower == label or line_lower.startswith(label):
-                score += 0.9
-                return score
+        # Must be early in document (first 10 lines)
+        if self.line_number > 10:
+            return False
         
-        # Name detection (early in document + proper formatting)
-        if self.line_number < 15 and not self.found_name:
-            words = line_original.split()
-            if 2 <= len(words) <= 4:
-                # Check if words look like names (proper case, alphabetic)
-                if all(len(word) > 1 and word[0].isupper() and 
-                       word[1:].islower() and word.isalpha() 
-                       for word in words):
-                    # Additional validation: not common English words
-                    common_words = {"the", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with"}
-                    if not any(word.lower() in common_words for word in words):
-                        score += 0.95
-                        self.found_name = True
-                        return score
+        # All words should be proper case and alphabetic
+        for word in words:
+            if not (len(word) > 1 and word[0].isupper() and word[1:].islower() and word.isalpha()):
+                return False
         
-        # Professional titles/roles (when short and early in document)
-        if self.line_number < 20:
-            for pattern in JOB_TITLE_PATTERNS:
-                if re.search(pattern, line, re.IGNORECASE):
-                    # Make sure it's not a long sentence describing experience
-                    if len(line.split()) <= 8:
-                        score += 0.8
-                        return score
-        
-        # Location patterns (addresses, cities)
-        location_patterns = [
-            r"\b\d+\s+\w+\s+(street|st|avenue|ave|road|rd|drive|dr|lane|ln|boulevard|blvd)",
-            r"\b[A-Z][a-z]+,\s*[A-Z]{2,3}\b",  # City, State/Country
-            r"\b[A-Z][a-z]+,\s*[A-Z][a-z]+\b"   # City, Country
-        ]
-        for pattern in location_patterns:
-            if re.search(pattern, line, re.IGNORECASE):
-                score += 0.8
-                return score
-        
-        # Social media links
-        social_patterns = [
-            r"(linkedin|github|twitter|facebook)\.com",
-            r"@\w+",  # Social media handles
-        ]
-        for pattern in social_patterns:
-            if re.search(pattern, line, re.IGNORECASE):
-                score += 0.9
-                return score
-        
-        # Single word contact labels
-        if line_lower in ["phone", "email", "address", "github", "linkedin", "contact"]:
-            score += 0.7
-        
-        return min(score, 1.0)
-    
-    def classify_experience(self, line: str) -> float:
-        """Enhanced experience classification"""
-        score = 0.0
+        # Exclude common section headers that might match pattern
         line_lower = line.lower()
+        excluded_words = ["computer science", "software engineer", "data analyst", "project manager"]
+        if any(phrase in line_lower for phrase in excluded_words):
+            return False
         
-        # Skip if it's clearly contact info
-        for pattern in CONTACT_PATTERNS.values():
-            if re.search(pattern, line, re.IGNORECASE):
-                return 0.0
-        
-        # Job titles (high confidence)
-        for pattern in JOB_TITLE_PATTERNS:
-            if re.search(pattern, line, re.IGNORECASE):
-                score += 0.5
-        
-        # Company patterns (high confidence)
-        for pattern in COMPANY_PATTERNS:
-            if re.search(pattern, line, re.IGNORECASE):
-                score += 0.4
-        
-        # Date patterns (moderate confidence)
+        return True
+    
+    def has_date_pattern(self, line: str) -> bool:
+        """Check if line contains date patterns"""
         for pattern in DATE_PATTERNS:
             if re.search(pattern, line, re.IGNORECASE):
-                score += 0.3
-        
-        # Experience-specific keywords
-        exp_keywords = ["responsibilities", "achievements", "duties", "role", "position",
-                       "managed", "developed", "implemented", "led", "supervised",
-                       "coordinated", "designed", "created", "established"]
-        for keyword in exp_keywords:
-            if keyword in line_lower:
-                score += 0.2
-                break
-        
-        # Reference information
-        if "reference" in line_lower and ("phone" in line_lower or "email" in line_lower):
-            score += 0.4
-        
-        # Bullet points suggesting job duties
-        if line.strip().startswith(('-', '•', '*')):
-            score += 0.1
-        
-        return min(score, 1.0)
+                return True
+        return False
     
-    def classify_skills(self, line: str) -> float:
-        """FIXED: Enhanced skills classification with better filtering"""
-        score = 0.0
+    def has_job_title_pattern(self, line: str) -> bool:
+        """Check if line contains job title patterns"""
+        for pattern in JOB_TITLE_PATTERNS:
+            if re.search(pattern, line, re.IGNORECASE):
+                return True
+        return False
+    
+    def has_company_pattern(self, line: str) -> bool:
+        """Check if line contains company patterns"""
+        for pattern in COMPANY_INDICATORS:
+            if re.search(pattern, line, re.IGNORECASE):
+                return True
+        return False
+    
+    def classify_line(self, line: str) -> str:
+        """Classify a single line with improved logic"""
         line_lower = line.lower().strip()
         
-        # EXCLUDE personal info items
-        for pattern in CONTACT_PATTERNS.values():
-            if re.search(pattern, line, re.IGNORECASE):
-                return 0.0
+        # 1. STRICT: Contact information
+        if self.is_contact_info(line):
+            return "personal_info"
         
-        # EXCLUDE names (proper case multiple words)
-        words = line.strip().split()
-        if (2 <= len(words) <= 4 and 
-            all(len(word) > 1 and word[0].isupper() and word[1:].islower() and word.isalpha() 
-                for word in words)):
-            return 0.0
+        # 2. STRICT: Names (only in first few lines)
+        if self.is_likely_name(line):
+            return "personal_info"
         
-        # EXCLUDE job titles in wrong context
-        for pattern in JOB_TITLE_PATTERNS:
-            if re.search(pattern, line, re.IGNORECASE) and len(words) <= 5:
-                return 0.0
+        # 3. Experience indicators (dates + job context)
+        has_date = self.has_date_pattern(line)
+        has_job_title = self.has_job_title_pattern(line)
+        has_company = self.has_company_pattern(line)
         
-        # EXCLUDE project descriptions (long sentences with project indicators)
-        if len(line.split()) > 10:
-            project_indicators_count = sum(1 for indicator in PROJECT_INDICATORS 
-                                         if indicator in line_lower)
-            if project_indicators_count >= 2:
-                return 0.0
+        if has_date and (has_job_title or has_company):
+            return "experience"
         
-        # Technical skills (weighted by category)
-        technical_matches = 0
-        for skill in ALL_TECHNICAL_SKILLS:
-            if skill in line_lower:
-                technical_matches += 1
-                score += 0.4
-        
-        # Bonus for multiple technical skills in one line
-        if technical_matches > 1:
-            score += 0.3
-        
-        # Soft skills
-        soft_matches = 0
-        for skill in SOFT_SKILLS:
-            if skill in line_lower:
-                soft_matches += 1
-                score += 0.3
-        
-        # Skills formatting patterns
-        # Comma-separated list pattern (common for skills)
-        if ',' in line and len(line.split(',')) >= 2:
-            # Check if items in the list look like skills
-            items = [item.strip() for item in line.split(',')]
-            skill_like_items = 0
-            for item in items:
-                if (any(skill in item.lower() for skill in ALL_TECHNICAL_SKILLS) or
-                    any(skill in item.lower() for skill in SOFT_SKILLS)):
-                    skill_like_items += 1
-            
-            if skill_like_items >= len(items) * 0.5:  # At least half are skill-like
-                score += 0.4
-        
-        # Programming languages pattern
-        prog_languages = ["python", "java", "javascript", "c++", "c#", "php", "ruby", "html", "css"]
-        prog_matches = sum(1 for lang in prog_languages if lang in line_lower)
-        if prog_matches > 0:
-            score += 0.5
-        
-        # Language skills (but not programming languages)
-        human_languages = ["english", "afrikaans", "french", "spanish", "german", "chinese"]
-        if any(lang in line_lower for lang in human_languages) and len(words) <= 3:
-            score += 0.3
-        
-        return min(score, 1.0)
-    
-    def classify_education(self, line: str) -> float:
-        """FIXED: Enhanced education classification"""
-        score = 0.0
-        line_lower = line.lower()
-        
-        # EXCLUDE contact info
-        for pattern in CONTACT_PATTERNS.values():
-            if re.search(pattern, line, re.IGNORECASE):
-                return 0.0
-        
-        # Strong education indicators
+        # 4. Education indicators
+        edu_score = 0
         for indicator in EDUCATION_INDICATORS:
             if indicator in line_lower:
-                if indicator in ["university", "college", "degree", "bachelor", "master", "phd", "faculty"]:
-                    score += 0.6  # High confidence
-                else:
-                    score += 0.3  # Medium confidence
+                edu_score += 1
         
-        # Degree abbreviations
-        degree_patterns = [
-            r'\b(bsc|ba|ma|msc|phd|md|jd|mba|beng|btech|btec)\b',
-            r'\b(bachelor|master|doctor)s?\s+(of|in)\b'
-        ]
-        for pattern in degree_patterns:
-            if re.search(pattern, line_lower):
-                score += 0.7
+        # Strong education indicators
+        if re.search(r'\b(bachelor|master|phd|bsc|ba|ma|msc|diploma)\b', line_lower):
+            edu_score += 2
         
-        # Education year patterns (different from work experience)
-        edu_year_patterns = [
-            r'\b(19|20)\d{2}-(19|20)\d{2}\b',  # Year range
-            r'\b(19|20)\d{2}\s*-\s*(19|20)\d{2}\b',
-        ]
-        for pattern in edu_year_patterns:
-            if re.search(pattern, line):
-                score += 0.5
+        if edu_score >= 2:
+            return "education"
         
-        # GPA or grades
-        if re.search(r'\bgpa\b|grade\s*[a-d]|\d\.\d+/4\.0', line_lower):
-            score += 0.3
+        # 5. Skills detection (be more careful)
+        tech_skills_found = sum(1 for skill in TECHNICAL_SKILLS if skill in line_lower)
+        soft_skills_found = sum(1 for skill in SOFT_SKILLS if skill in line_lower)
         
-        # School/Institution names
-        if re.search(r'\b(school|university|college|institute|academy)\b', line_lower):
-            score += 0.4
+        # Must have multiple skills or comma-separated format
+        is_skills_list = ',' in line and len(line.split(',')) >= 2
         
-        return min(score, 1.0)
-    
-    def classify_projects(self, line: str) -> float:
-        """FIXED: Enhanced projects classification"""
-        score = 0.0
-        line_lower = line.lower()
+        if (tech_skills_found >= 2 or soft_skills_found >= 2 or 
+            (is_skills_list and (tech_skills_found >= 1 or soft_skills_found >= 1))):
+            # Make sure it's not a sentence describing experience
+            if len(line.split()) <= 15:  # Skills lists are usually shorter
+                return "skills"
         
-        # EXCLUDE contact info
-        for pattern in CONTACT_PATTERNS.values():
-            if re.search(pattern, line, re.IGNORECASE):
-                return 0.0
+        # 6. Projects (look for project-like descriptions)
+        project_keywords = ["project", "developed", "created", "built", "designed", "implemented", 
+                          "application", "system", "website", "software", "database"]
+        project_matches = sum(1 for keyword in project_keywords if keyword in line_lower)
         
-        # Project description patterns (longer lines with project keywords)
-        project_count = 0
-        for indicator in PROJECT_INDICATORS:
-            if indicator in line_lower:
-                project_count += 1
-                score += 0.2
+        # Projects often have dates or are longer descriptions
+        if project_matches >= 2 or (project_matches >= 1 and has_date):
+            return "projects"
         
-        # Bonus for multiple project indicators in longer descriptions
-        if project_count >= 2 and len(line.split()) > 8:
-            score += 0.4
+        # 7. Default to current section context or uncategorized
+        if self.current_section != "personal_info":
+            return self.current_section
         
-        # Technical project patterns
-        tech_project_patterns = [
-            r'\b(web application|mobile app|software|system|database|api)\b',
-            r'\b(developed|created|built|designed|implemented)\b.*\b(application|system|website|app)\b',
-            r'\bfull[-\s]?stack\b',
-            r'\b(frontend|backend|ui|ux)\b'
-        ]
-        for pattern in tech_project_patterns:
-            if re.search(pattern, line_lower):
-                score += 0.3
-        
-        # Project features/functionality descriptions
-        feature_keywords = ["features", "functionality", "interface", "user", "client", "gui"]
-        feature_matches = sum(1 for keyword in feature_keywords if keyword in line_lower)
-        if feature_matches > 0:
-            score += 0.2 * feature_matches
-        
-        # Page references (common in portfolios)
-        if re.search(r'pg?\.\s*\d+', line_lower):
-            score += 0.4
-        
-        # URL patterns in project context
-        if re.search(r'http[s]?://|github\.com', line_lower):
-            score += 0.3
-        
-        return min(score, 1.0)
+        return "uncategorized"
 
 def extract_cv_sections(text: str) -> Dict[str, List[str]]:
-    """Enhanced CV section extraction with improved classification"""
+    """Improved CV section extraction"""
     if not text or not text.strip():
         return {sec: [] for sec in ALL_SECTIONS}
     
-    # Clean and prepare text
     lines = [line.strip() for line in text.split('\n') if line.strip()]
     if not lines:
         return {sec: [] for sec in ALL_SECTIONS}
     
-    classifier = EnhancedCVSectionClassifier()
-    classifier.set_document_lines(lines)
+    classifier = ImprovedCVClassifier()
+    classifier.document_lines = lines
     sections = {sec: [] for sec in ALL_SECTIONS}
     
     current_section = "personal_info"
-    i = 0
     
-    # First pass: identify obvious section headers
-    section_headers = {}
-    for idx, line in enumerate(lines):
+    for i, line in enumerate(lines):
+        classifier.line_number = i
+        classifier.current_section = current_section
+        
+        # Check for section header
         detected_section = classifier.is_section_header(line)
         if detected_section:
-            section_headers[idx] = detected_section
-    
-    # Second pass: classify content
-    while i < len(lines):
-        line = lines[i]
-        classifier.line_number = i
-        
-        # Check if this line is a section header
-        if i in section_headers:
-            current_section = section_headers[i]
-            classifier.current_section = current_section
-            i += 1
+            current_section = detected_section
+            classifier.found_clear_sections.add(detected_section)
             continue
         
-        # Skip very short lines that might be formatting
-        if len(line.strip()) <= 1:
-            i += 1
+        # Skip very short lines
+        if len(line.strip()) <= 2:
             continue
         
-        # Classify based on content with improved logic
-        personal_score = classifier.classify_personal_info(line)
-        
-        # High confidence personal info classification
-        if personal_score >= 0.8:
-            sections["personal_info"].append(line)
-        else:
-            # Score for other sections
-            scores = {
-                "experience": classifier.classify_experience(line),
-                "skills": classifier.classify_skills(line),
-                "education": classifier.classify_education(line),
-                "projects": classifier.classify_projects(line)
-            }
-            
-            # Add personal info score to comparison
-            scores["personal_info"] = personal_score
-            
-            best_section, best_score = max(scores.items(), key=lambda x: x[1])
-            
-            # Use lower threshold for better classification
-            if best_score >= classifier.confidence_threshold:
-                sections[best_section].append(line)
-            elif current_section != "personal_info" and personal_score < 0.3:
-                # Use current section context if no strong match and not likely personal info
-                sections[current_section].append(line)
-            else:
-                # Default fallback
-                sections["uncategorized"].append(line)
-        
-        i += 1
+        # Classify content
+        classified_section = classifier.classify_line(line)
+        sections[classified_section].append(line)
     
-    # Post-processing improvements
-    sections = _enhanced_post_process_sections(sections)
+    # Post-processing: clean up personal_info
+    sections = _clean_personal_info_section(sections)
     
-    # Remove empty sections except core ones
-    core_sections = {"personal_info", "experience", "education", "skills"}
-    result = {k: v for k, v in sections.items() if v or k in core_sections}
-    
-    return result
+    # Remove empty sections
+    return {k: v for k, v in sections.items() if v}
 
-def _enhanced_post_process_sections(sections: Dict[str, List[str]]) -> Dict[str, List[str]]:
-    """Enhanced post-processing with better pattern recognition"""
+def _clean_personal_info_section(sections: Dict[str, List[str]]) -> Dict[str, List[str]]:
+    """Clean up personal_info section to only include actual contact details and name"""
     
-    # Move contact information to personal_info more aggressively
-    for section_name, items in list(sections.items()):
-        if section_name == "personal_info":
-            continue
-            
-        items_to_move = []
-        remaining_items = []
+    personal_items = sections["personal_info"]
+    cleaned_personal = []
+    items_to_redistribute = []
+    
+    for item in personal_items:
+        keep_in_personal = False
         
-        for item in items:
-            is_contact = False
-            item_lower = item.lower().strip()
-            
-            # Check for contact patterns
-            for pattern in CONTACT_PATTERNS.values():
-                if re.search(pattern, item, re.IGNORECASE):
-                    is_contact = True
-                    break
-            
-            # Check for contact labels
-            for label in CONTACT_LABELS:
-                if item_lower == label or item_lower.startswith(label):
-                    is_contact = True
-                    break
-            
-            # Check for name patterns
-            words = item.strip().split()
-            if (len(words) == 2 and 
-                all(len(word) > 1 and word[0].isupper() and word[1:].islower() and word.isalpha() 
-                    for word in words)):
-                is_contact = True
-            
-            # Check for social media
-            if re.search(r'(github|linkedin)\.com', item, re.IGNORECASE):
-                is_contact = True
-            
-            if is_contact:
-                items_to_move.append(item)
-            else:
-                remaining_items.append(item)
+        # Keep if it's actual contact info
+        for pattern in CONTACT_PATTERNS.values():
+            if re.search(pattern, item, re.IGNORECASE):
+                keep_in_personal = True
+                break
         
-        sections["personal_info"].extend(items_to_move)
-        sections[section_name] = remaining_items
+        # Keep if it's a contact label
+        contact_labels = ["phone:", "email:", "address:", "github:", "linkedin:", "website:"]
+        if any(item.lower().strip().startswith(label) for label in contact_labels):
+            keep_in_personal = True
+        
+        # Keep if it looks like a name (but be strict)
+        words = item.strip().split()
+        if (2 <= len(words) <= 3 and 
+            all(len(word) > 1 and word[0].isupper() and word[1:].islower() and word.isalpha() 
+                for word in words)):
+            # Extra check: not a job title
+            if not any(pattern for pattern in JOB_TITLE_PATTERNS 
+                      if re.search(pattern, item, re.IGNORECASE)):
+                keep_in_personal = True
+        
+        if keep_in_personal:
+            cleaned_personal.append(item)
+        else:
+            items_to_redistribute.append(item)
+    
+    # Update personal_info section
+    sections["personal_info"] = cleaned_personal
+    
+    # Redistribute other items
+    for item in items_to_redistribute:
+        # Try to classify properly
+        classifier = ImprovedCVClassifier()
+        new_section = classifier.classify_line(item)
+        if new_section != "personal_info":
+            sections[new_section].append(item)
+        else:
+            sections["uncategorized"].append(item)
     
     return sections
