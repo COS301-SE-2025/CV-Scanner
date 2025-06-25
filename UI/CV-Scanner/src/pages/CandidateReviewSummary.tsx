@@ -102,7 +102,7 @@ export default function CandidateReviewSummary() {
     <Box sx={{ display: 'flex', alignItems: 'center' }}>
       <img src={logo} alt="Logo" style={{ width: 80 }} />
       {/* Optional title next to logo */}
-      <Typography variant="h6" sx={{ ml: 2, fontWeight: 'bold' }}>Candidate Skills</Typography> 
+      <Typography variant="h6" sx={{ ml: 2, fontWeight: 'bold' }}>Candidate Summary</Typography> 
     </Box>
             {/* Right: Icons */}
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
