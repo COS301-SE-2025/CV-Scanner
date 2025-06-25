@@ -110,12 +110,12 @@ const projectFitData = [
   { type: 'Autonomous', value: 20 },
 ];
 
-const stackedData = [
+/*const stackedData = [
   { name: 'Week 1', .NET: 40, React: 24, Python: 24 },
   { name: 'Week 2', .NET: 30, React: 13, Python: 22 },
   { name: 'Week 3', .NET: 20, React: 98, Python: 22 },
   { name: 'Week 4', .NET: 27, React: 39, Python: 20 },
-];
+];*/
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
@@ -311,6 +311,25 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
           <Typography variant="h5" sx={{ mb: 3, fontWeight: "bold" }}>
             Candidates Dashboard
           </Typography>
+
+           {/* Dashboard Graphs */}
+<Box sx={{ display: "flex", flexWrap: "wrap", gap: 4, mb: 4 }}>
+  {/* Line Chart: Candidate Trends */}
+  <Paper sx={graphCardStyle}>
+    <Typography variant="subtitle1" sx={{ mb: 1 }}>Monthly Candidate Uploads</Typography>
+    <ResponsiveContainer width="100%" height={200}>
+      <LineChart data={candidateTrends}>
+        <CartesianGrid stroke="#ccc" />
+        <XAxis dataKey="month" />
+        <YAxis />
+        <RechartTooltip />
+        <Line type="monotone" dataKey="candidates" stroke="#1A82AE" />
+      </LineChart>
+    </ResponsiveContainer>
+  </Paper>
+
+  </Box>
+
 
           {/* Stat Cards */}
           <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap", mb: 4 }}>
