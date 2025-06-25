@@ -110,12 +110,12 @@ const projectFitData = [
   { type: 'Autonomous', value: 20 },
 ];
 
-/*const stackedData = [
-  { name: 'Week 1', .NET: 40, React: 24, Python: 24 },
-  { name: 'Week 2', .NET: 30, React: 13, Python: 22 },
-  { name: 'Week 3', .NET: 20, React: 98, Python: 22 },
-  { name: 'Week 4', .NET: 27, React: 39, Python: 20 },
-];*/
+const groupedBarData = [
+  { name: 'Week 1', ".NET": 40, React: 24, Python: 24 },
+  { name: 'Week 2', ".NET": 30, React: 13, Python: 22 },
+  { name: 'Week 3', ".NET": 20, React: 98, Python: 22 },
+  { name: 'Week 4', ".NET": 27, React: 39, Python: 20 },
+];
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
@@ -327,6 +327,38 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
       </LineChart>
     </ResponsiveContainer>
   </Paper>
+
+    {/* Bar Chart: Stacked Skills */}
+  <Paper
+  elevation={6}
+  sx={{
+    p: 2,
+    borderRadius: 3,
+    mb: 4,
+    backgroundColor: "#2b3a55", // Match your dark theme
+    color: "#fff", // Ensure text stays readable
+  }}
+>
+  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
+    Weekly Tech Usage
+  </Typography>
+  <ResponsiveContainer width="100%" height={300}>
+    <BarChart
+      data={groupedBarData}
+      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+    >
+      <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
+      <XAxis dataKey="name" stroke="#fff" />
+      <YAxis stroke="#fff" />
+      <Tooltip />
+      <Legend />
+      <Bar dataKey=".NET" fill="#8884d8" />
+      <Bar dataKey="React" fill="#82ca9d" />
+      <Bar dataKey="Python" fill="#ffc658" />
+    </BarChart>
+  </ResponsiveContainer>
+</Paper>
+
 
   </Box>
 
