@@ -22,7 +22,7 @@ jobs:
         distribution: 'temurin'
 
     - name: Build with Maven
-      run: mvn -B package --file pom.xml
+      run: mvn -B package --file API/api/pom.xml
 
     - name: Run tests
-      run: mvn test
+      run: mvn -f API/api/pom.xml test
