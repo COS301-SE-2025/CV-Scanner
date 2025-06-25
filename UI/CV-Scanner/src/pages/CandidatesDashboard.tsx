@@ -359,7 +359,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
   </ResponsiveContainer>
 </Paper>
 
-  {/* Pie Chart: Skill Distribution */}
+
 {/* Pie Chart: Skill Distribution */}
 <Paper sx={graphCardStyle}>
   <Typography variant="subtitle1" sx={{ mb: 1 }}>Skill Distribution</Typography>
@@ -382,6 +382,20 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
   </ResponsiveContainer>
 </Paper>
 
+  {/* Doughnut Chart: Project Fit */}
+  <Paper sx={graphCardStyle}>
+    <Typography variant="subtitle1" sx={{ mb: 1 }}>Project Fit Types</Typography>
+    <ResponsiveContainer width="100%" height={200}>
+      <PieChart>
+        <Pie data={projectFitData} dataKey="value" cx="50%" cy="50%" innerRadius={40} outerRadius={60}>
+          {projectFitData.map((entry, index) => (
+                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+          ))}
+        </Pie>
+        <RechartTooltip />
+      </PieChart>
+    </ResponsiveContainer>
+  </Paper>
 
   </Box>
 
