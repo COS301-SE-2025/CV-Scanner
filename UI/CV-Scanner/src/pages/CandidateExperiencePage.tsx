@@ -23,22 +23,19 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
-
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
-
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import logo2 from "../assets/logo2.png";
-import logo from "../assets/logo.png"; // Assuming you have a logo image
-
+import logo from "../assets/logo.png";
 
 export default function CandidateExperiencePage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // User info state and fetch (like UserManagementPage)
+  // User info state and fetch
   const [user, setUser] = useState<{
     first_name?: string;
     last_name?: string;
@@ -55,28 +52,38 @@ export default function CandidateExperiencePage() {
       .catch(() => setUser(null));
   }, []);
 
+  // Collapsing sidebar
+  const [collapsed, setCollapsed] = useState(false);
+
   // Tutorial logic
   const [tutorialStep, setTutorialStep] = useState(-1); // -1 means not showing
   const [fadeIn, setFadeIn] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const helpIconRef = useRef<HTMLButtonElement>(null);
+
+  // Refs for tutorial steps
+  const workHistoryRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (tutorialStep === 0 && helpIconRef.current)
-      setAnchorEl(helpIconRef.current);
+    if (tutorialStep === 0 && workHistoryRef.current)
+      setAnchorEl(workHistoryRef.current);
     else setAnchorEl(null);
   }, [tutorialStep]);
 
-  const handleStepChange = (nextStep: number) => {
+  const handleNext = () => {
     setFadeIn(false);
     setTimeout(() => {
-      setTutorialStep(nextStep);
+      setTutorialStep((s) => s + 1);
+      setFadeIn(true);
+    }, 250);
+  };
+  const handleBack = () => {
+    setFadeIn(false);
+    setTimeout(() => {
+      setTutorialStep((s) => s - 1);
       setFadeIn(true);
     }, 250);
   };
   const handleCloseTutorial = () => setTutorialStep(-1);
-
-  const [collapsed, setCollapsed] = useState(false);
 
   return (
     <Box
@@ -91,63 +98,80 @@ export default function CandidateExperiencePage() {
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
-         <AppBar position="static" sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}>
-  <Toolbar sx={{ justifyContent: "space-between" }}>
-    {/* Left: Logo */}
-    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-      <img src={logo} alt="Logo" style={{ width: 80 }} />
-      {/* Optional title next to logo */}
-      <Typography variant="h6" sx={{ ml: 2, fontWeight: 'bold' }}>Candidate Experience</Typography> 
-    </Box>
+        <AppBar
+          position="static"
+          sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
 
-    {/* Right: Icons */}
-    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-      <Tooltip title="Go to Help Page" arrow>
-        <IconButton
-          onClick={() => navigate("/help")}
-          sx={{ ml: 1, color: '#90ee90' }}
         >
-          <HelpOutlineIcon />
-        </IconButton>
-      </Tooltip>
-
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          ml: 2,
-          cursor: "pointer",
-          "&:hover": { opacity: 0.8 },
-        }}
-        onClick={() => navigate("/settings")}
-      >
-        <AccountCircleIcon sx={{ mr: 1 }} />
-        <Typography variant="subtitle1">
-                {user
-                  ? user.first_name
-                    ? `${user.first_name} ${user.last_name || ""} (${
-                        user.role || "User"
-                      })`
-                    : (user.username || user.email) +
-                      (user.role ? ` (${user.role})` : "")
-                  : "User"}
+          <Toolbar sx={{ justifyContent: "space-between" }}>
+            {/* Left: Logo and heading */}
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <img src={logo} alt="Logo" style={{ width: 80 }} />
+              <Typography variant="h6" sx={{ ml: 2, fontWeight: "bold" }}>
+                Candidate Experience
               </Typography>
-      </Box>
-
-      <IconButton
-        color="inherit"
-        onClick={() => navigate("/login")}
-        sx={{ ml: 1 }}
-      >
-        <ExitToAppIcon />
-      </IconButton>
-    </Box>
-  </Toolbar>
-</AppBar>
+            </Box>
+            {/* Right: Icons */}
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              {/* Tutorial icon */}
+              <Tooltip title="Run Tutorial" arrow>
+                <IconButton
+                  onClick={() => {
+                    setTutorialStep(0);
+                    setFadeIn(true);
+                  }}
+                  sx={{ ml: 1, color: "#FFEB3B" }}
+                >
+                  <LightbulbRoundedIcon />
+                </IconButton>
+              </Tooltip>
+              {/* Help icon */}
+              <Tooltip title="Go to Help Page" arrow>
+                <IconButton
+                  onClick={() => navigate("/help")}
+                  sx={{ ml: 1, color: "#90ee90" }}
+                >
+                  <HelpOutlineIcon />
+                </IconButton>
+              </Tooltip>
+              {/* User Info */}
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  ml: 2,
+                  cursor: "pointer",
+                  "&:hover": { opacity: 0.8 },
+                }}
+                onClick={() => navigate("/settings")}
+              >
+                <AccountCircleIcon sx={{ mr: 1 }} />
+                <Typography variant="subtitle1">
+                  {user
+                    ? user.first_name
+                      ? `${user.first_name} ${user.last_name || ""} (${
+                          user.role || "User"
+                        })`
+                      : (user.username || user.email) +
+                        (user.role ? ` (${user.role})` : "")
+                    : "User"}
+                </Typography>
+              </Box>
+              {/* Logout */}
+              <IconButton
+                color="inherit"
+                onClick={() => navigate("/login")}
+                sx={{ ml: 1 }}
+              >
+                <ExitToAppIcon />
+              </IconButton>
+            </Box>
+          </Toolbar>
+        </AppBar>
 
         {/* Tutorial Popover */}
         <Popover
-          open={tutorialStep === 0 && Boolean(anchorEl)}
+          open={tutorialStep >= 0 && Boolean(anchorEl)}
           anchorEl={anchorEl}
           onClose={handleCloseTutorial}
           anchorOrigin={{
@@ -165,7 +189,7 @@ export default function CandidateExperiencePage() {
               color: "#181c2f",
               borderRadius: 2,
               boxShadow: 6,
-              minWidth: 280,
+              minWidth: 320,
               zIndex: 1500,
               textAlign: "center",
             },
@@ -174,20 +198,36 @@ export default function CandidateExperiencePage() {
           <Fade in={fadeIn} timeout={250}>
             <Box sx={{ position: "relative" }}>
               <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-                Page Tutorial
+                Work History
               </Typography>
               <Typography sx={{ mb: 2 }}>
-                This is the help/tutorial popover. Add more steps as needed.
+                This section shows the candidate's previous work experience and
+                roles.
               </Typography>
               <Box
                 sx={{
                   display: "flex",
-                  justifyContent: "flex-end",
+                  justifyContent: "space-between",
                   alignItems: "center",
                   mt: 3,
                   gap: 2,
                 }}
               >
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={handleCloseTutorial}
+                  sx={{
+                    color: "#888",
+                    fontSize: "0.85rem",
+                    textTransform: "none",
+                    minWidth: "auto",
+                    p: 0,
+                    mr: "auto", // move to left
+                  }}
+                >
+                  End Tutorial
+                </Button>
                 <Button
                   variant="contained"
                   onClick={handleCloseTutorial}
@@ -260,6 +300,7 @@ export default function CandidateExperiencePage() {
           <Paper
             elevation={6}
             sx={{ p: 3, borderRadius: 3, bgcolor: "#e1f4ff" }}
+            ref={workHistoryRef}
           >
             <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
               Work History

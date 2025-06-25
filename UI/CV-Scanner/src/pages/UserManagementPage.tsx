@@ -332,14 +332,13 @@ export default function UserManagementPage() {
         {/* Top App Bar */}
          <AppBar
                            position="static"
-                           sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}
+                           sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
                          >
                            <Toolbar sx={{ justifyContent: "flex-end" }}>
                    {/* Tutorial icon */}
                    <Tooltip title="Run Tutorial" arrow>
                      <IconButton
                        onClick={() => {
-                         setShowTutorial(true);
                          setTutorialStep(0);
                          setFadeIn(true);
                        }}

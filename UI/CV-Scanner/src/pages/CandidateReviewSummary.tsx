@@ -1,28 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   Typography,
   Paper,
   Button,
   IconButton,
-  TableContainer,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
+  Chip,
   AppBar,
   Toolbar,
   Badge,
-  TextField,
-  Chip,
   Tooltip,
   Fade,
   Popover,
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import DeleteIcon from "@mui/icons-material/Delete";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import PeopleIcon from "@mui/icons-material/People";
@@ -43,7 +34,7 @@ export default function CandidateReviewSummary() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // User info state and fetch (copied from UserManagementPage)
+  // User info state and fetch
   const [user, setUser] = useState<{
     first_name?: string;
     last_name?: string;
@@ -65,25 +56,31 @@ export default function CandidateReviewSummary() {
   const [fadeIn, setFadeIn] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
-  // Example refs for tutorial (add more as needed)
-  const helpIconRef = React.useRef<HTMLButtonElement>(null);
+  // Refs for tutorial steps
+  const projectFitRef = useRef<HTMLDivElement>(null);
+  const techRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (tutorialStep === 0 && helpIconRef.current)
-      setAnchorEl(helpIconRef.current);
+    if (tutorialStep === 0 && projectFitRef.current) setAnchorEl(projectFitRef.current);
+    else if (tutorialStep === 1 && techRef.current) setAnchorEl(techRef.current);
     else setAnchorEl(null);
   }, [tutorialStep]);
 
-  const handleStepChange = (nextStep: number) => {
+  const handleNext = () => {
     setFadeIn(false);
     setTimeout(() => {
-      setTutorialStep(nextStep);
+      setTutorialStep((s) => s + 1);
+      setFadeIn(true);
+    }, 250);
+  };
+  const handleBack = () => {
+    setFadeIn(false);
+    setTimeout(() => {
+      setTutorialStep((s) => s - 1);
       setFadeIn(true);
     }, 250);
   };
   const handleCloseTutorial = () => setTutorialStep(-1);
-
-  const [collapsed, setCollapsed] = useState(false);
 
   return (
     <Box
@@ -98,64 +95,74 @@ export default function CandidateReviewSummary() {
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
-          <AppBar position="static" sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}>
-            <Toolbar sx={{ justifyContent: "space-between" }}>
-              {/* Left: Logo */}
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <img src={logo} alt="Logo" style={{ width: 80 }} />
-                {/* Optional title next to logo */}
-                <Typography variant="h6" sx={{ ml: 2, fontWeight: 'bold' }}>Candidate Summary</Typography> 
-              </Box>
-          
-              {/* Right: Icons */}
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Tooltip title="Go to Help Page" arrow>
-                  <IconButton
-                    onClick={() => navigate("/help")}
-                    sx={{ ml: 1, color: '#90ee90' }}
-                  >
-                    <HelpOutlineIcon />
-                  </IconButton>
-                </Tooltip>
-          
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    ml: 2,
-                    cursor: "pointer",
-                    "&:hover": { opacity: 0.8 },
-                  }}
-                  onClick={() => navigate("/settings")}
-                >
-                  <AccountCircleIcon sx={{ mr: 1 }} />
-                  <Typography variant="subtitle1">
+
+        <AppBar position="static" sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}>
+          <Toolbar sx={{ justifyContent: "space-between" }}>
+            {/* Left: Logo */}
+    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+      <img src={logo} alt="Logo" style={{ width: 80 }} />
+      {/* Optional title next to logo */}
+      <Typography variant="h6" sx={{ ml: 2, fontWeight: 'bold' }}>Candidate Skills</Typography> 
+    </Box>
+            {/* Right: Icons */}
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {/* Tutorial icon */}
+            <Tooltip title="Run Tutorial" arrow>
+              <IconButton
+                onClick={() => {
+                  setTutorialStep(0);
+                  setFadeIn(true);
+                }}
+                sx={{ ml: 1, color: "#FFEB3B" }}
+              >
+                <LightbulbRoundedIcon />
+              </IconButton>
+            </Tooltip>
+            {/* Help / FAQ icon */}
+            <Tooltip title="Go to Help Page" arrow>
+              <IconButton
+                onClick={() => navigate("/help")}
+                sx={{ ml: 1, color: "#90ee90" }}
+              >
+                <HelpOutlineIcon />
+              </IconButton>
+            </Tooltip>
+            {/* User Info */}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                ml: 2,
+                cursor: "pointer",
+                "&:hover": { opacity: 0.8 },
+              }}
+              onClick={() => navigate("/settings")}
+            >
+              <AccountCircleIcon sx={{ mr: 1 }} />
+              <Typography variant="subtitle1">
+
                 {user
                   ? user.first_name
-                    ? `${user.first_name} ${user.last_name || ""} (${
-                        user.role || "User"
-                      })`
-                    : (user.username || user.email) +
-                      (user.role ? ` (${user.role})` : "")
+                    ? `${user.first_name} ${user.last_name || ""} (${user.role || "User"})`
+                    : (user.username || user.email) + (user.role ? ` (${user.role})` : "")
                   : "User"}
               </Typography>
-                </Box>
-          
-                <IconButton
-                  color="inherit"
-                  onClick={() => navigate("/login")}
-                  sx={{ ml: 1 }}
-                >
-                  <ExitToAppIcon />
-                </IconButton>
-              </Box>
-            </Toolbar>
-          </AppBar>
-         
+            </Box>
+            {/* Logout */}
+            <IconButton
+              color="inherit"
+              onClick={() => navigate("/login")}
+              sx={{ ml: 1 }}
+            >
+              <ExitToAppIcon />
+            </IconButton>
+            </Box>
+          </Toolbar>
+        </AppBar>
 
         {/* Tutorial Popover */}
         <Popover
-          open={tutorialStep === 0 && Boolean(anchorEl)}
+          open={tutorialStep >= 0 && Boolean(anchorEl)}
           anchorEl={anchorEl}
           onClose={handleCloseTutorial}
           anchorOrigin={{
@@ -173,7 +180,7 @@ export default function CandidateReviewSummary() {
               color: "#181c2f",
               borderRadius: 2,
               boxShadow: 6,
-              minWidth: 280,
+              minWidth: 320,
               zIndex: 1500,
               textAlign: "center",
             },
@@ -182,33 +189,81 @@ export default function CandidateReviewSummary() {
           <Fade in={fadeIn} timeout={250}>
             <Box sx={{ position: "relative" }}>
               <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-                Page Tutorial
+                {tutorialStep === 0 ? "Project Fit" : "Key Technologies"}
               </Typography>
               <Typography sx={{ mb: 2 }}>
-                This is the help/tutorial popover. Add more steps as needed.
+                {tutorialStep === 0
+                  ? "This section shows how well the candidate fits technical and collaborative projects."
+                  : "Here you can see the candidate's key technologies and skills."}
               </Typography>
               <Box
                 sx={{
                   display: "flex",
-                  justifyContent: "flex-end",
+                  justifyContent: "space-between",
                   alignItems: "center",
                   mt: 3,
                   gap: 2,
                 }}
               >
                 <Button
-                  variant="contained"
+                  variant="text"
+                  size="small"
                   onClick={handleCloseTutorial}
                   sx={{
-                    bgcolor: "#5a88ad",
-                    color: "#fff",
-                    fontWeight: "bold",
+                    color: "#888",
+                    fontSize: "0.85rem",
                     textTransform: "none",
-                    "&:hover": { bgcolor: "#487DA6" },
+                    minWidth: "auto",
+                    p: 0,
                   }}
                 >
-                  Finish
+                  End Tutorial
                 </Button>
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  {tutorialStep > 0 && (
+                    <Button
+                      variant="outlined"
+                      onClick={handleBack}
+                      sx={{
+                        color: "#0073c1",
+                        borderColor: "#0073c1",
+                        fontWeight: "bold",
+                        textTransform: "none",
+                      }}
+                    >
+                      Back
+                    </Button>
+                  )}
+                  {tutorialStep < 1 ? (
+                    <Button
+                      variant="contained"
+                      onClick={handleNext}
+                      sx={{
+                        bgcolor: "#5a88ad",
+                        color: "#fff",
+                        fontWeight: "bold",
+                        textTransform: "none",
+                        "&:hover": { bgcolor: "#487DA6" },
+                      }}
+                    >
+                      Next
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="contained"
+                      onClick={handleCloseTutorial}
+                      sx={{
+                        bgcolor: "#5a88ad",
+                        color: "#fff",
+                        fontWeight: "bold",
+                        textTransform: "none",
+                        "&:hover": { bgcolor: "#487DA6" },
+                      }}
+                    >
+                      Finish
+                    </Button>
+                  )}
+                </Box>
               </Box>
             </Box>
           </Fade>
@@ -268,6 +323,7 @@ export default function CandidateReviewSummary() {
           <Paper
             elevation={6}
             sx={{ p: 3, mb: 4, borderRadius: 3, bgcolor: "#e1f4ff" }}
+            ref={projectFitRef}
           >
             <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
               Project Fit
@@ -367,6 +423,7 @@ export default function CandidateReviewSummary() {
           <Paper
             elevation={6}
             sx={{ p: 3, borderRadius: 3, bgcolor: "#e1f4ff" }}
+            ref={techRef}
           >
             <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
               Key Technologies
