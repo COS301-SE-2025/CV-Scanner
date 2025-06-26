@@ -8,6 +8,38 @@ from transformers import pipeline
 import re
 import spacy
 import os
+import subprocess
+import time
+def start_tika_server():
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.connect(('localhost', 9998))
+        s.close()
+        print("Tika server already running.")
+        return
+    except Exception:
+        pass
+
+    print("Starting Tika server...")
+
+    tika_jar = '/tmp/tika-server.jar'
+    if not os.path.exists(tika_jar):
+        raise RuntimeError(f"Tika JAR not found at {tika_jar}")
+    subprocess.Popen(['java', '-jar', tika_jar], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    for _ in range(10):
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect(('localhost', 9998))
+            s.close()
+            print("Tika server started.")
+            return
+        except Exception:
+            time.sleep(1)
+    raise RuntimeError("Tika server failed to start.")
+
+start_tika_server()
 os.environ['TIKA_SERVER_JAR'] = '/tmp/tika-server.jar'
 from tika import parser
 
