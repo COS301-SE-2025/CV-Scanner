@@ -1,6 +1,7 @@
 # 📄 CV-Scanner
 
 [![Build Status](https://github.com/COS301-SE-2025/CV-Scanner/actions/workflows/build.yml/badge.svg)](https://github.com/COS301-SE-2025/CV-Scanner/actions)
+[![CI Status](https://github.com/COS301-SE-2025/CV-Scanner/actions/workflows/build.yml/badge.svg)](https://github.com/COS301-SE-2025/CV-Scanner/actions)
 [![Coverage Status](https://coveralls.io/repos/github/COS301-SE-2025/CV-Scanner/badge.svg?branch=main)](https://coveralls.io/github/COS301-SE-2025/CV-Scanner?branch=main)
 ![Requirements Status](https://img.shields.io/badge/requirements-satisfied-brightgreen)
 ![GitHub Issues](https://img.shields.io/github/issues/COS301-SE-2025/CV-Scanner)
