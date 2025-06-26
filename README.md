@@ -103,6 +103,13 @@ Track our development progress here:
 
 ---
 
+## 📄 Access the Manual
+
+You can view or download the full user manual here:  
+[CV Scanner User Manual](https://drive.google.com/file/d/1U7zqDIqY-VYKJQcDi8kkhpHsde9DV53l/view?usp=sharing)
+
+---
+
 ## 📑 Coding Standards
 
 You can view our Coding Standards document here:
