@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import logo from "../assets/logo.png";
+import logo2 from "../assets/logo2.png"; // Import the second logo if needed
 import {
   Box,
   Button,
@@ -33,6 +34,7 @@ export default function LoginPage() {
       .then((res) => res.text())
       .then((data) => {
         if (data.toLowerCase().includes("success")) {
+          localStorage.setItem("userEmail", email); // <--- Add this line
           navigate("/dashboard"); // or wherever you want to redirect
         } else {
           setError(data);
@@ -47,27 +49,105 @@ export default function LoginPage() {
 
   return (
     <>
-      {/* Header */}
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          bgcolor: "#3a7ca5",
-          color: "#fff",
-          px: 2,
-          py: 1,
-          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          <img
-            src={logo}
-            alt="Entelect Logo"
-            style={{ width: 100, height: 40, marginRight: 8 }}
-          />
-        </Box>
-      </Box>
+    {/* Header */}
+<Box
+  sx={{
+    display: "flex",
+    alignItems: "center",
+    bgcolor: "#1A82AE",
+    color: "#fff",
+    px: 2,
+    py: 2,
+    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+    position: "relative",
+    overflow: "hidden",
+    height: 80
+  }}
+>
+  {/* Logo in left corner */}
+  <Box 
+    sx={{
+      position: "absolute",
+      left: 20,
+      zIndex: 2,
+      "&:hover": {
+        transform: "rotate(-5deg)",
+        transition: "transform 0.3s ease"
+      }
+    }}
+  >
+    <img 
+      src={logo} 
+      alt="Quantum Stack Logo" 
+      style={{ 
+        width: 75,
+        height: "auto",
+        filter: "none" // Removed shadow
+      }} 
+    />
+  </Box>
+
+  {/* Sliding Text Container - full width */}
+  <Box 
+    sx={{
+      position: "absolute",
+      width: "100%",
+      height: "100%",
+      display: "flex",
+      alignItems: "center",
+      left: 0,
+      overflow: "hidden"
+    }}
+  >
+    <Typography
+      variant="h4"
+      sx={{
+        fontWeight: 800,
+        letterSpacing: 4,
+        textTransform: "uppercase",
+        fontFamily: "'Orbitron', sans-serif",
+        background: "linear-gradient(to right, #fff, #d1faff)",
+        WebkitBackgroundClip: "text",
+        WebkitTextFillColor: "transparent",
+        whiteSpace: "nowrap",
+        position: "absolute",
+        left: "100%", // Start off-screen right
+        animation: "slideText 20s linear infinite",
+        "@keyframes slideText": {
+          "0%": { 
+            transform: "translateX(0)",
+            left: "100%" 
+          },
+          "10%": { 
+            left: "100%",
+            transform: "translateX(0)" 
+          },
+          "100%": { 
+            left: "0%",
+            transform: "translateX(-100%)" 
+          }
+        }
+      }}
+    >
+      QUANTUM STACK
+    </Typography>
+  </Box>
+
+  {/* Subtle background shine animation */}
+  <Box sx={{
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%)",
+    animation: "shine 15s infinite linear",
+    "@keyframes shine": {
+      "0%": { transform: "translateX(-100%)" },
+      "100%": { transform: "translateX(100%)" }
+    }
+  }}/>
+</Box>
 
       {/* Main Content */}
       <Box
@@ -189,6 +269,29 @@ export default function LoginPage() {
             >
               {loading ? "Signing in..." : "Sign in"}
             </Button>
+
+            {/* Add this new temporary access button */}
+            {/* <Button
+              fullWidth
+              variant="outlined"
+              size="large"
+              onClick={() => navigate("/dashboard")}
+              sx={{
+                mb: 2,
+                py: 1.5,
+                fontWeight: "bold",
+                fontSize: "1.1rem",
+                color: "#b0e0ff",
+                borderColor: "#b0e0ff",
+                "&:hover": {
+                  borderColor: "#fff",
+                  color: "#fff",
+                  bgcolor: "rgba(255, 255, 255, 0.1)",
+                },
+              }}
+            >
+              Temporary Dashboard Access
+            </Button> */}
 
             <Typography align="center" sx={{ mt: 2 }}>
               Don't have an account?{" "}

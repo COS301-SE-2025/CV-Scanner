@@ -10,7 +10,7 @@ class CVData;
 
 class CVSectionExtractor {
 public:
-    CVData* Extractor(std::string str,CVData* data);
+    void Extractor(std::string str,CVData* data);
 };
 
 #endif //ENGINE_CVSECTIONEXTRACTOR_H

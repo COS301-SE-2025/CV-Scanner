@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+
 import {
   Box,
   Typography,
@@ -19,8 +20,14 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  Divider,
+  Chip,
+  Popover,
+  Fade,
+  Tooltip,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -30,14 +37,54 @@ import SearchIcon from "@mui/icons-material/Search";
 import SettingsIcon from "@mui/icons-material/Settings";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import logo2 from "../assets/logo2.png";
 import logo from "../assets/logo.png";
+import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
 export default function UploadCVPage() {
+  const [collapsed, setCollapsed] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [processedData, setProcessedData] = useState<any | null>(null); // State for processed data
   const [isModalOpen, setIsModalOpen] = useState(false); // State for modal visibility
   const [contactInfo, setContactInfo] = useState(""); // State for contact information
   const [additionalInfo, setAdditionalInfo] = useState(""); // State for additional information
+
+  const [user, setUser] = useState<{
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+    role?: string; // <-- add this
+    email?: string; // <-- and this
+  } | null>(null);
+  const [tutorialStep, setTutorialStep] = useState(0);
+  const [fadeIn, setFadeIn] = useState(true);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  const uploadBoxRef = useRef<HTMLDivElement>(null);
+  const additionalInfoRef = useRef<HTMLInputElement>(null);
+  const processBtnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const email = localStorage.getItem("userEmail") || "admin@email.com";
+    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
+      .then((res) => res.json())
+      .then((data) => setUser(data))
+      .catch(() => setUser(null));
+  }, []);
+
+  useEffect(() => {
+    if (tutorialStep === 0 && uploadBoxRef.current)
+      setAnchorEl(uploadBoxRef.current);
+    else if (tutorialStep === 1 && additionalInfoRef.current)
+      setAnchorEl(additionalInfoRef.current);
+    else if (tutorialStep === 2 && processBtnRef.current)
+      setAnchorEl(processBtnRef.current);
+    else setAnchorEl(null);
+  }, [tutorialStep]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -49,19 +96,31 @@ export default function UploadCVPage() {
     setProcessedData(null); // Clear processed data when file is removed
   };
 
-  const handleProcess = () => {
+  // ...existing code...
+  const handleProcess = async () => {
     if (file) {
-      // Simulate processing with mock data
-      const mockData = {
-        name: "John Doe",
-        skills: ["JavaScript", "React", "Node.js"],
-        experience: "5 years",
-        education: "Bachelor's in Computer Science",
-        contactInfo,
-        additionalInfo,
-      };
-      setProcessedData(mockData);
-      setIsModalOpen(true); // Open the modal
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const response = await fetch("http://localhost:5000/upload_pdf/", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          alert(errorData.detail || "Failed to process CV.");
+          return;
+        }
+
+        const data = await response.json();
+        // data.data contains the structured CV info from FastAPI
+        setProcessedData(data.data);
+        setIsModalOpen(true);
+      } catch (error) {
+        alert("An error occurred while processing the CV.");
+      }
     }
   };
 
@@ -70,13 +129,38 @@ export default function UploadCVPage() {
   };
 
   const handleBrowseClick = () => {
-    const fileInput = document.getElementById("file-upload") as HTMLInputElement;
+    const fileInput = document.getElementById(
+      "file-upload"
+    ) as HTMLInputElement;
     if (fileInput) {
       fileInput.click();
     }
   };
 
+  const handleStepChange = (nextStep: number) => {
+    setFadeIn(false);
+    setTimeout(() => {
+      setTutorialStep(nextStep);
+      setFadeIn(true);
+    }, 250);
+  };
+
+  const handleCloseTutorial = () => setShowTutorial(false);
+
   const navigate = useNavigate();
+
+  const location = useLocation();
+
+  // Set anchorEl when tutorialStep changes
+  useEffect(() => {
+    if (tutorialStep === 0 && uploadBoxRef.current)
+      setAnchorEl(uploadBoxRef.current);
+    else if (tutorialStep === 1 && additionalInfoRef.current)
+      setAnchorEl(additionalInfoRef.current);
+    else if (tutorialStep === 2 && processBtnRef.current)
+      setAnchorEl(processBtnRef.current);
+    else setAnchorEl(null);
+  }, [tutorialStep]);
 
   return (
     <Box
@@ -88,66 +172,179 @@ export default function UploadCVPage() {
       }}
     >
       {/* Sidebar */}
-      <Box
-        sx={{
-          width: 220,
-          bgcolor: "#5a88ad",
-          display: "flex",
-          flexDirection: "column",
-          p: 2,
-        }}
-      >
-        <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
-          <img src={logo} alt="Entelect Logo" style={{ width: 120 }} />
+      {!collapsed ? (
+        <Box
+          sx={{
+            width: 220,
+            bgcolor: "#1A82AE",
+            display: "flex",
+            flexDirection: "column",
+            p: 2,
+            position: "relative",
+          }}
+        >
+          {/* Collapse Button */}
+          <IconButton
+            onClick={() => setCollapsed(true)}
+            sx={{
+              color: "#fff",
+              position: "absolute",
+              top: 8,
+              left: 8,
+              zIndex: 1,
+            }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="6" width="18" height="2" fill="currentColor" />
+              <rect x="3" y="11" width="18" height="2" fill="currentColor" />
+              <rect x="3" y="16" width="18" height="2" fill="currentColor" />
+            </svg>
+          </IconButton>
+
+          <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
+            <img src={logo} alt="Team Logo" style={{ width: 120 }} />
+          </Box>
+
+          <Button
+            fullWidth
+            sx={navButtonStyle}
+            className={location.pathname === "/dashboard" ? "active" : ""}
+            startIcon={<DashboardIcon />}
+            onClick={() => navigate("/dashboard")}
+          >
+            Dashboard
+          </Button>
+
+          <Button
+            fullWidth
+            sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
+            className={location.pathname === "/upload" ? "active" : ""}
+            startIcon={<UploadFileIcon />}
+            onClick={() => navigate("/upload")}
+          >
+            Upload CV
+          </Button>
+
+          <Button
+            fullWidth
+            sx={navButtonStyle}
+            className={location.pathname === "/candidates" ? "active" : ""}
+            startIcon={<PeopleIcon />}
+            onClick={() => navigate("/candidates")}
+          >
+            Candidates
+          </Button>
+
+          <Button
+            fullWidth
+            sx={navButtonStyle}
+            className={location.pathname === "/search" ? "active" : ""}
+            startIcon={<SearchIcon />}
+            onClick={() => navigate("/search")}
+          >
+            Search
+          </Button>
+          {/* Only show User Management if user is Admin */}
+          {user?.role === "Admin" && (
+            <Button
+              fullWidth
+              sx={navButtonStyle}
+              className={
+                location.pathname === "/user-management" ? "active" : ""
+              }
+              startIcon={<SettingsIcon />}
+              onClick={() => navigate("/user-management")}
+            >
+              User Management
+            </Button>
+          )}
         </Box>
-        <Button
-          fullWidth
-          sx={navButtonStyle}
-          startIcon={<DashboardIcon />}
-          onClick={() => navigate("/dashboard")}
+      ) : (
+        // Expand Icon when sidebar is collapsed
+        <Box
+          sx={{
+            width: 40,
+            bgcolor: "#1A82AE",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "flex-start",
+            pt: 1,
+          }}
         >
-          Dashboard
-        </Button>
-        <Button
-          fullWidth
-          sx={navButtonStyle}
-          startIcon={<UploadFileIcon />}
-          onClick={() => navigate("/upload")}
-        >
-          Upload CV
-        </Button>
-        <Button
-          fullWidth
-          sx={navButtonStyle}
-          startIcon={<PeopleIcon />}
-          onClick={() => navigate("/candidates")}
-        >
-          Candidates
-        </Button>
-        <Button
-          fullWidth
-          sx={navButtonStyle}
-          startIcon={<SearchIcon />}
-          onClick={() => navigate("/search")}
-        >
-          Search
-        </Button>
-      </Box>
+          <IconButton
+            onClick={() => setCollapsed(false)}
+            sx={{ color: "#fff" }}
+          >
+            <ChevronRightIcon />
+          </IconButton>
+        </Box>
+      )}
 
       {/* Main Content with Top Bar */}
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
         {/* Top App Bar */}
-        <AppBar position="static" sx={{ bgcolor: "#5a88ad", boxShadow: "none" }}>
+        <AppBar
+          position="static"
+          sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
+        >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
-            <IconButton color="inherit">
-              <Badge badgeContent={4} color="error">
-                <NotificationsIcon />
-              </Badge>
-            </IconButton>
-            <Box sx={{ display: "flex", alignItems: "center", ml: 2 }}>
+            {/* Tutorial icon */}
+            <Tooltip title="Run Tutorial" arrow>
+              <IconButton
+                onClick={() => {
+                  setShowTutorial(true);
+                  setTutorialStep(0);
+                  setFadeIn(true);
+                }}
+                sx={{ ml: 1, color: "#FFEB3B" }}
+              >
+                <LightbulbRoundedIcon />
+              </IconButton>
+            </Tooltip>
+
+            {/* Help / FAQ icon */}
+            <Tooltip title="Go to Help Page" arrow>
+              <IconButton
+                color="inherit"
+                onClick={() => navigate("/help")}
+                sx={{ ml: 1, color: "#90ee90" }}
+              >
+                <HelpOutlineIcon />
+              </IconButton>
+            </Tooltip>
+
+            {/* User Info */}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                ml: 2,
+                cursor: "pointer",
+                "&:hover": { opacity: 0.8 },
+              }}
+              onClick={() => navigate("/settings")}
+            >
               <AccountCircleIcon sx={{ mr: 1 }} />
-              <Typography variant="subtitle1">Admin User</Typography>
+              <Typography variant="subtitle1">
+                {user
+                  ? user.first_name
+                    ? `${user.first_name} ${user.last_name || ""} (${
+                        user.role || "User"
+                      })`
+                    : (user.username || user.email) +
+                      (user.role ? ` (${user.role})` : "")
+                  : "User"}
+              </Typography>
             </Box>
+
+            {/* Logout */}
+            <IconButton
+              color="inherit"
+              onClick={() => navigate("/login")}
+              sx={{ ml: 1 }}
+            >
+              <ExitToAppIcon />
+            </IconButton>
           </Toolbar>
         </AppBar>
 
@@ -171,6 +368,7 @@ export default function UploadCVPage() {
 
             {/* Upload Box */}
             <Box
+              ref={uploadBoxRef}
               sx={{
                 border: "2px dashed #999",
                 borderRadius: 2,
@@ -225,6 +423,7 @@ export default function UploadCVPage() {
               value={additionalInfo}
               onChange={(e) => setAdditionalInfo(e.target.value)}
               sx={{ mb: 3 }}
+              inputRef={additionalInfoRef}
             />
 
             {/* File Table */}
@@ -233,7 +432,9 @@ export default function UploadCVPage() {
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: "bold" }}>File Name</TableCell>
+                      <TableCell sx={{ fontWeight: "bold" }}>
+                        File Name
+                      </TableCell>
                       <TableCell sx={{ fontWeight: "bold" }}>Size</TableCell>
                       <TableCell sx={{ fontWeight: "bold" }}>Action</TableCell>
                     </TableRow>
@@ -262,6 +463,7 @@ export default function UploadCVPage() {
                 disabled={!file}
                 sx={reviewButtonStyle}
                 onClick={handleProcess}
+                ref={processBtnRef}
               >
                 Process CV
               </Button>
@@ -281,26 +483,284 @@ export default function UploadCVPage() {
       </Box>
 
       {/* Modal for Processed Data */}
-      <Dialog open={isModalOpen} onClose={handleCloseModal}>
-        <DialogTitle>Processed CV Data</DialogTitle>
+      <Dialog
+        open={isModalOpen}
+        onClose={handleCloseModal}
+        PaperProps={{
+          sx: {
+            backgroundColor: "#5a88ad",
+            maxWidth: "60vw",
+            width: "60vw",
+            height: "60vw",
+            maxHeight: "90vh",
+            minHeight: "40vh",
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            bgcolor: "#181c2f",
+            color: "#fff",
+            fontWeight: "bold",
+            fontSize: "1.3rem",
+          }}
+        >
+          Processed CV Data
+        </DialogTitle>
+        <Divider sx={{ mb: 2 }} />
         <DialogContent>
           {processedData && (
-            <Box>
-              <Typography>Name: {processedData.name}</Typography>
-              <Typography>Skills: {processedData.skills.join(", ")}</Typography>
-              <Typography>Experience: {processedData.experience}</Typography>
-              <Typography>Education: {processedData.education}</Typography>
-              <Typography>Contact Info: {processedData.contactInfo}</Typography>
-              <Typography>Additional Info: {processedData.additionalInfo}</Typography>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 6,
+                px: 2,
+                py: 1,
+              }}
+            >
+              {/* Left Column */}
+              <Box>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    color: "#232a3b",
+                    mb: 2,
+                    fontWeight: "bold",
+                    letterSpacing: 1,
+                  }}
+                >
+                  Profile
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.profile || "N/A"}
+                </Typography>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                  Education:
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.education || "N/A"}
+                </Typography>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                  Skills:
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.skills || "N/A"}
+                </Typography>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                  Experience:
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.experience || "N/A"}
+                </Typography>
+              </Box>
+              {/* Right Column */}
+              <Box>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    color: "#232a3b",
+                    mb: 2,
+                    fontWeight: "bold",
+                    letterSpacing: 1,
+                  }}
+                >
+                  Other Information
+                </Typography>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                  Projects:
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.projects || "N/A"}
+                </Typography>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                  Achievements:
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.achievements || "N/A"}
+                </Typography>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                  Contact:
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.contact || "N/A"}
+                </Typography>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                  Languages:
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.languages || "N/A"}
+                </Typography>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                  Other:
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.other || "N/A"}
+                </Typography>
+              </Box>
             </Box>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseModal} color="primary">
+        <DialogActions sx={{ bgcolor: "#181c2f", justifyContent: "flex-end" }}>
+          <Button
+            onClick={handleCloseModal}
+            sx={{
+              bgcolor: "#e0e0e0",
+              color: "#333",
+              fontWeight: "bold",
+              textTransform: "none",
+              boxShadow: "none",
+              "&:hover": {
+                bgcolor: "#cccccc",
+                color: "#222",
+              },
+            }}
+            variant="contained"
+          >
             Close
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Tutorial Popover */}
+      <Popover
+        open={
+          showTutorial &&
+          tutorialStep >= 0 &&
+          tutorialStep <= 2 &&
+          Boolean(anchorEl)
+        }
+        anchorEl={anchorEl}
+        onClose={handleCloseTutorial}
+        anchorOrigin={{
+          vertical: "top",
+          horizontal: "center",
+        }}
+        transformOrigin={{
+          vertical: "bottom",
+          horizontal: "center",
+        }}
+        PaperProps={{
+          sx: {
+            p: 2,
+            bgcolor: "#fff",
+            color: "#181c2f",
+            borderRadius: 2,
+            boxShadow: 6,
+            minWidth: 280,
+            zIndex: 1500,
+            textAlign: "center",
+          },
+        }}
+      >
+        <Fade in={fadeIn} timeout={250}>
+          <Box sx={{ position: "relative" }}>
+            {tutorialStep === 0 && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Step 1: Upload a CV
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  Start by uploading a candidate's CV here. You can drag and
+                  drop or browse for a file.
+                </Typography>
+              </>
+            )}
+            {tutorialStep === 1 && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Step 2: Additional Information
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  Fill in any extra details about the candidate or the CV here.
+                </Typography>
+              </>
+            )}
+            {tutorialStep === 2 && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Step 3: Process the CV
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  When you're ready, click <b>Process CV</b> to extract skills
+                  and information from the uploaded file.
+                </Typography>
+              </>
+            )}
+            {/* Shared navigation buttons */}
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mt: 3,
+                gap: 2,
+              }}
+            >
+              <Button
+                variant="text"
+                size="small"
+                onClick={handleCloseTutorial}
+                sx={{
+                  color: "#888",
+                  fontSize: "0.85rem",
+                  textTransform: "none",
+                  minWidth: "auto",
+                  p: 0,
+                }}
+              >
+                End Tutorial
+              </Button>
+              <Box sx={{ display: "flex", gap: 2 }}>
+                {tutorialStep > 0 && (
+                  <Button
+                    variant="outlined"
+                    onClick={() => handleStepChange(tutorialStep - 1)}
+                    sx={{
+                      color: "#5a88ad",
+                      borderColor: "#5a88ad",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": { borderColor: "#487DA6", color: "#487DA6" },
+                    }}
+                  >
+                    Previous
+                  </Button>
+                )}
+                {tutorialStep < 2 ? (
+                  <Button
+                    variant="contained"
+                    onClick={() => handleStepChange(tutorialStep + 1)}
+                    sx={{
+                      bgcolor: "#5a88ad",
+                      color: "#fff",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": { bgcolor: "#487DA6" },
+                    }}
+                  >
+                    Next
+                  </Button>
+                ) : (
+                  <Button
+                    variant="contained"
+                    onClick={handleCloseTutorial}
+                    sx={{
+                      bgcolor: "#5a88ad",
+                      color: "#fff",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": { bgcolor: "#487DA6" },
+                    }}
+                  >
+                    Finish
+                  </Button>
+                )}
+              </Box>
+            </Box>
+          </Box>
+        </Fade>
+      </Popover>
     </Box>
   );
 }
@@ -318,6 +778,18 @@ const navButtonStyle = {
   },
   textTransform: "none",
   fontWeight: "bold",
+  "&.active": {
+    "&::before": {
+      content: '""',
+      position: "absolute",
+      left: 0,
+      top: 0,
+      height: "100%",
+      width: "4px",
+      backgroundColor: "black",
+      borderRadius: "0 4px 4px 0",
+    },
+  },
 };
 
 const reviewButtonStyle = {
