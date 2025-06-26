@@ -1,11 +1,13 @@
 # 📄 CV-Scanner
 
-[![Build Status](https://github.com/COS301-SE-2025/CV-Scanner/actions/workflows/build.yml/badge.svg)](https://github.com/COS301-SE-2025/CV-Scanner/actions)
-[![Coverage Status](https://coveralls.io/repos/github/COS301-SE-2025/CV-Scanner/badge.svg?branch=main)](https://coveralls.io/github/COS301-SE-2025/CV-Scanner?branch=main)
-![Requirements Status](https://img.shields.io/badge/requirements-satisfied-brightgreen)
-![GitHub Issues](https://img.shields.io/github/issues/COS301-SE-2025/CV-Scanner)
-![Closed Issues](https://img.shields.io/github/issues-closed/COS301-SE-2025/CV-Scanner)
-![Uptime Robot](https://img.shields.io/uptimerobot/status/m789456789-abcdefgh)
+## 📊 Project Metrics
+
+[![CI](https://github.com/COS301-SE-2025/CV-Scanner/actions/workflows/CICD.yml/badge.svg)](https://github.com/COS301-SE-2025/CV-Scanner/actions/workflows/CICD.yml)
+![Requirements](https://img.shields.io/badge/requirements-satisfied-brightgreen)
+[![Open Issues](https://img.shields.io/github/issues/COS301-SE-2025/CV-Scanner)](https://github.com/COS301-SE-2025/CV-Scanner/issues)
+[![Closed Issues](https://img.shields.io/github/issues-closed/COS301-SE-2025/CV-Scanner)](https://github.com/COS301-SE-2025/CV-Scanner/issues?q=is%3Aissue+is%3Aclosed)
+![Last Commit](https://img.shields.io/github/last-commit/COS301-SE-2025/CV-Scanner)
+![Repo Size](https://img.shields.io/github/repo-size/COS301-SE-2025/CV-Scanner)
 
 ---
 
@@ -20,6 +22,26 @@ It supports both **PDF and Word** CV formats and automatically summarizes candid
 
 ---
 
+## 🚀 Technologies Used
+
+![React](https://img.shields.io/badge/Frontend-React-61DAFB?logo=react&logoColor=white)
+![Java Spring](https://img.shields.io/badge/Backend-Java_Spring-6DB33F?logo=spring&logoColor=white)
+![C++](https://img.shields.io/badge/Engine-C++-00599C?logo=c%2B%2B&logoColor=white)
+![Python](https://img.shields.io/badge/AI-Python-3776AB?logo=python&logoColor=white)
+
+#### 🖼️ Frontend: React
+We chose **React** for building the user interface due to its component-based architecture, fast rendering through a virtual DOM, and rich ecosystem of libraries. It enabled us to create a modern, responsive, and highly interactive UI efficiently.
+
+#### ☕ Backend API: Java Spring Boot
+**Spring Boot** was used for our backend REST API. It provides robust tools for building secure and scalable server-side applications, with excellent support for data access, service layers, and integration with enterprise systems. It also aligned well with our hosting and deployment constraints (e.g., Azure App Services).
+
+#### ⚙️ Engine Component: C++
+We implemented the core processing engine in **C++** to leverage its performance benefits and low-level memory control. This was critical for compute-heavy tasks where speed and efficiency were essential.
+
+#### 🧠 AI Service: Python
+**Python** was selected for our AI/CV module due to its extensive machine learning and natural language processing libraries (like spaCy, scikit-learn, and OpenCV). It allowed us to rapidly prototype and integrate intelligent functionality into our system.
+
+---
 ## 👨‍💻 Team: Quantum Stack
 
 ### Abdullah Pochee  
@@ -62,11 +84,46 @@ viewed, edited, or optimized via an admin portal.
 
 6. The system must allow users to upload CVs and provide some information and contact details.
 
-7. The system must allow access roles and role management that would allow some users to only
-upload, some to edit, some full access and some users to have full admin access permissions.
+7. The system must allow admin users to edit existing user profiles.
+
+8. The system must allow admin users to deactivate (soft delete) users.
+
+9. The system must allow admin users to view all users.
+
+10. The system must allow admin users to filter users by role.
+
+11. The system must allow admin users to add new users to the system.
 
 ---
 
 ## 📋 Project Board  
 Track our development progress here:  
 🔗 [GitHub Project Board](https://github.com/orgs/COS301-SE-2025/projects/110/views/1)
+
+---
+
+## 🔗 Demo Links
+
+- [**Demo1 Video**](https://drive.google.com/file/d/1BtbS0klLEC0HWkYhbL0k7NyrCFnGpLrS/view?usp=sharing)
+- [**Demo1 Presentation**](https://docs.google.com/presentation/d/1O4b6erR0Uo78WA-xSwWJO_uA2eCvOgGE/edit?usp=sharing&ouid=117709380918548409880&rtpof=true&sd=true)
+- [**Software Requirement Specification Document**](https://drive.google.com/file/d/1AruNcFe2mI8f6CEjC8__o1PSpbJJFRpj/view?usp=sharing)
+- [**Demo2 Video**](https://drive.google.com/file/d/1BtbS0klLEC0HWkYhbL0k7NyrCFnGpLrS/view?usp=sharing)
+- [**Demo2 Presentation**](https://docs.google.com/presentation/d/1O4b6erR0Uo78WA-xSwWJO_uA2eCvOgGE/edit?usp=sharing&ouid=117709380918548409880&rtpof=true&sd=true)
+- [**Software Requirement Specification Document Version 2**](https://drive.google.com/file/d/1R54LThYXge9fBDH2PxvuK5XJubdKwRPj/view?usp=sharing)
+
+---
+
+## Branching Strategies
+
+```mermaid
+graph TD;
+    Main-->Dev;
+    Dev-->UI;
+    Dev-->API;
+    Dev-->AI;
+    Dev-->Engine;
+    UI-->UIFeatureBranch;
+    Engine-->EngineFeatureBranch;
+    API-->APIFeatureBranch;
+    AI-->AIFeatureBranch;
+```
