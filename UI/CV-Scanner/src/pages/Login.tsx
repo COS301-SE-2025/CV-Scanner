@@ -271,7 +271,7 @@ export default function LoginPage() {
             </Button>
 
             {/* Add this new temporary access button */}
-            <Button
+            {/* <Button
               fullWidth
               variant="outlined"
               size="large"
@@ -291,7 +291,7 @@ export default function LoginPage() {
               }}
             >
               Temporary Dashboard Access
-            </Button>
+            </Button> */}
 
             <Typography align="center" sx={{ mt: 2 }}>
               Don't have an account?{" "}
