@@ -16,6 +16,7 @@
 **System Status**
 
 ![Status](https://img.shields.io/uptimerobot/status/m789456789-abcdefgh)
+![Last Commit](https://img.shields.io/github/last-commit/COS301-SE-2025/CV-Scanner)
 
 ---
 
