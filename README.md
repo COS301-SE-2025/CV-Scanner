@@ -20,6 +20,14 @@ It supports both **PDF and Word** CV formats and automatically summarizes candid
 
 ---
 
+## 🚀 Technologies Used
+
+![React](https://img.shields.io/badge/Frontend-React-61DAFB?logo=react&logoColor=white)
+![Java Spring](https://img.shields.io/badge/Backend-Java_Spring-6DB33F?logo=spring&logoColor=white)
+![C++](https://img.shields.io/badge/Engine-C++-00599C?logo=c%2B%2B&logoColor=white)
+![Python](https://img.shields.io/badge/AI-Python-3776AB?logo=python&logoColor=white)
+
+---
 ## 👨‍💻 Team: Quantum Stack
 
 ### Abdullah Pochee  
