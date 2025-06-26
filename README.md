@@ -27,6 +27,18 @@ It supports both **PDF and Word** CV formats and automatically summarizes candid
 ![C++](https://img.shields.io/badge/Engine-C++-00599C?logo=c%2B%2B&logoColor=white)
 ![Python](https://img.shields.io/badge/AI-Python-3776AB?logo=python&logoColor=white)
 
+#### 🖼️ Frontend: [React](https://reactjs.org/)
+We chose **React** for building the user interface due to its component-based architecture, fast rendering through a virtual DOM, and rich ecosystem of libraries. It enabled us to create a modern, responsive, and highly interactive UI efficiently.
+
+#### ☕ Backend API: [Java Spring Boot](https://spring.io/projects/spring-boot)
+**Spring Boot** was used for our backend REST API. It provides robust tools for building secure and scalable server-side applications, with excellent support for data access, service layers, and integration with enterprise systems. It also aligned well with our hosting and deployment constraints (e.g., Azure App Services).
+
+#### ⚙️ Engine Component: C++
+We implemented the core processing engine in **C++** to leverage its performance benefits and low-level memory control. This was critical for compute-heavy tasks where speed and efficiency were essential.
+
+#### 🧠 AI Service: Python
+**Python** was selected for our AI/CV module due to its extensive machine learning and natural language processing libraries (like spaCy, scikit-learn, and OpenCV). It allowed us to rapidly prototype and integrate intelligent functionality into our system.
+
 ---
 ## 👨‍💻 Team: Quantum Stack
 
