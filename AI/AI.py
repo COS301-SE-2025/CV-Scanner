@@ -2,13 +2,14 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from tika import parser
 import tempfile
 import json
-import os
 from transformers import pipeline
 import re
 import spacy
+import os
+os.environ['TIKA_SERVER_JAR'] = '/tmp/tika-server.jar'
+from tika import parser
 
 # Load models at startup (not inside functions)
 nlp = spacy.load("en_core_web_sm")
@@ -243,7 +244,7 @@ def prepare_json_data(categories: dict):
 
 def process_pdf_file(pdf_path):
     try:
-        parsed = parser.from_file(pdf_path)
+        parsed = parser.from_file(pdf_path)  # Removed timeout argument
         cv_text = parsed.get('content', '')
         if not cv_text:
             return None
@@ -342,6 +343,7 @@ async def test_upload(file: UploadFile = File(...)):
         "size": file.size if hasattr(file, 'size') else "unknown"
     }
 
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8081)
+    uvicorn.run("AI:app", host="0.0.0.0", port=5000, reload=True)
