@@ -82,8 +82,15 @@ viewed, edited, or optimized via an admin portal.
 
 6. The system must allow users to upload CVs and provide some information and contact details.
 
-7. The system must allow access roles and role management that would allow some users to only
-upload, some to edit, some full access and some users to have full admin access permissions.
+7. The system must allow admin users to edit existing user profiles.
+
+8. The system must allow admin users to deactivate (soft delete) users.
+
+9. The system must allow admin users to view all users.
+
+10. The system must allow admin users to filter users by role.
+
+11. The system must allow admin users to add new users to the system.
 
 ---
 
