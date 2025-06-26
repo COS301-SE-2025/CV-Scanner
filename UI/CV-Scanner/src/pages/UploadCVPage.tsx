@@ -96,19 +96,31 @@ export default function UploadCVPage() {
     setProcessedData(null); // Clear processed data when file is removed
   };
 
-  const handleProcess = () => {
+  // ...existing code...
+  const handleProcess = async () => {
     if (file) {
-      // Simulate processing with mock data
-      const mockData = {
-        name: "John Doe",
-        skills: ["JavaScript", "React", "Node.js"],
-        experience: "5 years",
-        education: "Bachelor's in Computer Science",
-        contactInfo,
-        additionalInfo,
-      };
-      setProcessedData(mockData);
-      setIsModalOpen(true); // Open the modal
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const response = await fetch("http://localhost:5000/upload_pdf/", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          alert(errorData.detail || "Failed to process CV.");
+          return;
+        }
+
+        const data = await response.json();
+        // data.data contains the structured CV info from FastAPI
+        setProcessedData(data.data);
+        setIsModalOpen(true);
+      } catch (error) {
+        alert("An error occurred while processing the CV.");
+      }
     }
   };
 
@@ -149,7 +161,6 @@ export default function UploadCVPage() {
       setAnchorEl(processBtnRef.current);
     else setAnchorEl(null);
   }, [tutorialStep]);
-
 
   return (
     <Box
@@ -238,7 +249,9 @@ export default function UploadCVPage() {
             <Button
               fullWidth
               sx={navButtonStyle}
-              className={location.pathname === "/user-management" ? "active" : ""}
+              className={
+                location.pathname === "/user-management" ? "active" : ""
+              }
               startIcon={<SettingsIcon />}
               onClick={() => navigate("/user-management")}
             >
@@ -270,68 +283,69 @@ export default function UploadCVPage() {
       {/* Main Content with Top Bar */}
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
         {/* Top App Bar */}
-         <AppBar
+        <AppBar
           position="static"
           sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
         >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
-  {/* Tutorial icon */}
-  <Tooltip title="Run Tutorial" arrow>
-    <IconButton
-      onClick={() => {
-        setShowTutorial(true);
-        setTutorialStep(0);
-        setFadeIn(true);
-      }}
-      sx={{ml: 1, color: '#FFEB3B'}}
-    >
-      <LightbulbRoundedIcon />
-    </IconButton>
-  </Tooltip>
+            {/* Tutorial icon */}
+            <Tooltip title="Run Tutorial" arrow>
+              <IconButton
+                onClick={() => {
+                  setShowTutorial(true);
+                  setTutorialStep(0);
+                  setFadeIn(true);
+                }}
+                sx={{ ml: 1, color: "#FFEB3B" }}
+              >
+                <LightbulbRoundedIcon />
+              </IconButton>
+            </Tooltip>
 
-  {/* Help / FAQ icon */}
-  <Tooltip title="Go to Help Page" arrow>
-    <IconButton
-      color="inherit"
-      onClick={() => navigate("/help")}
-      sx={{ ml: 1, color: '#90ee90'  }}
-    >
-      <HelpOutlineIcon />
-    </IconButton>
-  </Tooltip>
+            {/* Help / FAQ icon */}
+            <Tooltip title="Go to Help Page" arrow>
+              <IconButton
+                color="inherit"
+                onClick={() => navigate("/help")}
+                sx={{ ml: 1, color: "#90ee90" }}
+              >
+                <HelpOutlineIcon />
+              </IconButton>
+            </Tooltip>
 
-  {/* User Info */}
-  <Box
-    sx={{
-      display: "flex",
-      alignItems: "center",
-      ml: 2,
-      cursor: "pointer",
-      "&:hover": { opacity: 0.8 },
-    }}
-    onClick={() => navigate("/settings")}
-  >
-    <AccountCircleIcon sx={{ mr: 1 }} />
-    <Typography variant="subtitle1">
-      {user
-        ? user.first_name
-          ? `${user.first_name} ${user.last_name || ""} (${user.role || "User"})`
-          : (user.username || user.email) +
-            (user.role ? ` (${user.role})` : "")
-        : "User"}
-    </Typography>
-  </Box>
+            {/* User Info */}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                ml: 2,
+                cursor: "pointer",
+                "&:hover": { opacity: 0.8 },
+              }}
+              onClick={() => navigate("/settings")}
+            >
+              <AccountCircleIcon sx={{ mr: 1 }} />
+              <Typography variant="subtitle1">
+                {user
+                  ? user.first_name
+                    ? `${user.first_name} ${user.last_name || ""} (${
+                        user.role || "User"
+                      })`
+                    : (user.username || user.email) +
+                      (user.role ? ` (${user.role})` : "")
+                  : "User"}
+              </Typography>
+            </Box>
 
-  {/* Logout */}
-  <IconButton
-    color="inherit"
-    onClick={() => navigate("/login")}
-    sx={{ ml: 1 }}
-  >
-    <ExitToAppIcon />
-  </IconButton>
-</Toolbar>
-          
+            {/* Logout */}
+            <IconButton
+              color="inherit"
+              onClick={() => navigate("/login")}
+              sx={{ ml: 1 }}
+            >
+              <ExitToAppIcon />
+            </IconButton>
+          </Toolbar>
         </AppBar>
 
         {/* Main Content */}
@@ -516,51 +530,28 @@ export default function UploadCVPage() {
                     letterSpacing: 1,
                   }}
                 >
-                  Personal Details
+                  Profile
                 </Typography>
-                <Typography sx={{ mb: 3, fontWeight: "bold" }}>
-                  Name:{" "}
-                  <span style={{ fontWeight: 400 }}>{processedData.name}</span>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.profile || "N/A"}
                 </Typography>
-                <Typography sx={{ mb: 1, fontWeight: "bold" }}>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                  Education:
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.education || "N/A"}
+                </Typography>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
                   Skills:
                 </Typography>
-                <Box
-                  sx={{
-                    color: "#232a3b",
-                    display: "flex",
-                    fontWeight: "bold",
-                    flexWrap: "wrap",
-                    gap: 1.5,
-                    mb: 3,
-                  }}
-                >
-                  {processedData.skills.map((skill: string, idx: number) => (
-                    <Chip
-                      key={idx}
-                      label={skill}
-                      sx={{
-                        borderRadius: "16px",
-                        bgcolor: "#e0e0e0",
-                        color: "#333",
-                        fontWeight: "bold",
-                        fontSize: "0.95em",
-                        px: 2,
-                        py: 0.5,
-                      }}
-                    />
-                  ))}
-                </Box>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.skills || "N/A"}
+                </Typography>
                 <Typography sx={{ fontWeight: "bold", mb: 1 }}>
                   Experience:
-                  <span
-                    style={{
-                      fontWeight: 400,
-                      marginLeft: 6,
-                    }}
-                  >
-                    {processedData.experience}
-                  </span>
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.experience || "N/A"}
                 </Typography>
               </Box>
               {/* Right Column */}
@@ -576,23 +567,35 @@ export default function UploadCVPage() {
                 >
                   Other Information
                 </Typography>
-                <Typography sx={{ mb: 3 }}>
-                  <span style={{ fontWeight: "bold" }}>Education:</span>
-                  <span style={{ marginLeft: 6 }}>
-                    {processedData.education}
-                  </span>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                  Projects:
                 </Typography>
-                <Typography sx={{ mb: 3 }}>
-                  <span style={{ fontWeight: "bold" }}>Contact Info:</span>
-                  <span style={{ marginLeft: 6 }}>
-                    {processedData.contactInfo}
-                  </span>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.projects || "N/A"}
                 </Typography>
-                <Typography sx={{ mb: 3 }}>
-                  <span style={{ fontWeight: "bold" }}>Additional Info:</span>
-                  <span style={{ marginLeft: 6 }}>
-                    {processedData.additionalInfo}
-                  </span>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                  Achievements:
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.achievements || "N/A"}
+                </Typography>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                  Contact:
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.contact || "N/A"}
+                </Typography>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                  Languages:
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.languages || "N/A"}
+                </Typography>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                  Other:
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.other || "N/A"}
                 </Typography>
               </Box>
             </Box>
