@@ -4,7 +4,7 @@
 
 **Build & Test**
 
-[![CI](https://github.com/COS301-SE-2025/CV-Scanner/actions/workflows/build.yml/badge.svg)](https://github.com/COS301-SE-2025/CV-Scanner/actions)
+[![CI](https://github.com/COS301-SE-2025/CV-Scanner/actions/workflows/build.yml/badge.svg)](https://github.com/COS301-SE-2025/CV-Scanner/actions/workflows/build.yml)
 [![Coverage](https://coveralls.io/repos/github/COS301-SE-2025/CV-Scanner/badge.svg?branch=main)](https://coveralls.io/github/COS301-SE-2025/CV-Scanner?branch=main)
 ![Requirements](https://img.shields.io/badge/requirements-satisfied-brightgreen)
 
