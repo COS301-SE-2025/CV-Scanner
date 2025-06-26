@@ -3,11 +3,13 @@
 ## 📊 Project Metrics
 
 **Build & Test**
+
 [![CI](https://github.com/COS301-SE-2025/CV-Scanner/actions/workflows/build.yml/badge.svg)](https://github.com/COS301-SE-2025/CV-Scanner/actions)
 [![Coverage](https://coveralls.io/repos/github/COS301-SE-2025/CV-Scanner/badge.svg?branch=main)](https://coveralls.io/github/COS301-SE-2025/CV-Scanner?branch=main)
 ![Requirements](https://img.shields.io/badge/requirements-satisfied-brightgreen)
 
 **Issues**
+
 [![Open Issues](https://img.shields.io/github/issues/COS301-SE-2025/CV-Scanner)](https://github.com/COS301-SE-2025/CV-Scanner/issues)
 [![Closed Issues](https://img.shields.io/github/issues-closed/COS301-SE-2025/CV-Scanner)](https://github.com/COS301-SE-2025/CV-Scanner/issues?q=is%3Aissue+is%3Aclosed)
 
