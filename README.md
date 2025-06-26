@@ -115,9 +115,9 @@ You can view our Coding Standards document here:
 - [**Demo1 Video**](https://drive.google.com/file/d/1BtbS0klLEC0HWkYhbL0k7NyrCFnGpLrS/view?usp=sharing)
 - [**Demo1 Presentation**](https://docs.google.com/presentation/d/1O4b6erR0Uo78WA-xSwWJO_uA2eCvOgGE/edit?usp=sharing&ouid=117709380918548409880&rtpof=true&sd=true)
 - [**Software Requirement Specification Document**](https://drive.google.com/file/d/1AruNcFe2mI8f6CEjC8__o1PSpbJJFRpj/view?usp=sharing)
-- [**Demo2 Video**](https://drive.google.com/file/d/1BtbS0klLEC0HWkYhbL0k7NyrCFnGpLrS/view?usp=sharing)
+- [**Demo2 Video**](https://drive.google.com/file/d/1AOb6-VEAaabk0FddT4uh2BHFEV9V2qOl/view?usp=sharing)
 - [**Demo2 Presentation**](https://docs.google.com/presentation/d/1MdmJ69tKmyojZ8U0JkynMiWDhxMw-9lg/edit?usp=sharing&ouid=117709380918548409880&rtpof=true&sd=true)
-- [**Software Requirement Specification Document Version 2**](https://drive.google.com/file/d/1R54LThYXge9fBDH2PxvuK5XJubdKwRPj/view?usp=sharing)
+- [**Software Requirement Specification Document Version 2**](https://drive.google.com/file/d/1iAMg_G9gcY91X5osYbNA5--qdqwbtcWq/view?usp=sharing)
 
 ---
 
