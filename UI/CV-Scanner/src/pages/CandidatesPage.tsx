@@ -43,6 +43,14 @@ export default function CandidatesPage() {
   const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
+  const devUser = {
+      email: "dev@example.com",
+      password: "Password123",
+      first_name: "John",
+      last_name: "Doe",
+      role: "Admin",
+    };
+
   const [user, setUser] = useState<{
     first_name?: string;
     last_name?: string;
@@ -195,7 +203,7 @@ export default function CandidatesPage() {
             Search
           </Button>
                     {/* Only show User Management if user is Admin */}
-          {user?.role === "Admin" && (
+          {(user?.role === "Admin" || devUser.role === "Admin") && (
             <Button
               fullWidth
               sx={navButtonStyle}

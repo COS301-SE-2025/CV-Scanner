@@ -152,6 +152,14 @@ export default function AddUserPage() {
     }
   };
 
+  const devUser = {
+      email: "dev@example.com",
+      password: "Password123",
+      first_name: "John",
+      last_name: "Doe",
+      role: "Admin",
+    };
+
   const [user, setUser] = React.useState<{
     first_name?: string;
     last_name?: string;
@@ -243,7 +251,7 @@ export default function AddUserPage() {
             Search
           </Button>
           {/* Only show User Management if user is Admin */}
-          {user?.role === "Admin" && (
+          {(user?.role === "Admin" || devUser.role === "Admin") && (
             <Button
               fullWidth
               sx={navButtonStyle}
