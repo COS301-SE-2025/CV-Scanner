@@ -19,7 +19,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import SettingsIcon from "@mui/icons-material/Settings";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import logo from "../assets/logo.png"; // Update path as needed
-
+import logo3 from "../assets/logoNavbar.png"; // Update path as needed
 
 export default function SystemSettingsPage() {
   const navigate = useNavigate();
@@ -37,13 +37,12 @@ export default function SystemSettingsPage() {
   };
 
   useEffect(() => {
-    // Try to get user from localStorage
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    } else {
-      setUser(null);
-    }
+    // Try to get user from API, fallback to devUser if fails
+    const email = localStorage.getItem("userEmail") || devUser.email;
+    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
+      .then((res) => res.json())
+      .then((data) => setUser(data))
+      .catch(() => setUser(devUser));
   }, []);
 
   useEffect(() => {
@@ -55,6 +54,58 @@ export default function SystemSettingsPage() {
       navigate("/dashboard");
     }
   }, [user, navigate]);
+
+  // Local state for blacklist and whitelist
+  const [blacklist, setBlacklist] = useState<string[]>([]);
+  const [whitelist, setWhitelist] = useState<string[]>([]);
+  const [blackInput, setBlackInput] = useState("");
+  const [whiteInput, setWhiteInput] = useState("");
+  const [blackSearch, setBlackSearch] = useState("");
+  const [whiteSearch, setWhiteSearch] = useState("");
+
+  // Placeholder: fetch lists from API when implemented
+  useEffect(() => {
+    // Example: fetch("/api/blacklist").then(...)
+    // For now, use localStorage for demo
+    const bl = JSON.parse(localStorage.getItem("blacklist") || "[]");
+    const wl = JSON.parse(localStorage.getItem("whitelist") || "[]");
+    setBlacklist(bl);
+    setWhitelist(wl);
+  }, []);
+
+  // Add to blacklist
+  const handleAddBlacklist = () => {
+    if (blackInput.trim() && !blacklist.includes(blackInput.trim())) {
+      const updated = [...blacklist, blackInput.trim()];
+      setBlacklist(updated);
+      localStorage.setItem("blacklist", JSON.stringify(updated)); // Replace with API call
+      setBlackInput("");
+    }
+  };
+
+  // Add to whitelist
+  const handleAddWhitelist = () => {
+    if (whiteInput.trim() && !whitelist.includes(whiteInput.trim())) {
+      const updated = [...whitelist, whiteInput.trim()];
+      setWhitelist(updated);
+      localStorage.setItem("whitelist", JSON.stringify(updated)); // Replace with API call
+      setWhiteInput("");
+    }
+  };
+
+  // Remove from blacklist
+  const handleRemoveBlacklist = (item: string) => {
+    const updated = blacklist.filter((i) => i !== item);
+    setBlacklist(updated);
+    localStorage.setItem("blacklist", JSON.stringify(updated)); // Replace with API call
+  };
+
+  // Remove from whitelist
+  const handleRemoveWhitelist = (item: string) => {
+    const updated = whitelist.filter((i) => i !== item);
+    setWhitelist(updated);
+    localStorage.setItem("whitelist", JSON.stringify(updated)); // Replace with API call
+  };
 
   return (
     <Box
@@ -104,7 +155,11 @@ export default function SystemSettingsPage() {
               gap: 1,
             }}
           >
-            <img src={logo} alt="Team Logo" style={{ width: 36, height: 36 }} />
+            <img
+              src={logo3}
+              alt="Team Logo"
+              style={{ width: 36, height: 36 }}
+            />
             <Typography variant="h6" sx={{ color: "#fff", fontWeight: "bold" }}>
               Quantum Stack
             </Typography>
@@ -253,10 +308,182 @@ export default function SystemSettingsPage() {
           <Typography variant="h4" sx={{ fontWeight: "bold", mb: 3 }}>
             System Settings
           </Typography>
-          <Typography variant="body1" sx={{ mb: 2 }}>
-            Only admin users can access this page. Add your system settings
-            components here.
-          </Typography>
+
+          {/* Search bars OUTSIDE the blacklist/whitelist boxes */}
+          <Box sx={{ display: "flex", gap: 4, mb: 2 }}>
+            <Box sx={{ flex: 1 }}>
+              <input
+                type="text"
+                value={blackSearch}
+                onChange={(e) => setBlackSearch(e.target.value)}
+                placeholder="Search blacklist"
+                style={{
+                  width: "98%",
+                  padding: "8px",
+                  borderRadius: "4px",
+                  border: "1px solid #444",
+                  background: "#181c2f",
+                  color: "#fff",
+                  marginBottom: "8px",
+                }}
+              />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <input
+                type="text"
+                value={whiteSearch}
+                onChange={(e) => setWhiteSearch(e.target.value)}
+                placeholder="Search whitelist"
+                style={{
+                  width: "98%",
+                  padding: "8px",
+                  borderRadius: "4px",
+                  border: "1px solid #444",
+                  background: "#181c2f",
+                  color: "#fff",
+                  marginBottom: "8px",
+                }}
+              />
+            </Box>
+          </Box>
+
+          {/* Blacklist and Whitelist Section */}
+          <Box sx={{ display: "flex", gap: 4, mt: 2 }}>
+            {/* Blacklist */}
+            <Box sx={{ flex: 1, bgcolor: "#232a3a", p: 2, borderRadius: 2 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: "#fff" }}>
+                Blacklist
+              </Typography>
+              <Box sx={{ mb: 2 }}>
+                {blacklist.filter((item) =>
+                  item.toLowerCase().includes(blackSearch.toLowerCase())
+                ).length === 0 ? (
+                  <Typography sx={{ color: "#aaa" }}>
+                    No blacklisted items.
+                  </Typography>
+                ) : (
+                  blacklist
+                    .filter((item) =>
+                      item.toLowerCase().includes(blackSearch.toLowerCase())
+                    )
+                    .map((item) => (
+                      <Box
+                        key={item}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          mb: 1,
+                          bgcolor: "#2c3446",
+                          p: 1,
+                          borderRadius: 1,
+                        }}
+                      >
+                        <Typography sx={{ flex: 1 }}>{item}</Typography>
+                        <Button
+                          size="small"
+                          color="error"
+                          onClick={() => handleRemoveBlacklist(item)}
+                          sx={{ ml: 2 }}
+                        >
+                          Remove
+                        </Button>
+                      </Box>
+                    ))
+                )}
+              </Box>
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <input
+                  type="text"
+                  value={blackInput}
+                  onChange={(e) => setBlackInput(e.target.value)}
+                  placeholder="Add to blacklist"
+                  style={{
+                    flex: 1,
+                    padding: "8px",
+                    borderRadius: "4px",
+                    border: "1px solid #444",
+                    background: "#181c2f",
+                    color: "#fff",
+                  }}
+                />
+                <Button
+                  variant="contained"
+                  color="error"
+                  onClick={handleAddBlacklist}
+                  sx={{ minWidth: 0, px: 2 }}
+                >
+                  Add
+                </Button>
+              </Box>
+            </Box>
+            {/* Whitelist */}
+            <Box sx={{ flex: 1, bgcolor: "#232a3a", p: 2, borderRadius: 2 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: "#fff" }}>
+                Whitelist
+              </Typography>
+              <Box sx={{ mb: 2 }}>
+                {whitelist.filter((item) =>
+                  item.toLowerCase().includes(whiteSearch.toLowerCase())
+                ).length === 0 ? (
+                  <Typography sx={{ color: "#aaa" }}>
+                    No whitelisted items.
+                  </Typography>
+                ) : (
+                  whitelist
+                    .filter((item) =>
+                      item.toLowerCase().includes(whiteSearch.toLowerCase())
+                    )
+                    .map((item) => (
+                      <Box
+                        key={item}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          mb: 1,
+                          bgcolor: "#2c3446",
+                          p: 1,
+                          borderRadius: 1,
+                        }}
+                      >
+                        <Typography sx={{ flex: 1 }}>{item}</Typography>
+                        <Button
+                          size="small"
+                          color="primary"
+                          onClick={() => handleRemoveWhitelist(item)}
+                          sx={{ ml: 2 }}
+                        >
+                          Remove
+                        </Button>
+                      </Box>
+                    ))
+                )}
+              </Box>
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <input
+                  type="text"
+                  value={whiteInput}
+                  onChange={(e) => setWhiteInput(e.target.value)}
+                  placeholder="Add to whitelist"
+                  style={{
+                    flex: 1,
+                    padding: "8px",
+                    borderRadius: "4px",
+                    border: "1px solid #444",
+                    background: "#181c2f",
+                    color: "#fff",
+                  }}
+                />
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleAddWhitelist}
+                  sx={{ minWidth: 0, px: 2 }}
+                >
+                  Add
+                </Button>
+              </Box>
+            </Box>
+          </Box>
         </Box>
       </Box>
     </Box>
