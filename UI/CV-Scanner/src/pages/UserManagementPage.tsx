@@ -321,6 +321,17 @@ const devUser = {
               User Management
             </Button>
           )}
+          {(user?.role === "Admin" || devUser.role === "Admin") && (
+            <Button
+              fullWidth
+              sx={navButtonStyle}
+              className={location.pathname === "/system-settings" ? "active" : ""}
+              startIcon={<SettingsIcon />}
+              onClick={() => navigate("/system-settings")}
+            >
+              System Settings
+            </Button>
+          )}
         </Box>
       ) : (
         <Box
