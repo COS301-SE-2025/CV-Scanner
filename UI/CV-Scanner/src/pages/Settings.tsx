@@ -47,6 +47,14 @@ export default function SettingsPage() {
     email?: string;
   } | null>(null);
 
+const devUser = {
+      email: "dev@example.com",
+      password: "Password123",
+      first_name: "John",
+      last_name: "Doe",
+      role: "Admin",
+    };
+
   const [profileForm, setProfileForm] = useState({
     firstName: "Admin",
     lastName: "User",
@@ -268,7 +276,7 @@ export default function SettingsPage() {
             Search
           </Button>
           {/* Only show User Management if user is Admin */}
-          {user?.role === "Admin" && (
+          {(user?.role === "Admin" || devUser.role === "Admin") && (
             <Button
               fullWidth
               sx={navButtonStyle}
@@ -279,6 +287,17 @@ export default function SettingsPage() {
               onClick={() => navigate("/user-management")}
             >
               User Management
+            </Button>
+          )}
+          {(user?.role === "Admin" || devUser.role === "Admin") && (
+            <Button
+              fullWidth
+              sx={navButtonStyle}
+              className={location.pathname === "/system-settings" ? "active" : ""}
+              startIcon={<SettingsIcon />}
+              onClick={() => navigate("/system-settings")}
+            >
+              System Settings
             </Button>
           )}
           <Box sx={{ flexGrow: 1 }} />

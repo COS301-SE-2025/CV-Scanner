@@ -55,6 +55,14 @@ export default function Search() {
 
   const location = useLocation();
 
+  const devUser = {
+      email: "dev@example.com",
+      password: "Password123",
+      first_name: "John",
+      last_name: "Doe",
+      role: "Admin",
+    };
+
   const candidates = [
     {
       name: "Jane Smith",
@@ -247,7 +255,7 @@ export default function Search() {
             Search
           </Button>
           {/* Only show User Management if user is Admin */}
-          {user?.role === "Admin" && (
+          {(user?.role === "Admin" || devUser.role === "Admin") && (
             <Button
               fullWidth
               sx={navButtonStyle}
@@ -258,6 +266,17 @@ export default function Search() {
               User Management
             </Button>
           )}
+          {(user?.role === "Admin" || devUser.role === "Admin") && (
+            <Button
+              fullWidth
+              sx={navButtonStyle}
+              className={location.pathname === "/system-settings" ? "active" : ""}
+              startIcon={<SettingsIcon />}
+              onClick={() => navigate("/system-settings")}
+            >
+              System Settings
+            </Button>
+          )}          
         </Box>
       ) : (
         <Box
