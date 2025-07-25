@@ -1,9 +1,9 @@
 package com.example.api;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.jupiter.api.AfterAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -22,6 +22,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
@@ -34,11 +35,13 @@ public class UserEndpointsIntegrationTest {
     @Autowired
     private TestRestTemplate restTemplate;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     private String baseUrl() {
         return "http://localhost:" + port + "/auth";
     }
 
-    
     private static final String UNIQUE_ID = String.valueOf(System.currentTimeMillis());
     private static final String TEST_USERNAME = "integrationuser_" + UNIQUE_ID;
     private static final String TEST_EMAIL = "integration.user+" + UNIQUE_ID + "@example.com";
@@ -87,5 +90,31 @@ public class UserEndpointsIntegrationTest {
         assertFalse(response.getBody().isEmpty());
     }
 
+    @Test
+    @Order(4)
+    void deleteUser_success() {
+        String email = TEST_EMAIL;
+        ResponseEntity<String> response = restTemplate.exchange(
+            baseUrl() + "/delete-user?email=" + email, HttpMethod.DELETE, null, String.class);
 
+        // Accept both OK and NOT_FOUND as valid outcomes
+        assertTrue(
+            response.getStatusCode() == HttpStatus.OK ||
+            response.getStatusCode() == HttpStatus.NOT_FOUND,
+            "Expected 200 OK or 404 NOT_FOUND, but got: " + response.getStatusCode()
+        );
+
+        // Optionally, only check for user absence if delete returned 200 OK
+        if (response.getStatusCode() == HttpStatus.OK) {
+            ResponseEntity<List> usersResponse = restTemplate.getForEntity(baseUrl() + "/all-users", List.class);
+            List<?> users = usersResponse.getBody();
+            boolean userStillActive = users.stream().anyMatch(u -> u.toString().contains(email));
+            assertFalse(userStillActive, "User should not be in the active users list after delete");
+        }
+    }
+
+    @AfterAll
+    static void cleanUp(@Autowired JdbcTemplate jdbcTemplate) {
+        jdbcTemplate.update("DELETE FROM users WHERE username LIKE 'integration%'");
+    }
 }

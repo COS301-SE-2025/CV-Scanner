@@ -145,11 +145,11 @@ public ResponseEntity<?> searchUsers(@RequestParam String query) {
     @DeleteMapping("/delete-user")
     public ResponseEntity<?> deleteUser(@RequestParam String email) {
         try {
-            int updated = jdbcTemplate.update(
-                "UPDATE users SET is_active = 0 WHERE email = ?",
+            int deleted = jdbcTemplate.update(
+                "DELETE FROM users WHERE email = ?",
                 email
             );
-            if (updated > 0) {
+            if (deleted > 0) {
                 return ResponseEntity.ok("User deleted successfully.");
             } else {
                 return ResponseEntity.status(404).body("User not found.");
@@ -158,7 +158,6 @@ public ResponseEntity<?> searchUsers(@RequestParam String query) {
             return ResponseEntity.status(500).body("Failed to delete user.");
         }
     }
-
     @PostMapping("/add-user")
     public ResponseEntity<?> addUser(@RequestBody Map<String, Object> user) {
         try {
