@@ -2,22 +2,13 @@
 
 ## 📊 Project Metrics
 
-<<<<<<< dev
 [![CI](https://github.com/COS301-SE-2025/CV-Scanner/actions/workflows/CICD.yml/badge.svg)](https://github.com/COS301-SE-2025/CV-Scanner/actions/workflows/CICD.yml)
 ![Requirements](https://img.shields.io/badge/requirements-satisfied-brightgreen)
 [![Open Issues](https://img.shields.io/github/issues/COS301-SE-2025/CV-Scanner)](https://github.com/COS301-SE-2025/CV-Scanner/issues)
 [![Closed Issues](https://img.shields.io/github/issues-closed/COS301-SE-2025/CV-Scanner)](https://github.com/COS301-SE-2025/CV-Scanner/issues?q=is%3Aissue+is%3Aclosed)
 ![Last Commit](https://img.shields.io/github/last-commit/COS301-SE-2025/CV-Scanner)
 ![Repo Size](https://img.shields.io/github/repo-size/COS301-SE-2025/CV-Scanner)
-=======
-[![CI](https://github.com/COS301-SE-2025/CV-Scanner/actions/workflows/build.yml/badge.svg)](https://github.com/COS301-SE-2025/CV-Scanner/actions)
-[![Coverage](https://coveralls.io/repos/github/COS301-SE-2025/CV-Scanner/badge.svg?branch=main)](https://coveralls.io/github/COS301-SE-2025/CV-Scanner?branch=main)
-![Requirements](https://img.shields.io/badge/requirements-satisfied-brightgreen)
-[![Open Issues](https://img.shields.io/github/issues/COS301-SE-2025/CV-Scanner)](https://github.com/COS301-SE-2025/CV-Scanner/issues)
-[![Closed Issues](https://img.shields.io/github/issues-closed/COS301-SE-2025/CV-Scanner)](https://github.com/COS301-SE-2025/CV-Scanner/issues?q=is%3Aissue+is%3Aclosed)
-![Status](https://img.shields.io/uptimerobot/status/m789456789-abcdefgh)
-![Last Commit](https://img.shields.io/github/last-commit/COS301-SE-2025/CV-Scanner)
->>>>>>> main
+
 
 ---
 
@@ -112,14 +103,28 @@ Track our development progress here:
 
 ---
 
+## 📄 Access the Manual
+
+You can view or download the full user manual here:  
+[CV Scanner User Manual](https://drive.google.com/file/d/1U7zqDIqY-VYKJQcDi8kkhpHsde9DV53l/view?usp=sharing)
+
+---
+
+## 📑 Coding Standards
+
+You can view our Coding Standards document here:
+[Coding Standards and Quality](https://drive.google.com/file/d/1rp8JnNfPehe5iU65XTH6DaiwV4-LpNIT/view?usp=sharing).
+
+---
+
 ## 🔗 Demo Links
 
 - [**Demo1 Video**](https://drive.google.com/file/d/1BtbS0klLEC0HWkYhbL0k7NyrCFnGpLrS/view?usp=sharing)
 - [**Demo1 Presentation**](https://docs.google.com/presentation/d/1O4b6erR0Uo78WA-xSwWJO_uA2eCvOgGE/edit?usp=sharing&ouid=117709380918548409880&rtpof=true&sd=true)
 - [**Software Requirement Specification Document**](https://drive.google.com/file/d/1AruNcFe2mI8f6CEjC8__o1PSpbJJFRpj/view?usp=sharing)
-- [**Demo2 Video**](https://drive.google.com/file/d/1BtbS0klLEC0HWkYhbL0k7NyrCFnGpLrS/view?usp=sharing)
-- [**Demo2 Presentation**](https://docs.google.com/presentation/d/1O4b6erR0Uo78WA-xSwWJO_uA2eCvOgGE/edit?usp=sharing&ouid=117709380918548409880&rtpof=true&sd=true)
-- [**Software Requirement Specification Document Version 2**](https://drive.google.com/file/d/1R54LThYXge9fBDH2PxvuK5XJubdKwRPj/view?usp=sharing)
+- [**Demo2 Video**](https://drive.google.com/file/d/1AOb6-VEAaabk0FddT4uh2BHFEV9V2qOl/view?usp=sharing)
+- [**Demo2 Presentation**](https://docs.google.com/presentation/d/1MdmJ69tKmyojZ8U0JkynMiWDhxMw-9lg/edit?usp=sharing&ouid=117709380918548409880&rtpof=true&sd=true)
+- [**Software Requirement Specification Document Version 2**](https://drive.google.com/file/d/1iAMg_G9gcY91X5osYbNA5--qdqwbtcWq/view?usp=sharing)
 
 ---
 
