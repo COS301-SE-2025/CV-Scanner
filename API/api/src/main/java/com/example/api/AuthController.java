@@ -24,7 +24,14 @@ public class AuthController {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+    public void setJdbcTemplate(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+    public void setPasswordEncoder(BCryptPasswordEncoder passwordEncoder) {
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
@@ -220,6 +227,41 @@ public ResponseEntity<?> searchUsers(@RequestParam String query) {
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(500).body("Failed to update user. Exception: " + e.getMessage());
+        }
+    }
+    
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        String currentPassword = payload.get("currentPassword");
+        String newPassword = payload.get("newPassword");
+
+        if (email == null || currentPassword == null || newPassword == null) {
+            return ResponseEntity.badRequest().body("Missing required fields.");
+        }
+
+        try {
+            Map<String, Object> user = jdbcTemplate.queryForMap(
+                "SELECT password_hash FROM users WHERE email = ?", email
+            );
+            String dbPasswordHash = (String) user.get("password_hash");
+
+            if (!passwordEncoder.matches(currentPassword, dbPasswordHash)) {
+                return ResponseEntity.status(400).body("Current password is incorrect.");
+            }
+
+            String newPasswordHash = passwordEncoder.encode(newPassword);
+            int updated = jdbcTemplate.update(
+                "UPDATE users SET password_hash = ? WHERE email = ?",
+                newPasswordHash, email
+            );
+            if (updated > 0) {
+                return ResponseEntity.ok("Password changed successfully.");
+            } else {
+                return ResponseEntity.status(500).body("Failed to update password.");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("User not found or error occurred.");
         }
     }
 
