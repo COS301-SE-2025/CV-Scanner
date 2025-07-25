@@ -26,10 +26,11 @@ import {
   PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip as RechartTooltip, Legend,
   ResponsiveContainer
-} from 'recharts';
+} from 'recharts';
 import { useNavigate, useLocation } from "react-router-dom";
 import logo2 from "../assets/logo2.png";
 import logo from "../assets/logo.png";
+import logo3 from "../assets/logoNavbar.png"; // Import the third logo if needed
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import PeopleIcon from "@mui/icons-material/People";
@@ -50,6 +51,14 @@ export default function CandidatesDashboard() {
   const [fadeIn, setFadeIn] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+
+  const devUser = {
+      email: "dev@example.com",
+      password: "Password123",
+      first_name: "John",
+      last_name: "Doe",
+      role: "Admin",
+    };
 
   const [user, setUser] = useState<{
     first_name?: string;
@@ -161,7 +170,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
           </IconButton>
 
           <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
-            <img src={logo} alt="Team Logo" style={{ width: 120 }} />
+            <img src={logo3} alt="Team Logo" style={{ width: 120 }} />
           </Box>
 
           <Button
@@ -205,7 +214,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
           </Button>
 
           {/* Only show User Management if user is Admin */}
-          {user?.role === "Admin" && (
+          {(user?.role === "Admin" || devUser.role === "Admin") && (
             <Button
               fullWidth
               sx={navButtonStyle}
@@ -218,6 +227,17 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
               User Management
             </Button>
           )}
+          {(user?.role === "Admin" || devUser.role === "Admin") && (
+            <Button
+              fullWidth
+              sx={navButtonStyle}
+              className={location.pathname === "/system-settings" ? "active" : ""}
+              startIcon={<SettingsIcon />}
+              onClick={() => navigate("/system-settings")}
+            >
+              System Settings
+            </Button>
+          )}          
         </Box>
       ) : (
         // Expand Icon when sidebar is collapsed

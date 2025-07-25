@@ -54,6 +54,14 @@ export default function UserManagementPage() {
     email?: string;
   } | null>(null);
 
+const devUser = {
+      email: "dev@example.com",
+      password: "Password123",
+      first_name: "John",
+      last_name: "Doe",
+      role: "Admin",
+    };
+
   const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All Roles");
@@ -300,7 +308,7 @@ export default function UserManagementPage() {
           </Button>
 
           {/* Only show User Management if user is Admin */}
-          {user?.role === "Admin" && (
+          {(user?.role === "Admin" || devUser.role === "Admin") && (
             <Button
               fullWidth
               sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
@@ -311,6 +319,17 @@ export default function UserManagementPage() {
               onClick={() => navigate("/user-management")}
             >
               User Management
+            </Button>
+          )}
+          {(user?.role === "Admin" || devUser.role === "Admin") && (
+            <Button
+              fullWidth
+              sx={navButtonStyle}
+              className={location.pathname === "/system-settings" ? "active" : ""}
+              startIcon={<SettingsIcon />}
+              onClick={() => navigate("/system-settings")}
+            >
+              System Settings
             </Button>
           )}
         </Box>

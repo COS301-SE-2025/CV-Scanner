@@ -12,6 +12,7 @@ import {
   FormControlLabel,
 } from "@mui/material";
 import logo from "../assets/logo.png";
+import logo3 from "../assets/logoNavbar.png"; // Import the third logo if needed
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -118,7 +119,7 @@ export default function RegisterPage() {
     }}
   >
     <img 
-      src={logo} 
+      src={logo3} 
       alt="Quantum Stack Logo" 
       style={{ 
         width: 75,

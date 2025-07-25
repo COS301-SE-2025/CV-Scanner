@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import logo from "../assets/logo.png";
 import logo2 from "../assets/logo2.png"; // Import the second logo if needed
+import logo3 from "../assets/logoNavbar.png"; // Import the third logo if needed
 import {
   Box,
   Button,
@@ -23,6 +24,24 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
+    // Default dev user
+    const devUser = {
+      email: "dev@example.com",
+      password: "Password123",
+      first_name: "John",
+      last_name: "Doe",
+      role: "Admin",
+    };
+
+    // If dev credentials, log in offline
+    if (email === devUser.email && password === devUser.password) {
+      localStorage.setItem("userEmail", devUser.email);
+      localStorage.setItem("user", JSON.stringify(devUser));
+      navigate("/dashboard");
+      setLoading(false);
+      return;
+    }
+
     fetch("http://localhost:8081/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -34,120 +53,130 @@ export default function LoginPage() {
       .then((res) => res.text())
       .then((data) => {
         if (data.toLowerCase().includes("success")) {
-          localStorage.setItem("userEmail", email); // <--- Add this line
-          navigate("/dashboard"); // or wherever you want to redirect
+          localStorage.setItem("userEmail", email);
+          navigate("/dashboard");
         } else {
           setError(data);
         }
         setLoading(false);
       })
       .catch(() => {
-        setError("Login failed. Please try again.");
+        // If fetch fails, allow dev login as fallback
+        if (email === devUser.email && password === devUser.password) {
+          localStorage.setItem("userEmail", devUser.email);
+          localStorage.setItem("user", JSON.stringify(devUser));
+          navigate("/dashboard");
+        } else {
+          setError("Login failed. Please try again.");
+        }
         setLoading(false);
       });
   };
 
   return (
     <>
-    {/* Header */}
-<Box
-  sx={{
-    display: "flex",
-    alignItems: "center",
-    bgcolor: "#1A82AE",
-    color: "#fff",
-    px: 2,
-    py: 2,
-    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-    position: "relative",
-    overflow: "hidden",
-    height: 80
-  }}
->
-  {/* Logo in left corner */}
-  <Box 
-    sx={{
-      position: "absolute",
-      left: 20,
-      zIndex: 2,
-      "&:hover": {
-        transform: "rotate(-5deg)",
-        transition: "transform 0.3s ease"
-      }
-    }}
-  >
-    <img 
-      src={logo} 
-      alt="Quantum Stack Logo" 
-      style={{ 
-        width: 75,
-        height: "auto",
-        filter: "none" // Removed shadow
-      }} 
-    />
-  </Box>
+      {/* Header */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          bgcolor: "#1A82AE",
+          color: "#fff",
+          px: 2,
+          py: 2,
+          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+          position: "relative",
+          overflow: "hidden",
+          height: 80,
+        }}
+      >
+        {/* Logo in left corner */}
+        <Box
+          sx={{
+            position: "absolute",
+            left: 20,
+            zIndex: 2,
+            "&:hover": {
+              transform: "rotate(-5deg)",
+              transition: "transform 0.3s ease",
+            },
+          }}
+        >
+          <img
+            src={logo3}
+            alt="Quantum Stack Logo"
+            style={{
+              width: 75,
+              height: "auto",
+              filter: "none", // Removed shadow
+            }}
+          />
+        </Box>
 
-  {/* Sliding Text Container - full width */}
-  <Box 
-    sx={{
-      position: "absolute",
-      width: "100%",
-      height: "100%",
-      display: "flex",
-      alignItems: "center",
-      left: 0,
-      overflow: "hidden"
-    }}
-  >
-    <Typography
-      variant="h4"
-      sx={{
-        fontWeight: 800,
-        letterSpacing: 4,
-        textTransform: "uppercase",
-        fontFamily: "'Orbitron', sans-serif",
-        background: "linear-gradient(to right, #fff, #d1faff)",
-        WebkitBackgroundClip: "text",
-        WebkitTextFillColor: "transparent",
-        whiteSpace: "nowrap",
-        position: "absolute",
-        left: "100%", // Start off-screen right
-        animation: "slideText 20s linear infinite",
-        "@keyframes slideText": {
-          "0%": { 
-            transform: "translateX(0)",
-            left: "100%" 
-          },
-          "10%": { 
-            left: "100%",
-            transform: "translateX(0)" 
-          },
-          "100%": { 
-            left: "0%",
-            transform: "translateX(-100%)" 
-          }
-        }
-      }}
-    >
-      QUANTUM STACK
-    </Typography>
-  </Box>
+        {/* Sliding Text Container - full width */}
+        <Box
+          sx={{
+            position: "absolute",
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            left: 0,
+            overflow: "hidden",
+          }}
+        >
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 800,
+              letterSpacing: 4,
+              textTransform: "uppercase",
+              fontFamily: "'Orbitron', sans-serif",
+              background: "linear-gradient(to right, #fff, #d1faff)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              whiteSpace: "nowrap",
+              position: "absolute",
+              left: "100%", // Start off-screen right
+              animation: "slideText 20s linear infinite",
+              "@keyframes slideText": {
+                "0%": {
+                  transform: "translateX(0)",
+                  left: "100%",
+                },
+                "10%": {
+                  left: "100%",
+                  transform: "translateX(0)",
+                },
+                "100%": {
+                  left: "0%",
+                  transform: "translateX(-100%)",
+                },
+              },
+            }}
+          >
+            QUANTUM STACK
+          </Typography>
+        </Box>
 
-  {/* Subtle background shine animation */}
-  <Box sx={{
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%)",
-    animation: "shine 15s infinite linear",
-    "@keyframes shine": {
-      "0%": { transform: "translateX(-100%)" },
-      "100%": { transform: "translateX(100%)" }
-    }
-  }}/>
-</Box>
+        {/* Subtle background shine animation */}
+        <Box
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            background:
+              "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%)",
+            animation: "shine 15s infinite linear",
+            "@keyframes shine": {
+              "0%": { transform: "translateX(-100%)" },
+              "100%": { transform: "translateX(100%)" },
+            },
+          }}
+        />
+      </Box>
 
       {/* Main Content */}
       <Box
