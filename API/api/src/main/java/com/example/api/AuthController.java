@@ -24,7 +24,14 @@ public class AuthController {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+    public void setJdbcTemplate(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+    public void setPasswordEncoder(BCryptPasswordEncoder passwordEncoder) {
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
@@ -222,6 +229,7 @@ public ResponseEntity<?> searchUsers(@RequestParam String query) {
             return ResponseEntity.status(500).body("Failed to update user. Exception: " + e.getMessage());
         }
     }
+    
     @PostMapping("/change-password")
     public ResponseEntity<?> changePassword(@RequestBody Map<String, String> payload) {
         String email = payload.get("email");
