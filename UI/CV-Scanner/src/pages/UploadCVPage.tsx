@@ -375,7 +375,7 @@ const devUser = {
 
           <Paper
             elevation={6}
-            sx={{ p: 4, borderRadius: 3, backgroundColor: "#bce4ff" }}
+            sx={{ p: 4, borderRadius: 3, backgroundColor: "#75a29dff" }}
           >
             <Typography
               variant="h6"
@@ -397,7 +397,7 @@ const devUser = {
                 justifyContent: "center",
                 flexDirection: "column",
                 mb: 3,
-                bgcolor: "#fff",
+                bgcolor: "#888a8aff",
               }}
             >
               <CloudUploadIcon fontSize="large" />
