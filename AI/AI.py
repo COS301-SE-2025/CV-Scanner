@@ -1,16 +1,18 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-import fitz  
-import docx  
+import fitz  # PyMuPDF for PDFs
+import docx  # python-docx for DOCX
 import tempfile
 import os
 import re
 
-
+# ----------------------------------------------------------
+# FastAPI app initialization
+# ----------------------------------------------------------
 app = FastAPI()
 
-
+# Allow all CORS for testing (adjust in production)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,7 +21,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
+# ----------------------------------------------------------
+# TEXT EXTRACTION FUNCTIONS
+# ----------------------------------------------------------
 def extract_text_from_pdf_bytes(pdf_bytes: bytes) -> str:
     """Extract text from PDF bytes using PyMuPDF."""
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
@@ -61,7 +65,9 @@ def extract_text_auto(file_bytes: bytes, filename: str) -> str:
     else:
         raise ValueError("Unsupported file type. Only PDF and DOCX are supported.")
 
-
+# ----------------------------------------------------------
+# PREPROCESSING FUNCTION
+# ----------------------------------------------------------
 def preprocess_text(cv_text: str) -> list:
     """
     Clean and normalize CV text.
@@ -70,30 +76,74 @@ def preprocess_text(cv_text: str) -> list:
     # Convert to lowercase for uniformity
     text = cv_text.lower()
 
-   
+    # Remove special characters (except @, ., +, - which are common in emails and URLs)
     text = re.sub(r"[^a-z0-9@\.\+\-\s]", " ", text)
 
-
+    # Replace multiple spaces/newlines with single space
     text = re.sub(r"\s+", " ", text)
 
-   
+    # Split original text into lines (to keep some structure)
     lines = cv_text.splitlines()
 
-    
+    # Remove empty lines and strip whitespace
     cleaned_lines = [line.strip() for line in lines if line.strip()]
 
     return cleaned_lines
+
+# ----------------------------------------------------------
+# CONTACT & SECTION TAGGING FUNCTIONS
+# ----------------------------------------------------------
+def extract_contact_info(text: str) -> dict:
+    """Extract common contact details from text."""
+    emails = re.findall(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', text)
+    phones = re.findall(r'(?:\+?\d{1,3})?[-.\s]?(?:\(?\d{2,3}\)?)[-.\s]?\d{3}[-.\s]?\d{4}', text)
+    urls = re.findall(r'(?:https?://|www\.)[^\s]+', text)
+    return {"emails": list(set(emails)), "phones": list(set(phones)), "urls": list(set(urls))}
+
+def categorize_cv_lines(lines: list) -> dict:
+    """Categorize CV lines into sections using simple keyword matching."""
+    categories = {
+        "profile": [],
+        "education": [],
+        "skills": [],
+        "experience": [],
+        "projects": [],
+        "achievements": [],
+        "contact": [],
+        "other": []
+    }
+
+    for line in lines:
+        line_lower = line.lower()
+        if any(word in line_lower for word in ["education", "bachelor", "degree", "diploma", "university", "college"]):
+            categories["education"].append(line)
+        elif any(word in line_lower for word in ["skill", "technologies", "proficient", "languages:"]):
+            categories["skills"].append(line)
+        elif any(word in line_lower for word in ["experience", "employment", "work", "career", "intern"]):
+            categories["experience"].append(line)
+        elif any(word in line_lower for word in ["project", "developed", "created", "designed"]):
+            categories["projects"].append(line)
+        elif any(word in line_lower for word in ["award", "achievement", "certification", "certified"]):
+            categories["achievements"].append(line)
+        elif any(word in line_lower for word in ["profile", "summary", "objective", "about"]):
+            categories["profile"].append(line)
+        elif any(word in line_lower for word in ["phone", "email", "contact", "@", "linkedin", "github"]):
+            categories["contact"].append(line)
+        else:
+            categories["other"].append(line)
+
+    return categories
 
 # ----------------------------------------------------------
 # API ENDPOINTS
 # ----------------------------------------------------------
 @app.get("/")
 async def root():
-    return {"message": "CV Processing API is running (Step 1 + Step 2)"}
+    return {"message": "CV Processing API is running (Steps 1, 2, 3)"}
 
 @app.post("/upload_cv/")
 async def upload_cv(file: UploadFile = File(...)):
-    """Upload PDF or DOCX CV and return extracted + cleaned text preview."""
+    """Upload PDF or DOCX CV and return structured analysis."""
     filename = file.filename
     file_bytes = await file.read()
 
@@ -110,14 +160,22 @@ async def upload_cv(file: UploadFile = File(...)):
     if not cv_text.strip():
         raise HTTPException(status_code=500, detail="No text could be extracted from the CV.")
 
-    # Preprocess text (Step 2)
+    # Preprocess text
     cleaned_lines = preprocess_text(cv_text)
+
+    # Categorize sections
+    categorized = categorize_cv_lines(cleaned_lines)
+
+    # Extract contact info and merge into contact section
+    contact_info = extract_contact_info(cv_text)
+    categorized["contact"].extend([f"Email: {email}" for email in contact_info["emails"]])
+    categorized["contact"].extend([f"Phone: {phone}" for phone in contact_info["phones"]])
+    categorized["contact"].extend([f"Link: {url}" for url in contact_info["urls"]])
 
     return JSONResponse(content={
         "status": "success",
         "filename": filename,
-        "total_lines": len(cleaned_lines),
-        "lines": cleaned_lines[:50]  # Only first 50 lines for preview
+        "sections": categorized
     })
 
 # ----------------------------------------------------------
