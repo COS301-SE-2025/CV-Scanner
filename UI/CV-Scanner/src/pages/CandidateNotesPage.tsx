@@ -131,7 +131,7 @@ export default function CandidateNotesPage() {
             {/* Left: Logo and heading */}
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <img src={logo} alt="Logo" style={{ width: 80 }} />
-              <Typography variant="h6" sx={{ ml: 2, fontWeight: "bold" }}>
+              <Typography variant="h6" sx={{ fontFamily: 'Buda, sans-serif',ml: 2, fontWeight: "bold" }}>
                 Candidate Notes
               </Typography>
             </Box>
@@ -221,7 +221,7 @@ export default function CandidateNotesPage() {
         >
           <Fade in={fadeIn} timeout={250}>
             <Box sx={{ position: "relative" }}>
-              <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+              <Typography variant="h6" sx={{fontFamily: 'Buda, sans-serif', fontWeight: "bold", mb: 1 }}>
                 {tutorialStep === 0
                   ? "Recruiter Notes"
                   : tutorialStep === 1
@@ -326,7 +326,7 @@ export default function CandidateNotesPage() {
           >
             Back to Candidates
           </Button>
-          <Typography variant="h4" sx={{ fontWeight: "bold", mb: 2 }}>
+          <Typography variant="h4" sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", mb: 2 }}>
             Jane Smith
           </Typography>
           <Typography variant="subtitle1" sx={{ mb: 4 }}>
@@ -365,7 +365,7 @@ export default function CandidateNotesPage() {
             sx={{ p: 3, borderRadius: 3, bgcolor: "#75a29dff" }}
             ref={notesRef}
           >
-            <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
+            <Typography variant="h6" sx={{fontFamily: 'Buda, sans-serif', fontWeight: "bold", mb: 2 }}>
               Recruiter Notes
             </Typography>
             <TextField
