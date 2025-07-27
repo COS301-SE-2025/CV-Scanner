@@ -144,7 +144,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
             width: 220,
             minWidth: "220px",
             maxWidth: "220px", 
-            bgcolor: "#1A82AE",
+            bgcolor: "#0A2540 ",
             display: "flex",
             flexDirection: "column",
             p: 2,
@@ -244,7 +244,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
         <Box
           sx={{
             width: 40,
-            bgcolor: "#1A82AE",
+            bgcolor: "#0A2540 ",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
@@ -265,7 +265,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
         {/* Top AppBar */}
         <AppBar
           position="static"
-          sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
+          sx={{ bgcolor: "#0A2540 ", boxShadow: "none" }}
         >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
 
@@ -380,10 +380,10 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
         <Line 
           type="monotone" 
           dataKey="candidates" 
-          stroke="#1A82AE" 
+          stroke="#0A2540 " 
           strokeWidth={2}
           dot={{ r: 4 }}
-          activeDot={{ r: 6, fill: "#1A82AE" }}
+          activeDot={{ r: 6, fill: "#0A2540 " }}
         />
       </LineChart>
     </ResponsiveContainer>
