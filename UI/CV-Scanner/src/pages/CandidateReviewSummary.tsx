@@ -355,7 +355,7 @@ export default function CandidateReviewSummary() {
                   <Box
                     sx={{
                       width: "80%", // Adjust percentage here
-                      bgcolor: "#4caf50",
+                      bgcolor: "#19a056ff",
                       height: "100%",
                       borderRadius: 10,
                     }}
@@ -396,7 +396,7 @@ export default function CandidateReviewSummary() {
                   <Box
                     sx={{
                       width: "60%", // Adjust percentage here
-                      bgcolor: "#4caf50",
+                      bgcolor: "#19a056ff",
                       height: "100%",
                       borderRadius: 10,
                     }}
@@ -433,7 +433,7 @@ export default function CandidateReviewSummary() {
                 <Chip
                   key={idx}
                   label={tech}
-                  sx={{ bgcolor: "#0073c1", color: "#fff" }}
+                  sx={{ bgcolor: "#08726aff", color: "#fff" }}
                 />
               ))}
             </Box>

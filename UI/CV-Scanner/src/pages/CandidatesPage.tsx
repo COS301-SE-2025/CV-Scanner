@@ -348,7 +348,7 @@ export default function CandidatesPage() {
               />
               <Button
                 variant="contained"
-                sx={{ backgroundColor: "#27beb1ff", color: "#fff" }}
+                sx={{ backgroundColor: "#08726aff", color: "#fff" }}
                 onClick={() => setSearchTerm(searchInput)}
               >
                 Search

@@ -381,7 +381,7 @@ export default function CandidateNotesPage() {
             <Button
               variant="contained"
               onClick={handleSaveNote}
-              sx={{ bgcolor: "#0073c1" }}
+              sx={{ bgcolor: "#08726aff" }}
               ref={saveButtonRef}
             >
               Save Notes

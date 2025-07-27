@@ -366,7 +366,7 @@ export default function CandidateSkillsPage() {
                   key={idx}
                   label={skill}
                   onDelete={() => handleDeleteSkill(skill)}
-                  sx={{ bgcolor: "#0073c1", color: "#fff" }}
+                  sx={{ bgcolor: "#08726aff", color: "#fff" }}
                 />
               ))}
             </Box>
@@ -384,7 +384,7 @@ export default function CandidateSkillsPage() {
               <Button
                 variant="contained"
                 onClick={handleAddSkill}
-                sx={{ bgcolor: "#0073c1" }}
+                sx={{ bgcolor: "#08726aff" }}
               >
                 Add
               </Button>
