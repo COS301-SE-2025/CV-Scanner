@@ -112,7 +112,7 @@ export default function SystemSettingsPage() {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#181c2f",
+        bgcolor: "#0c0e18ff",
         color: "#fff",
       }}
     >
@@ -121,7 +121,7 @@ export default function SystemSettingsPage() {
         <Box
           sx={{
             width: 220,
-            bgcolor: "#1A82AE",
+            bgcolor: "#0A2540",
             display: "flex",
             flexDirection: "column",
             p: 2,
@@ -238,7 +238,7 @@ export default function SystemSettingsPage() {
         <Box
           sx={{
             width: 40,
-            bgcolor: "#1A82AE",
+            bgcolor: "#0A2540",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
@@ -258,7 +258,7 @@ export default function SystemSettingsPage() {
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         <AppBar
           position="static"
-          sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
+          sx={{ bgcolor: "#0A2540", boxShadow: "none" }}
         >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
             <Tooltip title="Go to Help Page" arrow>
@@ -350,7 +350,7 @@ export default function SystemSettingsPage() {
           {/* Blacklist and Whitelist Section */}
           <Box sx={{ display: "flex", gap: 4, mt: 2 }}>
             {/* Blacklist */}
-            <Box sx={{ flex: 1, bgcolor: "#232a3a", p: 2, borderRadius: 2 }}>
+            <Box sx={{ flex: 1, bgcolor: "#2b3a55", p: 2, borderRadius: 2 }}>
               <Typography variant="h6" sx={{ mb: 2, color: "#fff" }}>
                 Blacklist
               </Typography>
@@ -417,7 +417,7 @@ export default function SystemSettingsPage() {
               </Box>
             </Box>
             {/* Whitelist */}
-            <Box sx={{ flex: 1, bgcolor: "#232a3a", p: 2, borderRadius: 2 }}>
+            <Box sx={{ flex: 1, bgcolor: "#2b3a55", p: 2, borderRadius: 2 }}>
               <Typography variant="h6" sx={{ mb: 2, color: "#fff" }}>
                 Whitelist
               </Typography>
