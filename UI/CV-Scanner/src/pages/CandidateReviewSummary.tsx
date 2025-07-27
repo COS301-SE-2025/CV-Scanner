@@ -87,7 +87,7 @@ export default function CandidateReviewSummary() {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#181c2f",
+        bgcolor: "#0c0e18ff",
         color: "#fff",
       }}
     >
@@ -102,7 +102,7 @@ export default function CandidateReviewSummary() {
     <Box sx={{ display: 'flex', alignItems: 'center' }}>
       <img src={logo} alt="Logo" style={{ width: 80 }} />
       {/* Optional title next to logo */}
-      <Typography variant="h6" sx={{ ml: 2, fontWeight: 'bold' }}>Candidate Summary</Typography> 
+      <Typography variant="h6" sx={{fontFamily: 'Buda, sans-serif', ml: 2, fontWeight: 'bold' }}>Candidate Summary</Typography> 
     </Box>
             {/* Right: Icons */}
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -188,7 +188,7 @@ export default function CandidateReviewSummary() {
         >
           <Fade in={fadeIn} timeout={250}>
             <Box sx={{ position: "relative" }}>
-              <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+              <Typography variant="h6" sx={{fontFamily: 'Buda, sans-serif', fontWeight: "bold", mb: 1 }}>
                 {tutorialStep === 0 ? "Project Fit" : "Key Technologies"}
               </Typography>
               <Typography sx={{ mb: 2 }}>
@@ -286,7 +286,7 @@ export default function CandidateReviewSummary() {
           >
             Back to Candidates
           </Button>
-          <Typography variant="h4" sx={{ fontWeight: "bold", mb: 2 }}>
+          <Typography variant="h4" sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", mb: 2 }}>
             Jane Smith
           </Typography>
           <Typography variant="subtitle1" sx={{ mb: 4 }}>
@@ -322,10 +322,10 @@ export default function CandidateReviewSummary() {
           {/* Project Fit Section */}
           <Paper
             elevation={6}
-            sx={{ p: 3, mb: 4, borderRadius: 3, bgcolor: "#e1f4ff" }}
+            sx={{ p: 3, mb: 4, borderRadius: 3, bgcolor: "#75a29dff" }}
             ref={projectFitRef}
           >
-            <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
+            <Typography variant="h6" sx={{fontFamily: 'Buda, sans-serif', fontWeight: "bold", mb: 2 }}>
               Project Fit
             </Typography>
             <Box
@@ -337,7 +337,7 @@ export default function CandidateReviewSummary() {
             >
               {/* Technical Projects */}
               <Box>
-                <Typography variant="body1" sx={{ fontWeight: "bold", mb: 1 }}>
+                <Typography variant="body1" sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", mb: 1 }}>
                   Technical Projects
                 </Typography>
                 <Typography variant="body2" sx={{ color: "#555", mb: 1 }}>
@@ -355,7 +355,7 @@ export default function CandidateReviewSummary() {
                   <Box
                     sx={{
                       width: "80%", // Adjust percentage here
-                      bgcolor: "#4caf50",
+                      bgcolor: "#19a056ff",
                       height: "100%",
                       borderRadius: 10,
                     }}
@@ -378,7 +378,7 @@ export default function CandidateReviewSummary() {
 
               {/* Collaborative Projects */}
               <Box>
-                <Typography variant="body1" sx={{ fontWeight: "bold", mb: 1 }}>
+                <Typography variant="body1" sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", mb: 1 }}>
                   Collaborative Projects
                 </Typography>
                 <Typography variant="body2" sx={{ color: "#555", mb: 1 }}>
@@ -396,7 +396,7 @@ export default function CandidateReviewSummary() {
                   <Box
                     sx={{
                       width: "60%", // Adjust percentage here
-                      bgcolor: "#4caf50",
+                      bgcolor: "#19a056ff",
                       height: "100%",
                       borderRadius: 10,
                     }}
@@ -422,10 +422,10 @@ export default function CandidateReviewSummary() {
           {/* Key Technologies Section */}
           <Paper
             elevation={6}
-            sx={{ p: 3, borderRadius: 3, bgcolor: "#e1f4ff" }}
+            sx={{ p: 3, borderRadius: 3, bgcolor: "#75a29dff" }}
             ref={techRef}
           >
-            <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
+            <Typography variant="h6" sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", mb: 2 }}>
               Key Technologies
             </Typography>
             <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
@@ -433,7 +433,7 @@ export default function CandidateReviewSummary() {
                 <Chip
                   key={idx}
                   label={tech}
-                  sx={{ bgcolor: "#0073c1", color: "#fff" }}
+                  sx={{ bgcolor: "#08726aff", color: "#fff" }}
                 />
               ))}
             </Box>

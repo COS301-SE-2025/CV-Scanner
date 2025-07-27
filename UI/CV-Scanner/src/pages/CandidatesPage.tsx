@@ -125,7 +125,7 @@ export default function CandidatesPage() {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#181c2f",
+        bgcolor: "#0c0e18ff",
         color: "#fff",
       }}
     >
@@ -314,17 +314,25 @@ export default function CandidatesPage() {
                 </AppBar>
 
         {/* Main Page Content */}
-        <Box sx={{ p: 3 }}>
+
+          <Box sx={{ p: 3 }}>
+          <Typography variant="h5" sx={{fontFamily: 'Buda, sans-serif', mb: 3, fontWeight: "bold" }}>
+            Candidate Dictionary
+          </Typography>
+        </Box>
+
+        <Box sx={{  pt: 0, px: 3, pb: 3  }}>
           <Paper
             elevation={6}
-            sx={{ p: 3, borderRadius: 3, backgroundColor: "#d0f0ff" }}
+            sx={{ p: 3, borderRadius: 3, backgroundColor: "#75a29dff" }}
           >
-            <Typography
+           {/*<Typography
               variant="h5"
               sx={{ fontWeight: "bold", color: "#0073c1", mb: 2 }}
             >
               Candidate Directory
-            </Typography>
+                </Typography> */}
+            
 
             {/* Search Controls */}
             <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
@@ -335,12 +343,12 @@ export default function CandidatesPage() {
                 size="small"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                sx={{ backgroundColor: "#fff", borderRadius: 1 }}
+                sx={{ backgroundColor: "#d1dbe5ff", borderRadius: 1 }}
                 inputRef={searchRef}
               />
               <Button
                 variant="contained"
-                sx={{ backgroundColor: "#4cb0ff", color: "#fff" }}
+                sx={{ backgroundColor: "#08726aff", color: "#fff" }}
                 onClick={() => setSearchTerm(searchInput)}
               >
                 Search
@@ -356,6 +364,7 @@ export default function CandidatesPage() {
                 Clear
               </Button>
             </Box>
+            
 
             {/* Table */}
             <TableContainer>
@@ -421,6 +430,7 @@ export default function CandidatesPage() {
           </Paper>
         </Box>
       </Box>
+      
 
       {/* Tutorial Popover */}
       <Popover
@@ -452,7 +462,7 @@ export default function CandidatesPage() {
           <Box sx={{ position: "relative" }}>
             {tutorialStep === 0 && (
               <>
-                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                <Typography variant="h6" sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", mb: 1 }}>
                   Search Candidates
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
@@ -463,7 +473,7 @@ export default function CandidatesPage() {
             )}
             {tutorialStep === 1 && (
               <>
-                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                <Typography variant="h6" sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", mb: 1 }}>
                   Review a Candidate
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
@@ -577,13 +587,13 @@ const navButtonStyle = {
 
 // Review button style
 const reviewButtonStyle = {
-  background: "linear-gradient(45deg, #0a1172 0%, #00b300 100%)",
+  background: "linear-gradient(45deg, #120635ff 0%, #0c9971ff 100%)",
   color: "white",
   fontWeight: "bold",
   padding: "6px 16px",
   borderRadius: "4px",
   textTransform: "none",
   "&:hover": {
-    background: "linear-gradient(45deg, #081158 0%, #009a00 100%)",
+    background: "linear-gradient(45deg, #120635ff 0%, #0c9971ff 100%)",
   },
 };
