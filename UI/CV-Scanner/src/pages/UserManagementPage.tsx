@@ -337,7 +337,7 @@ const devUser = {
         <Box
           sx={{
             width: 40,
-            bgcolor: "#1A82AE",
+            bgcolor: "#0A2540",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
