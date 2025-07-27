@@ -1,18 +1,16 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-import fitz  # PyMuPDF for PDFs
-import docx  # python-docx for DOCX
+import fitz  
+import docx  
 import tempfile
 import os
 import re
 
-# ----------------------------------------------------------
-# FastAPI app initialization
-# ----------------------------------------------------------
+
 app = FastAPI()
 
-# Allow all CORS for testing (adjust in production)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,9 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ----------------------------------------------------------
-# TEXT EXTRACTION FUNCTIONS
-# ----------------------------------------------------------
+
 def extract_text_from_pdf_bytes(pdf_bytes: bytes) -> str:
     """Extract text from PDF bytes using PyMuPDF."""
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
@@ -65,9 +61,7 @@ def extract_text_auto(file_bytes: bytes, filename: str) -> str:
     else:
         raise ValueError("Unsupported file type. Only PDF and DOCX are supported.")
 
-# ----------------------------------------------------------
-# PREPROCESSING FUNCTION (NEW)
-# ----------------------------------------------------------
+
 def preprocess_text(cv_text: str) -> list:
     """
     Clean and normalize CV text.
@@ -76,16 +70,16 @@ def preprocess_text(cv_text: str) -> list:
     # Convert to lowercase for uniformity
     text = cv_text.lower()
 
-    # Remove special characters (except @, ., +, - which are common in emails and URLs)
+   
     text = re.sub(r"[^a-z0-9@\.\+\-\s]", " ", text)
 
-    # Replace multiple spaces/newlines with single space
+
     text = re.sub(r"\s+", " ", text)
 
-    # Split original text into lines (keeps some structure)
+   
     lines = cv_text.splitlines()
 
-    # Remove empty lines and strip whitespace
+    
     cleaned_lines = [line.strip() for line in lines if line.strip()]
 
     return cleaned_lines
