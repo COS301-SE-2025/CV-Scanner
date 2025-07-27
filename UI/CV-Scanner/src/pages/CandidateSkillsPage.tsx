@@ -352,7 +352,7 @@ export default function CandidateSkillsPage() {
           {/* Skills Section */}
           <Paper
             elevation={6}
-            sx={{ p: 3, borderRadius: 3, bgcolor: "#e1f4ff" }}
+            sx={{ p: 3, borderRadius: 3, bgcolor: "#75a29dff" }}
           >
             <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
               Technical Skills
