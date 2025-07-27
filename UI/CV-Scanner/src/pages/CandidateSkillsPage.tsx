@@ -117,7 +117,7 @@ export default function CandidateSkillsPage() {
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
 
-        <AppBar position="static" sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}>
+        <AppBar position="static" sx={{ bgcolor: "#0A2540 ", boxShadow: "none" }}>
           <Toolbar sx={{ justifyContent: "space-between" }}>
             {/* Left: Logo and heading */}
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
