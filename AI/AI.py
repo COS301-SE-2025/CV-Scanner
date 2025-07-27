@@ -1,133 +1,105 @@
-
-#added imports for ai 
+# app.py
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
-from tika import parser
+from fastapi.middleware.cors import CORSMiddleware
+import fitz  # PyMuPDF for PDFs
+import docx  # python-docx for DOCX
 import tempfile
-import json
 import os
-from transformers import pipeline
-import re
-import spacy
-nlp = spacy.load("en_core_web_sm")
 
-
+# FastAPI app initialization
 app = FastAPI()
-classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
+# Allow all CORS for testing (adjust in production)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-#added label
-labels = ["profile", "education", "skills", "languages", "projects", "achievements", "contact", "experience"]
+# --------------------------
+# TEXT EXTRACTION FUNCTIONS
+# --------------------------
 
-
-def categorize_cv_nlp(text: str):
-    categories = {label: [] for label in labels}
-    categories["other"] = []
-#added label
- 
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
-
-    for line in lines:
-        try:
-            result = classifier(line, candidate_labels=labels)
-            top_label = result['labels'][0]
-            confidence = result['scores'][0]
-            if confidence >= 0.5:
-                categories[top_label].append(line)
-            else:
-                categories["other"].append(line)
-        except Exception:
-            categories["other"].append(line)
-
-    return categories
-
-
-#added extraction
-
-def extract_contact_info(text: str):
-    doc = nlp(text)
-
-    emails = list(set([ent.text for ent in doc.ents if ent.label_ == "EMAIL"]))
-    phones = re.findall(r"\+?\d[\d\-\(\) ]{7,}\d", text)
-    urls = re.findall(r"https?://[^\s]+", text)
-
-    lines = text.strip().splitlines()
-    name = None
-    for line in lines[:5]:
-        doc_line = nlp(line)
-        for ent in doc_line.ents:
-            if ent.label_ == "PERSON":
-                name = ent.text
-                break
-        if name:
-            break
-
-    return {
-        "name": name or "",
-        "emails": emails,
-        "phones": phones,
-        "urls": urls
-    }
-
-
-def prepare_json_data(categories: dict):
-    json_data = {}
-    for section, content in categories.items():
-        json_data[section] = "\n".join(content).strip()
-    return json_data
-
-
-def process_pdf_file(pdf_path):
-    try:
-        parsed = parser.from_file(pdf_path)
-        cv_text = parsed.get('content', '')
-        if not cv_text:
-            return None
-    except Exception:
-        return None
-
-    categorized = categorize_cv_nlp(cv_text)
-    contact_info = extract_contact_info(cv_text)
-
-    contact_section = categorized.get("contact", [])
-    contact_section.extend([
-        f"Name: {contact_info['name']}",
-        *[f"Email: {email}" for email in contact_info['emails']],
-        *[f"Phone: {phone}" for phone in contact_info['phones']],
-        *[f"Link: {url}" for url in contact_info['urls']]
-    ])
-    categorized["contact"] = contact_section
-
-    return prepare_json_data(categorized)
-
-
-def process_pdf_bytes(pdf_bytes: bytes):
-    tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-    try:
+def extract_text_from_pdf_bytes(pdf_bytes: bytes) -> str:
+    """Extract text from PDF bytes using PyMuPDF."""
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
         tmp_file.write(pdf_bytes)
-        tmp_file.close()
-        result = process_pdf_file(tmp_file.name)
+        tmp_file.flush()
+        tmp_path = tmp_file.name
+
+    try:
+        text = ""
+        with fitz.open(tmp_path) as pdf:
+            for page in pdf:
+                text += page.get_text()
     finally:
-        os.unlink(tmp_file.name)
+        os.unlink(tmp_path)
 
-    return result
+    return text.strip()
 
+def extract_text_from_docx_bytes(docx_bytes: bytes) -> str:
+    """Extract text from DOCX bytes using python-docx."""
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file:
+        tmp_file.write(docx_bytes)
+        tmp_file.flush()
+        tmp_path = tmp_file.name
 
+    try:
+        doc = docx.Document(tmp_path)
+        text = "\n".join([para.text for para in doc.paragraphs])
+    finally:
+        os.unlink(tmp_path)
 
-@app.post("/upload_pdf/")
-async def upload_pdf(file: UploadFile = File(...)):
-    if file.content_type != "application/pdf":
-        raise HTTPException(status_code=400, detail="Invalid file type, only PDFs allowed.")
+    return text.strip()
 
-    pdf_bytes = await file.read()
-    result = process_pdf_bytes(pdf_bytes)
+def extract_text_auto(file_bytes: bytes, filename: str) -> str:
+    """Detect file type and extract text accordingly."""
+    if filename.lower().endswith(".pdf"):
+        return extract_text_from_pdf_bytes(file_bytes)
+    elif filename.lower().endswith(".docx"):
+        return extract_text_from_docx_bytes(file_bytes)
+    else:
+        raise ValueError("Unsupported file type. Only PDF and DOCX are supported.")
 
-    if result is None:
-        raise HTTPException(status_code=500, detail="Failed to extract text from PDF.")
+# --------------------------
+# API ENDPOINTS
+# --------------------------
 
-    return JSONResponse(content=result)
+@app.get("/")
+async def root():
+    return {"message": "CV Processing API is running (Step 1 - Extraction)"}
 
-if __name__ == "__main__":
+@app.post("/upload_cv/")
+async def upload_cv(file: UploadFile = File(...)):
+    """Upload PDF or DOCX CV and return extracted text preview."""
+    filename = file.filename
+    file_bytes = await file.read()
+
+    if not file_bytes:
+        raise HTTPException(status_code=400, detail="Empty file received.")
+
+    try:
+        cv_text = extract_text_auto(file_bytes, filename)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Text extraction failed: {str(e)}")
+
+    if not cv_text.strip():
+        raise HTTPException(status_code=500, detail="No text could be extracted from the CV.")
+
+    return JSONResponse(content={
+        "status": "success",
+        "filename": filename,
+        "preview": cv_text[:2000]  # first 2000 chars for quick preview
+    })
+
+# --------------------------
+# RUN SERVER
+# --------------------------
+if _name_ == "_main_":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8081)
-    
