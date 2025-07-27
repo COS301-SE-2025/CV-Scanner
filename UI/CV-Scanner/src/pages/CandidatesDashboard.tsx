@@ -133,7 +133,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#181c2f",
+        bgcolor: "#0c0e18ff",
         color: "#fff",
       }}
     >
@@ -365,7 +365,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
   <Paper sx={{ 
     p: 2, 
     borderRadius: 3, 
-    backgroundColor: "#e1f4ff", 
+    backgroundColor: "#75a29dff", 
     color: "#000",
     transition: 'transform 0.2s',
     '&:hover': { transform: 'translateY(-4px)' }
@@ -422,7 +422,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
   <Paper sx={{ 
     p: 2, 
     borderRadius: 3, 
-    backgroundColor: "#d2f3ef", 
+    backgroundColor: "#75a29dff", 
     color: "#000",
     transition: 'transform 0.2s',
     '&:hover': { transform: 'translateY(-4px)' }
@@ -498,7 +498,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
           {/* Recent Table */}
           <Paper
             elevation={6}
-            sx={{ p: 2, borderRadius: 3, backgroundColor: "#bce4ff" }}
+            sx={{ p: 2, borderRadius: 3, backgroundColor: "#75a29dff" }}
           >
             <Typography
               variant="h6"
@@ -684,7 +684,7 @@ const statCardStyle = {
   p: 2,
   minWidth: 140,
   borderRadius: 3,
-  backgroundColor: "#e1f4ff",
+  backgroundColor: "#888a8aff",
   textAlign: "center",
   color: "#000",
 };
