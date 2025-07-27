@@ -122,7 +122,7 @@ export default function CandidateSkillsPage() {
             {/* Left: Logo and heading */}
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <img src={logo} alt="Logo" style={{ width: 80 }} />
-              <Typography variant="h6" sx={{ ml: 2, fontWeight: 'bold' }}>
+              <Typography variant="h6" sx={{fontFamily: 'Buda, sans-serif', ml: 2, fontWeight: 'bold' }}>
                 Candidate Skills
               </Typography>
             </Box>
@@ -217,10 +217,10 @@ export default function CandidateSkillsPage() {
         >
           <Fade in={fadeIn} timeout={250}>
             <Box sx={{ position: "relative" }}>
-              <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+              <Typography variant="h6" sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", mb: 1 }}>
                 {tutorialStep === 0 ? "Skills List" : "Add Skill"}
               </Typography>
-              <Typography sx={{ mb: 2 }}>
+              <Typography sx={{fontFamily: 'Buda, sans-serif', mb: 2 }}>
                 {tutorialStep === 0
                   ? "This section shows the candidate's technical skills. You can remove skills by clicking the X."
                   : "Use this input to add a new skill to the candidate's profile."}
@@ -316,7 +316,7 @@ export default function CandidateSkillsPage() {
             Back to Candidates
           </Button>
 
-          <Typography variant="h4" sx={{ fontWeight: "bold", mb: 2 }}>
+          <Typography variant="h4" sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", mb: 2 }}>
             Jane Smith
           </Typography>
           <Typography variant="subtitle1" sx={{ mb: 4 }}>
@@ -354,7 +354,7 @@ export default function CandidateSkillsPage() {
             elevation={6}
             sx={{ p: 3, borderRadius: 3, bgcolor: "#75a29dff" }}
           >
-            <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
+            <Typography variant="h6" sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", mb: 2 }}>
               Technical Skills
             </Typography>
             <Box
