@@ -330,7 +330,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
         {/* Content */}
         <Box sx={{ p: 3 }}>
-          <Typography variant="h5" sx={{ mb: 3, fontWeight: "bold" }}>
+          <Typography variant="h5" sx={{fontFamily: 'Buda, sans-serif', mb: 3, fontWeight: "bold" }}>
             Candidates Dashboard
           </Typography>
 
@@ -370,7 +370,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
     transition: 'transform 0.2s',
     '&:hover': { transform: 'translateY(-4px)' }
   }}>
-    <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>Monthly Candidate Uploads</Typography>
+    <Typography variant="subtitle1" sx={{fontFamily: 'Buda, sans-serif', mb: 1, fontWeight: 600 }}>Monthly Candidate Uploads</Typography>
     <ResponsiveContainer width="100%" height={200}>
       <LineChart data={candidateTrends}>
         <CartesianGrid stroke="#ccc" strokeDasharray="3 3" />
@@ -398,7 +398,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
     transition: 'transform 0.2s',
     '&:hover': { transform: 'translateY(-4px)' }
   }}>
-    <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>Weekly Tech Usage</Typography>
+    <Typography variant="subtitle1" sx={{ fontFamily: 'Buda, sans-serif',mb: 1, fontWeight: 600 }}>Weekly Tech Usage</Typography>
     <ResponsiveContainer width="100%" height={200}>
       <BarChart data={groupedBarData}>
         <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
@@ -427,7 +427,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
     transition: 'transform 0.2s',
     '&:hover': { transform: 'translateY(-4px)' }
   }}>
-    <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>Skill Distribution</Typography>
+    <Typography variant="subtitle1" sx={{fontFamily: 'Buda, sans-serif', mb: 1, fontWeight: 600 }}>Skill Distribution</Typography>
     <ResponsiveContainer width="100%" height={200}>
       <PieChart>
         <Pie
@@ -462,7 +462,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
     transition: 'transform 0.2s',
     '&:hover': { transform: 'translateY(-4px)' }
   }}>
-    <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>Project Fit Types</Typography>
+    <Typography variant="subtitle1" sx={{ fontFamily: 'Buda, sans-serif',mb: 1, fontWeight: 600 }}>Project Fit Types</Typography>
     <ResponsiveContainer width="100%" height={200}>
       <PieChart>
         <Pie
@@ -502,7 +502,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
           >
             <Typography
               variant="h6"
-              sx={{ fontWeight: "bold", color: "#0073c1", mb: 2 }}
+              sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", color: "#0073c1", mb: 2 }}
             >
               Recently Processed
             </Typography>
@@ -511,21 +511,21 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: "bold", fontSize: "1.2rem" }}>
+                    <TableCell sx={{fontFamily: 'Buda, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
                       Candidate
                     </TableCell>
-                    <TableCell sx={{ fontWeight: "bold", fontSize: "1.2rem" }}>
+                    <TableCell sx={{fontFamily: 'Buda, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
                       Top Skills
                     </TableCell>
-                    <TableCell sx={{ fontWeight: "bold", fontSize: "1.2rem" }}>
+                    <TableCell sx={{fontFamily: 'Buda, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
                       Project Fit
                     </TableCell>
-                    <TableCell sx={{ fontWeight: "bold", fontSize: "1.2rem" }}>
+                    <TableCell sx={{fontFamily: 'Buda, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
                       Actions
                     </TableCell>
                   </TableRow>
                 </TableHead>
-                <TableBody>
+                <TableBody >
                   {[
                     {
                       name: "Jane Smith",
@@ -587,11 +587,11 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
                               <Box sx={{ position: "relative" }}>
                                 <Typography
                                   variant="h6"
-                                  sx={{ fontWeight: "bold", mb: 1 }}
+                                  sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", mb: 1 }}
                                 >
                                   Quick Tip
                                 </Typography>
-                                <Typography sx={{ mb: 2 }}>
+                                <Typography sx={{fontFamily: 'Buda, sans-serif', mb: 2 }}>
                                   Click <b>Review</b> to view and assess this
                                   candidate's CV.
                                 </Typography>
@@ -628,6 +628,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
                                       sx={{
                                         bgcolor: "#5a88ad",
                                         color: "#fff",
+                                        fontFamily: 'Buda, sans-serif',
                                         fontWeight: "bold",
                                         textTransform: "none",
                                         "&:hover": { bgcolor: "#487DA6" },
