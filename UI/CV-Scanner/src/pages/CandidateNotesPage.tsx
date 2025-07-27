@@ -114,7 +114,7 @@ export default function CandidateNotesPage() {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#181c2f",
+        bgcolor: "#0c0e18ff",
         color: "#fff",
       }}
     >
