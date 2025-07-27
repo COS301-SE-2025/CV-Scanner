@@ -2,15 +2,15 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-import fitz  # PyMuPDF for PDFs
-import docx  # python-docx for DOCX
+import fitz  
+import docx  
 import tempfile
 import os
 
-# FastAPI app initialization
+
 app = FastAPI()
 
-# Allow all CORS for testing (adjust in production)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,9 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --------------------------
-# TEXT EXTRACTION FUNCTIONS
-# --------------------------
+
 
 def extract_text_from_pdf_bytes(pdf_bytes: bytes) -> str:
     """Extract text from PDF bytes using PyMuPDF."""
@@ -64,9 +62,7 @@ def extract_text_auto(file_bytes: bytes, filename: str) -> str:
     else:
         raise ValueError("Unsupported file type. Only PDF and DOCX are supported.")
 
-# --------------------------
-# API ENDPOINTS
-# --------------------------
+
 
 @app.get("/")
 async def root():
@@ -94,12 +90,10 @@ async def upload_cv(file: UploadFile = File(...)):
     return JSONResponse(content={
         "status": "success",
         "filename": filename,
-        "preview": cv_text[:2000]  # first 2000 chars for quick preview
+        "preview": cv_text[:2000] 
     })
 
-# --------------------------
-# RUN SERVER
-# --------------------------
+
 if _name_ == "_main_":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8081)
