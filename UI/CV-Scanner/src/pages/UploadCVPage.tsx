@@ -175,7 +175,7 @@ const devUser = {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#181c2f",
+        bgcolor: "#0c0e18ff",
         color: "#fff",
       }}
     >
@@ -184,7 +184,7 @@ const devUser = {
         <Box
           sx={{
             width: 220,
-            bgcolor: "#1A82AE",
+            bgcolor: "#0A2540",
             display: "flex",
             flexDirection: "column",
             p: 2,
@@ -304,7 +304,7 @@ const devUser = {
         {/* Top App Bar */}
         <AppBar
           position="static"
-          sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
+          sx={{ bgcolor: "#0A2540", boxShadow: "none" }}
         >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
             {/* Tutorial icon */}
