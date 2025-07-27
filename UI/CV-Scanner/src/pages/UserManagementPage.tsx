@@ -229,7 +229,7 @@ const devUser = {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#6B7280 ",
+        bgcolor: "#0c0e18ff ",
         color: "#fff",
       }}
     >
@@ -421,7 +421,7 @@ const devUser = {
 
         {/* User Management Content */}
         <Box sx={{ p: 3 }}>
-          <Typography variant="h4" sx={{ fontFamily: 'Buda, sans-serif', fontWeight: "bold", mb: 3, color: "#000000ff " }}>
+          <Typography variant="h4" sx={{ fontFamily: 'Buda, sans-serif', fontWeight: "bold", mb: 3, color: "#fff " }}>
             User Management
           </Typography>
 
