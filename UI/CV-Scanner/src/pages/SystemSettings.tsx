@@ -112,7 +112,7 @@ export default function SystemSettingsPage() {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#0c0e18ff",
+        bgcolor: "#121436ff",
         color: "#fff",
       }}
     >

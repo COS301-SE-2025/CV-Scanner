@@ -101,7 +101,11 @@ const devUser = {
 
   const handleRemove = () => {
     setFile(null);
-    setProcessedData(null); // Clear processed data when file is removed
+    setProcessedData(null);
+    const fileInput = document.getElementById("file-upload") as HTMLInputElement;
+  if (fileInput) {
+    fileInput.value = "";
+  }
   };
 
   // ...existing code...
@@ -175,7 +179,7 @@ const devUser = {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#0c0e18ff",
+        bgcolor: "#121436ff",
         color: "#fff",
       }}
     >
@@ -283,7 +287,7 @@ const devUser = {
         <Box
           sx={{
             width: 40,
-            bgcolor: "#1A82AE",
+            bgcolor: "#0A2540",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
@@ -375,7 +379,7 @@ const devUser = {
 
           <Paper
             elevation={6}
-            sx={{ p: 4, borderRadius: 3, backgroundColor: "#75a29dff" }}
+            sx={{ p: 4, borderRadius: 3, backgroundColor: "#2b3a55" }}
           >
             <Typography
               variant="h6"
@@ -397,7 +401,7 @@ const devUser = {
                 justifyContent: "center",
                 flexDirection: "column",
                 mb: 3,
-                bgcolor: "#888a8aff",
+                bgcolor: "#cbd5e0",
               }}
             >
               <CloudUploadIcon fontSize="large" />
@@ -429,7 +433,18 @@ const devUser = {
               variant="outlined"
               value={contactInfo}
               onChange={(e) => setContactInfo(e.target.value)}
-              sx={{ mb: 3 }}
+              sx={{
+                mb: 3,
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": { borderColor: "#fff" },
+                },
+              }}
+              InputLabelProps={{
+                  sx: {
+                    color: "#fff", // label text white before focus
+                    "&.Mui-focused": { color: "#487DA6" },
+                  },
+                }}
             />
 
             {/* Additional Information */}
@@ -441,17 +456,37 @@ const devUser = {
               rows={3}
               value={additionalInfo}
               onChange={(e) => setAdditionalInfo(e.target.value)}
-              sx={{ mb: 3 }}
+              sx={{
+                mb: 3,
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": { borderColor: "#fff" },
+                },
+              }}
+              InputLabelProps={{
+                  sx: {
+                    color: "#fff", // label text white before focus
+                    "&.Mui-focused": { color: "#487DA6" },
+                  },
+                }}
               inputRef={additionalInfoRef}
+              InputProps={{
+                sx: {
+                  color: "#fff",
+                  borderRadius: 2,
+                  input: { color: "#fff" },
+                  textarea: { color: "#fff" },
+                  borderColor: "#fff",
+                },
+              }}           
             />
 
             {/* File Table */}
             {file && (
               <TableContainer sx={{ mb: 3 }}>
-                <Table>
+                <Table sx={{"& td, & th":{color: "#fff"}}}>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: "bold" }}>
+                      <TableCell sx={{ fontWeight: "bold"}}>
                         File Name
                       </TableCell>
                       <TableCell sx={{ fontWeight: "bold" }}>Size</TableCell>
@@ -477,19 +512,30 @@ const devUser = {
 
             {/* Process Button */}
             <Box sx={{ textAlign: "center", mb: 2 }}>
-              <Button
-                variant="contained"
-                disabled={!file}
-                sx={reviewButtonStyle}
-                onClick={handleProcess}
-                ref={processBtnRef}
-              >
-                Process CV
-              </Button>
-            </Box>
+  <Button
+    variant="contained"
+    disabled={!file}
+    sx={{
+      ...reviewButtonStyle,
+      ...( !file && {
+        background: "#ffffffff", // brighter grey when disabled
+        color: "#666 !important",
+        boxShadow: "none",
+        "&:hover": {
+          background: "#ffffffff",
+          color: "#666 !important",
+        },
+      }),
+    }}
+    onClick={handleProcess}
+    ref={processBtnRef}
+  >
+    Process CV
+  </Button>
+</Box>
 
             {/* Upload Notes */}
-            <Typography variant="body2" color="black">
+            <Typography variant="body2" color="white">
               <strong>Requirements:</strong>
               <br />
               • Accepted formats: PDF, DOC, DOCX
