@@ -181,6 +181,7 @@ const devUser = {
         minHeight: "100vh",
         bgcolor: "#121436ff",
         color: "#fff",
+        fontFamily: "Buda, sans-serif",
       }}
     >
       {/* Sidebar */}
@@ -373,7 +374,7 @@ const devUser = {
 
         {/* Main Content */}
         <Box sx={{ p: 3 }}>
-          <Typography variant="h5" sx={{ mb: 3, fontWeight: "bold" }}>
+          <Typography variant="h5" sx={{ mb: 3, fontWeight: "bold",fontFamily: "Buda, sans-serif" }}>
             Upload Candidate CV
           </Typography>
 
@@ -383,7 +384,7 @@ const devUser = {
           >
             <Typography
               variant="h6"
-              sx={{ fontWeight: "bold", color: "#0073c1", mb: 2 }}
+              sx={{ fontWeight: "bold", color: "#0073c1", mb: 2, fontFamily: "Buda, sans-serif" }}
             >
               Upload a candidate's CV to automatically extract skills and
               project matches
@@ -434,15 +435,22 @@ const devUser = {
               value={contactInfo}
               onChange={(e) => setContactInfo(e.target.value)}
               sx={{
+                fontFamily: "Buda, sans-serif",
                 mb: 3,
                 "& .MuiOutlinedInput-root": {
                   "& fieldset": { borderColor: "#fff" },
+                  fontFamily: "Buda, sans-serif",
+                  fontSize: "1.5rem",
+                  color: "#fff",
                 },
+                
               }}
               InputLabelProps={{
                   sx: {
                     color: "#fff", // label text white before focus
                     "&.Mui-focused": { color: "#487DA6" },
+                    fontFamily: "Buda, sans-serif",
+                    fontWeight: "bold",
                   },
                 }}
             />
@@ -460,12 +468,17 @@ const devUser = {
                 mb: 3,
                 "& .MuiOutlinedInput-root": {
                   "& fieldset": { borderColor: "#fff" },
+                  fontFamily: "Buda, sans-serif",
+                  fontSize: "1.5rem",
+                  color: "#fff",
                 },
               }}
               InputLabelProps={{
                   sx: {
-                    color: "#fff", // label text white before focus
                     "&.Mui-focused": { color: "#487DA6" },
+                    fontFamily: "Buda, sans-serif",
+                    fontWeight: "bold",
+                    color: "#fff",
                   },
                 }}
               inputRef={additionalInfoRef}
@@ -483,7 +496,7 @@ const devUser = {
             {/* File Table */}
             {file && (
               <TableContainer sx={{ mb: 3 }}>
-                <Table sx={{"& td, & th":{color: "#fff"}}}>
+                <Table sx={{"& td, & th":{color: "#fff", fontFamily: "Buda, sans-serif", fontSize: "1.2rem"}}}>
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ fontWeight: "bold"}}>
@@ -535,7 +548,7 @@ const devUser = {
 </Box>
 
             {/* Upload Notes */}
-            <Typography variant="body2" color="white">
+            <Typography variant="body2" color="white" sx={{ fontFamily: "Buda, sans-serif",fontSize: "1.5rem", }}>
               <strong>Requirements:</strong>
               <br />
               • Accepted formats: PDF, DOC, DOCX
