@@ -40,6 +40,7 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
 import logo from "../assets/logo.png";
+import logoNavbar from "../assets/logoNavbar.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -215,7 +216,7 @@ const devUser = {
           </IconButton>
 
           <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
-            <img src={logo} alt="Team Logo" style={{ width: 120 }} />
+            <img src={logoNavbar} alt="Team Logo" style={{ width: 120 }} />
           </Box>
 
           <Button
@@ -374,7 +375,7 @@ const devUser = {
 
         {/* Main Content */}
         <Box sx={{ p: 3 }}>
-          <Typography variant="h5" sx={{ mb: 3, fontWeight: "bold",fontFamily: "Buda, sans-serif" }}>
+          <Typography variant="h4" sx={{ mb: 3, fontWeight: "bold",fontFamily: "Buda, sans-serif" }}>
             Upload Candidate CV
           </Typography>
 

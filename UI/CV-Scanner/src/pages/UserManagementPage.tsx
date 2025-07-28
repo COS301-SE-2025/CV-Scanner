@@ -24,6 +24,7 @@ import {
   Popover,
   Fade,
   Tooltip,
+  InputAdornment,
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import NotificationsIcon from "@mui/icons-material/Notifications";
@@ -39,6 +40,7 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import logo from "../assets/logo.png";
+import logoNavbar from "../assets/logoNavbar.png";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
 export default function UserManagementPage() {
@@ -264,7 +266,7 @@ const devUser = {
           </IconButton>
 
           <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
-            <img src={logo} alt="Team Logo" style={{ width: 120 }} />
+            <img src={logoNavbar} alt="Team Logo" style={{ width: 120 }} />
           </Box>
 
           <Button
@@ -427,6 +429,7 @@ const devUser = {
 
           {/* Search and Filter Section */}
           <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+            
             <TextField
               inputRef={searchRef}
               placeholder="Search users..."
@@ -435,7 +438,15 @@ const devUser = {
               sx={{ bgcolor: "#cbd5e0", borderRadius: 1 }}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
             />
+            
             <div ref={filterBoxRef}>
               <Select
                 value={roleFilter}
