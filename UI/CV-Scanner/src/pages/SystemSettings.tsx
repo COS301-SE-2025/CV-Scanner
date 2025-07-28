@@ -305,13 +305,13 @@ export default function SystemSettingsPage() {
 
         {/* System Settings Content */}
         <Box sx={{ p: 3 }}>
-          <Typography variant="h4" sx={{ fontWeight: "bold", mb: 3 }}>
+          <Typography variant="h4" sx={{ fontWeight: "bold", mb: 3 ,fontFamily: "Buda, sans-serif", color: "#fff"}}>
             System Settings
           </Typography>
 
           {/* Search bars OUTSIDE the blacklist/whitelist boxes */}
           <Box sx={{ display: "flex", gap: 4, mb: 2 }}>
-            <Box sx={{ flex: 1 }}>
+            <Box sx={{ flex: 1, fontFamily: "Buda, sans-serif" }}>
               <input
                 type="text"
                 value={blackSearch}
@@ -325,6 +325,8 @@ export default function SystemSettingsPage() {
                   background: "#181c2f",
                   color: "#fff",
                   marginBottom: "8px",
+                  fontFamily: "Buda, sans-serif",
+                  fontSize: "1.2rem",
                 }}
               />
             </Box>
@@ -342,6 +344,8 @@ export default function SystemSettingsPage() {
                   background: "#181c2f",
                   color: "#fff",
                   marginBottom: "8px",
+                  fontFamily: "Buda, sans-serif",
+                  fontSize: "1.2rem",
                 }}
               />
             </Box>
@@ -351,14 +355,14 @@ export default function SystemSettingsPage() {
           <Box sx={{ display: "flex", gap: 4, mt: 2 }}>
             {/* Blacklist */}
             <Box sx={{ flex: 1, bgcolor: "#2b3a55", p: 2, borderRadius: 2 }}>
-              <Typography variant="h6" sx={{ mb: 2, color: "#fff" }}>
+              <Typography variant="h6" sx={{ mb: 2, color: "#fff" , fontFamily: "Buda, sans-serif", fontWeight: "bold"}}>
                 Blacklist
               </Typography>
-              <Box sx={{ mb: 2 }}>
+              <Box sx={{ mb: 2, fontFamily: "Buda, sans-serif" }}>
                 {blacklist.filter((item) =>
                   item.toLowerCase().includes(blackSearch.toLowerCase())
                 ).length === 0 ? (
-                  <Typography sx={{ color: "#aaa" }}>
+                  <Typography sx={{ color: "#aaa", fontFamily: "Buda, sans-serif" }}>
                     No blacklisted items.
                   </Typography>
                 ) : (
@@ -376,9 +380,11 @@ export default function SystemSettingsPage() {
                           bgcolor: "#2c3446",
                           p: 1,
                           borderRadius: 1,
+                          fontFamily: "Buda, sans-serif",
+                          fontSize: "1.2rem",
                         }}
                       >
-                        <Typography sx={{ flex: 1 }}>{item}</Typography>
+                        <Typography sx={{ flex: 1, fontFamily: "Buda, sans-serif", fontSize: "1.4rem" }}>{item}</Typography>
                         <Button
                           size="small"
                           color="error"
@@ -404,6 +410,8 @@ export default function SystemSettingsPage() {
                     border: "1px solid #444",
                     background: "#181c2f",
                     color: "#fff",
+                    fontFamily: "Buda, sans-serif",
+                  fontSize: "1.2rem",
                   }}
                 />
                 <Button
@@ -418,14 +426,14 @@ export default function SystemSettingsPage() {
             </Box>
             {/* Whitelist */}
             <Box sx={{ flex: 1, bgcolor: "#2b3a55", p: 2, borderRadius: 2 }}>
-              <Typography variant="h6" sx={{ mb: 2, color: "#fff" }}>
+              <Typography variant="h6" sx={{ mb: 2, color: "#fff", fontFamily: "Buda, sans-serif", fontWeight: "bold" }}>
                 Whitelist
               </Typography>
-              <Box sx={{ mb: 2 }}>
+              <Box sx={{ mb: 2, fontFamily: "Buda, sans-serif" }}>
                 {whitelist.filter((item) =>
                   item.toLowerCase().includes(whiteSearch.toLowerCase())
                 ).length === 0 ? (
-                  <Typography sx={{ color: "#aaa" }}>
+                  <Typography sx={{ color: "#aaa", fontFamily: "Buda, sans-serif" }}>
                     No whitelisted items.
                   </Typography>
                 ) : (
@@ -443,9 +451,11 @@ export default function SystemSettingsPage() {
                           bgcolor: "#2c3446",
                           p: 1,
                           borderRadius: 1,
+                          fontFamily: "Buda, sans-serif",
+                          fontSize: "1.2rem",
                         }}
                       >
-                        <Typography sx={{ flex: 1 }}>{item}</Typography>
+                        <Typography sx={{ flex: 1, fontFamily: "Buda, sans-serif", fontSize: "1.4rem" }}>{item}</Typography>
                         <Button
                           size="small"
                           color="primary"
@@ -471,6 +481,8 @@ export default function SystemSettingsPage() {
                     border: "1px solid #444",
                     background: "#181c2f",
                     color: "#fff",
+                    fontFamily: "Buda, sans-serif",
+                    fontSize: "1.2rem",
                   }}
                 />
                 <Button
