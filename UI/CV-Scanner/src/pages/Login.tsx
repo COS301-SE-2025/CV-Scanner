@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import logo from "../assets/logo.png";
-import logo2 from "../assets/logo2.png"; // Import the second logo if needed
-import logo3 from "../assets/logoNavbar.png"; // Import the third logo if needed
+import logo2 from "../assets/logo2.png";
+import logo3 from "../assets/logoNavbar.png";
 import {
   Box,
   Button,
@@ -10,13 +10,18 @@ import {
   Typography,
   Paper,
   Alert,
+  IconButton,
+  InputAdornment,
 } from "@mui/material";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -241,7 +246,7 @@ export default function LoginPage() {
 
             <TextField
               label="Password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               fullWidth
               margin="normal"
               value={password}
@@ -255,6 +260,20 @@ export default function LoginPage() {
                   borderRadius: 2,
                   input: { color: "#fff" },
                 },
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                      onClick={() => setShowPassword((show) => !show)}
+                      edge="end"
+                      sx={{ color: "#b0e0ff" }}
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
               }}
               InputLabelProps={{
                 sx: { color: "#b0b8c1" },

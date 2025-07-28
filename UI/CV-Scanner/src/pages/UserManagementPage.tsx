@@ -24,6 +24,7 @@ import {
   Popover,
   Fade,
   Tooltip,
+  InputAdornment,
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import NotificationsIcon from "@mui/icons-material/Notifications";
@@ -39,6 +40,7 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import logo from "../assets/logo.png";
+import logoNavbar from "../assets/logoNavbar.png";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
 export default function UserManagementPage() {
@@ -229,7 +231,7 @@ const devUser = {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#6B7280 ",
+        bgcolor: "#121436ff",
         color: "#fff",
       }}
     >
@@ -264,7 +266,7 @@ const devUser = {
           </IconButton>
 
           <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
-            <img src={logo} alt="Team Logo" style={{ width: 120 }} />
+            <img src={logoNavbar} alt="Team Logo" style={{ width: 120 }} />
           </Box>
 
           <Button
@@ -337,7 +339,7 @@ const devUser = {
         <Box
           sx={{
             width: 40,
-            bgcolor: "#1A82AE",
+            bgcolor: "#0A2540",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
@@ -421,12 +423,13 @@ const devUser = {
 
         {/* User Management Content */}
         <Box sx={{ p: 3 }}>
-          <Typography variant="h4" sx={{ fontFamily: 'Buda, sans-serif', fontWeight: "bold", mb: 3, color: "#000000ff " }}>
+          <Typography variant="h4" sx={{ fontFamily: 'Buda, sans-serif', fontWeight: "bold", mb: 3, color: "#fff " }}>
             User Management
           </Typography>
 
           {/* Search and Filter Section */}
           <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+            
             <TextField
               inputRef={searchRef}
               placeholder="Search users..."
@@ -435,7 +438,15 @@ const devUser = {
               sx={{ bgcolor: "#cbd5e0", borderRadius: 1 }}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
             />
+            
             <div ref={filterBoxRef}>
               <Select
                 value={roleFilter}
