@@ -135,11 +135,50 @@ def categorize_cv_lines(lines: list) -> dict:
     return categories
 
 # ----------------------------------------------------------
+# EXPERIENCE & SKILL DETECTION (Step 4)
+# ----------------------------------------------------------
+def detect_experience_level(lines: list) -> str:
+    """Determine overall experience level from CV lines."""
+    text = " ".join(lines).lower()
+
+    # Look for explicit years of experience
+    match = re.findall(r'(\d+)\s+year', text)
+    if match:
+        years = max([int(y) for y in match])
+        if years < 2:
+            return "Beginner"
+        elif 2 <= years <= 5:
+            return "Intermediate"
+        else:
+            return "Advanced"
+
+    # Use keywords if no explicit year count
+    if "senior" in text or "expert" in text:
+        return "Advanced"
+    elif "junior" in text or "entry" in text:
+        return "Beginner"
+    elif "mid-level" in text:
+        return "Intermediate"
+
+    return "Not Specified"
+
+def extract_skills(lines: list) -> list:
+    """Extract top 5 skills from CV text based on a predefined dictionary."""
+    known_skills = [
+        "python", "java", "javascript", "c++", "c#", "sql", "html", "css",
+        "react", "node", "docker", "kubernetes", "aws", "azure", "git",
+        "leadership", "communication", "management", "teamwork"
+    ]
+    text = " ".join(lines).lower()
+    found = [skill for skill in known_skills if skill in text]
+    return list(set(found))[:5]  # return unique top 5
+
+# ----------------------------------------------------------
 # API ENDPOINTS
 # ----------------------------------------------------------
 @app.get("/")
 async def root():
-    return {"message": "CV Processing API is running (Steps 1, 2, 3)"}
+    return {"message": "CV Processing API is running (Steps 1-4)"}
 
 @app.post("/upload_cv/")
 async def upload_cv(file: UploadFile = File(...)):
@@ -172,9 +211,15 @@ async def upload_cv(file: UploadFile = File(...)):
     categorized["contact"].extend([f"Phone: {phone}" for phone in contact_info["phones"]])
     categorized["contact"].extend([f"Link: {url}" for url in contact_info["urls"]])
 
+    # Detect experience level & skills
+    experience_level = detect_experience_level(cleaned_lines)
+    skills = extract_skills(cleaned_lines)
+
     return JSONResponse(content={
         "status": "success",
         "filename": filename,
+        "experience_level": experience_level,
+        "skills": skills,
         "sections": categorized
     })
 
