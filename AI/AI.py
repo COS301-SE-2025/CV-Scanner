@@ -8,9 +8,6 @@ import os
 import re
 from transformers import pipeline
 
-# ----------------------------------------------------------
-# FastAPI app initialization
-# ----------------------------------------------------------
 app = FastAPI()
 
 app.add_middleware(
@@ -21,15 +18,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ----------------------------------------------------------
-# Hugging Face Zero-Shot Classifier
-# ----------------------------------------------------------
 classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 labels = ["Profile", "Education", "Skills", "Soft Skills", "Experience", "Projects", "Achievements", "Contact", "Other"]
 
-# ----------------------------------------------------------
-# TEXT EXTRACTION FUNCTIONS
-# ----------------------------------------------------------
+
 def extract_text_from_pdf_bytes(pdf_bytes: bytes) -> str:
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
         tmp_file.write(pdf_bytes)
@@ -64,24 +56,19 @@ def extract_text_auto(file_bytes: bytes, filename: str) -> str:
     else:
         raise ValueError("Unsupported file type. Only PDF and DOCX are supported.")
 
-# ----------------------------------------------------------
-# PREPROCESSING FUNCTION
-# ----------------------------------------------------------
+
 def preprocess_text(cv_text: str) -> list:
     lines = cv_text.splitlines()
     return [line.strip() for line in lines if line.strip()]
 
-# ----------------------------------------------------------
-# CONTACT EXTRACTION (Global)
-# ----------------------------------------------------------
+
 def extract_contact_info(text: str) -> dict:
     emails = re.findall(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', text)
     phones = re.findall(r'(?:\+?\d{1,3})?[-.\s]?(?:\(?\d{2,3}\)?)[-.\s]?\d{3}[-.\s]?\d{4}', text)
     urls = re.findall(r'(?:https?://|www\.)[^\s]+', text)
     return {"emails": list(set(emails)), "phones": list(set(phones)), "urls": list(set(urls))}
 
-# ----------------------------------------------------------
-# HEADING DETECTION + AI FALLBACK
+
 # ----------------------------------------------------------
 def detect_headings_and_group(lines):
     headings = {
@@ -130,9 +117,7 @@ def ai_classify_remaining(sections):
 
     return classified
 
-# ----------------------------------------------------------
-# EXPERIENCE & SKILL DETECTION
-# ----------------------------------------------------------
+
 def detect_experience_level(lines: list) -> str:
     text = " ".join(lines).lower()
     match = re.findall(r'(\d+)\s+year', text)
@@ -190,14 +175,14 @@ async def upload_cv(file: UploadFile = File(...)):
     sections = detect_headings_and_group(cleaned_lines)
     categorized = ai_classify_remaining(sections)
 
-    # Add global contact info
+   
     contact_info = extract_contact_info(cv_text)
     categorized.setdefault("contact", [])
     categorized["contact"].extend([f"Email: {email}" for email in contact_info["emails"]])
     categorized["contact"].extend([f"Phone: {phone}" for phone in contact_info["phones"]])
     categorized["contact"].extend([f"Link: {url}" for url in contact_info["urls"]])
 
-    # Move name/designation to profile if detected
+   
     for line in list(categorized.get("skills", [])):
         if re.match(r'^[A-Z\s]+$', line) and len(line.split()) <= 4:  # likely a name or title
             categorized.setdefault("profile", []).append(line)
@@ -214,9 +199,7 @@ async def upload_cv(file: UploadFile = File(...)):
         "sections": categorized
     })
 
-# ----------------------------------------------------------
-# RUN SERVER
-# ----------------------------------------------------------
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8081)
