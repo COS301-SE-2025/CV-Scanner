@@ -22,10 +22,10 @@ app.add_middleware(
 )
 
 # ----------------------------------------------------------
-# Hugging Face Zero-Shot Classifier (AI Model)
+# Hugging Face Zero-Shot Classifier
 # ----------------------------------------------------------
 classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
-labels = ["Profile", "Education", "Skills", "Experience", "Projects", "Achievements", "Contact", "Other"]
+labels = ["Profile", "Education", "Skills", "Soft Skills", "Experience", "Projects", "Achievements", "Contact", "Other"]
 
 # ----------------------------------------------------------
 # TEXT EXTRACTION FUNCTIONS
@@ -72,7 +72,7 @@ def preprocess_text(cv_text: str) -> list:
     return [line.strip() for line in lines if line.strip()]
 
 # ----------------------------------------------------------
-# CONTACT EXTRACTION
+# CONTACT EXTRACTION (Global)
 # ----------------------------------------------------------
 def extract_contact_info(text: str) -> dict:
     emails = re.findall(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', text)
@@ -88,6 +88,7 @@ def detect_headings_and_group(lines):
         "profile": ["profile", "summary", "objective"],
         "education": ["education", "qualifications"],
         "skills": ["skills", "technologies", "tech skills"],
+        "soft skills": ["soft skills"],
         "experience": ["experience", "work history", "employment"],
         "projects": ["projects", "portfolio"],
         "achievements": ["achievements", "awards", "certifications"],
@@ -114,7 +115,6 @@ def detect_headings_and_group(lines):
     return sections
 
 def ai_classify_remaining(sections):
-    """Use AI classification only for content in 'other' section."""
     classified = {key: list(dict.fromkeys(val)) for key, val in sections.items() if key != "other"}
     other_texts = sections.get("other", [])
 
@@ -125,7 +125,6 @@ def ai_classify_remaining(sections):
         top_label = result["labels"][0].lower()
         classified.setdefault(top_label, []).append(text.strip())
 
-    # Deduplicate
     for key in classified:
         classified[key] = list(dict.fromkeys(classified[key]))
 
@@ -168,13 +167,12 @@ def extract_skills(lines: list) -> list:
 # ----------------------------------------------------------
 @app.get("/")
 async def root():
-    return {"message": "CV Processing API is running (Heading detection + AI fallback)"}
+    return {"message": "CV Processing API (Soft skills + global contact + headings + AI fallback)"}
 
 @app.post("/upload_cv/")
 async def upload_cv(file: UploadFile = File(...)):
     filename = file.filename
     file_bytes = await file.read()
-
     if not file_bytes:
         raise HTTPException(status_code=400, detail="Empty file received.")
 
@@ -189,17 +187,21 @@ async def upload_cv(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="No text could be extracted from the CV.")
 
     cleaned_lines = preprocess_text(cv_text)
-    # 1. Detect headings and group content
     sections = detect_headings_and_group(cleaned_lines)
-    # 2. Use AI fallback for unclassified content
     categorized = ai_classify_remaining(sections)
 
-    # Add contact info
+    # Add global contact info
     contact_info = extract_contact_info(cv_text)
     categorized.setdefault("contact", [])
     categorized["contact"].extend([f"Email: {email}" for email in contact_info["emails"]])
     categorized["contact"].extend([f"Phone: {phone}" for phone in contact_info["phones"]])
     categorized["contact"].extend([f"Link: {url}" for url in contact_info["urls"]])
+
+    # Move name/designation to profile if detected
+    for line in list(categorized.get("skills", [])):
+        if re.match(r'^[A-Z\s]+$', line) and len(line.split()) <= 4:  # likely a name or title
+            categorized.setdefault("profile", []).append(line)
+            categorized["skills"].remove(line)
 
     experience_level = detect_experience_level(cleaned_lines)
     skills = extract_skills(cleaned_lines)
