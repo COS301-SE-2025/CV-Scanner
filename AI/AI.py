@@ -6,6 +6,7 @@ import docx  # python-docx for DOCX
 import tempfile
 import os
 import re
+from transformers import pipeline
 
 # ----------------------------------------------------------
 # FastAPI app initialization
@@ -22,15 +23,19 @@ app.add_middleware(
 )
 
 # ----------------------------------------------------------
+# Hugging Face Zero-Shot Classifier (AI Model)
+# ----------------------------------------------------------
+classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+labels = ["Profile", "Education", "Skills", "Experience", "Projects", "Achievements", "Contact", "Other"]
+
+# ----------------------------------------------------------
 # TEXT EXTRACTION FUNCTIONS
 # ----------------------------------------------------------
 def extract_text_from_pdf_bytes(pdf_bytes: bytes) -> str:
-    """Extract text from PDF bytes using PyMuPDF."""
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
         tmp_file.write(pdf_bytes)
         tmp_file.flush()
         tmp_path = tmp_file.name
-
     try:
         text = ""
         with fitz.open(tmp_path) as pdf:
@@ -38,26 +43,21 @@ def extract_text_from_pdf_bytes(pdf_bytes: bytes) -> str:
                 text += page.get_text()
     finally:
         os.unlink(tmp_path)
-
     return text.strip()
 
 def extract_text_from_docx_bytes(docx_bytes: bytes) -> str:
-    """Extract text from DOCX bytes using python-docx."""
     with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file:
         tmp_file.write(docx_bytes)
         tmp_file.flush()
         tmp_path = tmp_file.name
-
     try:
         doc = docx.Document(tmp_path)
         text = "\n".join([para.text for para in doc.paragraphs])
     finally:
         os.unlink(tmp_path)
-
     return text.strip()
 
 def extract_text_auto(file_bytes: bytes, filename: str) -> str:
-    """Detect file type and extract text accordingly."""
     if filename.lower().endswith(".pdf"):
         return extract_text_from_pdf_bytes(file_bytes)
     elif filename.lower().endswith(".docx"):
@@ -69,79 +69,62 @@ def extract_text_auto(file_bytes: bytes, filename: str) -> str:
 # PREPROCESSING FUNCTION
 # ----------------------------------------------------------
 def preprocess_text(cv_text: str) -> list:
-    """
-    Clean and normalize CV text.
-    Returns a list of cleaned non-empty lines.
-    """
-    # Convert to lowercase for uniformity
     text = cv_text.lower()
-
-    # Remove special characters (except @, ., +, - which are common in emails and URLs)
     text = re.sub(r"[^a-z0-9@\.\+\-\s]", " ", text)
-
-    # Replace multiple spaces/newlines with single space
     text = re.sub(r"\s+", " ", text)
-
-    # Split original text into lines (to keep some structure)
     lines = cv_text.splitlines()
-
-    # Remove empty lines and strip whitespace
-    cleaned_lines = [line.strip() for line in lines if line.strip()]
-
-    return cleaned_lines
+    return [line.strip() for line in lines if line.strip()]
 
 # ----------------------------------------------------------
-# CONTACT & SECTION TAGGING FUNCTIONS
+# CONTACT EXTRACTION
 # ----------------------------------------------------------
 def extract_contact_info(text: str) -> dict:
-    """Extract common contact details from text."""
     emails = re.findall(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', text)
     phones = re.findall(r'(?:\+?\d{1,3})?[-.\s]?(?:\(?\d{2,3}\)?)[-.\s]?\d{3}[-.\s]?\d{4}', text)
     urls = re.findall(r'(?:https?://|www\.)[^\s]+', text)
     return {"emails": list(set(emails)), "phones": list(set(phones)), "urls": list(set(urls))}
 
-def categorize_cv_lines(lines: list) -> dict:
-    """Categorize CV lines into sections using simple keyword matching."""
-    categories = {
-        "profile": [],
-        "education": [],
-        "skills": [],
-        "experience": [],
-        "projects": [],
-        "achievements": [],
-        "contact": [],
-        "other": []
-    }
-
+# ----------------------------------------------------------
+# BATCH CLASSIFICATION FOR SECTION TAGGING
+# ----------------------------------------------------------
+def chunk_lines(lines, chunk_size=5):
+    """Group lines into chunks for better classification context."""
+    chunks = []
+    current_chunk = []
     for line in lines:
-        line_lower = line.lower()
-        if any(word in line_lower for word in ["education", "bachelor", "degree", "diploma", "university", "college"]):
-            categories["education"].append(line)
-        elif any(word in line_lower for word in ["skill", "technologies", "proficient", "languages:"]):
-            categories["skills"].append(line)
-        elif any(word in line_lower for word in ["experience", "employment", "work", "career", "intern"]):
-            categories["experience"].append(line)
-        elif any(word in line_lower for word in ["project", "developed", "created", "designed"]):
-            categories["projects"].append(line)
-        elif any(word in line_lower for word in ["award", "achievement", "certification", "certified"]):
-            categories["achievements"].append(line)
-        elif any(word in line_lower for word in ["profile", "summary", "objective", "about"]):
-            categories["profile"].append(line)
-        elif any(word in line_lower for word in ["phone", "email", "contact", "@", "linkedin", "github"]):
-            categories["contact"].append(line)
+        if not line.strip():
+            if current_chunk:
+                chunks.append(" ".join(current_chunk))
+                current_chunk = []
         else:
-            categories["other"].append(line)
+            current_chunk.append(line)
+            if len(current_chunk) >= chunk_size:
+                chunks.append(" ".join(current_chunk))
+                current_chunk = []
+    if current_chunk:
+        chunks.append(" ".join(current_chunk))
+    return chunks
 
-    return categories
+def categorize_cv_lines(lines: list) -> dict:
+    """Batch classify CV content using Hugging Face zero-shot classification."""
+    sections = {label.lower(): [] for label in labels}
+    chunks = chunk_lines(lines)
+    for chunk in chunks:
+        result = classifier(chunk, candidate_labels=labels)
+        top_label = result["labels"][0]
+        sections[top_label.lower()].append(chunk)
+
+    # Deduplicate
+    for section in sections:
+        sections[section] = list(dict.fromkeys(sections[section]))
+
+    return sections
 
 # ----------------------------------------------------------
-# EXPERIENCE & SKILL DETECTION (Step 4)
+# EXPERIENCE & SKILL DETECTION
 # ----------------------------------------------------------
 def detect_experience_level(lines: list) -> str:
-    """Determine overall experience level from CV lines."""
     text = " ".join(lines).lower()
-
-    # Look for explicit years of experience
     match = re.findall(r'(\d+)\s+year', text)
     if match:
         years = max([int(y) for y in match])
@@ -151,19 +134,15 @@ def detect_experience_level(lines: list) -> str:
             return "Intermediate"
         else:
             return "Advanced"
-
-    # Use keywords if no explicit year count
     if "senior" in text or "expert" in text:
         return "Advanced"
     elif "junior" in text or "entry" in text:
         return "Beginner"
     elif "mid-level" in text:
         return "Intermediate"
-
     return "Not Specified"
 
 def extract_skills(lines: list) -> list:
-    """Extract top 5 skills from CV text based on a predefined dictionary."""
     known_skills = [
         "python", "java", "javascript", "c++", "c#", "sql", "html", "css",
         "react", "node", "docker", "kubernetes", "aws", "azure", "git",
@@ -171,18 +150,17 @@ def extract_skills(lines: list) -> list:
     ]
     text = " ".join(lines).lower()
     found = [skill for skill in known_skills if skill in text]
-    return list(set(found))[:5]  # return unique top 5
+    return list(set(found))[:5]
 
 # ----------------------------------------------------------
 # API ENDPOINTS
 # ----------------------------------------------------------
 @app.get("/")
 async def root():
-    return {"message": "CV Processing API is running (Steps 1-4)"}
+    return {"message": "CV Processing API is running (Batch Classification + AI)"}
 
 @app.post("/upload_cv/")
 async def upload_cv(file: UploadFile = File(...)):
-    """Upload PDF or DOCX CV and return structured analysis."""
     filename = file.filename
     file_bytes = await file.read()
 
@@ -199,19 +177,13 @@ async def upload_cv(file: UploadFile = File(...)):
     if not cv_text.strip():
         raise HTTPException(status_code=500, detail="No text could be extracted from the CV.")
 
-    # Preprocess text
     cleaned_lines = preprocess_text(cv_text)
-
-    # Categorize sections
     categorized = categorize_cv_lines(cleaned_lines)
-
-    # Extract contact info and merge into contact section
     contact_info = extract_contact_info(cv_text)
     categorized["contact"].extend([f"Email: {email}" for email in contact_info["emails"]])
     categorized["contact"].extend([f"Phone: {phone}" for phone in contact_info["phones"]])
     categorized["contact"].extend([f"Link: {url}" for url in contact_info["urls"]])
 
-    # Detect experience level & skills
     experience_level = detect_experience_level(cleaned_lines)
     skills = extract_skills(cleaned_lines)
 
