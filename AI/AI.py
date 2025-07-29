@@ -13,7 +13,6 @@ from transformers import pipeline
 # ----------------------------------------------------------
 app = FastAPI()
 
-# Allow all CORS for testing (adjust in production)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -69,9 +68,6 @@ def extract_text_auto(file_bytes: bytes, filename: str) -> str:
 # PREPROCESSING FUNCTION
 # ----------------------------------------------------------
 def preprocess_text(cv_text: str) -> list:
-    text = cv_text.lower()
-    text = re.sub(r"[^a-z0-9@\.\+\-\s]", " ", text)
-    text = re.sub(r"\s+", " ", text)
     lines = cv_text.splitlines()
     return [line.strip() for line in lines if line.strip()]
 
@@ -85,40 +81,55 @@ def extract_contact_info(text: str) -> dict:
     return {"emails": list(set(emails)), "phones": list(set(phones)), "urls": list(set(urls))}
 
 # ----------------------------------------------------------
-# BATCH CLASSIFICATION FOR SECTION TAGGING
+# HEADING DETECTION + AI FALLBACK
 # ----------------------------------------------------------
-def chunk_lines(lines, chunk_size=5):
-    """Group lines into chunks for better classification context."""
-    chunks = []
-    current_chunk = []
+def detect_headings_and_group(lines):
+    headings = {
+        "profile": ["profile", "summary", "objective"],
+        "education": ["education", "qualifications"],
+        "skills": ["skills", "technologies", "tech skills"],
+        "experience": ["experience", "work history", "employment"],
+        "projects": ["projects", "portfolio"],
+        "achievements": ["achievements", "awards", "certifications"],
+        "contact": ["contact", "details"],
+        "languages": ["languages"]
+    }
+    
+    sections = {label: [] for label in headings.keys()}
+    sections["other"] = []
+    
+    current_section = "other"
     for line in lines:
-        if not line.strip():
-            if current_chunk:
-                chunks.append(" ".join(current_chunk))
-                current_chunk = []
-        else:
-            current_chunk.append(line)
-            if len(current_chunk) >= chunk_size:
-                chunks.append(" ".join(current_chunk))
-                current_chunk = []
-    if current_chunk:
-        chunks.append(" ".join(current_chunk))
-    return chunks
-
-def categorize_cv_lines(lines: list) -> dict:
-    """Batch classify CV content using Hugging Face zero-shot classification."""
-    sections = {label.lower(): [] for label in labels}
-    chunks = chunk_lines(lines)
-    for chunk in chunks:
-        result = classifier(chunk, candidate_labels=labels)
-        top_label = result["labels"][0]
-        sections[top_label.lower()].append(chunk)
-
-    # Deduplicate
-    for section in sections:
-        sections[section] = list(dict.fromkeys(sections[section]))
+        l = line.strip().lower()
+        found_header = None
+        for section, keys in headings.items():
+            if l in keys:
+                found_header = section
+                break
+        if found_header:
+            current_section = found_header
+            continue
+        sections[current_section].append(line.strip())
 
     return sections
+
+def ai_classify_remaining(sections):
+    """Use AI classification only for content in 'other' section."""
+    classified = {key: list(dict.fromkeys(val)) for key, val in sections.items() if key != "other"}
+    other_texts = sections.get("other", [])
+
+    for text in other_texts:
+        if len(text.strip()) < 3:
+            continue
+        result = classifier(text, candidate_labels=labels)
+        top_label = result["labels"][0].lower()
+        classified.setdefault(top_label, []).append(text.strip())
+
+    # Deduplicate
+    for key in classified:
+        classified[key] = list(dict.fromkeys(classified[key]))
+
+    return classified
 
 # ----------------------------------------------------------
 # EXPERIENCE & SKILL DETECTION
@@ -157,7 +168,7 @@ def extract_skills(lines: list) -> list:
 # ----------------------------------------------------------
 @app.get("/")
 async def root():
-    return {"message": "CV Processing API is running (Batch Classification + AI)"}
+    return {"message": "CV Processing API is running (Heading detection + AI fallback)"}
 
 @app.post("/upload_cv/")
 async def upload_cv(file: UploadFile = File(...)):
@@ -178,8 +189,14 @@ async def upload_cv(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="No text could be extracted from the CV.")
 
     cleaned_lines = preprocess_text(cv_text)
-    categorized = categorize_cv_lines(cleaned_lines)
+    # 1. Detect headings and group content
+    sections = detect_headings_and_group(cleaned_lines)
+    # 2. Use AI fallback for unclassified content
+    categorized = ai_classify_remaining(sections)
+
+    # Add contact info
     contact_info = extract_contact_info(cv_text)
+    categorized.setdefault("contact", [])
     categorized["contact"].extend([f"Email: {email}" for email in contact_info["emails"]])
     categorized["contact"].extend([f"Phone: {phone}" for phone in contact_info["phones"]])
     categorized["contact"].extend([f"Link: {url}" for url in contact_info["urls"]])
