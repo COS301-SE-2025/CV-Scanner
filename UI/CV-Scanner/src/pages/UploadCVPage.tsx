@@ -40,6 +40,7 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
 import logo from "../assets/logo.png";
+import logoNavbar from "../assets/logoNavbar.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -101,7 +102,11 @@ const devUser = {
 
   const handleRemove = () => {
     setFile(null);
-    setProcessedData(null); // Clear processed data when file is removed
+    setProcessedData(null);
+    const fileInput = document.getElementById("file-upload") as HTMLInputElement;
+  if (fileInput) {
+    fileInput.value = "";
+  }
   };
 
   // ...existing code...
@@ -175,8 +180,9 @@ const devUser = {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#181c2f",
+        bgcolor: "#121436ff",
         color: "#fff",
+        fontFamily: "Buda, sans-serif",
       }}
     >
       {/* Sidebar */}
@@ -184,7 +190,7 @@ const devUser = {
         <Box
           sx={{
             width: 220,
-            bgcolor: "#1A82AE",
+            bgcolor: "#0A2540",
             display: "flex",
             flexDirection: "column",
             p: 2,
@@ -210,7 +216,7 @@ const devUser = {
           </IconButton>
 
           <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
-            <img src={logo} alt="Team Logo" style={{ width: 120 }} />
+            <img src={logoNavbar} alt="Team Logo" style={{ width: 120 }} />
           </Box>
 
           <Button
@@ -283,7 +289,7 @@ const devUser = {
         <Box
           sx={{
             width: 40,
-            bgcolor: "#1A82AE",
+            bgcolor: "#0A2540",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
@@ -304,7 +310,7 @@ const devUser = {
         {/* Top App Bar */}
         <AppBar
           position="static"
-          sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
+          sx={{ bgcolor: "#0A2540", boxShadow: "none" }}
         >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
             {/* Tutorial icon */}
@@ -369,17 +375,17 @@ const devUser = {
 
         {/* Main Content */}
         <Box sx={{ p: 3 }}>
-          <Typography variant="h5" sx={{ mb: 3, fontWeight: "bold" }}>
+          <Typography variant="h4" sx={{ mb: 3, fontWeight: "bold",fontFamily: "Buda, sans-serif" }}>
             Upload Candidate CV
           </Typography>
 
           <Paper
             elevation={6}
-            sx={{ p: 4, borderRadius: 3, backgroundColor: "#bce4ff" }}
+            sx={{ p: 4, borderRadius: 3, backgroundColor: "#2b3a55" }}
           >
             <Typography
               variant="h6"
-              sx={{ fontWeight: "bold", color: "#0073c1", mb: 2 }}
+              sx={{ fontWeight: "bold", color: "#0073c1", mb: 2, fontFamily: "Buda, sans-serif" }}
             >
               Upload a candidate's CV to automatically extract skills and
               project matches
@@ -397,7 +403,7 @@ const devUser = {
                 justifyContent: "center",
                 flexDirection: "column",
                 mb: 3,
-                bgcolor: "#fff",
+                bgcolor: "#cbd5e0",
               }}
             >
               <CloudUploadIcon fontSize="large" />
@@ -429,7 +435,25 @@ const devUser = {
               variant="outlined"
               value={contactInfo}
               onChange={(e) => setContactInfo(e.target.value)}
-              sx={{ mb: 3 }}
+              sx={{
+                fontFamily: "Buda, sans-serif",
+                mb: 3,
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": { borderColor: "#fff" },
+                  fontFamily: "Buda, sans-serif",
+                  fontSize: "1.5rem",
+                  color: "#fff",
+                },
+                
+              }}
+              InputLabelProps={{
+                  sx: {
+                    color: "#fff", // label text white before focus
+                    "&.Mui-focused": { color: "#487DA6" },
+                    fontFamily: "Buda, sans-serif",
+                    fontWeight: "bold",
+                  },
+                }}
             />
 
             {/* Additional Information */}
@@ -441,17 +465,42 @@ const devUser = {
               rows={3}
               value={additionalInfo}
               onChange={(e) => setAdditionalInfo(e.target.value)}
-              sx={{ mb: 3 }}
+              sx={{
+                mb: 3,
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": { borderColor: "#fff" },
+                  fontFamily: "Buda, sans-serif",
+                  fontSize: "1.5rem",
+                  color: "#fff",
+                },
+              }}
+              InputLabelProps={{
+                  sx: {
+                    "&.Mui-focused": { color: "#487DA6" },
+                    fontFamily: "Buda, sans-serif",
+                    fontWeight: "bold",
+                    color: "#fff",
+                  },
+                }}
               inputRef={additionalInfoRef}
+              InputProps={{
+                sx: {
+                  color: "#fff",
+                  borderRadius: 2,
+                  input: { color: "#fff" },
+                  textarea: { color: "#fff" },
+                  borderColor: "#fff",
+                },
+              }}           
             />
 
             {/* File Table */}
             {file && (
               <TableContainer sx={{ mb: 3 }}>
-                <Table>
+                <Table sx={{"& td, & th":{color: "#fff", fontFamily: "Buda, sans-serif", fontSize: "1.2rem"}}}>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: "bold" }}>
+                      <TableCell sx={{ fontWeight: "bold"}}>
                         File Name
                       </TableCell>
                       <TableCell sx={{ fontWeight: "bold" }}>Size</TableCell>
@@ -477,19 +526,30 @@ const devUser = {
 
             {/* Process Button */}
             <Box sx={{ textAlign: "center", mb: 2 }}>
-              <Button
-                variant="contained"
-                disabled={!file}
-                sx={reviewButtonStyle}
-                onClick={handleProcess}
-                ref={processBtnRef}
-              >
-                Process CV
-              </Button>
-            </Box>
+  <Button
+    variant="contained"
+    disabled={!file}
+    sx={{
+      ...reviewButtonStyle,
+      ...( !file && {
+        background: "#ffffffff", // brighter grey when disabled
+        color: "#666 !important",
+        boxShadow: "none",
+        "&:hover": {
+          background: "#ffffffff",
+          color: "#666 !important",
+        },
+      }),
+    }}
+    onClick={handleProcess}
+    ref={processBtnRef}
+  >
+    Process CV
+  </Button>
+</Box>
 
             {/* Upload Notes */}
-            <Typography variant="body2" color="black">
+            <Typography variant="body2" color="white" sx={{ fontFamily: "Buda, sans-serif",fontSize: "1.5rem", }}>
               <strong>Requirements:</strong>
               <br />
               • Accepted formats: PDF, DOC, DOCX

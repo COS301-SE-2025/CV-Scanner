@@ -25,6 +25,7 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import LockResetIcon from "@mui/icons-material/LockReset";
 import logo2 from "../assets/logo2.png";
+import logoNavbar from "../assets/logoNavbar.png";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
@@ -202,7 +203,7 @@ export default function SettingsPage() {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#181c2f",
+        bgcolor: "#121436ff",
         color: "#fff",
       }}
     >
@@ -211,7 +212,7 @@ export default function SettingsPage() {
         <Box
           sx={{
             width: 220,
-            bgcolor: "#1A82AE",
+            bgcolor: "#0A2540",
             display: "flex",
             flexDirection: "column",
             p: 2,
@@ -232,7 +233,7 @@ export default function SettingsPage() {
             <MenuIcon />
           </IconButton>
           <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
-            <img src={logo} alt="Team Logo" style={{ width: 120 }} />
+            <img src={logoNavbar} alt="Team Logo" style={{ width: 120 }} />
           </Box>
           <Button
             fullWidth
@@ -299,7 +300,7 @@ export default function SettingsPage() {
         <Box
           sx={{
             width: 40,
-            bgcolor: "#1A82AE",
+            bgcolor: "#0A2540",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
@@ -320,7 +321,7 @@ export default function SettingsPage() {
         {/* Top App Bar */}
         <AppBar
           position="static"
-          sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
+          sx={{ bgcolor: "#0A2540", boxShadow: "none" }}
         >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
             {/* Help / FAQ icon */}
@@ -370,13 +371,13 @@ export default function SettingsPage() {
 
         {/* Settings Content */}
         <Box sx={{ p: 3 }}>
-          <Typography variant="h4" sx={{ fontWeight: "bold", mb: 3 }}>
+          <Typography variant="h4" sx={{ fontWeight: "bold", mb: 3, fontFamily: "Buda, sans-serif" }}>
             User Settings
           </Typography>
 
           <Paper
             elevation={6}
-            sx={{ p: 4, borderRadius: 3, bgcolor: "#e1f4ff", maxWidth: 800 }}
+            sx={{ p: 4, borderRadius: 3, bgcolor: "#2b3a55", maxWidth: 800 }}
           >
             {/* Error/Success Alerts */}
             {error && (
@@ -393,8 +394,8 @@ export default function SettingsPage() {
             {/* Profile Section */}
             <Box component="form" onSubmit={handleProfileUpdate} sx={{ mb: 4 }}>
               <Typography
-                variant="h6"
-                sx={{ fontWeight: "bold", color: "#0073c1", mb: 2 }}
+                variant="h5"
+                sx={{ fontWeight: "bold", color: "#0073c1", mb: 2, fontFamily: "Buda, sans-serif" }}
               >
                 Profile Information
               </Typography>
@@ -407,6 +408,8 @@ export default function SettingsPage() {
                     bgcolor: "#0073c1",
                     fontSize: "2rem",
                     mr: 3,
+                    fontFamily: "Buda, sans-serif",
+                    fontWeight: "bold",
                   }}
                 >
                   {profileForm.firstName[0]}
@@ -415,7 +418,7 @@ export default function SettingsPage() {
               </Box>
 
               <Box
-                sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3 }}
+                sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3}}
               >
                 <TextField
                   name="firstName"
@@ -425,7 +428,8 @@ export default function SettingsPage() {
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: "#fff", borderRadius: 1 } }}
+                  InputProps={{ sx: { bgcolor: "#cbd5e0", borderRadius: 1, fontFamily: "Buda, sans-serif",fontSize: "1.2rem" } }}
+                  InputLabelProps={{ sx: { fontFamily: "Buda, sans-serif", fontSize: "1.2rem","&.Mui-focused": { color: "#487DA6" },  }}}
                 />
                 <TextField
                   name="lastName"
@@ -435,7 +439,8 @@ export default function SettingsPage() {
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: "#fff", borderRadius: 1 } }}
+                  InputProps={{ sx: { bgcolor: "#cbd5e0", borderRadius: 1, fontFamily: "Buda, sans-serif",fontSize: "1.2rem" } }}
+                  InputLabelProps={{ sx: { fontFamily: "Buda, sans-serif", fontSize: "1.2rem"  }}}
                 />
                 <TextField
                   name="email"
@@ -445,7 +450,8 @@ export default function SettingsPage() {
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: "#fff", borderRadius: 1 } }}
+                  InputProps={{ sx: { bgcolor: "#cbd5e0", borderRadius: 1, fontFamily: "Buda, sans-serif", fontSize: "1.2rem" } }}
+                  InputLabelProps={{ sx: { fontFamily: "Buda, sans-serif", fontSize: "1.2rem"  }}}
                 />
               </Box>
 
@@ -477,8 +483,8 @@ export default function SettingsPage() {
               sx={{ mb: 4 }}
             >
               <Typography
-                variant="h6"
-                sx={{ fontWeight: "bold", color: "#0073c1", mb: 2 }}
+                variant="h5"
+                sx={{ fontWeight: "bold", color: "#0073c1", mb: 2, fontFamily: "Buda, sans-serif" }}
               >
                 Change Password
               </Typography>
@@ -495,7 +501,8 @@ export default function SettingsPage() {
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: "#fff", borderRadius: 1 } }}
+                  InputProps={{ sx: { bgcolor: "#cbd5e0", borderRadius: 1, fontFamily: "Buda, sans-serif", fontSize: "1.2rem" } }}
+                  InputLabelProps={{ sx: { fontFamily: "Buda, sans-serif", fontSize: "1.2rem"  }}}
                 />
                 <Box></Box>
                 <TextField
@@ -507,7 +514,8 @@ export default function SettingsPage() {
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: "#fff", borderRadius: 1 } }}
+                  InputProps={{ sx: { bgcolor: "#cbd5e0", borderRadius: 1, fontFamily: "Buda, sans-serif", fontSize: "1.2rem" } }}
+                  InputLabelProps={{ sx: { fontFamily: "Buda, sans-serif", fontSize: "1.2rem"  }}}
                 />
                 <TextField
                   name="confirmPassword"
@@ -518,7 +526,8 @@ export default function SettingsPage() {
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: "#fff", borderRadius: 1 } }}
+                  InputProps={{ sx: { bgcolor: "#cbd5e0", borderRadius: 1, fontFamily: "Buda, sans-serif", fontSize: "1.2rem" } }}
+                  InputLabelProps={{ sx: { fontFamily: "Buda, sans-serif", fontSize: "1.2rem"  }}}
                 />
               </Box>
 

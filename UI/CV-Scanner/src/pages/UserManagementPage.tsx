@@ -24,6 +24,7 @@ import {
   Popover,
   Fade,
   Tooltip,
+  InputAdornment,
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import NotificationsIcon from "@mui/icons-material/Notifications";
@@ -39,6 +40,7 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import logo from "../assets/logo.png";
+import logoNavbar from "../assets/logoNavbar.png";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
 export default function UserManagementPage() {
@@ -229,7 +231,7 @@ const devUser = {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#181c2f",
+        bgcolor: "#121436ff",
         color: "#fff",
       }}
     >
@@ -238,7 +240,7 @@ const devUser = {
         <Box
           sx={{
             width: 220,
-            bgcolor: "#1A82AE",
+            bgcolor: "#0A2540 ",
             display: "flex",
             flexDirection: "column",
             p: 2,
@@ -264,7 +266,7 @@ const devUser = {
           </IconButton>
 
           <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
-            <img src={logo} alt="Team Logo" style={{ width: 120 }} />
+            <img src={logoNavbar} alt="Team Logo" style={{ width: 120 }} />
           </Box>
 
           <Button
@@ -337,7 +339,7 @@ const devUser = {
         <Box
           sx={{
             width: 40,
-            bgcolor: "#1A82AE",
+            bgcolor: "#0A2540",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
@@ -358,7 +360,7 @@ const devUser = {
         {/* Top App Bar */}
         <AppBar
           position="static"
-          sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
+          sx={{ bgcolor: "#0A2540 ", boxShadow: "none" }}
         >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
             {/* Tutorial icon */}
@@ -421,26 +423,35 @@ const devUser = {
 
         {/* User Management Content */}
         <Box sx={{ p: 3 }}>
-          <Typography variant="h4" sx={{ fontWeight: "bold", mb: 3 }}>
+          <Typography variant="h4" sx={{ fontFamily: 'Buda, sans-serif', fontWeight: "bold", mb: 3, color: "#fff " }}>
             User Management
           </Typography>
 
           {/* Search and Filter Section */}
           <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+            
             <TextField
               inputRef={searchRef}
               placeholder="Search users..."
               variant="outlined"
               fullWidth
-              sx={{ bgcolor: "#fff", borderRadius: 1 }}
+              sx={{ bgcolor: "#cbd5e0", borderRadius: 1 }}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
             />
+            
             <div ref={filterBoxRef}>
               <Select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                sx={{ bgcolor: "#fff", borderRadius: 1, minWidth: 150 }}
+                sx={{ bgcolor: "#cbd5e0", borderRadius: 1, minWidth: 150 }}
               >
                 <MenuItem value="All Roles">All Roles</MenuItem>
                 <MenuItem value="Admin">Admin</MenuItem>
@@ -450,7 +461,7 @@ const devUser = {
             </div>
             <Button
               variant="contained"
-              sx={{ bgcolor: "#4caf50", color: "#fff", textTransform: "none" }}
+              sx={{ bgcolor: "#0D9488", color: "#fff", textTransform: "none" }}
               onClick={() => navigate("/add-user")}
               ref={addUserRef}
             >
@@ -461,12 +472,12 @@ const devUser = {
           {/* User Table */}
           <Paper
             elevation={6}
-            sx={{ p: 3, borderRadius: 3, bgcolor: "#e1f4ff" }}
+            sx={{ p: 3, borderRadius: 3, bgcolor: "#cbd5e0" }}
           >
             <TableContainer>
-              <Table>
+              <Table sx={{"& td, & th": { fontFamily: 'Buda, sans-serif'}}}>
                 {/* 2. Update the table headers: */}
-                <TableHead>
+                <TableHead sx={{ "& th": {fontSize: 20 } }}>
                   <TableRow>
                     <TableCell sx={{ fontWeight: "bold" }}>Username</TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>
@@ -482,7 +493,7 @@ const devUser = {
                   </TableRow>
                 </TableHead>
                 {/* 3. Update the table rows: */}
-                <TableBody>
+                <TableBody sx={{ "& td": { fontSize: 18, fontWeight: 400 } }}>
                   {paginatedUsers.map((user, idx) => (
                     <TableRow key={idx}>
                       <TableCell>{user.username || ""}</TableCell>
@@ -499,7 +510,7 @@ const devUser = {
                                 ? "#f44336"
                                 : user.role === "Editor"
                                 ? "#ff9800"
-                                : "#4caf50",
+                                : "#10B981",
                             color: "#fff",
                             textTransform: "none",
                             fontWeight: "bold",
