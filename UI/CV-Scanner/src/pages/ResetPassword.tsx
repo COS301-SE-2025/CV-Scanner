@@ -25,7 +25,7 @@ export default function ResetPassword() {
   sx={{
     display: "flex",
     alignItems: "center",
-    bgcolor: "#1A82AE",
+    bgcolor: "#0A2540 ",
     color: "#fff",
     px: 2,
     py: 2,
