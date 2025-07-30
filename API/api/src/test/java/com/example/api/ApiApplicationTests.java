@@ -1,30 +1,33 @@
 package com.example.api;
 import java.io.File;
-import java.io.FileInputStream;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.http.MediaType;
 
-import static org.mockito.ArgumentMatchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 @WebMvcTest({AuthController.class, CVController.class})
 public class ApiApplicationTests {
@@ -38,13 +41,69 @@ public class ApiApplicationTests {
     @MockBean
     private BCryptPasswordEncoder passwordEncoder;
 
-    // --- AuthController Tests ---
+    // --- Direct controller unit tests (moved from AuthControllerTest) ---
+
+    private AuthController authController;
+
+    @BeforeEach
+    void setUp() {
+        authController = new AuthController();
+        authController.setJdbcTemplate(jdbcTemplate);
+        authController.setPasswordEncoder(new BCryptPasswordEncoder());
+    }
+
+    @Test
+    void changePassword_missingFields_returnsBadRequest() {
+        Map<String, String> payload = new HashMap<>();
+        ResponseEntity<?> response = authController.changePassword(payload);
+        assertEquals(400, response.getStatusCodeValue());
+        assertTrue(response.getBody().toString().contains("Missing required fields"));
+    }
+
+    @Test
+    void changePassword_userNotFound_returnsBadRequest() {
+        Map<String, String> payload = new HashMap<>();
+        payload.put("email", "test@example.com");
+        payload.put("currentPassword", "oldpass");
+        payload.put("newPassword", "newpass");
+
+        when(jdbcTemplate.queryForMap(anyString(), any())).thenThrow(new RuntimeException("User not found"));
+
+        ResponseEntity<?> response = authController.changePassword(payload);
+        assertEquals(400, response.getStatusCodeValue());
+        assertTrue(response.getBody().toString().contains("User not found"));
+    }
+
+    @Test
+    void changePassword_wrongCurrentPassword_returnsError() {
+        Map<String, String> payload = new HashMap<>();
+        payload.put("email", "test@example.com");
+        payload.put("currentPassword", "wrongpass");
+        payload.put("newPassword", "newpass");
+
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        String hash = encoder.encode("correctpass");
+        Map<String, Object> user = new HashMap<>();
+        user.put("password_hash", hash);
+
+        when(jdbcTemplate.queryForMap(anyString(), any())).thenReturn(user);
+
+        AuthController localController = new AuthController();
+        localController.setJdbcTemplate(jdbcTemplate);
+        localController.setPasswordEncoder(encoder);
+
+        ResponseEntity<?> response = localController.changePassword(payload);
+        assertEquals(400, response.getStatusCodeValue());
+        assertTrue(response.getBody().toString().contains("Current password is incorrect"));
+    }
+
+    // --- WebMvc (integration-style) tests for endpoints ---
 
     @Test
     void register_success() throws Exception {
-        Mockito.when(jdbcTemplate.queryForObject(anyString(), eq(Integer.class), any(), any()))
+        when(jdbcTemplate.queryForObject(anyString(), org.mockito.ArgumentMatchers.eq(Integer.class), any(), any()))
                 .thenReturn(0);
-        Mockito.when(jdbcTemplate.update(anyString(), any(), any(), any(), any(), any(), any(), any()))
+        when(jdbcTemplate.update(anyString(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(1);
 
         String json = """
@@ -83,7 +142,7 @@ public class ApiApplicationTests {
 
     @Test
     void register_username_exists() throws Exception {
-        Mockito.when(jdbcTemplate.queryForObject(anyString(), eq(Integer.class), any(), any()))
+        when(jdbcTemplate.queryForObject(anyString(), org.mockito.ArgumentMatchers.eq(Integer.class), any(), any()))
                 .thenReturn(1);
 
         String json = """
@@ -100,7 +159,6 @@ public class ApiApplicationTests {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Username or email already exists."));
     }
-
 
     @Test
     void login_missing_fields() throws Exception {
@@ -119,7 +177,7 @@ public class ApiApplicationTests {
 
     @Test
     void login_invalid_credentials() throws Exception {
-        Mockito.when(jdbcTemplate.queryForObject(anyString(), eq(String.class), any()))
+        when(jdbcTemplate.queryForObject(anyString(), org.mockito.ArgumentMatchers.eq(String.class), any()))
                 .thenThrow(new org.springframework.dao.EmptyResultDataAccessException(1));
 
         String json = """
@@ -136,21 +194,17 @@ public class ApiApplicationTests {
                 .andExpect(jsonPath("$.message").value("Invalid email or password."));
     }
 
-    
     @Test
     void getCurrentUser_success() throws Exception {
-        // Mock user data returned from the database
-        var userMap = new java.util.HashMap<String, Object>();
+        var userMap = new HashMap<String, Object>();
         userMap.put("username", "testuser");
         userMap.put("email", "test@example.com");
         userMap.put("first_name", "Test");
         userMap.put("last_name", "User");
         userMap.put("role", "user");
 
-        Mockito.when(jdbcTemplate.queryForMap(
-                anyString(),
-                eq("test@example.com")
-        )).thenReturn(userMap);
+        when(jdbcTemplate.queryForMap(anyString(), org.mockito.ArgumentMatchers.eq("test@example.com")))
+                .thenReturn(userMap);
 
         mockMvc.perform(get("/auth/me")
                 .param("email", "test@example.com"))
@@ -164,10 +218,8 @@ public class ApiApplicationTests {
 
     @Test
     void getCurrentUser_notFound() throws Exception {
-        Mockito.when(jdbcTemplate.queryForMap(
-                anyString(),
-                eq("notfound@example.com")
-        )).thenThrow(new org.springframework.dao.EmptyResultDataAccessException(1));
+        when(jdbcTemplate.queryForMap(anyString(), org.mockito.ArgumentMatchers.eq("notfound@example.com")))
+                .thenThrow(new org.springframework.dao.EmptyResultDataAccessException(1));
 
         mockMvc.perform(get("/auth/me")
                 .param("email", "notfound@example.com"))
@@ -175,11 +227,8 @@ public class ApiApplicationTests {
                 .andExpect(jsonPath("$.message").value("User not found."));
     }
 
-        
-
     @Test
     void getAllUsers_success() throws Exception {
-        
         List<Map<String, Object>> users = new ArrayList<>();
         Map<String, Object> user1 = new HashMap<>();
         user1.put("username", "user1");
@@ -199,7 +248,7 @@ public class ApiApplicationTests {
         user2.put("lastActive", "2024-06-23 13:00:00");
         users.add(user2);
 
-        Mockito.when(jdbcTemplate.queryForList(anyString()))
+        when(jdbcTemplate.queryForList(anyString()))
                 .thenReturn(users);
 
         mockMvc.perform(get("/auth/all-users"))
@@ -212,7 +261,7 @@ public class ApiApplicationTests {
 
     @Test
     void getAllUsers_failure() throws Exception {
-        Mockito.when(jdbcTemplate.queryForList(anyString()))
+        when(jdbcTemplate.queryForList(anyString()))
                 .thenThrow(new RuntimeException("DB error"));
 
         mockMvc.perform(get("/auth/all-users"))
@@ -222,10 +271,8 @@ public class ApiApplicationTests {
 
     @Test
     void deleteUser_success() throws Exception {
-        Mockito.when(jdbcTemplate.update(
-                Mockito.anyString(),
-                Mockito.<Object[]>any()
-        )).thenReturn(1);
+        when(jdbcTemplate.update(anyString(), org.mockito.ArgumentMatchers.<Object[]>any()))
+                .thenReturn(1);
 
         mockMvc.perform(delete("/auth/delete-user")
                 .param("email", "user1@example.com"))
@@ -235,10 +282,8 @@ public class ApiApplicationTests {
 
     @Test
     void deleteUser_notFound() throws Exception {
-        Mockito.when(jdbcTemplate.update(
-                Mockito.anyString(),
-                Mockito.<Object[]>any()
-        )).thenReturn(0);
+        when(jdbcTemplate.update(anyString(), org.mockito.ArgumentMatchers.<Object[]>any()))
+                .thenReturn(0);
 
         mockMvc.perform(delete("/auth/delete-user")
                 .param("email", "notfound@example.com"))
@@ -248,10 +293,8 @@ public class ApiApplicationTests {
 
     @Test
     void deleteUser_failure() throws Exception {
-        Mockito.when(jdbcTemplate.update(
-                Mockito.anyString(),
-                Mockito.<Object[]>any()
-        )).thenThrow(new RuntimeException("DB error"));
+        when(jdbcTemplate.update(anyString(), org.mockito.ArgumentMatchers.<Object[]>any()))
+                .thenThrow(new RuntimeException("DB error"));
 
         mockMvc.perform(delete("/auth/delete-user")
                 .param("email", "user1@example.com"))
@@ -269,11 +312,9 @@ public class ApiApplicationTests {
         user.put("role", "User");
         user.put("password", "securePassword123");
 
-        Mockito.when(jdbcTemplate.update(
-                Mockito.anyString(),
-                Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),
-                Mockito.anyString(), Mockito.anyString(), Mockito.anyInt(), Mockito.anyString()
-        )).thenReturn(1);
+        when(jdbcTemplate.update(anyString(), anyString(), anyString(), anyString(),
+                anyString(), anyString(), anyInt(), anyString()))
+                .thenReturn(1);
 
         mockMvc.perform(post("/auth/add-user")
                 .contentType("application/json")
@@ -292,11 +333,9 @@ public class ApiApplicationTests {
         user.put("role", "User");
         user.put("password", "securePassword123");
 
-        Mockito.when(jdbcTemplate.update(
-                Mockito.anyString(),
-                Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),
-                Mockito.anyString(), Mockito.anyString(), Mockito.anyInt(), Mockito.anyString()
-        )).thenThrow(new RuntimeException("DB error"));
+        when(jdbcTemplate.update(anyString(), anyString(), anyString(), anyString(),
+                anyString(), anyString(), anyInt(), anyString()))
+                .thenThrow(new RuntimeException("DB error"));
 
         mockMvc.perform(post("/auth/add-user")
                 .contentType("application/json")
@@ -305,7 +344,6 @@ public class ApiApplicationTests {
                 .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Failed to add user.")));
     }
 
-    // Test for /auth/edit-user
     @Test
     void editUser_success() throws Exception {
         Map<String, Object> user = new HashMap<>();
@@ -315,11 +353,9 @@ public class ApiApplicationTests {
         user.put("last_name", "Doe");
         user.put("role", "Admin");
 
-        Mockito.when(jdbcTemplate.update(
-                Mockito.anyString(),
-                Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),
-                Mockito.anyString(), Mockito.anyString()
-        )).thenReturn(1);
+        when(jdbcTemplate.update(anyString(), anyString(), anyString(), anyString(),
+                anyString(), anyString()))
+                .thenReturn(1);
 
         mockMvc.perform(put("/auth/edit-user")
                 .contentType("application/json")
@@ -337,11 +373,9 @@ public class ApiApplicationTests {
         user.put("last_name", "Doe");
         user.put("role", "Admin");
 
-        Mockito.when(jdbcTemplate.update(
-                Mockito.anyString(),
-                Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),
-                Mockito.anyString(), Mockito.anyString()
-        )).thenReturn(0);
+        when(jdbcTemplate.update(anyString(), anyString(), anyString(), anyString(),
+                anyString(), anyString()))
+                .thenReturn(0);
 
         mockMvc.perform(put("/auth/edit-user")
                 .contentType("application/json")
@@ -359,11 +393,9 @@ public class ApiApplicationTests {
         user.put("last_name", "Doe");
         user.put("role", "Admin");
 
-        Mockito.when(jdbcTemplate.update(
-                Mockito.anyString(),
-                Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),
-                Mockito.anyString(), Mockito.anyString()
-        )).thenThrow(new RuntimeException("DB error"));
+        when(jdbcTemplate.update(anyString(), anyString(), anyString(), anyString(),
+                anyString(), anyString()))
+                .thenThrow(new RuntimeException("DB error"));
 
         mockMvc.perform(put("/auth/edit-user")
                 .contentType("application/json")
@@ -374,10 +406,8 @@ public class ApiApplicationTests {
 
     @Test
     void updateProfile_success() throws Exception {
-        Mockito.when(jdbcTemplate.update(
-                Mockito.anyString(),
-                Mockito.anyString(), Mockito.anyString(), Mockito.anyString()
-        )).thenReturn(1);
+        when(jdbcTemplate.update(anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(1);
 
         String json = """
         {
@@ -396,10 +426,8 @@ public class ApiApplicationTests {
 
     @Test
     void updateProfile_userNotFound() throws Exception {
-        Mockito.when(jdbcTemplate.update(
-                Mockito.anyString(),
-                Mockito.anyString(), Mockito.anyString(), Mockito.anyString()
-        )).thenReturn(0);
+        when(jdbcTemplate.update(anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(0);
 
         String json = """
         {
@@ -433,10 +461,8 @@ public class ApiApplicationTests {
 
     @Test
     void updateProfile_failure() throws Exception {
-        Mockito.when(jdbcTemplate.update(
-                Mockito.anyString(),
-                Mockito.anyString(), Mockito.anyString(), Mockito.anyString()
-        )).thenThrow(new RuntimeException("DB error"));
+        when(jdbcTemplate.update(anyString(), anyString(), anyString(), anyString()))
+                .thenThrow(new RuntimeException("DB error"));
 
         String json = """
         {
