@@ -90,7 +90,7 @@ export default function CandidateExperiencePage() {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#181c2f",
+        bgcolor: "#0c0e18ff",
         color: "#fff",
       }}
     >
@@ -100,14 +100,14 @@ export default function CandidateExperiencePage() {
         {/* Top App Bar */}
         <AppBar
           position="static"
-          sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
+          sx={{ bgcolor: "#0A2540 ", boxShadow: "none" }}
 
         >
           <Toolbar sx={{ justifyContent: "space-between" }}>
             {/* Left: Logo and heading */}
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <img src={logo} alt="Logo" style={{ width: 80 }} />
-              <Typography variant="h6" sx={{ ml: 2, fontWeight: "bold" }}>
+              <Typography variant="h6" sx={{fontFamily: 'Buda, sans-serif', ml: 2, fontWeight: "bold" }}>
                 Candidate Experience
               </Typography>
             </Box>
@@ -197,7 +197,7 @@ export default function CandidateExperiencePage() {
         >
           <Fade in={fadeIn} timeout={250}>
             <Box sx={{ position: "relative" }}>
-              <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+              <Typography variant="h6" sx={{fontFamily: 'Buda, sans-serif', fontWeight: "bold", mb: 1 }}>
                 Work History
               </Typography>
               <Typography sx={{ mb: 2 }}>
@@ -263,7 +263,7 @@ export default function CandidateExperiencePage() {
           >
             Back to Candidates
           </Button>
-          <Typography variant="h4" sx={{ fontWeight: "bold", mb: 2 }}>
+          <Typography variant="h4" sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", mb: 2 }}>
             Jane Smith
           </Typography>
           <Typography variant="subtitle1" sx={{ mb: 4 }}>
@@ -299,14 +299,14 @@ export default function CandidateExperiencePage() {
           {/* Work History Section */}
           <Paper
             elevation={6}
-            sx={{ p: 3, borderRadius: 3, bgcolor: "#e1f4ff" }}
+            sx={{ p: 3, borderRadius: 3, bgcolor: "#75a29dff" }}
             ref={workHistoryRef}
           >
-            <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
+            <Typography variant="h6" sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", mb: 2 }}>
               Work History
             </Typography>
             <Box sx={{ mb: 3 }}>
-              <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+              <Typography variant="body1" sx={{fontFamily: 'Buda, sans-serif', fontWeight: "bold" }}>
                 Tech Solutions Inc. | Senior Developer
               </Typography>
               <Typography variant="body2" sx={{ color: "#555" }}>
@@ -317,7 +317,7 @@ export default function CandidateExperiencePage() {
               </Typography>
             </Box>
             <Box>
-              <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+              <Typography variant="body1" sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold" }}>
                 Digital Innovations | Software Developer
               </Typography>
               <Typography variant="body2" sx={{ color: "#555" }}>

@@ -31,6 +31,7 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
 import logo from "../assets/logo.png";
+import logoNavbar from "../assets/logoNavbar.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -177,7 +178,7 @@ export default function Search() {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#181c2f",
+        bgcolor: "#121436ff",
         color: "#fff",
       }}
     >
@@ -186,7 +187,7 @@ export default function Search() {
         <Box
           sx={{
             width: 220,
-            bgcolor: "#1A82AE",
+            bgcolor: "#0A2540",
             display: "flex",
             flexDirection: "column",
             p: 2,
@@ -212,7 +213,7 @@ export default function Search() {
           </IconButton>
 
           <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
-            <img src={logo} alt="Team Logo" style={{ width: 120 }} />
+            <img src={logoNavbar} alt="Team Logo" style={{ width: 120 }} />
           </Box>
 
           <Button
@@ -282,7 +283,7 @@ export default function Search() {
         <Box
           sx={{
             width: 40,
-            bgcolor: "#1A82AE",
+            bgcolor: "#0A2540",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
@@ -303,7 +304,7 @@ export default function Search() {
         {/* Top Bar */}
           <AppBar
                    position="static"
-                   sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
+                   sx={{ bgcolor: "#0A2540", boxShadow: "none" }}
                  >
                    <Toolbar sx={{ justifyContent: "flex-end" }}>
            {/* Tutorial icon */}
@@ -366,46 +367,48 @@ export default function Search() {
 
         {/* Page Content */}
         <Box sx={{ p: 3 }}>
-          <Paper
-            elevation={6}
-            sx={{ p: 3, borderRadius: 3, backgroundColor: "#bce4ff" }}
-          >
-            <Typography
-              variant="h5"
-              sx={{ fontWeight: "bold", color: "#0073c1", mb: 3 }}
+          <Typography
+              variant="h4"
+              sx={{ fontWeight: "bold", mb: 3,fontFamily: "Buda, sans-serif", color: "#fff" }}
             >
               Search Candidates
             </Typography>
-
             {/* Search Bar */}
             <Box
               sx={{
                 display: "flex",
                 alignItems: "center",
                 mb: 4,
-                bgcolor: "#fff",
+                bgcolor: "#cbd5e0",
                 borderRadius: 1,
                 px: 2,
                 py: 1,
+                fontFamily: "Buda, sans-serif",
               }}
               ref={searchBarRef}
             >
               <SearchIcon color="action" />
               <InputBase
                 placeholder="Search by name, skills, or project type..."
-                sx={{ ml: 1, flex: 1 }}
+                sx={{ ml: 1, flex: 1, fontFamily: "Buda, sans-serif", fontSize: "1.3rem" }}
                 fullWidth
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
               />
             </Box>
+          <Paper
+            elevation={6}
+            sx={{ p: 3, borderRadius: 3, backgroundColor: "#2b3a55", fontFamily: "Buda, sans-serif", color: "#fff" }}
+          >
 
+            
+              
             {/* Filters */}
             <Box sx={{ display: "flex", gap: 6, mb: 4 }} ref={checkboxesRef}>
               <Box>
                 <Typography
                   variant="subtitle1"
-                  sx={{ fontWeight: "bold", mb: 2 }}
+                  sx={{ fontWeight: "bold", mb: 2, fontFamily: "Buda, sans-serif", fontSize: "1.3rem" }}
                 >
                   Primary Skills
                 </Typography>
@@ -423,7 +426,11 @@ export default function Search() {
                           }}
                         />
                       }
-                      label={skill}
+                      label={
+                        <Typography sx={{ fontFamily: "Buda, sans-serif", fontSize: "1.2rem" }}>
+                          {skill}
+                        </Typography>
+                      }
                     />
                   ))}
                 </FormGroup>
@@ -431,7 +438,7 @@ export default function Search() {
               <Box>
                 <Typography
                   variant="subtitle1"
-                  sx={{ fontWeight: "bold", mb: 2 }}
+                  sx={{ fontWeight: "bold", mb: 2 ,fontFamily: "Buda, sans-serif", fontSize: "1.3rem" }}
                 >
                   Project Fit
                 </Typography>
@@ -449,7 +456,11 @@ export default function Search() {
                           }}
                         />
                       }
-                      label={fit}
+                      label={
+                        <Typography sx={{ fontFamily: "Buda, sans-serif", fontSize: "1.2rem" }}>
+                          {fit}
+                        </Typography>
+                      }
                     />
                   ))}
                 </FormGroup>
@@ -457,7 +468,7 @@ export default function Search() {
               <Box>
                 <Typography
                   variant="subtitle1"
-                  sx={{ fontWeight: "bold", mb: 2 }}
+                  sx={{ fontWeight: "bold", mb: 2, fontFamily: "Buda, sans-serif", fontSize: "1.3rem" }}
                 >
                   Upload Details
                 </Typography>
@@ -477,7 +488,11 @@ export default function Search() {
                           }}
                         />
                       }
-                      label={detail}
+                      label={
+                        <Typography sx={{ fontFamily: "Buda, sans-serif", fontSize: "1.2rem" }}>
+                          {detail}
+                        </Typography>
+                      }
                     />
                   ))}
                 </FormGroup>
@@ -487,7 +502,7 @@ export default function Search() {
             <Divider sx={{ my: 3 }} />
 
             {/* Results Count */}
-            <Typography variant="subtitle1" sx={{ mb: 3, fontWeight: "bold" }}>
+            <Typography variant="subtitle1" sx={{ mb: 3, fontWeight: "bold", fontFamily: "Buda, sans-serif", fontSize: "1.3rem" }}>
               Showing {filteredCandidates.length} of {candidates.length}{" "}
               candidates
             </Typography>
@@ -503,7 +518,7 @@ export default function Search() {
                       p: 3,
                       mb: 3,
                       borderRadius: 3,
-                      backgroundColor: "#e1f4ff",
+                      backgroundColor: "#75a29dff",
                       cursor: "pointer", // Shows it's clickable
                       "&:hover": {
                         boxShadow: "0 4px 8px rgba(0,0,0,0.2)", // Visual feedback
@@ -511,6 +526,7 @@ export default function Search() {
                         transform: "translateY(-2px)",
                       },
                       transition: "all 0.2s ease",
+                      
                     }}
                     onClick={() => navigate("/candidate-review")} // Correct placement
                   >
@@ -523,6 +539,8 @@ export default function Search() {
                           width: 56,
                           height: 56,
                           fontSize: "1.5rem",
+                          fontWeight: "bold",
+                          fontFamily: "Buda, sans-serif",
                         }}
                       >
                         {candidate.initials}
@@ -530,16 +548,16 @@ export default function Search() {
                       <Box sx={{ flexGrow: 1 }}>
                         <Typography
                           variant="h6"
-                          sx={{ fontWeight: "bold", mb: 0.5 }}
+                          sx={{ fontWeight: "bold", mb: 0.5, fontFamily: "Buda, sans-serif", fontSize: "1.4rem" }}
                         >
                           {candidate.name}
                         </Typography>
-                        <Typography variant="body1" sx={{ mb: 1 }}>
+                        <Typography variant="body1" sx={{ mb: 1,fontFamily: "Buda, sans-serif", fontSize: "1.2rem" }}>
                           {candidate.project}
                         </Typography>
                         <Typography
                           variant="body2"
-                          sx={{ mb: 1.5, color: "#555" }}
+                          sx={{ mb: 1.5, color: "#black", fontFamily: "Buda, sans-serif", fontSize: "1.1rem" }}
                         >
                           Uploaded: {candidate.uploaded}
                         </Typography>
@@ -549,6 +567,7 @@ export default function Search() {
                             gap: 1,
                             flexWrap: "wrap",
                             mb: 1.5,
+                            
                           }}
                         >
                           {candidate.skills.map((skill, i) => (
@@ -556,13 +575,13 @@ export default function Search() {
                               key={i}
                               label={skill}
                               size="small"
-                              sx={{ backgroundColor: "#d0e8ff" }}
+                              sx={{ backgroundColor: "#d0e8ff",fontFamily: "Buda, sans-serif", fontSize: "0.9rem",fontWeight: "bold" ,color: "#0073c1" }}
                             />
                           ))}
                         </Box>
                         <Typography
                           variant="body2"
-                          sx={{ color: "#0073c1", fontWeight: "bold" }}
+                          sx={{ color: "#0073c1", fontWeight: "bold", fontFamily: "Buda, sans-serif", fontSize: "1.1rem" }}
                         >
                           Match: {candidate.match}
                         </Typography>
@@ -573,7 +592,7 @@ export default function Search() {
               ) : (
                 <Typography
                   variant="body1"
-                  sx={{ mt: 2, fontStyle: "italic", color: "#555" }}
+                  sx={{ mt: 2, fontStyle: "italic", color: "#555", fontFamily: "Buda, sans-serif", fontSize: "1.2rem" }}
                 >
                   No results found. Try adjusting your search or filters.
                 </Typography>

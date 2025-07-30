@@ -182,7 +182,7 @@ export default function AddUserPage() {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#181c2f",
+        bgcolor: "#0c0e18ff",
         color: "#fff",
       }}
     >
@@ -191,7 +191,7 @@ export default function AddUserPage() {
         <Box
           sx={{
             width: 220,
-            bgcolor: "#1A82AE",
+            bgcolor: "#0A2540",
             display: "flex",
             flexDirection: "column",
             p: 2,
@@ -280,7 +280,7 @@ export default function AddUserPage() {
         <Box
           sx={{
             width: 40,
-            bgcolor: "#1A82AE",
+            bgcolor: "#0A2540",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
@@ -302,7 +302,7 @@ export default function AddUserPage() {
 
            <AppBar
                                      position="static"
-                                     sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
+                                     sx={{ bgcolor: "#0A2540", boxShadow: "none" }}
                                    >
                                      <Toolbar sx={{ justifyContent: "flex-end" }}>
           
@@ -388,7 +388,7 @@ export default function AddUserPage() {
               sx={{
                 p: 3,
                 borderRadius: 3,
-                bgcolor: "#e1f4ff",
+                bgcolor: "#75a29dff",
                 width: "100%",
                 maxWidth: 600,
               }}
