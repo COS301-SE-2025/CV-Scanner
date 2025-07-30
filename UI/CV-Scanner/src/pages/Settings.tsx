@@ -56,9 +56,18 @@ export default function SettingsPage() {
   };
 
   const [profileForm, setProfileForm] = useState({
-    firstName: "Admin",
-    lastName: "User",
-    email: "admin@entelect.co.za",
+    firstName: "",
+    lastName: "",
+    email: "",
+  });
+  const [profileSuccess, setProfileSuccess] = useState("");
+  const [profileError, setProfileError] = useState("");
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
 
   useEffect(() => {
@@ -69,14 +78,6 @@ export default function SettingsPage() {
       .then((data) => setUser(data))
       .catch(() => setUser(null));
   }, []);
-
-  const location = useLocation();
-
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
 
   useEffect(() => {
     const email = localStorage.getItem("userEmail");
@@ -92,12 +93,14 @@ export default function SettingsPage() {
       });
   }, []);
 
+  const location = useLocation();
+
   // Handle profile updates
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
-    setSuccess("");
+    setProfileLoading(true);
+    setProfileError("");
+    setProfileSuccess("");
 
     try {
       const response = await fetch(
@@ -112,14 +115,14 @@ export default function SettingsPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setSuccess("Profile updated successfully");
+        setProfileSuccess(data.message || "Profile updated successfully");
       } else {
-        setError(data.message || "Failed to update profile");
+        setProfileError(data.message || "Failed to update profile");
       }
     } catch (err) {
-      setError("Network error. Please try again.");
+      setProfileError("Network error. Please try again.");
     } finally {
-      setLoading(false);
+      setProfileLoading(false);
     }
   };
 
@@ -371,7 +374,10 @@ export default function SettingsPage() {
 
         {/* Settings Content */}
         <Box sx={{ p: 3 }}>
-          <Typography variant="h4" sx={{ fontWeight: "bold", mb: 3, fontFamily: "Buda, sans-serif" }}>
+          <Typography
+            variant="h4"
+            sx={{ fontWeight: "bold", mb: 3, fontFamily: "Buda, sans-serif" }}
+          >
             User Settings
           </Typography>
 
@@ -380,6 +386,16 @@ export default function SettingsPage() {
             sx={{ p: 4, borderRadius: 3, bgcolor: "#2b3a55", maxWidth: 800 }}
           >
             {/* Error/Success Alerts */}
+            {profileError && (
+              <Alert severity="error" sx={{ mb: 3 }}>
+                {profileError}
+              </Alert>
+            )}
+            {profileSuccess && (
+              <Alert severity="success" sx={{ mb: 3 }}>
+                {profileSuccess}
+              </Alert>
+            )}
             {error && (
               <Alert severity="error" sx={{ mb: 3 }}>
                 {error}
@@ -395,7 +411,12 @@ export default function SettingsPage() {
             <Box component="form" onSubmit={handleProfileUpdate} sx={{ mb: 4 }}>
               <Typography
                 variant="h5"
-                sx={{ fontWeight: "bold", color: "#0073c1", mb: 2, fontFamily: "Buda, sans-serif" }}
+                sx={{
+                  fontWeight: "bold",
+                  color: "#0073c1",
+                  mb: 2,
+                  fontFamily: "Buda, sans-serif",
+                }}
               >
                 Profile Information
               </Typography>
@@ -418,7 +439,7 @@ export default function SettingsPage() {
               </Box>
 
               <Box
-                sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3}}
+                sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3 }}
               >
                 <TextField
                   name="firstName"
@@ -428,8 +449,21 @@ export default function SettingsPage() {
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: "#cbd5e0", borderRadius: 1, fontFamily: "Buda, sans-serif",fontSize: "1.2rem" } }}
-                  InputLabelProps={{ sx: { fontFamily: "Buda, sans-serif", fontSize: "1.2rem","&.Mui-focused": { color: "#487DA6" },  }}}
+                  InputProps={{
+                    sx: {
+                      bgcolor: "#cbd5e0",
+                      borderRadius: 1,
+                      fontFamily: "Buda, sans-serif",
+                      fontSize: "1.2rem",
+                    },
+                  }}
+                  InputLabelProps={{
+                    sx: {
+                      fontFamily: "Buda, sans-serif",
+                      fontSize: "1.2rem",
+                      "&.Mui-focused": { color: "#487DA6" },
+                    },
+                  }}
                 />
                 <TextField
                   name="lastName"
@@ -439,8 +473,17 @@ export default function SettingsPage() {
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: "#cbd5e0", borderRadius: 1, fontFamily: "Buda, sans-serif",fontSize: "1.2rem" } }}
-                  InputLabelProps={{ sx: { fontFamily: "Buda, sans-serif", fontSize: "1.2rem"  }}}
+                  InputProps={{
+                    sx: {
+                      bgcolor: "#cbd5e0",
+                      borderRadius: 1,
+                      fontFamily: "Buda, sans-serif",
+                      fontSize: "1.2rem",
+                    },
+                  }}
+                  InputLabelProps={{
+                    sx: { fontFamily: "Buda, sans-serif", fontSize: "1.2rem" },
+                  }}
                 />
                 <TextField
                   name="email"
@@ -450,15 +493,24 @@ export default function SettingsPage() {
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: "#cbd5e0", borderRadius: 1, fontFamily: "Buda, sans-serif", fontSize: "1.2rem" } }}
-                  InputLabelProps={{ sx: { fontFamily: "Buda, sans-serif", fontSize: "1.2rem"  }}}
+                  InputProps={{
+                    sx: {
+                      bgcolor: "#cbd5e0",
+                      borderRadius: 1,
+                      fontFamily: "Buda, sans-serif",
+                      fontSize: "1.2rem",
+                    },
+                  }}
+                  InputLabelProps={{
+                    sx: { fontFamily: "Buda, sans-serif", fontSize: "1.2rem" },
+                  }}
                 />
               </Box>
 
               <Button
                 type="submit"
                 variant="contained"
-                disabled={loading}
+                disabled={profileLoading}
                 sx={{
                   mt: 2,
                   background:
@@ -470,7 +522,7 @@ export default function SettingsPage() {
                   },
                 }}
               >
-                {loading ? "Updating..." : "Update Profile"}
+                {profileLoading ? "Updating..." : "Update Profile"}
               </Button>
             </Box>
 
@@ -484,7 +536,12 @@ export default function SettingsPage() {
             >
               <Typography
                 variant="h5"
-                sx={{ fontWeight: "bold", color: "#0073c1", mb: 2, fontFamily: "Buda, sans-serif" }}
+                sx={{
+                  fontWeight: "bold",
+                  color: "#0073c1",
+                  mb: 2,
+                  fontFamily: "Buda, sans-serif",
+                }}
               >
                 Change Password
               </Typography>
@@ -501,8 +558,17 @@ export default function SettingsPage() {
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: "#cbd5e0", borderRadius: 1, fontFamily: "Buda, sans-serif", fontSize: "1.2rem" } }}
-                  InputLabelProps={{ sx: { fontFamily: "Buda, sans-serif", fontSize: "1.2rem"  }}}
+                  InputProps={{
+                    sx: {
+                      bgcolor: "#cbd5e0",
+                      borderRadius: 1,
+                      fontFamily: "Buda, sans-serif",
+                      fontSize: "1.2rem",
+                    },
+                  }}
+                  InputLabelProps={{
+                    sx: { fontFamily: "Buda, sans-serif", fontSize: "1.2rem" },
+                  }}
                 />
                 <Box></Box>
                 <TextField
@@ -514,8 +580,17 @@ export default function SettingsPage() {
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: "#cbd5e0", borderRadius: 1, fontFamily: "Buda, sans-serif", fontSize: "1.2rem" } }}
-                  InputLabelProps={{ sx: { fontFamily: "Buda, sans-serif", fontSize: "1.2rem"  }}}
+                  InputProps={{
+                    sx: {
+                      bgcolor: "#cbd5e0",
+                      borderRadius: 1,
+                      fontFamily: "Buda, sans-serif",
+                      fontSize: "1.2rem",
+                    },
+                  }}
+                  InputLabelProps={{
+                    sx: { fontFamily: "Buda, sans-serif", fontSize: "1.2rem" },
+                  }}
                 />
                 <TextField
                   name="confirmPassword"
@@ -526,8 +601,17 @@ export default function SettingsPage() {
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: "#cbd5e0", borderRadius: 1, fontFamily: "Buda, sans-serif", fontSize: "1.2rem" } }}
-                  InputLabelProps={{ sx: { fontFamily: "Buda, sans-serif", fontSize: "1.2rem"  }}}
+                  InputProps={{
+                    sx: {
+                      bgcolor: "#cbd5e0",
+                      borderRadius: 1,
+                      fontFamily: "Buda, sans-serif",
+                      fontSize: "1.2rem",
+                    },
+                  }}
+                  InputLabelProps={{
+                    sx: { fontFamily: "Buda, sans-serif", fontSize: "1.2rem" },
+                  }}
                 />
               </Box>
 

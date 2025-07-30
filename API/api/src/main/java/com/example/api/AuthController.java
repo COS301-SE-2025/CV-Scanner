@@ -266,6 +266,31 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/update-profile")
+    public ResponseEntity<?> updateProfile(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        String firstName = payload.get("firstName");
+        String lastName = payload.get("lastName");
+
+        if (email == null || firstName == null || lastName == null) {
+            return ResponseEntity.badRequest().body(Collections.singletonMap("message", "Missing required fields."));
+        }
+
+        try {
+            int updated = jdbcTemplate.update(
+                "UPDATE users SET first_name = ?, last_name = ? WHERE email = ?",
+                firstName, lastName, email
+            );
+            if (updated > 0) {
+                return ResponseEntity.ok(Collections.singletonMap("message", "Profile updated successfully"));
+            } else {
+                return ResponseEntity.status(404).body(Collections.singletonMap("message", "User not found."));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Collections.singletonMap("message", "Failed to update profile."));
+        }
+    }
+
 }
 
 class RegisterRequest {
