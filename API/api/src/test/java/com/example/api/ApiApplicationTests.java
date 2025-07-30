@@ -63,7 +63,7 @@ public class ApiApplicationTests {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isOk())
-                .andExpect(content().string("User registered successfully"));
+                .andExpect(jsonPath("$.message").value("User registered successfully"));
     }
 
     @Test
@@ -78,7 +78,7 @@ public class ApiApplicationTests {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string("All fields are required."));
+                .andExpect(jsonPath("$.message").value("All fields are required."));
     }
 
     @Test
@@ -98,7 +98,7 @@ public class ApiApplicationTests {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string("Username or email already exists."));
+                .andExpect(jsonPath("$.message").value("Username or email already exists."));
     }
 
 
@@ -114,7 +114,7 @@ public class ApiApplicationTests {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string("Email and password are required."));
+                .andExpect(jsonPath("$.message").value("Email and password are required."));
     }
 
     @Test
@@ -133,7 +133,7 @@ public class ApiApplicationTests {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isUnauthorized())
-                .andExpect(content().string("Invalid email or password."));
+                .andExpect(jsonPath("$.message").value("Invalid email or password."));
     }
 
     
@@ -172,7 +172,7 @@ public class ApiApplicationTests {
         mockMvc.perform(get("/auth/me")
                 .param("email", "notfound@example.com"))
                 .andExpect(status().isNotFound())
-                .andExpect(content().string("User not found."));
+                .andExpect(jsonPath("$.message").value("User not found."));
     }
 
         
@@ -217,51 +217,50 @@ public class ApiApplicationTests {
 
         mockMvc.perform(get("/auth/all-users"))
                 .andExpect(status().isInternalServerError())
-                .andExpect(content().string("Failed to fetch users."));
+                .andExpect(jsonPath("$.message").value("Failed to fetch users."));
     }
 
-                @Test
-        void deleteUser_success() throws Exception {
-            Mockito.when(jdbcTemplate.update(
-                    Mockito.anyString(),
-                    Mockito.<Object[]>any()
-            )).thenReturn(1);
+    @Test
+    void deleteUser_success() throws Exception {
+        Mockito.when(jdbcTemplate.update(
+                Mockito.anyString(),
+                Mockito.<Object[]>any()
+        )).thenReturn(1);
 
-            mockMvc.perform(delete("/auth/delete-user")
-                    .param("email", "user1@example.com"))
-                    .andExpect(status().isOk())
-                    .andExpect(content().string("User deleted successfully."));
-        }
+        mockMvc.perform(delete("/auth/delete-user")
+                .param("email", "user1@example.com"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("User deleted successfully."));
+    }
 
-        @Test
-        void deleteUser_notFound() throws Exception {
-            Mockito.when(jdbcTemplate.update(
-                    Mockito.anyString(),
-                    Mockito.<Object[]>any()
-            )).thenReturn(0);
+    @Test
+    void deleteUser_notFound() throws Exception {
+        Mockito.when(jdbcTemplate.update(
+                Mockito.anyString(),
+                Mockito.<Object[]>any()
+        )).thenReturn(0);
 
-            mockMvc.perform(delete("/auth/delete-user")
-                    .param("email", "notfound@example.com"))
-                    .andExpect(status().isNotFound())
-                    .andExpect(content().string("User not found."));
-        }
+        mockMvc.perform(delete("/auth/delete-user")
+                .param("email", "notfound@example.com"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("User not found."));
+    }
 
-        @Test
-        void deleteUser_failure() throws Exception {
-            Mockito.when(jdbcTemplate.update(
-                    Mockito.anyString(),
-                    Mockito.<Object[]>any()
-            )).thenThrow(new RuntimeException("DB error"));
+    @Test
+    void deleteUser_failure() throws Exception {
+        Mockito.when(jdbcTemplate.update(
+                Mockito.anyString(),
+                Mockito.<Object[]>any()
+        )).thenThrow(new RuntimeException("DB error"));
 
-            mockMvc.perform(delete("/auth/delete-user")
-                    .param("email", "user1@example.com"))
-                    .andExpect(status().isInternalServerError())
-                    .andExpect(content().string("Failed to delete user."));
-        }
+        mockMvc.perform(delete("/auth/delete-user")
+                .param("email", "user1@example.com"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("Failed to delete user."));
+    }
 
-       
-        @Test
-        void addUser_success() throws Exception {
+    @Test
+    void addUser_success() throws Exception {
         Map<String, Object> user = new HashMap<>();
         user.put("username", "janedoe");
         user.put("email", "jane.doe@example.com");
@@ -280,11 +279,11 @@ public class ApiApplicationTests {
                 .contentType("application/json")
                 .content(new ObjectMapper().writeValueAsString(user)))
                 .andExpect(status().isOk())
-                .andExpect(content().string("User added successfully."));
-        }
+                .andExpect(jsonPath("$.message").value("User added successfully."));
+    }
 
-        @Test
-        void addUser_failure() throws Exception {
+    @Test
+    void addUser_failure() throws Exception {
         Map<String, Object> user = new HashMap<>();
         user.put("username", "janedoe");
         user.put("email", "jane.doe@example.com");
@@ -303,12 +302,12 @@ public class ApiApplicationTests {
                 .contentType("application/json")
                 .content(new ObjectMapper().writeValueAsString(user)))
                 .andExpect(status().isInternalServerError())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Failed to add user.")));
-        }
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Failed to add user.")));
+    }
 
-        // Test for /auth/edit-user
-        @Test
-        void editUser_success() throws Exception {
+    // Test for /auth/edit-user
+    @Test
+    void editUser_success() throws Exception {
         Map<String, Object> user = new HashMap<>();
         user.put("username", "janedoe");
         user.put("email", "jane.doe@example.com");
@@ -326,11 +325,11 @@ public class ApiApplicationTests {
                 .contentType("application/json")
                 .content(new ObjectMapper().writeValueAsString(user)))
                 .andExpect(status().isOk())
-                .andExpect(content().string("User updated successfully."));
-        }
+                .andExpect(jsonPath("$.message").value("User updated successfully."));
+    }
 
-        @Test
-        void editUser_notFound() throws Exception {
+    @Test
+    void editUser_notFound() throws Exception {
         Map<String, Object> user = new HashMap<>();
         user.put("username", "janedoe");
         user.put("email", "jane.doe@example.com");
@@ -348,11 +347,11 @@ public class ApiApplicationTests {
                 .contentType("application/json")
                 .content(new ObjectMapper().writeValueAsString(user)))
                 .andExpect(status().isNotFound())
-                .andExpect(content().string("User not found."));
-        }
+                .andExpect(jsonPath("$.message").value("User not found."));
+    }
 
-        @Test
-        void editUser_failure() throws Exception {
+    @Test
+    void editUser_failure() throws Exception {
         Map<String, Object> user = new HashMap<>();
         user.put("username", "janedoe");
         user.put("email", "jane.doe@example.com");
@@ -370,7 +369,88 @@ public class ApiApplicationTests {
                 .contentType("application/json")
                 .content(new ObjectMapper().writeValueAsString(user)))
                 .andExpect(status().isInternalServerError())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Failed to update user.")));
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Failed to update user.")));
+    }
+
+    @Test
+    void updateProfile_success() throws Exception {
+        Mockito.when(jdbcTemplate.update(
+                Mockito.anyString(),
+                Mockito.anyString(), Mockito.anyString(), Mockito.anyString()
+        )).thenReturn(1);
+
+        String json = """
+        {
+            "email": "test@example.com",
+            "firstName": "Updated",
+            "lastName": "User"
         }
+        """;
+
+        mockMvc.perform(post("/auth/update-profile")
+                .contentType("application/json")
+                .content(json))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Profile updated successfully"));
+    }
+
+    @Test
+    void updateProfile_userNotFound() throws Exception {
+        Mockito.when(jdbcTemplate.update(
+                Mockito.anyString(),
+                Mockito.anyString(), Mockito.anyString(), Mockito.anyString()
+        )).thenReturn(0);
+
+        String json = """
+        {
+            "email": "notfound@example.com",
+            "firstName": "Updated",
+            "lastName": "User"
+        }
+        """;
+
+        mockMvc.perform(post("/auth/update-profile")
+                .contentType("application/json")
+                .content(json))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("User not found."));
+    }
+
+    @Test
+    void updateProfile_missingFields() throws Exception {
+        String json = """
+        {
+            "email": "test@example.com"
+        }
+        """;
+
+        mockMvc.perform(post("/auth/update-profile")
+                .contentType("application/json")
+                .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Missing required fields."));
+    }
+
+    @Test
+    void updateProfile_failure() throws Exception {
+        Mockito.when(jdbcTemplate.update(
+                Mockito.anyString(),
+                Mockito.anyString(), Mockito.anyString(), Mockito.anyString()
+        )).thenThrow(new RuntimeException("DB error"));
+
+        String json = """
+        {
+            "email": "test@example.com",
+            "firstName": "Updated",
+            "lastName": "User"
+        }
+        """;
+
+        mockMvc.perform(post("/auth/update-profile")
+                .contentType("application/json")
+                .content(json))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Failed to update profile")));
+    }
 
 }
