@@ -109,7 +109,8 @@ export default function RegisterPage() {
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          minHeight: "100vh",
+          minHeight: "calc(100vh - 64px)",
+          mt: 10,
           bgcolor: "#181c2f",
         }}
       >
@@ -118,18 +119,25 @@ export default function RegisterPage() {
           sx={{
             p: 4,
             width: "100%",
-            maxWidth: 400,
-            borderRadius: 4,
-            background: "linear-gradient(135deg, #171058 0%, #487DA6 100%)",
-            boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.37)",
+            maxWidth: 420,
+            borderRadius: 3,
+              bgcolor: "#1e2539",
+             background: "linear-gradient(145deg, #1e2539, #2a314b)",
+             boxShadow: "0px 8px 20px rgba(0,0,0,0.4)",
           }}
         >
-          <Typography
-            variant="h5"
-            align="center"
-            gutterBottom
-            sx={{ fontWeight: "bold", color: "#fff" }}
-          >
+            <Typography
+              variant="h4"
+              align="center"
+              gutterBottom
+              sx={{
+                fontWeight: 700,
+                fontFamily: 'Inter, sans-serif',
+                background: "linear-gradient(to right, #6ddf6d, #b0e0ff)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >
             Create Account
           </Typography>
 

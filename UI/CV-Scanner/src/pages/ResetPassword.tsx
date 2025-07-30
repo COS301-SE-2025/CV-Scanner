@@ -3,6 +3,7 @@ import { AppBar, Toolbar } from "@mui/material";
 import { Box, Button, TextField, Typography, Paper } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.png';
+import logo3 from "../assets/logoNavbar.png"; // Import the third logo if needed
 
 export default function ResetPassword() {
   const [email, setEmail] = useState('');
@@ -22,109 +23,22 @@ export default function ResetPassword() {
     <>
 
     {/* Header */}
-<Box
-  sx={{
-    display: "flex",
-    alignItems: "center",
-    bgcolor: "#0A2540 ",
-    color: "#fff",
-    px: 2,
-    py: 2,
-    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-    position: "relative",
-    overflow: "hidden",
-    height: 80
-  }}
->
-  {/* Logo in left corner */}
-  <Box 
-    sx={{
-      position: "absolute",
-      left: 20,
-      zIndex: 2,
-      "&:hover": {
-        transform: "rotate(-5deg)",
-        transition: "transform 0.3s ease"
-      }
-    }}
-  >
-    <img 
-      src={logo} 
-      alt="Quantum Stack Logo" 
-      style={{ 
-        width: 75,
-        height: "auto",
-        filter: "none" // Removed shadow
-      }} 
-    />
-  </Box>
-
-  {/* Sliding Text Container - full width */}
-  <Box 
-    sx={{
-      position: "absolute",
-      width: "100%",
-      height: "100%",
-      display: "flex",
-      alignItems: "center",
-      left: 0,
-      overflow: "hidden"
-    }}
-  >
-    <Typography
-      variant="h4"
-      sx={{
-        fontWeight: 800,
-        letterSpacing: 4,
-        textTransform: "uppercase",
-        fontFamily: "'Orbitron', sans-serif",
-        background: "linear-gradient(to right, #fff, #d1faff)",
-        WebkitBackgroundClip: "text",
-        WebkitTextFillColor: "transparent",
-        whiteSpace: "nowrap",
-        position: "absolute",
-        left: "100%", // Start off-screen right
-        animation: "slideText 20s linear infinite",
-        "@keyframes slideText": {
-          "0%": { 
-            transform: "translateX(0)",
-            left: "100%" 
-          },
-          "10%": { 
-            left: "100%",
-            transform: "translateX(0)" 
-          },
-          "100%": { 
-            left: "0%",
-            transform: "translateX(-100%)" 
-          }
-        }
-      }}
-    >
-      QUANTUM STACK
-    </Typography>
-  </Box>
-
-  {/* Subtle background shine animation */}
-  <Box sx={{
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%)",
-    animation: "shine 15s infinite linear",
-    "@keyframes shine": {
-      "0%": { transform: "translateX(-100%)" },
-      "100%": { transform: "translateX(100%)" }
-    }
-  }}/>
-</Box>
+         <AppBar position="fixed" sx={{ bgcolor: "#0A2540", boxShadow: "none" }}>
+        <Toolbar sx={{ justifyContent: "space-between" }}>
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <img src={logo3} alt="Logo" style={{ width: 80 }} />
+            <Typography variant="h6" sx={{ ml: 2, fontWeight: "bold", color: "#fff" }}>
+              CV Scanner
+            </Typography>
+          </Box>
+        </Toolbar>
+      </AppBar>
 
       {/* Main Content */}
     <Box
       sx={{
-        minHeight: '100vh',
+          minHeight: "calc(100vh - 64px)",
+        mt: 10,
         bgcolor: '#181c2f',
         display: 'flex',
         justifyContent: 'center',
@@ -134,19 +48,26 @@ export default function ResetPassword() {
       <Paper
         elevation={8}
         sx={{
-          p: 4,
+          p: 3,
           borderRadius: 4,
           width: '100%',
-          maxWidth: 350,
-          background: 'linear-gradient(135deg, #171058 0%, #487DA6 100%)',
-          boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+          maxWidth: 420,
+            bgcolor: "#1e2539",
+             background: "linear-gradient(145deg, #1e2539, #2a314b)",
+             boxShadow: "0px 8px 20px rgba(0,0,0,0.4)",
         }}
       >
-        <Typography
+         <Typography
           variant="h4"
           align="center"
           gutterBottom
-          sx={{ color: '#fff', fontWeight: 'bold', mb: 1 }}
+          sx={{
+            fontWeight: 700,
+            fontFamily: 'Inter, sans-serif',
+            background: "linear-gradient(to right, #6ddf6d, #b0e0ff)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+          }}
         >
           Reset Password
         </Typography>
