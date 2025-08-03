@@ -28,7 +28,7 @@ def classify_text(text: str):
     result = classifier(text, candidate_labels=candidate_labels)
 
     scored = list(zip(result["labels"], result["scores"]))
-    scored.sort(key=lambda x: x[1], reverse=True)  # Sort by probability
+    scored.sort(key=lambda x: x[1], reverse=True)
 
     return {
         "text": text,
@@ -49,7 +49,6 @@ def rank_tags(texts: list):
         classification = classify_text(text)
         ranked_results.append(classification)
 
-        # Automatically add tag if probability is above threshold
         if classification["probabilities"][classification["top_category"]] > 0.6:
             add_tag_to_category(classification["top_category"], text)
 
@@ -58,3 +57,16 @@ def rank_tags(texts: list):
 def get_graph_data():
     """Prepare graph-friendly data showing tag counts per category."""
     return {category: len(tags) for category, tags in categories.items()}
+
+if __name__ == "__main__":
+    sample_texts = [
+        "Proficient in Python, JavaScript, and SQL.",
+        "Bachelor of Science in Computer Science.",
+        "Worked 3 years as a backend developer at Google.",
+        "Excellent leadership and teamwork skills."
+    ]
+
+    results = rank_tags(sample_texts)
+    print("Ranked Results:", results)
+    print("Categories:", categories)
+    print("Graph Data:", get_graph_data())
