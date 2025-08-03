@@ -54,3 +54,7 @@ def rank_tags(texts: list):
             add_tag_to_category(classification["top_category"], text)
 
     return ranked_results
+
+def get_graph_data():
+    """Prepare graph-friendly data showing tag counts per category."""
+    return {category: len(tags) for category, tags in categories.items()}
