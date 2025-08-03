@@ -35,3 +35,22 @@ def classify_text(text: str):
         "top_category": scored[0][0],
         "probabilities": {label: float(score) for label, score in scored}
     }
+
+def rank_tags(texts: list):
+    """
+    Takes a list of text snippets (e.g. from CV sections),
+    classifies them, and assigns probabilities for each category.
+    """
+    ranked_results = []
+
+    for text in texts:
+        if not text.strip():
+            continue
+        classification = classify_text(text)
+        ranked_results.append(classification)
+
+        # Automatically add tag if probability is above threshold
+        if classification["probabilities"][classification["top_category"]] > 0.6:
+            add_tag_to_category(classification["top_category"], text)
+
+    return ranked_results
