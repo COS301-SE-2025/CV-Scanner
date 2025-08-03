@@ -8,3 +8,8 @@ categories = {
     "experience": [],
     "other": []
 }
+
+def add_category(name: str):
+    """Add a new category dynamically."""
+    if name.lower() not in categories:
+        categories[name.lower()] = []
