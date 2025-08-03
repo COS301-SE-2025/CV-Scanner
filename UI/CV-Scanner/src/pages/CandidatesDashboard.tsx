@@ -126,14 +126,14 @@ const groupedBarData = [
   { name: 'Week 4', ".NET": 27, React: 39, Python: 20 },
 ];
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+const COLORS = ['#8884D8', '#E18A4D', '#84d98E', '#d384D9'];
 
   return (
     <Box
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#0c0e18ff",
+        bgcolor: "#1E1E1E",
         color: "#fff",
       }}
     >
@@ -144,7 +144,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
             width: 220,
             minWidth: "220px",
             maxWidth: "220px", 
-            bgcolor: "#0A2540 ",
+            bgcolor: "#232A3B ",
             display: "flex",
             flexDirection: "column",
             p: 2,
@@ -265,7 +265,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
         {/* Top AppBar */}
         <AppBar
           position="static"
-          sx={{ bgcolor: "#0A2540 ", boxShadow: "none" }}
+          sx={{ bgcolor: "#232A3B ", boxShadow: "none" }}
         >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
 
