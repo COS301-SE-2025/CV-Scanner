@@ -126,7 +126,9 @@ const groupedBarData = [
   { name: 'Week 4', ".NET": 27, React: 39, Python: 20 },
 ];
 
-const COLORS = ['#8884D8', '#E18A4D', '#84d98E', '#d384D9'];
+
+const COLORS = ['#8884D8', '#00C49F', '#FFBB28', '#FF8042'];
+
 
   return (
     <Box
@@ -244,7 +246,7 @@ const COLORS = ['#8884D8', '#E18A4D', '#84d98E', '#d384D9'];
         <Box
           sx={{
             width: 40,
-            bgcolor: "#0A2540 ",
+            bgcolor: "#232A3B ",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
@@ -330,7 +332,7 @@ const COLORS = ['#8884D8', '#E18A4D', '#84d98E', '#d384D9'];
 
         {/* Content */}
         <Box sx={{ p: 3 }}>
-          <Typography variant="h5" sx={{fontFamily: 'Buda, sans-serif', mb: 3, fontWeight: "bold" }}>
+          <Typography variant="h5" sx={{fontFamily: 'Helvetica, sans-serif', mb: 3, fontWeight: "bold" }}>
             Candidates Dashboard
           </Typography>
 
@@ -365,12 +367,12 @@ const COLORS = ['#8884D8', '#E18A4D', '#84d98E', '#d384D9'];
   <Paper sx={{ 
     p: 2, 
     borderRadius: 3, 
-    backgroundColor: "#75a29dff", 
+    backgroundColor: "#DEDDEE", 
     color: "#000",
     transition: 'transform 0.2s',
     '&:hover': { transform: 'translateY(-4px)' }
   }}>
-    <Typography variant="subtitle1" sx={{fontFamily: 'Buda, sans-serif', mb: 1, fontWeight: 600 }}>Monthly Candidate Uploads</Typography>
+    <Typography variant="subtitle1" sx={{fontFamily: 'Helvetica, sans-serif', mb: 1, fontWeight: 600 }}>Monthly Candidate Uploads</Typography>
     <ResponsiveContainer width="100%" height={200}>
       <LineChart data={candidateTrends}>
         <CartesianGrid stroke="#ccc" strokeDasharray="3 3" />
@@ -393,12 +395,12 @@ const COLORS = ['#8884D8', '#E18A4D', '#84d98E', '#d384D9'];
   <Paper sx={{ 
     p: 2, 
     borderRadius: 3, 
-    backgroundColor: "#2b3a55", 
+    backgroundColor: "#444444", 
     color: "#fff",
     transition: 'transform 0.2s',
     '&:hover': { transform: 'translateY(-4px)' }
   }}>
-    <Typography variant="subtitle1" sx={{ fontFamily: 'Buda, sans-serif',mb: 1, fontWeight: 600 }}>Weekly Tech Usage</Typography>
+    <Typography variant="subtitle1" sx={{ fontFamily: 'Helvetica, sans-serif',mb: 1, fontWeight: 600 }}>Weekly Tech Usage</Typography>
     <ResponsiveContainer width="100%" height={200}>
       <BarChart data={groupedBarData}>
         <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
@@ -407,7 +409,8 @@ const COLORS = ['#8884D8', '#E18A4D', '#84d98E', '#d384D9'];
         <Tooltip 
           contentStyle={{ 
             backgroundColor: '#2b3a55',
-            borderColor: '#4a5568'
+            borderColor: '#4a5568',
+            fontFamily: 'Helvetica, sans-serif',
           }}
         />
         <Legend />
@@ -422,15 +425,16 @@ const COLORS = ['#8884D8', '#E18A4D', '#84d98E', '#d384D9'];
   <Paper sx={{ 
     p: 2, 
     borderRadius: 3, 
-    backgroundColor: "#75a29dff", 
+    backgroundColor: "#DEDDEE", 
     color: "#000",
     transition: 'transform 0.2s',
     '&:hover': { transform: 'translateY(-4px)' }
   }}>
-    <Typography variant="subtitle1" sx={{fontFamily: 'Buda, sans-serif', mb: 1, fontWeight: 600 }}>Skill Distribution</Typography>
+    <Typography variant="subtitle1" sx={{fontFamily: 'Helvetica, sans-serif', mb: 1, fontWeight: 600 }}>Skill Distribution</Typography>
     <ResponsiveContainer width="100%" height={200}>
       <PieChart>
         <Pie
+        
           data={skillDistribution}
           dataKey="value"
           cx="50%"
@@ -438,6 +442,7 @@ const COLORS = ['#8884D8', '#E18A4D', '#84d98E', '#d384D9'];
           outerRadius={60}
           labelLine={true}
           label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+          
         >
           {skillDistribution.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -448,6 +453,7 @@ const COLORS = ['#8884D8', '#E18A4D', '#84d98E', '#d384D9'];
             value, 
             `${name}: ${(props.payload.percent * 100).toFixed(1)}%`
           ]}
+          
         />
       </PieChart>
     </ResponsiveContainer>
@@ -457,12 +463,12 @@ const COLORS = ['#8884D8', '#E18A4D', '#84d98E', '#d384D9'];
   <Paper sx={{ 
     p: 2, 
     borderRadius: 3, 
-    backgroundColor: "#2b3a55", 
+    backgroundColor: "#444444", 
     color: "#fff",
     transition: 'transform 0.2s',
     '&:hover': { transform: 'translateY(-4px)' }
   }}>
-    <Typography variant="subtitle1" sx={{ fontFamily: 'Buda, sans-serif',mb: 1, fontWeight: 600 }}>Project Fit Types</Typography>
+    <Typography variant="subtitle1" sx={{ fontFamily: 'Helvetica, sans-serif',mb: 1, fontWeight: 600 }}>Project Fit Types</Typography>
     <ResponsiveContainer width="100%" height={200}>
       <PieChart>
         <Pie
@@ -498,11 +504,11 @@ const COLORS = ['#8884D8', '#E18A4D', '#84d98E', '#d384D9'];
           {/* Recent Table */}
           <Paper
             elevation={6}
-            sx={{ p: 2, borderRadius: 3, backgroundColor: "#75a29dff" }}
+            sx={{ p: 2, borderRadius: 3, backgroundColor: "#c8c7d5ff" }}
           >
             <Typography
               variant="h6"
-              sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", color: "#0073c1", mb: 2 }}
+              sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", color: "#232A3B", mb: 2 }}
             >
               Recently Processed
             </Typography>
@@ -511,16 +517,16 @@ const COLORS = ['#8884D8', '#E18A4D', '#84d98E', '#d384D9'];
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{fontFamily: 'Buda, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
+                    <TableCell sx={{fontFamily: 'Helvetica, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
                       Candidate
                     </TableCell>
-                    <TableCell sx={{fontFamily: 'Buda, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
+                    <TableCell sx={{fontFamily: 'Helvetica, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
                       Top Skills
                     </TableCell>
-                    <TableCell sx={{fontFamily: 'Buda, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
+                    <TableCell sx={{fontFamily: 'Helvetica, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
                       Project Fit
                     </TableCell>
-                    <TableCell sx={{fontFamily: 'Buda, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
+                    <TableCell sx={{fontFamily: 'Helvetica, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
                       Actions
                     </TableCell>
                   </TableRow>
@@ -587,11 +593,11 @@ const COLORS = ['#8884D8', '#E18A4D', '#84d98E', '#d384D9'];
                               <Box sx={{ position: "relative" }}>
                                 <Typography
                                   variant="h6"
-                                  sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", mb: 1 }}
+                                  sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 1 }}
                                 >
                                   Quick Tip
                                 </Typography>
-                                <Typography sx={{fontFamily: 'Buda, sans-serif', mb: 2 }}>
+                                <Typography sx={{fontFamily: 'Helvetica, sans-serif', mb: 2 }}>
                                   Click <b>Review</b> to view and assess this
                                   candidate's CV.
                                 </Typography>
@@ -628,7 +634,7 @@ const COLORS = ['#8884D8', '#E18A4D', '#84d98E', '#d384D9'];
                                       sx={{
                                         bgcolor: "#5a88ad",
                                         color: "#fff",
-                                        fontFamily: 'Buda, sans-serif',
+                                        fontFamily: 'Helvetica, sans-serif',
                                         fontWeight: "bold",
                                         textTransform: "none",
                                         "&:hover": { bgcolor: "#487DA6" },
@@ -685,20 +691,20 @@ const statCardStyle = {
   p: 2,
   minWidth: 140,
   borderRadius: 3,
-  backgroundColor: "#888a8aff",
+  backgroundColor: "#888888",
   textAlign: "center",
   color: "#000",
 };
 
 const reviewButtonStyle = {
-  background: "linear-gradient(45deg, #0a1172 0%, #032c3b 50%, #00b300 100%)",
-  color: "white",
+  background: "#232A3B",
+  color: "DEDDEE",
   fontWeight: "bold",
   padding: "8px 20px",
   borderRadius: "4px",
   boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
   "&:hover": {
-    background: "linear-gradient(45deg, #081158 0%, #022028 50%, #009a00 100%)",
+    background: "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
     transform: "translateY(-1px)",
   },
   textTransform: "none",
