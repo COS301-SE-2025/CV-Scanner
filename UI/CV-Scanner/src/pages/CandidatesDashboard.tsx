@@ -126,7 +126,9 @@ const groupedBarData = [
   { name: 'Week 4', ".NET": 27, React: 39, Python: 20 },
 ];
 
+
 const COLORS = ['#8884D8', '#00C49F', '#FFBB28', '#FF8042'];
+
 
   return (
     <Box
