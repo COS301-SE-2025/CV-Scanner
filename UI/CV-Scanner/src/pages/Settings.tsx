@@ -631,7 +631,7 @@ export default function SettingsPage() {
                   }}
                   onClick={handleLogout}
                 >
-                  Logout
+                  LOGOUT
                 </Button>
               </Box>
             </Box>
