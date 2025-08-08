@@ -56,9 +56,18 @@ export default function SettingsPage() {
   };
 
   const [profileForm, setProfileForm] = useState({
-    firstName: "Admin",
-    lastName: "User",
-    email: "admin@entelect.co.za",
+    firstName: "",
+    lastName: "",
+    email: "",
+  });
+  const [profileSuccess, setProfileSuccess] = useState("");
+  const [profileError, setProfileError] = useState("");
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
 
   useEffect(() => {
@@ -69,14 +78,6 @@ export default function SettingsPage() {
       .then((data) => setUser(data))
       .catch(() => setUser(null));
   }, []);
-
-  const location = useLocation();
-
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
 
   useEffect(() => {
     const email = localStorage.getItem("userEmail");
@@ -92,12 +93,14 @@ export default function SettingsPage() {
       });
   }, []);
 
+  const location = useLocation();
+
   // Handle profile updates
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
-    setSuccess("");
+    setProfileLoading(true);
+    setProfileError("");
+    setProfileSuccess("");
 
     try {
       const response = await fetch(
@@ -112,14 +115,14 @@ export default function SettingsPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setSuccess("Profile updated successfully");
+        setProfileSuccess(data.message || "Profile updated successfully");
       } else {
-        setError(data.message || "Failed to update profile");
+        setProfileError(data.message || "Failed to update profile");
       }
     } catch (err) {
-      setError("Network error. Please try again.");
+      setProfileError("Network error. Please try again.");
     } finally {
-      setLoading(false);
+      setProfileLoading(false);
     }
   };
 
@@ -380,6 +383,16 @@ export default function SettingsPage() {
             sx={{ p: 4, borderRadius: 3, bgcolor: "#DEDDEE", maxWidth: 800 }}
           >
             {/* Error/Success Alerts */}
+            {profileError && (
+              <Alert severity="error" sx={{ mb: 3 }}>
+                {profileError}
+              </Alert>
+            )}
+            {profileSuccess && (
+              <Alert severity="success" sx={{ mb: 3 }}>
+                {profileSuccess}
+              </Alert>
+            )}
             {error && (
               <Alert severity="error" sx={{ mb: 3 }}>
                 {error}
@@ -418,7 +431,7 @@ export default function SettingsPage() {
               </Box>
 
               <Box
-                sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3}}
+                sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3 }}
               >
                 <TextField
                   name="firstName"
@@ -458,7 +471,7 @@ export default function SettingsPage() {
               <Button
                 type="submit"
                 variant="contained"
-                disabled={loading}
+                disabled={profileLoading}
                 sx={{
                   mt: 2,
                   background:
@@ -470,7 +483,7 @@ export default function SettingsPage() {
                   },
                 }}
               >
-                {loading ? "Updating..." : "Update Profile"}
+                {profileLoading ? "Updating..." : "Update Profile"}
               </Button>
             </Box>
 
