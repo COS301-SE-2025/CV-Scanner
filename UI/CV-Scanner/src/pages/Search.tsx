@@ -179,7 +179,7 @@ export default function Search() {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#121436ff",
+        bgcolor: "#1E1E1E",
         color: "#fff",
       }}
     >
@@ -195,7 +195,7 @@ export default function Search() {
         {/* Top Bar */}
           <AppBar
                    position="static"
-                   sx={{ bgcolor: "#0A2540", boxShadow: "none" }}
+                   sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
                  >
                    <Toolbar sx={{ justifyContent: "flex-end" }}>
            {/* Tutorial icon */}
@@ -259,8 +259,8 @@ export default function Search() {
         {/* Page Content */}
         <Box sx={{ p: 3 }}>
           <Typography
-              variant="h4"
-              sx={{ fontWeight: "bold", mb: 3,fontFamily: "Buda, sans-serif", color: "#fff" }}
+              variant="h5"
+              sx={{ fontWeight: "bold", mb: 3,fontFamily: "Helvetica, sans-serif", color: "#fff" }}
             >
               Search Candidates
             </Typography>
@@ -270,18 +270,18 @@ export default function Search() {
                 display: "flex",
                 alignItems: "center",
                 mb: 4,
-                bgcolor: "#cbd5e0",
+                bgcolor: "#DEDDEE",
                 borderRadius: 1,
                 px: 2,
                 py: 1,
-                fontFamily: "Buda, sans-serif",
+                fontFamily: "Helvetica, sans-serif",
               }}
               ref={searchBarRef}
             >
               <SearchIcon color="action" />
               <InputBase
                 placeholder="Search by name, skills, or project type..."
-                sx={{ ml: 1, flex: 1, fontFamily: "Buda, sans-serif", fontSize: "1.3rem" }}
+                sx={{ ml: 1, flex: 1, fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
                 fullWidth
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
@@ -289,7 +289,7 @@ export default function Search() {
             </Box>
           <Paper
             elevation={6}
-            sx={{ p: 3, borderRadius: 3, backgroundColor: "#2b3a55", fontFamily: "Buda, sans-serif", color: "#fff" }}
+            sx={{ p: 3, borderRadius: 3, backgroundColor: "#DEDDEE", fontFamily: "Helvetica, sans-serif", color: "#fff" }}
           >
 
             
@@ -299,11 +299,11 @@ export default function Search() {
               <Box>
                 <Typography
                   variant="subtitle1"
-                  sx={{ fontWeight: "bold", mb: 2, fontFamily: "Buda, sans-serif", fontSize: "1.3rem" }}
+                  sx={{ color:"#000000ff", fontWeight: "bold", mb: 2, fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
                 >
                   Primary Skills
                 </Typography>
-                <FormGroup>
+                <FormGroup sx={{color: "#000000ff"}}>
                   {[".NET", "Java", "React", "Azure"].map((skill) => (
                     <FormControlLabel
                       key={skill}
@@ -312,13 +312,13 @@ export default function Search() {
                           checked={selectedSkills.includes(skill)}
                           onChange={() => handleCheckboxChange("skill", skill)}
                           sx={{
-                            color: "#0073c1",
-                            "&.Mui-checked": { color: "#0073c1" },
+                            color: "#838383ff", // green
+                            "&.Mui-checked": { color: "#838383ff" },//green
                           }}
                         />
                       }
                       label={
-                        <Typography sx={{ fontFamily: "Buda, sans-serif", fontSize: "1.2rem" }}>
+                        <Typography sx={{ fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}>
                           {skill}
                         </Typography>
                       }
@@ -329,11 +329,11 @@ export default function Search() {
               <Box>
                 <Typography
                   variant="subtitle1"
-                  sx={{ fontWeight: "bold", mb: 2 ,fontFamily: "Buda, sans-serif", fontSize: "1.3rem" }}
+                  sx={{ color:"#000000ff", fontWeight: "bold", mb: 2 ,fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
                 >
                   Project Fit
                 </Typography>
-                <FormGroup>
+                <FormGroup sx={{color: "#000000ff"}}>
                   {["Technical", "Collaborative", "Business"].map((fit) => (
                     <FormControlLabel
                       key={fit}
@@ -342,13 +342,13 @@ export default function Search() {
                           checked={selectedFits.includes(fit)}
                           onChange={() => handleCheckboxChange("fit", fit)}
                           sx={{
-                            color: "#0073c1",
-                            "&.Mui-checked": { color: "#0073c1" },
+                            color: "#0073c1", //green
+                            "&.Mui-checked": { color: "#0073c1" }, //green
                           }}
                         />
                       }
                       label={
-                        <Typography sx={{ fontFamily: "Buda, sans-serif", fontSize: "1.2rem" }}>
+                        <Typography sx={{ fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}>
                           {fit}
                         </Typography>
                       }
@@ -359,11 +359,11 @@ export default function Search() {
               <Box>
                 <Typography
                   variant="subtitle1"
-                  sx={{ fontWeight: "bold", mb: 2, fontFamily: "Buda, sans-serif", fontSize: "1.3rem" }}
+                  sx={{ color: "#000000ff",fontWeight: "bold", mb: 2, fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
                 >
                   Upload Details
                 </Typography>
-                <FormGroup>
+                <FormGroup sx={{color: "#000000ff"}}>
                   {["My Uploads", "Last 7 Days"].map((detail) => (
                     <FormControlLabel
                       key={detail}
@@ -374,13 +374,13 @@ export default function Search() {
                             handleCheckboxChange("detail", detail)
                           }
                           sx={{
-                            color: "#0073c1",
-                            "&.Mui-checked": { color: "#0073c1" },
+                            color: "#0073c1", //green
+                            "&.Mui-checked": { color: "#0073c1" },//green
                           }}
                         />
                       }
                       label={
-                        <Typography sx={{ fontFamily: "Buda, sans-serif", fontSize: "1.2rem" }}>
+                        <Typography sx={{ fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}>
                           {detail}
                         </Typography>
                       }
@@ -393,7 +393,7 @@ export default function Search() {
             <Divider sx={{ my: 3 }} />
 
             {/* Results Count */}
-            <Typography variant="subtitle1" sx={{ mb: 3, fontWeight: "bold", fontFamily: "Buda, sans-serif", fontSize: "1.3rem" }}>
+            <Typography variant="subtitle1" sx={{ color: "#000000ff",mb: 3, fontWeight: "bold", fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}>
               Showing {filteredCandidates.length} of {candidates.length}{" "}
               candidates
             </Typography>
@@ -431,7 +431,7 @@ export default function Search() {
                           height: 56,
                           fontSize: "1.5rem",
                           fontWeight: "bold",
-                          fontFamily: "Buda, sans-serif",
+                          fontFamily: "Helvetica, sans-serif",
                         }}
                       >
                         {candidate.initials}
@@ -439,16 +439,16 @@ export default function Search() {
                       <Box sx={{ flexGrow: 1 }}>
                         <Typography
                           variant="h6"
-                          sx={{ fontWeight: "bold", mb: 0.5, fontFamily: "Buda, sans-serif", fontSize: "1.4rem" }}
+                          sx={{ fontWeight: "bold", mb: 0.5, fontFamily: "Helvetica, sans-serif", fontSize: "1.2rem" }}
                         >
                           {candidate.name}
                         </Typography>
-                        <Typography variant="body1" sx={{ mb: 1,fontFamily: "Buda, sans-serif", fontSize: "1.2rem" }}>
+                        <Typography variant="body1" sx={{ mb: 1,fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}>
                           {candidate.project}
                         </Typography>
                         <Typography
                           variant="body2"
-                          sx={{ mb: 1.5, color: "#black", fontFamily: "Buda, sans-serif", fontSize: "1.1rem" }}
+                          sx={{ mb: 1.5, color: "#black", fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
                         >
                           Uploaded: {candidate.uploaded}
                         </Typography>
@@ -466,13 +466,13 @@ export default function Search() {
                               key={i}
                               label={skill}
                               size="small"
-                              sx={{ backgroundColor: "#d0e8ff",fontFamily: "Buda, sans-serif", fontSize: "0.9rem",fontWeight: "bold" ,color: "#0073c1" }}
+                              sx={{ backgroundColor: "#d0e8ff",fontFamily: "Helvetica, sans-serif", fontSize: "1rem",fontWeight: "bold" ,color: "#0073c1" }}
                             />
                           ))}
                         </Box>
                         <Typography
                           variant="body2"
-                          sx={{ color: "#0073c1", fontWeight: "bold", fontFamily: "Buda, sans-serif", fontSize: "1.1rem" }}
+                          sx={{ color: "#0073c1", fontWeight: "bold", fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
                         >
                           Match: {candidate.match}
                         </Typography>
@@ -483,7 +483,7 @@ export default function Search() {
               ) : (
                 <Typography
                   variant="body1"
-                  sx={{ mt: 2, fontStyle: "italic", color: "#555", fontFamily: "Buda, sans-serif", fontSize: "1.2rem" }}
+                  sx={{ mt: 2, fontStyle: "italic", color: "#555", fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
                 >
                   No results found. Try adjusting your search or filters.
                 </Typography>
