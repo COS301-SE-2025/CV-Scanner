@@ -409,7 +409,7 @@ export default function Search() {
                       p: 3,
                       mb: 3,
                       borderRadius: 3,
-                      backgroundColor: "#75a29dff",
+                      backgroundColor: "#adb6beff",
                       cursor: "pointer", // Shows it's clickable
                       "&:hover": {
                         boxShadow: "0 4px 8px rgba(0,0,0,0.2)", // Visual feedback
@@ -426,7 +426,7 @@ export default function Search() {
                     >
                       <Avatar
                         sx={{
-                          bgcolor: "#0073c1",
+                          bgcolor: "#93AFF7",
                           width: 56,
                           height: 56,
                           fontSize: "1.5rem",
@@ -466,13 +466,13 @@ export default function Search() {
                               key={i}
                               label={skill}
                               size="small"
-                              sx={{ backgroundColor: "#d0e8ff",fontFamily: "Helvetica, sans-serif", fontSize: "1rem",fontWeight: "bold" ,color: "#0073c1" }}
+                              sx={{ backgroundColor: "#93AFF7",fontFamily: "Helvetica, sans-serif", fontSize: "1rem",fontWeight: "bold" ,color: "#204E20" }}
                             />
                           ))}
                         </Box>
                         <Typography
                           variant="body2"
-                          sx={{ color: "#0073c1", fontWeight: "bold", fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
+                          sx={{ color: "#204E20", fontWeight: "bold", fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
                         >
                           Match: {candidate.match}
                         </Typography>
