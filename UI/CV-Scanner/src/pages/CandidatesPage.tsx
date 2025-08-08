@@ -125,7 +125,7 @@ export default function CandidatesPage() {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#0c0e18ff",
+        bgcolor: "#1E1E1E",
         color: "#fff",
       }}
     >
