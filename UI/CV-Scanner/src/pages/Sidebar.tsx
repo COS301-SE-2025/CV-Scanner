@@ -28,7 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, collapsed, setCollapsed }) 
       <Box
         sx={{
           width: 40,
-          bgcolor: "#1E1E1E",
+          bgcolor: "#232A3B",
           display: "flex",
           justifyContent: "center",
           alignItems: "flex-start",
@@ -49,7 +49,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, collapsed, setCollapsed }) 
     <Box
       sx={{
         width: 220,
-        bgcolor: "#1E1E1E",
+        bgcolor: "#232A3B",
         display: "flex",
         flexDirection: "column",
         p: 2,
