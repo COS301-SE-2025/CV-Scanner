@@ -125,7 +125,7 @@ export default function CandidatesPage() {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#0c0e18ff",
+        bgcolor: "#1E1E1E",
         color: "#fff",
       }}
     >
@@ -134,7 +134,7 @@ export default function CandidatesPage() {
         <Box
           sx={{
             width: 220,
-            bgcolor: "#0A2540 ",
+            bgcolor: "#232A3B ",
             display: "flex",
             flexDirection: "column",
             p: 2,
@@ -231,7 +231,7 @@ export default function CandidatesPage() {
         <Box
           sx={{
             width: 40,
-            bgcolor: "#0A2540 ",
+            bgcolor: "#232A3B",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
@@ -253,7 +253,7 @@ export default function CandidatesPage() {
 
          <AppBar
                   position="static"
-                  sx={{ bgcolor: "#0A2540 ", boxShadow: "none" }}
+                  sx={{ bgcolor: "#232A3B ", boxShadow: "none" }}
                 >
                   <Toolbar sx={{ justifyContent: "flex-end" }}>
           {/* Tutorial icon */}
@@ -316,7 +316,7 @@ export default function CandidatesPage() {
         {/* Main Page Content */}
 
           <Box sx={{ p: 3 }}>
-          <Typography variant="h5" sx={{fontFamily: 'Buda, sans-serif', mb: 3, fontWeight: "bold" }}>
+          <Typography variant="h5" sx={{fontFamily: 'Helvetica, sans-serif', mb: 3, fontWeight: "bold" }}>
             Candidate Dictionary
           </Typography>
         </Box>
@@ -324,7 +324,7 @@ export default function CandidatesPage() {
         <Box sx={{  pt: 0, px: 3, pb: 3  }}>
           <Paper
             elevation={6}
-            sx={{ p: 3, borderRadius: 3, backgroundColor: "#75a29dff" }}
+            sx={{ p: 3, borderRadius: 3, backgroundColor: "#DEDDEE" }}
           >
            {/*<Typography
               variant="h5"
@@ -462,7 +462,7 @@ export default function CandidatesPage() {
           <Box sx={{ position: "relative" }}>
             {tutorialStep === 0 && (
               <>
-                <Typography variant="h6" sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", mb: 1 }}>
+                <Typography variant="h6" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 1 }}>
                   Search Candidates
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
@@ -473,7 +473,7 @@ export default function CandidatesPage() {
             )}
             {tutorialStep === 1 && (
               <>
-                <Typography variant="h6" sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", mb: 1 }}>
+                <Typography variant="h6" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 1 }}>
                   Review a Candidate
                 </Typography>
                 <Typography sx={{ mb: 2 }}>

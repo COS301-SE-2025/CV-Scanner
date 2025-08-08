@@ -90,7 +90,7 @@ export default function CandidateExperiencePage() {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#0c0e18ff",
+        bgcolor: "#1E1E1E",
         color: "#fff",
       }}
     >
@@ -100,7 +100,7 @@ export default function CandidateExperiencePage() {
         {/* Top App Bar */}
         <AppBar
           position="static"
-          sx={{ bgcolor: "#0A2540 ", boxShadow: "none" }}
+          sx={{ bgcolor: "#232A3B ", boxShadow: "none" }}
 
         >
           <Toolbar sx={{ justifyContent: "space-between" }}>
@@ -299,7 +299,7 @@ export default function CandidateExperiencePage() {
           {/* Work History Section */}
           <Paper
             elevation={6}
-            sx={{ p: 3, borderRadius: 3, bgcolor: "#75a29dff" }}
+            sx={{ p: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
             ref={workHistoryRef}
           >
             <Typography variant="h6" sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", mb: 2 }}>
