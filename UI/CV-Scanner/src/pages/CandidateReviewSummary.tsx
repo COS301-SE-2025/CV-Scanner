@@ -96,7 +96,7 @@ export default function CandidateReviewSummary() {
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
 
-        <AppBar position="static" sx={{ bgcolor: "#0A2540 ", boxShadow: "none" }}>
+        <AppBar position="static" sx={{ bgcolor: "#232A3B ", boxShadow: "none" }}>
           <Toolbar sx={{ justifyContent: "space-between" }}>
             {/* Left: Logo */}
     <Box sx={{ display: 'flex', alignItems: 'center' }}>

@@ -134,7 +134,7 @@ export default function CandidatesPage() {
         <Box
           sx={{
             width: 220,
-            bgcolor: "#0A2540 ",
+            bgcolor: "#232A3B ",
             display: "flex",
             flexDirection: "column",
             p: 2,
@@ -231,7 +231,7 @@ export default function CandidatesPage() {
         <Box
           sx={{
             width: 40,
-            bgcolor: "#0A2540 ",
+            bgcolor: "#232A3B",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
@@ -253,7 +253,7 @@ export default function CandidatesPage() {
 
          <AppBar
                   position="static"
-                  sx={{ bgcolor: "#0A2540 ", boxShadow: "none" }}
+                  sx={{ bgcolor: "#232A3B ", boxShadow: "none" }}
                 >
                   <Toolbar sx={{ justifyContent: "flex-end" }}>
           {/* Tutorial icon */}

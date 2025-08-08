@@ -100,7 +100,7 @@ export default function CandidateExperiencePage() {
         {/* Top App Bar */}
         <AppBar
           position="static"
-          sx={{ bgcolor: "#0A2540 ", boxShadow: "none" }}
+          sx={{ bgcolor: "#232A3B ", boxShadow: "none" }}
 
         >
           <Toolbar sx={{ justifyContent: "space-between" }}>
