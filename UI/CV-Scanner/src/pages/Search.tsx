@@ -312,8 +312,8 @@ export default function Search() {
                           checked={selectedSkills.includes(skill)}
                           onChange={() => handleCheckboxChange("skill", skill)}
                           sx={{
-                            color: "#838383ff", // green
-                            "&.Mui-checked": { color: "#838383ff" },//green
+                            color: "#204E20", // green
+                            "&.Mui-checked": { color: "#204E20" },//green
                           }}
                         />
                       }
@@ -342,8 +342,8 @@ export default function Search() {
                           checked={selectedFits.includes(fit)}
                           onChange={() => handleCheckboxChange("fit", fit)}
                           sx={{
-                            color: "#0073c1", //green
-                            "&.Mui-checked": { color: "#0073c1" }, //green
+                            color: "#204E20", //green
+                            "&.Mui-checked": { color: "#204E20" }, //green
                           }}
                         />
                       }
@@ -374,8 +374,8 @@ export default function Search() {
                             handleCheckboxChange("detail", detail)
                           }
                           sx={{
-                            color: "#0073c1", //green
-                            "&.Mui-checked": { color: "#0073c1" },//green
+                            color: "#204E20", //green
+                            "&.Mui-checked": { color: "#204E20" },//green
                           }}
                         />
                       }
