@@ -44,6 +44,7 @@ import logoNavbar from "../assets/logoNavbar.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import Sidebar from "./Sidebar";
 
 export default function UploadCVPage() {
   const [collapsed, setCollapsed] = useState(false);
@@ -180,137 +181,23 @@ const devUser = {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#121436ff",
+        bgcolor: "#1E1E1E",
         color: "#fff",
-        fontFamily: "Buda, sans-serif",
+        fontFamily: "Helvetica, sans-serif",
       }}
     >
       {/* Sidebar */}
-      {!collapsed ? (
-        <Box
-          sx={{
-            width: 220,
-            bgcolor: "#0A2540",
-            display: "flex",
-            flexDirection: "column",
-            p: 2,
-            position: "relative",
-          }}
-        >
-          {/* Collapse Button */}
-          <IconButton
-            onClick={() => setCollapsed(true)}
-            sx={{
-              color: "#fff",
-              position: "absolute",
-              top: 8,
-              left: 8,
-              zIndex: 1,
-            }}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <rect x="3" y="6" width="18" height="2" fill="currentColor" />
-              <rect x="3" y="11" width="18" height="2" fill="currentColor" />
-              <rect x="3" y="16" width="18" height="2" fill="currentColor" />
-            </svg>
-          </IconButton>
-
-          <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
-            <img src={logoNavbar} alt="Team Logo" style={{ width: 120 }} />
-          </Box>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/dashboard" ? "active" : ""}
-            startIcon={<DashboardIcon />}
-            onClick={() => navigate("/dashboard")}
-          >
-            Dashboard
-          </Button>
-
-          <Button
-            fullWidth
-            sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
-            className={location.pathname === "/upload" ? "active" : ""}
-            startIcon={<UploadFileIcon />}
-            onClick={() => navigate("/upload")}
-          >
-            Upload CV
-          </Button>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/candidates" ? "active" : ""}
-            startIcon={<PeopleIcon />}
-            onClick={() => navigate("/candidates")}
-          >
-            Candidates
-          </Button>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/search" ? "active" : ""}
-            startIcon={<SearchIcon />}
-            onClick={() => navigate("/search")}
-          >
-            Search
-          </Button>
-          {/* Only show User Management if user is Admin */}
-          {(user?.role === "Admin" || devUser.role === "Admin") && (
-            <Button
-              fullWidth
-              sx={navButtonStyle}
-              className={
-                location.pathname === "/user-management" ? "active" : ""
-              }
-              startIcon={<SettingsIcon />}
-              onClick={() => navigate("/user-management")}
-            >
-              User Management
-            </Button>
-          )}
-          {(user?.role === "Admin" || devUser.role === "Admin") && (
-            <Button
-              fullWidth
-              sx={navButtonStyle}
-              className={location.pathname === "/system-settings" ? "active" : ""}
-              startIcon={<SettingsIcon />}
-              onClick={() => navigate("/system-settings")}
-            >
-              System Settings
-            </Button>
-          )}          
-        </Box>
-      ) : (
-        // Expand Icon when sidebar is collapsed
-        <Box
-          sx={{
-            width: 40,
-            bgcolor: "#0A2540",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "flex-start",
-            pt: 1,
-          }}
-        >
-          <IconButton
-            onClick={() => setCollapsed(false)}
-            sx={{ color: "#fff" }}
-          >
-            <ChevronRightIcon />
-          </IconButton>
-        </Box>
-      )}
-
+      <Sidebar 
+  userRole={user?.role || devUser.role} 
+  collapsed={collapsed} 
+  setCollapsed={setCollapsed} 
+/>
       {/* Main Content with Top Bar */}
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
         {/* Top App Bar */}
         <AppBar
           position="static"
-          sx={{ bgcolor: "#0A2540", boxShadow: "none" }}
+          sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
         >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
             {/* Tutorial icon */}
@@ -375,17 +262,17 @@ const devUser = {
 
         {/* Main Content */}
         <Box sx={{ p: 3 }}>
-          <Typography variant="h4" sx={{ mb: 3, fontWeight: "bold",fontFamily: "Buda, sans-serif" }}>
+          <Typography variant="h5" sx={{ mb: 3, fontWeight: "bold",fontFamily: "Helvetica, sans-serif" }}>
             Upload Candidate CV
           </Typography>
 
           <Paper
             elevation={6}
-            sx={{ p: 4, borderRadius: 3, backgroundColor: "#2b3a55" }}
+            sx={{ p: 4, borderRadius: 3, backgroundColor: "#DEDDEE" }}
           >
             <Typography
               variant="h6"
-              sx={{ fontWeight: "bold", color: "#0073c1", mb: 2, fontFamily: "Buda, sans-serif" }}
+              sx={{ fontWeight: "bold", color: "#000000ff", mb: 2, fontFamily: "Helvetica, sans-serif" }}
             >
               Upload a candidate's CV to automatically extract skills and
               project matches
@@ -420,7 +307,7 @@ const devUser = {
                 />
                 <Button
                   variant="contained"
-                  sx={{ mt: 1, background: "#0077cc" }}
+                  sx={{ mt: 1, background: "#204E20" }}
                   onClick={handleBrowseClick}
                 >
                   Browse Files
@@ -436,21 +323,21 @@ const devUser = {
               value={contactInfo}
               onChange={(e) => setContactInfo(e.target.value)}
               sx={{
-                fontFamily: "Buda, sans-serif",
+                fontFamily: "Helvetica, sans-serif",
                 mb: 3,
                 "& .MuiOutlinedInput-root": {
-                  "& fieldset": { borderColor: "#fff" },
-                  fontFamily: "Buda, sans-serif",
-                  fontSize: "1.5rem",
-                  color: "#fff",
+                  "& fieldset": { borderColor: "#000000ff" },
+                  fontFamily: "Helvetica, sans-serif",
+                  fontSize: "1rem",
+                  color: "#000000ff",
                 },
                 
               }}
               InputLabelProps={{
                   sx: {
-                    color: "#fff", // label text white before focus
-                    "&.Mui-focused": { color: "#487DA6" },
-                    fontFamily: "Buda, sans-serif",
+                    color: "#000000ff", // label text white before focus
+                    "&.Mui-focused": { borderColor: "#204E20", color: "#204E20" },
+                    fontFamily: "Helvetica, sans-serif",
                     fontWeight: "bold",
                   },
                 }}
@@ -468,28 +355,28 @@ const devUser = {
               sx={{
                 mb: 3,
                 "& .MuiOutlinedInput-root": {
-                  "& fieldset": { borderColor: "#fff" },
-                  fontFamily: "Buda, sans-serif",
-                  fontSize: "1.5rem",
+                  "& fieldset": { borderColor: "#000000ff" },
+                  fontFamily: "Helvetica, sans-serif",
+                  fontSize: "1rem",
                   color: "#fff",
                 },
               }}
               InputLabelProps={{
                   sx: {
-                    "&.Mui-focused": { color: "#487DA6" },
-                    fontFamily: "Buda, sans-serif",
+                    "&.Mui-focused": { color: "#204E20" },
+                    fontFamily: "Helvetica, sans-serif",
                     fontWeight: "bold",
-                    color: "#fff",
+                    color: "#000000ff",
                   },
                 }}
               inputRef={additionalInfoRef}
               InputProps={{
                 sx: {
-                  color: "#fff",
+                  color: "#000000ff",
                   borderRadius: 2,
-                  input: { color: "#fff" },
-                  textarea: { color: "#fff" },
-                  borderColor: "#fff",
+                  input: { color: "#000000ff" },
+                  textarea: { color: "#000000ff" },
+                  borderColor: "#204E20",
                 },
               }}           
             />
@@ -497,7 +384,7 @@ const devUser = {
             {/* File Table */}
             {file && (
               <TableContainer sx={{ mb: 3 }}>
-                <Table sx={{"& td, & th":{color: "#fff", fontFamily: "Buda, sans-serif", fontSize: "1.2rem"}}}>
+                <Table sx={{"& td, & th":{color: "#000000ff", fontFamily: "Helvetica, sans-serif", fontSize: "1rem"}}}>
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ fontWeight: "bold"}}>
@@ -526,30 +413,21 @@ const devUser = {
 
             {/* Process Button */}
             <Box sx={{ textAlign: "center", mb: 2 }}>
-  <Button
-    variant="contained"
-    disabled={!file}
-    sx={{
-      ...reviewButtonStyle,
-      ...( !file && {
-        background: "#ffffffff", // brighter grey when disabled
-        color: "#666 !important",
-        boxShadow: "none",
-        "&:hover": {
-          background: "#ffffffff",
-          color: "#666 !important",
-        },
-      }),
-    }}
-    onClick={handleProcess}
-    ref={processBtnRef}
-  >
-    Process CV
-  </Button>
+  {file && (
+    <Button
+      variant="contained"
+      sx={reviewButtonStyle}
+      onClick={handleProcess}
+      ref={processBtnRef}
+    >
+      Process CV
+    </Button>
+  )}
 </Box>
 
+
             {/* Upload Notes */}
-            <Typography variant="body2" color="white" sx={{ fontFamily: "Buda, sans-serif",fontSize: "1.5rem", }}>
+            <Typography variant="body2" color="#000000ff" sx={{ fontFamily: "Helvetica, sans-serif",fontSize: "1rem", }}>
               <strong>Requirements:</strong>
               <br />
               • Accepted formats: PDF, DOC, DOCX
@@ -872,14 +750,14 @@ const navButtonStyle = {
 };
 
 const reviewButtonStyle = {
-  background: "linear-gradient(45deg, #0a1172 0%, #032c3b 50%, #00b300 100%)",
-  color: "#ffffff !important",
+  background: "#232A3B",
+  color: "DEDDEE",
   fontWeight: "bold",
   padding: "8px 20px",
   borderRadius: "4px",
   boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
   "&:hover": {
-    background: "linear-gradient(45deg, #081158 0%, #022028 50%, #009a00 100%)",
+    background: "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
     transform: "translateY(-1px)",
   },
   textTransform: "none",
@@ -894,6 +772,6 @@ const reviewButtonStyle = {
     width: "100%",
     height: "100%",
     background:
-      "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
+      "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
   },
 };

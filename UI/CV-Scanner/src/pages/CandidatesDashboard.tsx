@@ -42,6 +42,7 @@ import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import Sidebar from "./Sidebar";
 
 export default function CandidatesDashboard() {
   const [collapsed, setCollapsed] = useState(false);
@@ -126,146 +127,32 @@ const groupedBarData = [
   { name: 'Week 4', ".NET": 27, React: 39, Python: 20 },
 ];
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+
+const COLORS = ['#8884D8', '#00C49F', '#FFBB28', '#FF8042'];
+
 
   return (
     <Box
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#0c0e18ff",
+        bgcolor: "#1E1E1E",
         color: "#fff",
       }}
     >
-      {/* Sidebar */}
-      {!collapsed ? (
-        <Box
-          sx={{
-            width: 220,
-            minWidth: "220px",
-            maxWidth: "220px", 
-            bgcolor: "#0A2540 ",
-            display: "flex",
-            flexDirection: "column",
-            p: 2,
-            position: "relative",
-          }}
-        >
-          {/* Collapse Button */}
-          <IconButton
-            onClick={() => setCollapsed(true)}
-            sx={{
-              color: "#fff",
-              position: "absolute",
-              top: 8,
-              left: 8,
-              zIndex: 1,
-            }}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <rect x="3" y="6" width="18" height="2" fill="currentColor" />
-              <rect x="3" y="11" width="18" height="2" fill="currentColor" />
-              <rect x="3" y="16" width="18" height="2" fill="currentColor" />
-            </svg>
-          </IconButton>
-
-          <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
-            <img src={logo3} alt="Team Logo" style={{ width: 120 }} />
-          </Box>
-
-          <Button
-            fullWidth
-            sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
-            className={location.pathname === "/dashboard" ? "active" : ""}
-            startIcon={<DashboardIcon />}
-            onClick={() => navigate("/dashboard")}
-          >
-            Dashboard
-          </Button>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/upload" ? "active" : ""}
-            startIcon={<UploadFileIcon />}
-            onClick={() => navigate("/upload")}
-          >
-            Upload CV
-          </Button>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/candidates" ? "active" : ""}
-            startIcon={<PeopleIcon />}
-            onClick={() => navigate("/candidates")}
-          >
-            Candidates
-          </Button>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/search" ? "active" : ""}
-            startIcon={<SearchIcon />}
-            onClick={() => navigate("/search")}
-          >
-            Search
-          </Button>
-
-          {/* Only show User Management if user is Admin */}
-          {(user?.role === "Admin" || devUser.role === "Admin") && (
-            <Button
-              fullWidth
-              sx={navButtonStyle}
-              className={
-                location.pathname === "/user-management" ? "active" : ""
-              }
-              startIcon={<SettingsIcon />}
-              onClick={() => navigate("/user-management")}
-            >
-              User Management
-            </Button>
-          )}
-          {(user?.role === "Admin" || devUser.role === "Admin") && (
-            <Button
-              fullWidth
-              sx={navButtonStyle}
-              className={location.pathname === "/system-settings" ? "active" : ""}
-              startIcon={<SettingsIcon />}
-              onClick={() => navigate("/system-settings")}
-            >
-              System Settings
-            </Button>
-          )}          
-        </Box>
-      ) : (
-        // Expand Icon when sidebar is collapsed
-        <Box
-          sx={{
-            width: 40,
-            bgcolor: "#0A2540 ",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "flex-start",
-            pt: 1,
-          }}
-        >
-          <IconButton
-            onClick={() => setCollapsed(false)}
-            sx={{ color: "#fff" }}
-          >
-            <ChevronRightIcon />
-          </IconButton>
-        </Box>
-      )}
+    {/* Sidebar */}
+          <Sidebar 
+      userRole={user?.role || devUser.role} 
+      collapsed={collapsed} 
+      setCollapsed={setCollapsed} 
+    />
 
       {/* Main Content */}
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
         {/* Top AppBar */}
         <AppBar
           position="static"
-          sx={{ bgcolor: "#0A2540 ", boxShadow: "none" }}
+          sx={{ bgcolor: "#232A3B ", boxShadow: "none" }}
         >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
 
@@ -330,7 +217,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
         {/* Content */}
         <Box sx={{ p: 3 }}>
-          <Typography variant="h5" sx={{fontFamily: 'Buda, sans-serif', mb: 3, fontWeight: "bold" }}>
+          <Typography variant="h5" sx={{fontFamily: 'Helvetica, sans-serif', mb: 3, fontWeight: "bold" }}>
             Candidates Dashboard
           </Typography>
 
@@ -365,12 +252,12 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
   <Paper sx={{ 
     p: 2, 
     borderRadius: 3, 
-    backgroundColor: "#75a29dff", 
+    backgroundColor: "#DEDDEE", 
     color: "#000",
     transition: 'transform 0.2s',
     '&:hover': { transform: 'translateY(-4px)' }
   }}>
-    <Typography variant="subtitle1" sx={{fontFamily: 'Buda, sans-serif', mb: 1, fontWeight: 600 }}>Monthly Candidate Uploads</Typography>
+    <Typography variant="subtitle1" sx={{fontFamily: 'Helvetica, sans-serif', mb: 1, fontWeight: 600 }}>Monthly Candidate Uploads</Typography>
     <ResponsiveContainer width="100%" height={200}>
       <LineChart data={candidateTrends}>
         <CartesianGrid stroke="#ccc" strokeDasharray="3 3" />
@@ -393,12 +280,12 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
   <Paper sx={{ 
     p: 2, 
     borderRadius: 3, 
-    backgroundColor: "#2b3a55", 
+    backgroundColor: "#444444", 
     color: "#fff",
     transition: 'transform 0.2s',
     '&:hover': { transform: 'translateY(-4px)' }
   }}>
-    <Typography variant="subtitle1" sx={{ fontFamily: 'Buda, sans-serif',mb: 1, fontWeight: 600 }}>Weekly Tech Usage</Typography>
+    <Typography variant="subtitle1" sx={{ fontFamily: 'Helvetica, sans-serif',mb: 1, fontWeight: 600 }}>Weekly Tech Usage</Typography>
     <ResponsiveContainer width="100%" height={200}>
       <BarChart data={groupedBarData}>
         <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
@@ -407,7 +294,8 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
         <Tooltip 
           contentStyle={{ 
             backgroundColor: '#2b3a55',
-            borderColor: '#4a5568'
+            borderColor: '#4a5568',
+            fontFamily: 'Helvetica, sans-serif',
           }}
         />
         <Legend />
@@ -422,15 +310,16 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
   <Paper sx={{ 
     p: 2, 
     borderRadius: 3, 
-    backgroundColor: "#75a29dff", 
+    backgroundColor: "#DEDDEE", 
     color: "#000",
     transition: 'transform 0.2s',
     '&:hover': { transform: 'translateY(-4px)' }
   }}>
-    <Typography variant="subtitle1" sx={{fontFamily: 'Buda, sans-serif', mb: 1, fontWeight: 600 }}>Skill Distribution</Typography>
+    <Typography variant="subtitle1" sx={{fontFamily: 'Helvetica, sans-serif', mb: 1, fontWeight: 600 }}>Skill Distribution</Typography>
     <ResponsiveContainer width="100%" height={200}>
       <PieChart>
         <Pie
+        
           data={skillDistribution}
           dataKey="value"
           cx="50%"
@@ -438,6 +327,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
           outerRadius={60}
           labelLine={true}
           label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+          
         >
           {skillDistribution.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -448,6 +338,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
             value, 
             `${name}: ${(props.payload.percent * 100).toFixed(1)}%`
           ]}
+          
         />
       </PieChart>
     </ResponsiveContainer>
@@ -457,12 +348,12 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
   <Paper sx={{ 
     p: 2, 
     borderRadius: 3, 
-    backgroundColor: "#2b3a55", 
+    backgroundColor: "#444444", 
     color: "#fff",
     transition: 'transform 0.2s',
     '&:hover': { transform: 'translateY(-4px)' }
   }}>
-    <Typography variant="subtitle1" sx={{ fontFamily: 'Buda, sans-serif',mb: 1, fontWeight: 600 }}>Project Fit Types</Typography>
+    <Typography variant="subtitle1" sx={{ fontFamily: 'Helvetica, sans-serif',mb: 1, fontWeight: 600 }}>Project Fit Types</Typography>
     <ResponsiveContainer width="100%" height={200}>
       <PieChart>
         <Pie
@@ -498,11 +389,11 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
           {/* Recent Table */}
           <Paper
             elevation={6}
-            sx={{ p: 2, borderRadius: 3, backgroundColor: "#75a29dff" }}
+            sx={{ p: 2, borderRadius: 3, backgroundColor: "#DEDDEE" }}
           >
             <Typography
               variant="h6"
-              sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", color: "#0073c1", mb: 2 }}
+              sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", color: "#232A3B", mb: 2 }}
             >
               Recently Processed
             </Typography>
@@ -511,16 +402,16 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{fontFamily: 'Buda, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
+                    <TableCell sx={{fontFamily: 'Helvetica, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
                       Candidate
                     </TableCell>
-                    <TableCell sx={{fontFamily: 'Buda, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
+                    <TableCell sx={{fontFamily: 'Helvetica, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
                       Top Skills
                     </TableCell>
-                    <TableCell sx={{fontFamily: 'Buda, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
+                    <TableCell sx={{fontFamily: 'Helvetica, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
                       Project Fit
                     </TableCell>
-                    <TableCell sx={{fontFamily: 'Buda, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
+                    <TableCell sx={{fontFamily: 'Helvetica, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
                       Actions
                     </TableCell>
                   </TableRow>
@@ -587,11 +478,11 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
                               <Box sx={{ position: "relative" }}>
                                 <Typography
                                   variant="h6"
-                                  sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", mb: 1 }}
+                                  sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 1 }}
                                 >
                                   Quick Tip
                                 </Typography>
-                                <Typography sx={{fontFamily: 'Buda, sans-serif', mb: 2 }}>
+                                <Typography sx={{fontFamily: 'Helvetica, sans-serif', mb: 2 }}>
                                   Click <b>Review</b> to view and assess this
                                   candidate's CV.
                                 </Typography>
@@ -628,7 +519,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
                                       sx={{
                                         bgcolor: "#5a88ad",
                                         color: "#fff",
-                                        fontFamily: 'Buda, sans-serif',
+                                        fontFamily: 'Helvetica, sans-serif',
                                         fontWeight: "bold",
                                         textTransform: "none",
                                         "&:hover": { bgcolor: "#487DA6" },
@@ -685,20 +576,20 @@ const statCardStyle = {
   p: 2,
   minWidth: 140,
   borderRadius: 3,
-  backgroundColor: "#888a8aff",
+  backgroundColor: "#888888",
   textAlign: "center",
   color: "#000",
 };
 
 const reviewButtonStyle = {
-  background: "linear-gradient(45deg, #0a1172 0%, #032c3b 50%, #00b300 100%)",
-  color: "white",
+  background: "#232A3B",
+  color: "DEDDEE",
   fontWeight: "bold",
   padding: "8px 20px",
   borderRadius: "4px",
   boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
   "&:hover": {
-    background: "linear-gradient(45deg, #081158 0%, #022028 50%, #009a00 100%)",
+    background: "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
     transform: "translateY(-1px)",
   },
   textTransform: "none",

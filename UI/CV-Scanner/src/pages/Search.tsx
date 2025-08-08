@@ -35,6 +35,7 @@ import logoNavbar from "../assets/logoNavbar.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import Sidebar from "./Sidebar";
 
 export default function Search() {
   const [collapsed, setCollapsed] = useState(false);
@@ -178,133 +179,23 @@ export default function Search() {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#121436ff",
+        bgcolor: "#1E1E1E",
         color: "#fff",
       }}
     >
-      {/* Sidebar */}
-      {!collapsed ? (
-        <Box
-          sx={{
-            width: 220,
-            bgcolor: "#0A2540",
-            display: "flex",
-            flexDirection: "column",
-            p: 2,
-            position: "relative",
-          }}
-        >
-          {/* Collapse Button */}
-          <IconButton
-            onClick={() => setCollapsed(true)}
-            sx={{
-              color: "#fff",
-              position: "absolute",
-              top: 8,
-              left: 8,
-              zIndex: 1,
-            }}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <rect x="3" y="6" width="18" height="2" fill="currentColor" />
-              <rect x="3" y="11" width="18" height="2" fill="currentColor" />
-              <rect x="3" y="16" width="18" height="2" fill="currentColor" />
-            </svg>
-          </IconButton>
-
-          <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
-            <img src={logoNavbar} alt="Team Logo" style={{ width: 120 }} />
-          </Box>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/dashboard" ? "active" : ""}
-            startIcon={<DashboardIcon />}
-            onClick={() => navigate("/dashboard")}
-          >
-            Dashboard
-          </Button>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/upload" ? "active" : ""}
-            startIcon={<UploadFileIcon />}
-            onClick={() => navigate("/upload")}
-          >
-            Upload CV
-          </Button>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/candidates" ? "active" : ""}
-            startIcon={<PeopleIcon />}
-            onClick={() => navigate("/candidates")}
-          >
-            Candidates
-          </Button>
-
-          <Button
-            fullWidth
-            sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
-            className={location.pathname === "/search" ? "active" : ""}
-            startIcon={<SearchIcon />}
-            onClick={() => navigate("/search")}
-          >
-            Search
-          </Button>
-          {/* Only show User Management if user is Admin */}
-          {(user?.role === "Admin" || devUser.role === "Admin") && (
-            <Button
-              fullWidth
-              sx={navButtonStyle}
-              className={location.pathname === "/user-management" ? "active" : ""}
-              startIcon={<SettingsIcon />}
-              onClick={() => navigate("/user-management")}
-            >
-              User Management
-            </Button>
-          )}
-          {(user?.role === "Admin" || devUser.role === "Admin") && (
-            <Button
-              fullWidth
-              sx={navButtonStyle}
-              className={location.pathname === "/system-settings" ? "active" : ""}
-              startIcon={<SettingsIcon />}
-              onClick={() => navigate("/system-settings")}
-            >
-              System Settings
-            </Button>
-          )}          
-        </Box>
-      ) : (
-        <Box
-          sx={{
-            width: 40,
-            bgcolor: "#0A2540",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "flex-start",
-            pt: 1,
-          }}
-        >
-          <IconButton
-            onClick={() => setCollapsed(false)}
-            sx={{ color: "#fff" }}
-          >
-            <ChevronRightIcon />
-          </IconButton>
-        </Box>
-      )}
+            {/* Sidebar */}
+      <Sidebar 
+  userRole={user?.role || devUser.role} 
+  collapsed={collapsed} 
+  setCollapsed={setCollapsed} 
+/>
 
       {/* Main Content */}
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
         {/* Top Bar */}
           <AppBar
                    position="static"
-                   sx={{ bgcolor: "#0A2540", boxShadow: "none" }}
+                   sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
                  >
                    <Toolbar sx={{ justifyContent: "flex-end" }}>
            {/* Tutorial icon */}
@@ -368,8 +259,8 @@ export default function Search() {
         {/* Page Content */}
         <Box sx={{ p: 3 }}>
           <Typography
-              variant="h4"
-              sx={{ fontWeight: "bold", mb: 3,fontFamily: "Buda, sans-serif", color: "#fff" }}
+              variant="h5"
+              sx={{ fontWeight: "bold", mb: 3,fontFamily: "Helvetica, sans-serif", color: "#fff" }}
             >
               Search Candidates
             </Typography>
@@ -379,18 +270,18 @@ export default function Search() {
                 display: "flex",
                 alignItems: "center",
                 mb: 4,
-                bgcolor: "#cbd5e0",
+                bgcolor: "#DEDDEE",
                 borderRadius: 1,
                 px: 2,
                 py: 1,
-                fontFamily: "Buda, sans-serif",
+                fontFamily: "Helvetica, sans-serif",
               }}
               ref={searchBarRef}
             >
               <SearchIcon color="action" />
               <InputBase
                 placeholder="Search by name, skills, or project type..."
-                sx={{ ml: 1, flex: 1, fontFamily: "Buda, sans-serif", fontSize: "1.3rem" }}
+                sx={{ ml: 1, flex: 1, fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
                 fullWidth
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
@@ -398,7 +289,7 @@ export default function Search() {
             </Box>
           <Paper
             elevation={6}
-            sx={{ p: 3, borderRadius: 3, backgroundColor: "#2b3a55", fontFamily: "Buda, sans-serif", color: "#fff" }}
+            sx={{ p: 3, borderRadius: 3, backgroundColor: "#DEDDEE", fontFamily: "Helvetica, sans-serif", color: "#fff" }}
           >
 
             
@@ -408,11 +299,11 @@ export default function Search() {
               <Box>
                 <Typography
                   variant="subtitle1"
-                  sx={{ fontWeight: "bold", mb: 2, fontFamily: "Buda, sans-serif", fontSize: "1.3rem" }}
+                  sx={{ color:"#000000ff", fontWeight: "bold", mb: 2, fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
                 >
                   Primary Skills
                 </Typography>
-                <FormGroup>
+                <FormGroup sx={{color: "#000000ff"}}>
                   {[".NET", "Java", "React", "Azure"].map((skill) => (
                     <FormControlLabel
                       key={skill}
@@ -421,13 +312,13 @@ export default function Search() {
                           checked={selectedSkills.includes(skill)}
                           onChange={() => handleCheckboxChange("skill", skill)}
                           sx={{
-                            color: "#0073c1",
-                            "&.Mui-checked": { color: "#0073c1" },
+                            color: "#204E20", // green
+                            "&.Mui-checked": { color: "#204E20" },//green
                           }}
                         />
                       }
                       label={
-                        <Typography sx={{ fontFamily: "Buda, sans-serif", fontSize: "1.2rem" }}>
+                        <Typography sx={{ fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}>
                           {skill}
                         </Typography>
                       }
@@ -438,11 +329,11 @@ export default function Search() {
               <Box>
                 <Typography
                   variant="subtitle1"
-                  sx={{ fontWeight: "bold", mb: 2 ,fontFamily: "Buda, sans-serif", fontSize: "1.3rem" }}
+                  sx={{ color:"#000000ff", fontWeight: "bold", mb: 2 ,fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
                 >
                   Project Fit
                 </Typography>
-                <FormGroup>
+                <FormGroup sx={{color: "#000000ff"}}>
                   {["Technical", "Collaborative", "Business"].map((fit) => (
                     <FormControlLabel
                       key={fit}
@@ -451,13 +342,13 @@ export default function Search() {
                           checked={selectedFits.includes(fit)}
                           onChange={() => handleCheckboxChange("fit", fit)}
                           sx={{
-                            color: "#0073c1",
-                            "&.Mui-checked": { color: "#0073c1" },
+                            color: "#204E20", //green
+                            "&.Mui-checked": { color: "#204E20" }, //green
                           }}
                         />
                       }
                       label={
-                        <Typography sx={{ fontFamily: "Buda, sans-serif", fontSize: "1.2rem" }}>
+                        <Typography sx={{ fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}>
                           {fit}
                         </Typography>
                       }
@@ -468,11 +359,11 @@ export default function Search() {
               <Box>
                 <Typography
                   variant="subtitle1"
-                  sx={{ fontWeight: "bold", mb: 2, fontFamily: "Buda, sans-serif", fontSize: "1.3rem" }}
+                  sx={{ color: "#000000ff",fontWeight: "bold", mb: 2, fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
                 >
                   Upload Details
                 </Typography>
-                <FormGroup>
+                <FormGroup sx={{color: "#000000ff"}}>
                   {["My Uploads", "Last 7 Days"].map((detail) => (
                     <FormControlLabel
                       key={detail}
@@ -483,13 +374,13 @@ export default function Search() {
                             handleCheckboxChange("detail", detail)
                           }
                           sx={{
-                            color: "#0073c1",
-                            "&.Mui-checked": { color: "#0073c1" },
+                            color: "#204E20", //green
+                            "&.Mui-checked": { color: "#204E20" },//green
                           }}
                         />
                       }
                       label={
-                        <Typography sx={{ fontFamily: "Buda, sans-serif", fontSize: "1.2rem" }}>
+                        <Typography sx={{ fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}>
                           {detail}
                         </Typography>
                       }
@@ -502,7 +393,7 @@ export default function Search() {
             <Divider sx={{ my: 3 }} />
 
             {/* Results Count */}
-            <Typography variant="subtitle1" sx={{ mb: 3, fontWeight: "bold", fontFamily: "Buda, sans-serif", fontSize: "1.3rem" }}>
+            <Typography variant="subtitle1" sx={{ color: "#000000ff",mb: 3, fontWeight: "bold", fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}>
               Showing {filteredCandidates.length} of {candidates.length}{" "}
               candidates
             </Typography>
@@ -518,7 +409,7 @@ export default function Search() {
                       p: 3,
                       mb: 3,
                       borderRadius: 3,
-                      backgroundColor: "#75a29dff",
+                      backgroundColor: "#adb6beff",
                       cursor: "pointer", // Shows it's clickable
                       "&:hover": {
                         boxShadow: "0 4px 8px rgba(0,0,0,0.2)", // Visual feedback
@@ -535,12 +426,12 @@ export default function Search() {
                     >
                       <Avatar
                         sx={{
-                          bgcolor: "#0073c1",
+                          bgcolor: "#93AFF7",
                           width: 56,
                           height: 56,
                           fontSize: "1.5rem",
                           fontWeight: "bold",
-                          fontFamily: "Buda, sans-serif",
+                          fontFamily: "Helvetica, sans-serif",
                         }}
                       >
                         {candidate.initials}
@@ -548,16 +439,16 @@ export default function Search() {
                       <Box sx={{ flexGrow: 1 }}>
                         <Typography
                           variant="h6"
-                          sx={{ fontWeight: "bold", mb: 0.5, fontFamily: "Buda, sans-serif", fontSize: "1.4rem" }}
+                          sx={{ fontWeight: "bold", mb: 0.5, fontFamily: "Helvetica, sans-serif", fontSize: "1.2rem" }}
                         >
                           {candidate.name}
                         </Typography>
-                        <Typography variant="body1" sx={{ mb: 1,fontFamily: "Buda, sans-serif", fontSize: "1.2rem" }}>
+                        <Typography variant="body1" sx={{ mb: 1,fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}>
                           {candidate.project}
                         </Typography>
                         <Typography
                           variant="body2"
-                          sx={{ mb: 1.5, color: "#black", fontFamily: "Buda, sans-serif", fontSize: "1.1rem" }}
+                          sx={{ mb: 1.5, color: "#black", fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
                         >
                           Uploaded: {candidate.uploaded}
                         </Typography>
@@ -575,13 +466,13 @@ export default function Search() {
                               key={i}
                               label={skill}
                               size="small"
-                              sx={{ backgroundColor: "#d0e8ff",fontFamily: "Buda, sans-serif", fontSize: "0.9rem",fontWeight: "bold" ,color: "#0073c1" }}
+                              sx={{ backgroundColor: "#93AFF7",fontFamily: "Helvetica, sans-serif", fontSize: "1rem",fontWeight: "bold" ,color: "#204E20" }}
                             />
                           ))}
                         </Box>
                         <Typography
                           variant="body2"
-                          sx={{ color: "#0073c1", fontWeight: "bold", fontFamily: "Buda, sans-serif", fontSize: "1.1rem" }}
+                          sx={{ color: "#204E20", fontWeight: "bold", fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
                         >
                           Match: {candidate.match}
                         </Typography>
@@ -592,7 +483,7 @@ export default function Search() {
               ) : (
                 <Typography
                   variant="body1"
-                  sx={{ mt: 2, fontStyle: "italic", color: "#555", fontFamily: "Buda, sans-serif", fontSize: "1.2rem" }}
+                  sx={{ mt: 2, fontStyle: "italic", color: "#555", fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
                 >
                   No results found. Try adjusting your search or filters.
                 </Typography>
