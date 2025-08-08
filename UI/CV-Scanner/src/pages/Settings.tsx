@@ -203,7 +203,7 @@ export default function SettingsPage() {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#121436ff",
+        bgcolor: "#1E1E1E",
         color: "#fff",
       }}
     >
