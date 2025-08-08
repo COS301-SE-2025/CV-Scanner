@@ -362,7 +362,7 @@ export default function CandidateNotesPage() {
           {/* Recruiter Notes Section */}
           <Paper
             elevation={6}
-            sx={{ p: 3, borderRadius: 3, bgcolor: "#75a29dff" }}
+            sx={{ p: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
             ref={notesRef}
           >
             <Typography variant="h6" sx={{fontFamily: 'Buda, sans-serif', fontWeight: "bold", mb: 2 }}>

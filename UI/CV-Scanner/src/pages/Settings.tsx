@@ -377,7 +377,7 @@ export default function SettingsPage() {
 
           <Paper
             elevation={6}
-            sx={{ p: 4, borderRadius: 3, bgcolor: "#2b3a55", maxWidth: 800 }}
+            sx={{ p: 4, borderRadius: 3, bgcolor: "#DEDDEE", maxWidth: 800 }}
           >
             {/* Error/Success Alerts */}
             {error && (

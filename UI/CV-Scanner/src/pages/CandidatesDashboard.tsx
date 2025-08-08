@@ -504,7 +504,7 @@ const COLORS = ['#8884D8', '#00C49F', '#FFBB28', '#FF8042'];
           {/* Recent Table */}
           <Paper
             elevation={6}
-            sx={{ p: 2, borderRadius: 3, backgroundColor: "#c8c7d5ff" }}
+            sx={{ p: 2, borderRadius: 3, backgroundColor: "#DEDDEE" }}
           >
             <Typography
               variant="h6"

@@ -324,7 +324,7 @@ export default function CandidatesPage() {
         <Box sx={{  pt: 0, px: 3, pb: 3  }}>
           <Paper
             elevation={6}
-            sx={{ p: 3, borderRadius: 3, backgroundColor: "#75a29dff" }}
+            sx={{ p: 3, borderRadius: 3, backgroundColor: "#DEDDEE" }}
           >
            {/*<Typography
               variant="h5"

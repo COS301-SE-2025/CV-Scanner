@@ -322,7 +322,7 @@ export default function CandidateReviewSummary() {
           {/* Project Fit Section */}
           <Paper
             elevation={6}
-            sx={{ p: 3, mb: 4, borderRadius: 3, bgcolor: "#75a29dff" }}
+            sx={{ p: 3, mb: 4, borderRadius: 3, bgcolor: "#DEDDEE" }}
             ref={projectFitRef}
           >
             <Typography variant="h6" sx={{fontFamily: 'Buda, sans-serif', fontWeight: "bold", mb: 2 }}>
@@ -422,7 +422,7 @@ export default function CandidateReviewSummary() {
           {/* Key Technologies Section */}
           <Paper
             elevation={6}
-            sx={{ p: 3, borderRadius: 3, bgcolor: "#75a29dff" }}
+            sx={{ p: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
             ref={techRef}
           >
             <Typography variant="h6" sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", mb: 2 }}>
