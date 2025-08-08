@@ -19,6 +19,17 @@ interface SidebarProps {
   setCollapsed: (collapsed: boolean) => void;
 }
 
+const isActive = (path: string) => location.pathname.indexOf(path) === 0;
+
+const getButtonStyle = (path: string) => ({
+  ...navButtonStyle,
+  ...(isActive(path) && {
+    bgcolor: "#d8f0ff",
+    color: "#000",
+  }),
+});
+
+
 const Sidebar: React.FC<SidebarProps> = ({ userRole, collapsed, setCollapsed }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -79,8 +90,8 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, collapsed, setCollapsed }) 
 
     <Button
   fullWidth
-  sx={navButtonStyle}
-  className={location.pathname.indexOf("/dashboard") ? "active" : ""}
+  sx={getButtonStyle("/dashboard")}
+  className={isActive("/dashboard") ? "active" : ""}
   startIcon={<DashboardIcon />}
   onClick={() => navigate("/dashboard")}
 >
@@ -89,8 +100,8 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, collapsed, setCollapsed }) 
 
 <Button
   fullWidth
-  sx={navButtonStyle}
-  className={location.pathname.indexOf("/upload") ? "active" : ""}
+  sx={getButtonStyle("/upload")}
+  className={isActive("/upload") ? "active" : ""}
   startIcon={<UploadFileIcon />}
   onClick={() => navigate("/upload")}
 >
@@ -99,8 +110,8 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, collapsed, setCollapsed }) 
 
 <Button
   fullWidth
-  sx={navButtonStyle}
-  className={location.pathname.indexOf("/candidates") ? "active" : ""}
+  sx={getButtonStyle("/candidates")}
+  className={isActive("/candidates") ? "active" : ""}
   startIcon={<PeopleIcon />}
   onClick={() => navigate("/candidates")}
 >
@@ -109,8 +120,8 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, collapsed, setCollapsed }) 
 
 <Button
   fullWidth
-  sx={navButtonStyle}
-  className={location.pathname.indexOf("/search") ? "active" : ""}
+  sx={getButtonStyle("/search")}
+  className={isActive("/search") ? "active" : ""}
   startIcon={<SearchIcon />}
   onClick={() => navigate("/search")}
 >
@@ -121,8 +132,8 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, collapsed, setCollapsed }) 
   <>
     <Button
       fullWidth
-      sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
-      className={location.pathname.indexOf("/user-management") ? "active" : ""}
+      sx={getButtonStyle("/user-management")}
+      className={isActive("/user-management") ? "active" : ""}
       startIcon={<SettingsIcon />}
       onClick={() => navigate("/user-management")}
     >
@@ -130,8 +141,8 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, collapsed, setCollapsed }) 
     </Button>
     <Button
       fullWidth
-      sx={navButtonStyle}
-      className={location.pathname.indexOf("/system-settings") ? "active" : ""}
+      sx={getButtonStyle("/system-settings")}
+      className={isActive("/system-settings") ? "active" : ""}
       startIcon={<SettingsIcon />}
       onClick={() => navigate("/system-settings")}
     >
@@ -139,6 +150,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, collapsed, setCollapsed }) 
     </Button>
   </>
 )}
+
 
     </Box>
   );
