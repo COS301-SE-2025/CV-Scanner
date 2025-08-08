@@ -316,7 +316,7 @@ export default function CandidatesPage() {
         {/* Main Page Content */}
 
           <Box sx={{ p: 3 }}>
-          <Typography variant="h5" sx={{fontFamily: 'Buda, sans-serif', mb: 3, fontWeight: "bold" }}>
+          <Typography variant="h5" sx={{fontFamily: 'Helvetica, sans-serif', mb: 3, fontWeight: "bold" }}>
             Candidate Dictionary
           </Typography>
         </Box>
@@ -462,7 +462,7 @@ export default function CandidatesPage() {
           <Box sx={{ position: "relative" }}>
             {tutorialStep === 0 && (
               <>
-                <Typography variant="h6" sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", mb: 1 }}>
+                <Typography variant="h6" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 1 }}>
                   Search Candidates
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
@@ -473,7 +473,7 @@ export default function CandidatesPage() {
             )}
             {tutorialStep === 1 && (
               <>
-                <Typography variant="h6" sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", mb: 1 }}>
+                <Typography variant="h6" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 1 }}>
                   Review a Candidate
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
