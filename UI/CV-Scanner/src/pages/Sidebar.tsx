@@ -12,6 +12,8 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import { useNavigate, useLocation } from "react-router-dom";
 import logoNavbar from "../assets/logoNavbar.png";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import Typography from "@mui/material/Typography";
 
 interface SidebarProps {
   userRole?: string;
@@ -44,49 +46,98 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, collapsed, setCollapsed }) 
           justifyContent: "center",
           alignItems: "flex-start",
           pt: 1,
+          position: "relative",
         }}
       >
-        <IconButton
-          onClick={() => setCollapsed(false)}
-          sx={{ color: "#fff" }}
-        >
-          <ChevronRightIcon />
-        </IconButton>
+<IconButton
+  onClick={() => setCollapsed(false)}
+  sx={{
+    position: "absolute",
+    bottom: 16,
+    right: 0,
+    bgcolor: "#487DA6",
+    color: "#fff",
+    borderRadius: "50%",
+    width: 40,
+    height: 40,
+    "&:hover": {
+      bgcolor: "#375f87",
+    },
+  }}
+>
+  <ChevronRightIcon />
+</IconButton>
+
+
       </Box>
     );
   }
 
   return (
     <Box
-      sx={{
-        width: 220,
-        bgcolor: "#232A3B",
-        display: "flex",
-        flexDirection: "column",
-        p: 2,
-        position: "relative",
-      }}
-    >
-      <IconButton
-        onClick={() => setCollapsed(true)}
-        sx={{
-          color: "#fff",
-          position: "absolute",
-          top: 8,
-          left: 8,
-          zIndex: 1,
-        }}
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <rect x="3" y="6" width="18" height="2" fill="currentColor" />
-          <rect x="3" y="11" width="18" height="2" fill="currentColor" />
-          <rect x="3" y="16" width="18" height="2" fill="currentColor" />
-        </svg>
-      </IconButton>
+    sx={{
+      width: collapsed ? 40 : 220,
+      bgcolor: "#232A3B",
+      display: "flex",
+      flexDirection: "column",
+      p: collapsed ? 1 : 2,
+      position: "relative",
+      mt: -2.2,
+      transition: "width 0.3s ease-in-out, padding 0.3s ease-in-out",
+      overflow: "hidden",
+    }}
+  >
 
-      <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
-        <img src={logoNavbar} alt="Team Logo" style={{ width: 120 }} />
-      </Box>
+      <IconButton
+  onClick={() => setCollapsed(true)}
+  sx={{
+    position: "absolute",
+    bottom: 16,
+    right: 16,
+    bgcolor: "#487DA6",
+    color: "#fff",
+    borderRadius: "50%",
+    width: 40,
+    height: 40,
+    "&:hover": {
+      bgcolor: "#375f87",
+    },
+  }}
+>
+  <ChevronLeftIcon />
+</IconButton>
+
+<Box
+  sx={{
+    display: "flex",
+    alignItems: "center",
+    px: 2,
+    pt: 2,
+    pb: 3,
+    gap: 1,
+  }}
+>
+  <Box
+    component="img"
+    src={logoNavbar}
+    alt="Logo"
+    sx={{
+      width: 50,
+      height: 50,
+    }}
+  />
+  <Typography
+    variant="h6"
+    sx={{
+      fontWeight: 600,
+      color: "#fff",
+      fontSize: "1.1rem",
+    }}
+  >
+    Quantum Stack
+  </Typography>
+</Box>
+
 
     <Button
   fullWidth
