@@ -232,7 +232,7 @@ const devUser = {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#121436ff",
+        bgcolor: "#1E1E1E",
         color: "#fff",
       }}
     >
@@ -248,7 +248,7 @@ const devUser = {
         {/* Top App Bar */}
         <AppBar
           position="static"
-          sx={{ bgcolor: "#0A2540 ", boxShadow: "none" }}
+          sx={{ bgcolor: "#232A3B ", boxShadow: "none" }}
         >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
             {/* Tutorial icon */}
@@ -311,7 +311,7 @@ const devUser = {
 
         {/* User Management Content */}
         <Box sx={{ p: 3 }}>
-          <Typography variant="h4" sx={{ fontFamily: 'Buda, sans-serif', fontWeight: "bold", mb: 3, color: "#fff " }}>
+          <Typography variant="h5" sx={{ fontFamily: 'Helvetica, sans-serif', fontWeight: "bold", mb: 3, color: "#fff " }}>
             User Management
           </Typography>
 
@@ -323,7 +323,7 @@ const devUser = {
               placeholder="Search users..."
               variant="outlined"
               fullWidth
-              sx={{ bgcolor: "#cbd5e0", borderRadius: 1 }}
+              sx={{ bgcolor: "#DEDDEE", borderRadius: 1 }}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               InputProps={{
@@ -339,7 +339,7 @@ const devUser = {
               <Select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                sx={{ bgcolor: "#cbd5e0", borderRadius: 1, minWidth: 150 }}
+                sx={{ bgcolor: "#DEDDEE", borderRadius: 1, minWidth: 150 }}
               >
                 <MenuItem value="All Roles">All Roles</MenuItem>
                 <MenuItem value="Admin">Admin</MenuItem>
@@ -360,12 +360,12 @@ const devUser = {
           {/* User Table */}
           <Paper
             elevation={6}
-            sx={{ p: 3, borderRadius: 3, bgcolor: "#cbd5e0" }}
+            sx={{ p: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
           >
             <TableContainer>
-              <Table sx={{"& td, & th": { fontFamily: 'Buda, sans-serif'}}}>
+              <Table sx={{"& td, & th": { fontFamily: 'Helvetica, sans-serif'}}}>
                 {/* 2. Update the table headers: */}
-                <TableHead sx={{ "& th": {fontSize: 20 } }}>
+                <TableHead sx={{ "& th": {fontSize: 16 } }}>
                   <TableRow>
                     <TableCell sx={{ fontWeight: "bold" }}>Username</TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>
