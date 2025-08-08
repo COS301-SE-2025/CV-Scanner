@@ -30,6 +30,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import logo2 from "../assets/logo2.png";
 import logo from "../assets/logo.png";
+import logoNavbar from "../assets/logoNavbar.png";
 
 export default function CandidateExperiencePage() {
   const navigate = useNavigate();
@@ -106,7 +107,7 @@ export default function CandidateExperiencePage() {
           <Toolbar sx={{ justifyContent: "space-between" }}>
             {/* Left: Logo and heading */}
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <img src={logo} alt="Logo" style={{ width: 80 }} />
+              <img src={logoNavbar} alt="Logo" style={{ width: 80 }} />
               <Typography variant="h6" sx={{fontFamily: 'Helvetica, sans-serif', ml: 2, fontWeight: "bold" }}>
                 Candidate Experience
               </Typography>

@@ -27,6 +27,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo from "../assets/logo.png";
+import logoNavbar from "../assets/logoNavbar.png";
 
 export default function CandidateSkillsPage() {
   const navigate = useNavigate();
@@ -121,7 +122,7 @@ export default function CandidateSkillsPage() {
           <Toolbar sx={{ justifyContent: "space-between" }}>
             {/* Left: Logo and heading */}
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <img src={logo} alt="Logo" style={{ width: 80 }} />
+              <img src={logoNavbar} alt="Logo" style={{ width: 80 }} />
               <Typography variant="h6" sx={{fontFamily: 'Helvetica, sans-serif', ml: 2, fontWeight: 'bold' }}>
                 Candidate Skills
               </Typography>
