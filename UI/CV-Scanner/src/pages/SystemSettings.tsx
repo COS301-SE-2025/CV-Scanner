@@ -9,6 +9,7 @@ import {
   Tooltip,
   Button,
 } from "@mui/material";
+import Sidebar from "./Sidebar";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
@@ -112,153 +113,23 @@ export default function SystemSettingsPage() {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#121436ff",
+        bgcolor: "#1E1E1E",
         color: "#fff",
       }}
     >
       {/* Sidebar */}
-      {!collapsed ? (
-        <Box
-          sx={{
-            width: 220,
-            bgcolor: "#0A2540",
-            display: "flex",
-            flexDirection: "column",
-            p: 2,
-            position: "relative",
-          }}
-        >
-          {/* Collapse Button */}
-          <IconButton
-            onClick={() => setCollapsed(true)}
-            sx={{
-              color: "#fff",
-              position: "absolute",
-              top: 8,
-              left: 8,
-              zIndex: 1,
-            }}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <rect x="3" y="6" width="18" height="2" fill="currentColor" />
-              <rect x="3" y="11" width="18" height="2" fill="currentColor" />
-              <rect x="3" y="16" width="18" height="2" fill="currentColor" />
-            </svg>
-          </IconButton>
+      <Sidebar 
+  userRole={user?.role || devUser.role} 
+  collapsed={collapsed} 
+  setCollapsed={setCollapsed} 
+/>
 
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              mb: 3,
-              mt: 2,
-              gap: 1,
-            }}
-          >
-            <img
-              src={logo3}
-              alt="Team Logo"
-              style={{ width: 36, height: 36 }}
-            />
-            <Typography variant="h6" sx={{ color: "#fff", fontWeight: "bold" }}>
-              Quantum Stack
-            </Typography>
-          </Box>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/dashboard" ? "active" : ""}
-            startIcon={<DashboardIcon />}
-            onClick={() => navigate("/dashboard")}
-          >
-            Dashboard
-          </Button>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/upload" ? "active" : ""}
-            startIcon={<UploadFileIcon />}
-            onClick={() => navigate("/upload")}
-          >
-            Upload CV
-          </Button>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/candidates" ? "active" : ""}
-            startIcon={<PeopleIcon />}
-            onClick={() => navigate("/candidates")}
-          >
-            Candidates
-          </Button>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/search" ? "active" : ""}
-            startIcon={<SearchIcon />}
-            onClick={() => navigate("/search")}
-          >
-            Search
-          </Button>
-
-          {/* Only show User Management if user is Admin */}
-          {(user?.role === "Admin" || devUser.role === "Admin") && (
-            <Button
-              fullWidth
-              sx={navButtonStyle}
-              className={
-                location.pathname === "/user-management" ? "active" : ""
-              }
-              startIcon={<SettingsIcon />}
-              onClick={() => navigate("/user-management")}
-            >
-              User Management
-            </Button>
-          )}
-
-          {(user?.role === "Admin" || devUser.role === "Admin") && (
-            <Button
-              fullWidth
-              sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
-              className={
-                location.pathname === "/system-settings" ? "active" : ""
-              }
-              startIcon={<SettingsIcon />}
-              onClick={() => navigate("/system-settings")}
-            >
-              System Settings
-            </Button>
-          )}
-        </Box>
-      ) : (
-        <Box
-          sx={{
-            width: 40,
-            bgcolor: "#0A2540",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "flex-start",
-            pt: 1,
-          }}
-        >
-          <IconButton
-            onClick={() => setCollapsed(false)}
-            sx={{ color: "#fff" }}
-          >
-            <ChevronRightIcon />
-          </IconButton>
-        </Box>
-      )}
 
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         <AppBar
           position="static"
-          sx={{ bgcolor: "#0A2540", boxShadow: "none" }}
+          sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
         >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
             <Tooltip title="Go to Help Page" arrow>
@@ -305,13 +176,13 @@ export default function SystemSettingsPage() {
 
         {/* System Settings Content */}
         <Box sx={{ p: 3 }}>
-          <Typography variant="h4" sx={{ fontWeight: "bold", mb: 3 ,fontFamily: "Buda, sans-serif", color: "#fff"}}>
+          <Typography variant="h5" sx={{ fontWeight: "bold", mb: 3 ,fontFamily: "Helvetica, sans-serif", color: "#fff"}}>
             System Settings
           </Typography>
 
           {/* Search bars OUTSIDE the blacklist/whitelist boxes */}
           <Box sx={{ display: "flex", gap: 4, mb: 2 }}>
-            <Box sx={{ flex: 1, fontFamily: "Buda, sans-serif" }}>
+            <Box sx={{ flex: 1, fontFamily: "Helvetica, sans-serif" }}>
               <input
                 type="text"
                 value={blackSearch}
@@ -322,11 +193,11 @@ export default function SystemSettingsPage() {
                   padding: "8px",
                   borderRadius: "4px",
                   border: "1px solid #444",
-                  background: "#181c2f",
+                  background: "#d1dbe5ff",
                   color: "#fff",
                   marginBottom: "8px",
-                  fontFamily: "Buda, sans-serif",
-                  fontSize: "1.2rem",
+                  fontFamily: "Helvetica, sans-serif",
+                  fontSize: "1rem",
                 }}
               />
             </Box>
@@ -341,11 +212,11 @@ export default function SystemSettingsPage() {
                   padding: "8px",
                   borderRadius: "4px",
                   border: "1px solid #444",
-                  background: "#181c2f",
+                  background: "#d1dbe5ff",
                   color: "#fff",
                   marginBottom: "8px",
-                  fontFamily: "Buda, sans-serif",
-                  fontSize: "1.2rem",
+                  fontFamily: "Helvetica, sans-serif",
+                  fontSize: "1rem",
                 }}
               />
             </Box>
@@ -354,15 +225,15 @@ export default function SystemSettingsPage() {
           {/* Blacklist and Whitelist Section */}
           <Box sx={{ display: "flex", gap: 4, mt: 2 }}>
             {/* Blacklist */}
-            <Box sx={{ flex: 1, bgcolor: "#2b3a55", p: 2, borderRadius: 2 }}>
-              <Typography variant="h6" sx={{ mb: 2, color: "#fff" , fontFamily: "Buda, sans-serif", fontWeight: "bold"}}>
+            <Box sx={{ flex: 1, bgcolor: "#DEDDEE", p: 2, borderRadius: 2 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: "#000000ff" , fontFamily: "Helvetica, sans-serif", fontWeight: "bold"}}>
                 Blacklist
               </Typography>
-              <Box sx={{ mb: 2, fontFamily: "Buda, sans-serif" }}>
+              <Box sx={{ mb: 2, fontFamily: "Helvetica, sans-serif" }}>
                 {blacklist.filter((item) =>
                   item.toLowerCase().includes(blackSearch.toLowerCase())
                 ).length === 0 ? (
-                  <Typography sx={{ color: "#aaa", fontFamily: "Buda, sans-serif" }}>
+                  <Typography sx={{ color: "#aaa", fontFamily: "Helvetica, sans-serif" }}>
                     No blacklisted items.
                   </Typography>
                 ) : (
@@ -377,14 +248,15 @@ export default function SystemSettingsPage() {
                           display: "flex",
                           alignItems: "center",
                           mb: 1,
-                          bgcolor: "#2c3446",
+                          bgcolor: "#a8bbe2ff",
+                          color: "#000000ff",
                           p: 1,
                           borderRadius: 1,
-                          fontFamily: "Buda, sans-serif",
-                          fontSize: "1.2rem",
+                          fontFamily: "Helvetica, sans-serif",
+                          fontSize: "1rem",
                         }}
                       >
-                        <Typography sx={{ flex: 1, fontFamily: "Buda, sans-serif", fontSize: "1.4rem" }}>{item}</Typography>
+                        <Typography sx={{ flex: 1, fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}>{item}</Typography>
                         <Button
                           size="small"
                           color="error"
@@ -408,10 +280,10 @@ export default function SystemSettingsPage() {
                     padding: "8px",
                     borderRadius: "4px",
                     border: "1px solid #444",
-                    background: "#181c2f",
+                    background: "#d1dbe5ff",
                     color: "#fff",
-                    fontFamily: "Buda, sans-serif",
-                  fontSize: "1.2rem",
+                    fontFamily: "Helvetica, sans-serif",
+                  fontSize: "1rem",
                   }}
                 />
                 <Button
@@ -425,15 +297,15 @@ export default function SystemSettingsPage() {
               </Box>
             </Box>
             {/* Whitelist */}
-            <Box sx={{ flex: 1, bgcolor: "#2b3a55", p: 2, borderRadius: 2 }}>
-              <Typography variant="h6" sx={{ mb: 2, color: "#fff", fontFamily: "Buda, sans-serif", fontWeight: "bold" }}>
+            <Box sx={{ flex: 1, bgcolor: "#DEDDEE", p: 2, borderRadius: 2 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: "#000000ff", fontFamily: "Helvetica, sans-serif", fontWeight: "bold" }}>
                 Whitelist
               </Typography>
-              <Box sx={{ mb: 2, fontFamily: "Buda, sans-serif" }}>
+              <Box sx={{ mb: 2, fontFamily: "Helvetica, sans-serif" }}>
                 {whitelist.filter((item) =>
                   item.toLowerCase().includes(whiteSearch.toLowerCase())
                 ).length === 0 ? (
-                  <Typography sx={{ color: "#aaa", fontFamily: "Buda, sans-serif" }}>
+                  <Typography sx={{ color: "#aaa", fontFamily: "Helvetica, sans-serif" }}>
                     No whitelisted items.
                   </Typography>
                 ) : (
@@ -448,14 +320,15 @@ export default function SystemSettingsPage() {
                           display: "flex",
                           alignItems: "center",
                           mb: 1,
-                          bgcolor: "#2c3446",
+                          bgcolor: "#a8bbe2ff",
+                          color: "#000000ff",
                           p: 1,
                           borderRadius: 1,
-                          fontFamily: "Buda, sans-serif",
-                          fontSize: "1.2rem",
+                          fontFamily: "Helvetica, sans-serif",
+                          fontSize: "1rem",
                         }}
                       >
-                        <Typography sx={{ flex: 1, fontFamily: "Buda, sans-serif", fontSize: "1.4rem" }}>{item}</Typography>
+                        <Typography sx={{ flex: 1, fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}>{item}</Typography>
                         <Button
                           size="small"
                           color="primary"
@@ -479,10 +352,10 @@ export default function SystemSettingsPage() {
                     padding: "8px",
                     borderRadius: "4px",
                     border: "1px solid #444",
-                    background: "#181c2f",
+                    background: "#d1dbe5ff",
                     color: "#fff",
-                    fontFamily: "Buda, sans-serif",
-                    fontSize: "1.2rem",
+                    fontFamily: "Helvetica, sans-serif",
+                    fontSize: "1rem",
                   }}
                 />
                 <Button
