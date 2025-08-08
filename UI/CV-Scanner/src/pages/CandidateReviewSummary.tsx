@@ -28,6 +28,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import logo2 from "../assets/logo2.png";
+import logoNavbar from "../assets/logoNavbar.png";
 import logo from "../assets/logo.png";
 
 export default function CandidateReviewSummary() {
@@ -100,7 +101,7 @@ export default function CandidateReviewSummary() {
           <Toolbar sx={{ justifyContent: "space-between" }}>
             {/* Left: Logo */}
     <Box sx={{ display: 'flex', alignItems: 'center' }}>
-      <img src={logo} alt="Logo" style={{ width: 80 }} />
+      <img src={logoNavbar} alt="Logo" style={{ width: 80 }} />
       {/* Optional title next to logo */}
       <Typography variant="h6" sx={{fontFamily: 'Helvetica, sans-serif', ml: 2, fontWeight: 'bold' }}>Candidate Summary</Typography> 
     </Box>
