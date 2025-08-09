@@ -30,6 +30,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import logo2 from "../assets/logo2.png";
 import logo from "../assets/logo.png";
+import logoNavbar from "../assets/logoNavbar.png";
 
 export default function CandidateExperiencePage() {
   const navigate = useNavigate();
@@ -106,8 +107,8 @@ export default function CandidateExperiencePage() {
           <Toolbar sx={{ justifyContent: "space-between" }}>
             {/* Left: Logo and heading */}
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <img src={logo} alt="Logo" style={{ width: 80 }} />
-              <Typography variant="h6" sx={{fontFamily: 'Buda, sans-serif', ml: 2, fontWeight: "bold" }}>
+              <img src={logoNavbar} alt="Logo" style={{ width: 80 }} />
+              <Typography variant="h6" sx={{fontFamily: 'Helvetica, sans-serif', ml: 2, fontWeight: "bold" }}>
                 Candidate Experience
               </Typography>
             </Box>
@@ -197,7 +198,7 @@ export default function CandidateExperiencePage() {
         >
           <Fade in={fadeIn} timeout={250}>
             <Box sx={{ position: "relative" }}>
-              <Typography variant="h6" sx={{fontFamily: 'Buda, sans-serif', fontWeight: "bold", mb: 1 }}>
+              <Typography variant="h6" sx={{fontFamily: 'Helvetica, sans-serif', fontWeight: "bold", mb: 1 }}>
                 Work History
               </Typography>
               <Typography sx={{ mb: 2 }}>
@@ -263,7 +264,7 @@ export default function CandidateExperiencePage() {
           >
             Back to Candidates
           </Button>
-          <Typography variant="h4" sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", mb: 2 }}>
+          <Typography variant="h4" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 2 }}>
             Jane Smith
           </Typography>
           <Typography variant="subtitle1" sx={{ mb: 4 }}>
@@ -302,11 +303,11 @@ export default function CandidateExperiencePage() {
             sx={{ p: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
             ref={workHistoryRef}
           >
-            <Typography variant="h6" sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold", mb: 2 }}>
+            <Typography variant="h6" sx={{ fontFamily: ', sans-serif',fontWeight: "bold", mb: 2 }}>
               Work History
             </Typography>
             <Box sx={{ mb: 3 }}>
-              <Typography variant="body1" sx={{fontFamily: 'Buda, sans-serif', fontWeight: "bold" }}>
+              <Typography variant="body1" sx={{fontFamily: 'Helvetica, sans-serif', fontWeight: "bold" }}>
                 Tech Solutions Inc. | Senior Developer
               </Typography>
               <Typography variant="body2" sx={{ color: "#555" }}>
@@ -317,7 +318,7 @@ export default function CandidateExperiencePage() {
               </Typography>
             </Box>
             <Box>
-              <Typography variant="body1" sx={{ fontFamily: 'Buda, sans-serif',fontWeight: "bold" }}>
+              <Typography variant="body1" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold" }}>
                 Digital Innovations | Software Developer
               </Typography>
               <Typography variant="body2" sx={{ color: "#555" }}>

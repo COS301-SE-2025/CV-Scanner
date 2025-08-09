@@ -476,13 +476,28 @@ const navButtonStyle = {
 
 // Review button style
 const reviewButtonStyle = {
-  background: "linear-gradient(45deg, #120635ff 0%, #0c9971ff 100%)",
-  color: "white",
+  background: "#232A3B",
+  color: "DEDDEE",
   fontWeight: "bold",
-  padding: "6px 16px",
+  padding: "8px 20px",
   borderRadius: "4px",
-  textTransform: "none",
+  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
   "&:hover": {
-    background: "linear-gradient(45deg, #120635ff 0%, #0c9971ff 100%)",
+    background: "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
+    transform: "translateY(-1px)",
+  },
+  textTransform: "none",
+  transition: "all 0.3s ease",
+  position: "relative",
+  overflow: "hidden",
+  "&::after": {
+    content: '""',
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    background:
+      "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
   },
 };
