@@ -130,14 +130,38 @@ def plot_graph_pie():
     plt.tight_layout()
     plt.show()
 
+def get_tags_from_cv(texts: list, threshold: float = 0.6):
+    """
+    Given CV text chunks, return all tags above the probability threshold.
+    """
+    tags = set()  # use a set to avoid duplicates
+    for text in texts:
+        if not text.strip():
+            continue
+
+        classification = classify_text(text)
+
+        for category, score in classification["probabilities"].items():
+            if score >= threshold:
+                tags.add(text.strip())
+    return sorted(tags)
+
+
 if __name__ == "__main__":
     pdf_text = extract_text_from_pdf("AI/CV.pdf")
     pdf_chunks = split_into_chunks(pdf_text)
+
+    # Run ranking
     results = rank_tags(pdf_chunks)
-    print("Ranked Results:", results)
+    
+    # Get tags that meet threshold
+    cv_tags = get_tags_from_cv(pdf_chunks, threshold=0.6)
+
+    print("Final Tags:", cv_tags)
     print("Categories:", categories)
     print("Graph Data:", get_graph_data())
-    # Show bar chart
+
+    # Show graphs
     plot_graph_bar()
-    # Show pie chart
     plot_graph_pie()
+
