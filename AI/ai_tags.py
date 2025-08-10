@@ -137,5 +137,7 @@ if __name__ == "__main__":
     print("Ranked Results:", results)
     print("Categories:", categories)
     print("Graph Data:", get_graph_data())
+    # Show bar chart
     plot_graph_bar()
+    # Show pie chart
     plot_graph_pie()
