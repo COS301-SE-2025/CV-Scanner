@@ -76,18 +76,22 @@ def classify_text(text: str):
         "probabilities": {label: float(score) for label, score in scored}
     }
 
-def rank_tags(texts: list):
+def rank_tags(texts: list, threshold: float = 0.6):
     ranked_results = []
     for text in texts:
         if not text.strip():
             continue
+
         classification = classify_text(text)
         ranked_results.append(classification)
 
-        # Lowered threshold to 0.5 for short CV entries
-        if classification["probabilities"].get(classification["top_category"], 0) > 0.5:
-            add_tag_to_category(classification["top_category"], text)
+        # Add tag to ALL categories with probability >= threshold
+        for category, score in classification["probabilities"].items():
+            if score >= threshold:
+                add_tag_to_category(category, text)
+
     return ranked_results
+
 
 def get_graph_data():
     return {category: len(tags) for category, tags in categories.items()}
