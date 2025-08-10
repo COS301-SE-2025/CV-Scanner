@@ -122,6 +122,14 @@ def plot_graph_bar():
     plt.tight_layout()
     plt.show()
 
+def plot_graph_pie():
+    labels, values = prepare_graph_data()
+    plt.figure(figsize=(6, 6))
+    plt.pie(values, labels=labels, autopct='%1.1f%%', startangle=140, colors=plt.cm.Paired.colors)
+    plt.title('CV Tag Distribution - Pie Chart')
+    plt.tight_layout()
+    plt.show()
+
 if __name__ == "__main__":
     pdf_text = extract_text_from_pdf("AI/CV.pdf")
     pdf_chunks = split_into_chunks(pdf_text)
@@ -130,3 +138,4 @@ if __name__ == "__main__":
     print("Categories:", categories)
     print("Graph Data:", get_graph_data())
     plot_graph_bar()
+    plot_graph_pie()
