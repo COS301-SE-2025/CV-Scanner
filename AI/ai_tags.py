@@ -1,5 +1,6 @@
 from transformers import pipeline
 import pdfplumber
+import re
 
 classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
@@ -9,6 +10,10 @@ categories = {
     "experience": [],
     "other": []
 }
+
+def split_into_sentences(text):
+    sentences = re.split(r'(?<=[.!?])\s+', text)
+    return [s.strip() for s in sentences if s.strip()]
 
 def add_category(name: str):
     """Add a new category dynamically."""
@@ -37,13 +42,7 @@ def classify_text(text: str):
         "probabilities": {label: float(score) for label, score in scored}
     }
 
-    import re
-
-    def split_into_sentences(text):
-        # This regex splits on . ! ? followed by space or end of line
-        sentences = re.split(r'(?<=[.!?])\s+', text)
-        # Remove empty sentences and strip whitespace
-        return [s.strip() for s in sentences if s.strip()]
+    # ...existing code...
 
 def rank_tags(texts: list):
     """
