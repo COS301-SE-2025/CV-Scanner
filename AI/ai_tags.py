@@ -2,8 +2,19 @@ from transformers import pipeline
 import pdfplumber
 import re
 import matplotlib.pyplot as plt
+from nltk.corpus import stopwords
+import nltk
+nltk.download('stopwords')
 
-# Expanded categories for CV parsing
+STOPWORDS = set(stopwords.words("english"))
+
+# Faster zero-shot model (change to bart-large-mnli if you want full accuracy)
+classifier = pipeline(
+    "zero-shot-classification",
+    model="valhalla/distilbart-mnli-12-1"  # much faster on CPU
+)
+
+# Expanded categories
 categories = {
     "skills": [],
     "soft skills": [],
@@ -13,22 +24,14 @@ categories = {
     "other": []
 }
 
-classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
-
-# Common CV keywords for heuristic boosts
 EDU_KEYWORDS = ["bachelor", "master", "phd", "degree", "university", "school", "diploma", "certificate", "faculty"]
 SOFT_SKILL_KEYWORDS = ["teamwork", "communication", "leadership", "critical thinking", "time management", "problem solving"]
 ACHIEVEMENT_KEYWORDS = ["certification", "award", "honors", "completed", "achievement"]
 
 def split_into_chunks(text):
-    """
-    Split text into short chunks by line breaks, bullets, or punctuation.
-    """
-    # First split by line breaks and bullet-like markers
     raw_parts = re.split(r'[\n•\-–]', text)
     chunks = []
     for part in raw_parts:
-        # Then split further by sentence-ending punctuation
         sentences = re.split(r'(?<=[.!?])\s+', part)
         for s in sentences:
             s = s.strip()
@@ -36,72 +39,24 @@ def split_into_chunks(text):
                 chunks.append(s)
     return chunks
 
-def add_category(name: str):
-    if name.lower() not in categories:
-        categories[name.lower()] = []
-
-def add_tag_to_category(category: str, tag: str):
-    cat = category.lower()
-    if cat not in categories:
-        add_category(cat)
-    if tag.lower() not in categories[cat]:
-        categories[cat].append(tag.strip())
-
-def apply_heuristics(text, top_category, probs):
-    """
-    Apply keyword-based boosts to help the AI classify better.
-    """
+def apply_heuristics(text, top_category):
     text_lower = text.lower()
-
     if any(k in text_lower for k in EDU_KEYWORDS):
         return "education"
     if any(k in text_lower for k in SOFT_SKILL_KEYWORDS):
         return "soft skills"
     if any(k in text_lower for k in ACHIEVEMENT_KEYWORDS):
         return "achievements"
-
     return top_category
 
-def classify_text(text: str):
-    candidate_labels = list(categories.keys())
-    result = classifier(text, candidate_labels=candidate_labels)
-
-    scored = list(zip(result["labels"], result["scores"]))
-    scored.sort(key=lambda x: x[1], reverse=True)
-
-    top_category = apply_heuristics(text, scored[0][0], dict(scored))
-
-    return {
-        "text": text,
-        "top_category": top_category,
-        "probabilities": {label: float(score) for label, score in scored}
-    }
-
-def rank_tags(texts: list, threshold: float = 0.6):
-    ranked_results = []
-    for text in texts:
-        if not text.strip():
-            continue
-
-        classification = classify_text(text)
-        ranked_results.append(classification)
-
-        # Add tag to ALL categories with probability >= threshold
-        for category, score in classification["probabilities"].items():
-            if score >= threshold:
-                add_tag_to_category(category, text)
-
-    return ranked_results
-
-
-def get_graph_data():
-    return {category: len(tags) for category, tags in categories.items()}
-
-def prepare_graph_data():
-    graph_data = get_graph_data()
-    labels = list(graph_data.keys())
-    values = list(graph_data.values())
-    return labels, values
+def clean_and_extract_keywords(text):
+    words = re.findall(r"[A-Za-z0-9\+#]+(?:\s+[A-Za-z0-9\+#]+)*", text)
+    keywords = []
+    for word in words:
+        w = word.strip()
+        if w and w.lower() not in STOPWORDS:
+            keywords.append(w)
+    return keywords
 
 def extract_text_from_pdf(pdf_path):
     text = ""
@@ -112,8 +67,36 @@ def extract_text_from_pdf(pdf_path):
                 text += page_text + "\n"
     return text
 
+def process_cv_chunks(chunks, threshold=0.6):
+    tags = set()
+    keywords = set()
+
+    candidate_labels = list(categories.keys())
+
+    for chunk in chunks:
+        if not chunk.strip():
+            continue
+        if len(chunk.strip()) <= 2:  # skip too short
+            continue
+
+        result = classifier(chunk, candidate_labels=candidate_labels)
+        scored = list(zip(result["labels"], result["scores"]))
+        scored.sort(key=lambda x: x[1], reverse=True)
+
+        top_category = apply_heuristics(chunk, scored[0][0])
+        categories[top_category].append(chunk)
+
+        # Save tags & keywords if strong enough
+        if any(score >= threshold for score in result["scores"]):
+            tags.add(chunk.strip())
+            for kw in clean_and_extract_keywords(chunk):
+                keywords.add(kw)
+
+    return sorted(tags), sorted(keywords)
+
 def plot_graph_bar():
-    labels, values = prepare_graph_data()
+    labels = list(categories.keys())
+    values = [len(v) for v in categories.values()]
     plt.figure(figsize=(8, 5))
     plt.bar(labels, values, color='skyblue')
     plt.xlabel('Category')
@@ -123,45 +106,23 @@ def plot_graph_bar():
     plt.show()
 
 def plot_graph_pie():
-    labels, values = prepare_graph_data()
+    labels = list(categories.keys())
+    values = [len(v) for v in categories.values()]
     plt.figure(figsize=(6, 6))
     plt.pie(values, labels=labels, autopct='%1.1f%%', startangle=140, colors=plt.cm.Paired.colors)
     plt.title('CV Tag Distribution - Pie Chart')
     plt.tight_layout()
     plt.show()
 
-def get_tags_from_cv(texts: list, threshold: float = 0.6):
-    """
-    Given CV text chunks, return all tags above the probability threshold.
-    """
-    tags = set()  # use a set to avoid duplicates
-    for text in texts:
-        if not text.strip():
-            continue
-
-        classification = classify_text(text)
-
-        for category, score in classification["probabilities"].items():
-            if score >= threshold:
-                tags.add(text.strip())
-    return sorted(tags)
-
-
 if __name__ == "__main__":
     pdf_text = extract_text_from_pdf("AI/CV.pdf")
     pdf_chunks = split_into_chunks(pdf_text)
 
-    # Run ranking
-    results = rank_tags(pdf_chunks)
-    
-    # Get tags that meet threshold
-    cv_tags = get_tags_from_cv(pdf_chunks, threshold=0.6)
+    final_tags, final_keywords = process_cv_chunks(pdf_chunks, threshold=0.6)
 
-    print("Final Tags:", cv_tags)
+    print("Final Tags:", final_tags)
     print("Categories:", categories)
-    print("Graph Data:", get_graph_data())
+    print("Searchable Keywords:", final_keywords)
 
-    # Show graphs
     plot_graph_bar()
     plot_graph_pie()
-
