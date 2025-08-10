@@ -1,4 +1,5 @@
 from transformers import pipeline
+import pdfplumber
 
 classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
@@ -58,6 +59,13 @@ def get_graph_data():
     """Prepare graph-friendly data showing tag counts per category."""
     return {category: len(tags) for category, tags in categories.items()}
 
+def extract_text_from_pdf(pdf_path):
+    text = ""
+    with pdfplumber.open(pdf_path) as pdf:
+        for page in pdf.pages:
+            text += page.extract_text() + "\n"
+    return text
+
 if __name__ == "__main__":
     sample_texts = [
         "Proficient in Python, JavaScript, and SQL.",
@@ -70,3 +78,8 @@ if __name__ == "__main__":
     print("Ranked Results:", results)
     print("Categories:", categories)
     print("Graph Data:", get_graph_data())
+
+    # Example usage of PDF text extraction:
+    pdf_text = extract_text_from_pdf("AI/CV.pdf")
+    print (pdf_text)
+    # Now pass pdf_text to your classification functions
