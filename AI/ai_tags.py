@@ -37,22 +37,27 @@ def classify_text(text: str):
         "probabilities": {label: float(score) for label, score in scored}
     }
 
+    import re
+
+    def split_into_sentences(text):
+        # This regex splits on . ! ? followed by space or end of line
+        sentences = re.split(r'(?<=[.!?])\s+', text)
+        # Remove empty sentences and strip whitespace
+        return [s.strip() for s in sentences if s.strip()]
+
 def rank_tags(texts: list):
     """
     Takes a list of text snippets (e.g. from CV sections),
     classifies them, and assigns probabilities for each category.
     """
     ranked_results = []
-
     for text in texts:
         if not text.strip():
             continue
         classification = classify_text(text)
         ranked_results.append(classification)
-
         if classification["probabilities"][classification["top_category"]] > 0.6:
             add_tag_to_category(classification["top_category"], text)
-
     return ranked_results
 
 def get_graph_data():
@@ -67,19 +72,9 @@ def extract_text_from_pdf(pdf_path):
     return text
 
 if __name__ == "__main__":
-    sample_texts = [
-        "Proficient in Python, JavaScript, and SQL.",
-        "Bachelor of Science in Computer Science.",
-        "Worked 3 years as a backend developer at Google.",
-        "Excellent leadership and teamwork skills."
-    ]
-
-    results = rank_tags(sample_texts)
+    pdf_text = extract_text_from_pdf("AI/CV.pdf")
+    pdf_sentences = split_into_sentences(pdf_text)
+    results = rank_tags(pdf_sentences)
     print("Ranked Results:", results)
     print("Categories:", categories)
     print("Graph Data:", get_graph_data())
-
-    # Example usage of PDF text extraction:
-    pdf_text = extract_text_from_pdf("AI/CV.pdf")
-    print (pdf_text)
-    # Now pass pdf_text to your classification functions
