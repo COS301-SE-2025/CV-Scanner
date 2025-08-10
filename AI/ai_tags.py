@@ -97,6 +97,12 @@ def rank_tags(texts: list, threshold: float = 0.6):
 def get_graph_data():
     return {category: len(tags) for category, tags in categories.items()}
 
+def prepare_graph_data():
+    graph_data = get_graph_data()
+    labels = list(graph_data.keys())
+    values = list(graph_data.values())
+    return labels, values
+
 def extract_text_from_pdf(pdf_path):
     text = ""
     with pdfplumber.open(pdf_path) as pdf:
