@@ -112,6 +112,16 @@ def extract_text_from_pdf(pdf_path):
                 text += page_text + "\n"
     return text
 
+def plot_graph_bar():
+    labels, values = prepare_graph_data()
+    plt.figure(figsize=(8, 5))
+    plt.bar(labels, values, color='skyblue')
+    plt.xlabel('Category')
+    plt.ylabel('Count')
+    plt.title('CV Tag Distribution - Bar Chart')
+    plt.tight_layout()
+    plt.show()
+
 if __name__ == "__main__":
     pdf_text = extract_text_from_pdf("AI/CV.pdf")
     pdf_chunks = split_into_chunks(pdf_text)
@@ -119,3 +129,4 @@ if __name__ == "__main__":
     print("Ranked Results:", results)
     print("Categories:", categories)
     print("Graph Data:", get_graph_data())
+    plot_graph_bar()
