@@ -1,6 +1,7 @@
 from transformers import pipeline
 import pdfplumber
 import re
+import matplotlib.pyplot as plt
 
 # Expanded categories for CV parsing
 categories = {
