@@ -26,6 +26,7 @@ import {
   Tooltip,
   InputAdornment,
 } from "@mui/material";
+import Sidebar from "./Sidebar";
 import { useNavigate, useLocation } from "react-router-dom";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
@@ -231,136 +232,23 @@ const devUser = {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#121436ff",
+        bgcolor: "#1E1E1E",
         color: "#fff",
       }}
     >
       {/* Sidebar */}
-      {!collapsed ? (
-        <Box
-          sx={{
-            width: 220,
-            bgcolor: "#0A2540 ",
-            display: "flex",
-            flexDirection: "column",
-            p: 2,
-            position: "relative",
-          }}
-        >
-          {/* Collapse Button */}
-          <IconButton
-            onClick={() => setCollapsed(true)}
-            sx={{
-              color: "#fff",
-              position: "absolute",
-              top: 8,
-              left: 8,
-              zIndex: 1,
-            }}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <rect x="3" y="6" width="18" height="2" fill="currentColor" />
-              <rect x="3" y="11" width="18" height="2" fill="currentColor" />
-              <rect x="3" y="16" width="18" height="2" fill="currentColor" />
-            </svg>
-          </IconButton>
-
-          <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
-            <img src={logoNavbar} alt="Team Logo" style={{ width: 120 }} />
-          </Box>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/dashboard" ? "active" : ""}
-            startIcon={<DashboardIcon />}
-            onClick={() => navigate("/dashboard")}
-          >
-            Dashboard
-          </Button>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/upload" ? "active" : ""}
-            startIcon={<UploadFileIcon />}
-            onClick={() => navigate("/upload")}
-          >
-            Upload CV
-          </Button>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/candidates" ? "active" : ""}
-            startIcon={<PeopleIcon />}
-            onClick={() => navigate("/candidates")}
-          >
-            Candidates
-          </Button>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/search" ? "active" : ""}
-            startIcon={<SearchIcon />}
-            onClick={() => navigate("/search")}
-          >
-            Search
-          </Button>
-
-          {/* Only show User Management if user is Admin */}
-          {(user?.role === "Admin" || devUser.role === "Admin") && (
-            <Button
-              fullWidth
-              sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
-              className={
-                location.pathname === "/user-management" ? "active" : ""
-              }
-              startIcon={<SettingsIcon />}
-              onClick={() => navigate("/user-management")}
-            >
-              User Management
-            </Button>
-          )}
-          {(user?.role === "Admin" || devUser.role === "Admin") && (
-            <Button
-              fullWidth
-              sx={navButtonStyle}
-              className={location.pathname === "/system-settings" ? "active" : ""}
-              startIcon={<SettingsIcon />}
-              onClick={() => navigate("/system-settings")}
-            >
-              System Settings
-            </Button>
-          )}
-        </Box>
-      ) : (
-        <Box
-          sx={{
-            width: 40,
-            bgcolor: "#0A2540",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "flex-start",
-            pt: 1,
-          }}
-        >
-          <IconButton
-            onClick={() => setCollapsed(false)}
-            sx={{ color: "#fff" }}
-          >
-            <ChevronRightIcon />
-          </IconButton>
-        </Box>
-      )}
+      <Sidebar 
+  userRole={user?.role || devUser.role} 
+  collapsed={collapsed} 
+  setCollapsed={setCollapsed} 
+/>
 
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
         <AppBar
           position="static"
-          sx={{ bgcolor: "#0A2540 ", boxShadow: "none" }}
+          sx={{ bgcolor: "#232A3B ", boxShadow: "none" }}
         >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
             {/* Tutorial icon */}
@@ -423,7 +311,7 @@ const devUser = {
 
         {/* User Management Content */}
         <Box sx={{ p: 3 }}>
-          <Typography variant="h4" sx={{ fontFamily: 'Buda, sans-serif', fontWeight: "bold", mb: 3, color: "#fff " }}>
+          <Typography variant="h5" sx={{ fontFamily: 'Helvetica, sans-serif', fontWeight: "bold", mb: 3, color: "#fff " }}>
             User Management
           </Typography>
 
@@ -435,7 +323,7 @@ const devUser = {
               placeholder="Search users..."
               variant="outlined"
               fullWidth
-              sx={{ bgcolor: "#cbd5e0", borderRadius: 1 }}
+              sx={{ bgcolor: "#DEDDEE", borderRadius: 1 }}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               InputProps={{
@@ -451,7 +339,7 @@ const devUser = {
               <Select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                sx={{ bgcolor: "#cbd5e0", borderRadius: 1, minWidth: 150 }}
+                sx={{ bgcolor: "#DEDDEE", borderRadius: 1, minWidth: 150 }}
               >
                 <MenuItem value="All Roles">All Roles</MenuItem>
                 <MenuItem value="Admin">Admin</MenuItem>
@@ -472,12 +360,12 @@ const devUser = {
           {/* User Table */}
           <Paper
             elevation={6}
-            sx={{ p: 3, borderRadius: 3, bgcolor: "#cbd5e0" }}
+            sx={{ p: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
           >
             <TableContainer>
-              <Table sx={{"& td, & th": { fontFamily: 'Buda, sans-serif'}}}>
+              <Table sx={{"& td, & th": { fontFamily: 'Helvetica, sans-serif'}}}>
                 {/* 2. Update the table headers: */}
-                <TableHead sx={{ "& th": {fontSize: 20 } }}>
+                <TableHead sx={{ "& th": {fontSize: 16 } }}>
                   <TableRow>
                     <TableCell sx={{ fontWeight: "bold" }}>Username</TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>
