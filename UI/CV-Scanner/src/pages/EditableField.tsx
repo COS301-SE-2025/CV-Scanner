@@ -39,7 +39,7 @@ const EditableField: React.FC<EditableFieldProps> = ({ label, value = "", onSave
       {/* Display field */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Box>
-          <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 0.5 }}>
+          <Typography variant="subtitle2" sx={{ bgcolor:"#",fontWeight: "bold", mb: 0.5 }}>
             {label}
           </Typography>
           <Typography variant="body2" sx={{ whiteSpace: "pre-line" }}>

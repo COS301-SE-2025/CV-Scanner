@@ -75,11 +75,11 @@ const ParsedCVData: React.FC = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ bgcolor:"#1E1E1E",p: 3 }}>
       {/* Back Button */}
       <Button
         startIcon={<ArrowBackIcon />}
-        onClick={() => navigate("/upload-cv")}
+        onClick={() => navigate("/upload")}
         sx={{
           mb: 2,
           color: "#0073c1",
@@ -94,24 +94,28 @@ const ParsedCVData: React.FC = () => {
       </Button>
 
       {/* Page Title */}
-      <Typography variant="h5" sx={{color:"#fff", mb: 3, fontWeight: "bold" }}>
-        Processed CV Data
-      </Typography>
+      
 
       <Box sx={{ display: "flex", gap: 3, height: "100%" }}>
+
+        
         {/* Left: Editable parsed CV */}
         <Paper
           elevation={4}
           sx={{
             flex: 1,
-            p: 3,
-            bgcolor: "#f8f9fa",
+            p: 2,
+            bgcolor: "#DEDDEE",
             overflowY: "auto",
             borderRadius: 2,
             display: "flex",
             flexDirection: "column",
           }}
         >
+        <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
+            Processed CV Data
+        </Typography>
+        <Divider sx={{ mb: 2 }} />
           <Grid container spacing={2}>
             {Object.entries(fields).map(([key, value]) => (
               <Grid item xs={12} sm={6} key={key}>
@@ -150,7 +154,7 @@ const ParsedCVData: React.FC = () => {
           sx={{
             flex: 1,
             p: 2,
-            bgcolor: "#fff",
+            bgcolor: "#DEDDEE",
             borderRadius: 2,
             overflow: "hidden",
             display: "flex",
