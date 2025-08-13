@@ -374,7 +374,7 @@ export default function SettingsPage() {
 
         {/* Settings Content */}
         <Box sx={{ p: 3 }}>
-          <Typography variant="h4" sx={{ fontWeight: "bold", mb: 3, fontFamily: "Helvetica, sans-serif" }}>
+          <Typography variant="h5" sx={{ fontWeight: "bold", mb: 3, fontFamily: "Helvetica, sans-serif" }}>
             User Settings
           </Typography>
 
@@ -407,7 +407,7 @@ export default function SettingsPage() {
             {/* Profile Section */}
             <Box component="form" onSubmit={handleProfileUpdate} sx={{ mb: 4 }}>
               <Typography
-                variant="h5"
+                variant="h6"
                 sx={{ fontWeight: "bold", color: "#232A3B", mb: 2, fontFamily: "Helvetica, sans-serif" }}
               >
                 Profile Information
