@@ -5,6 +5,7 @@ import logo2 from '../assets/logo2.png';
 import logo from '../assets/logo.png';
 import { useState } from 'react';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import logoNavbar from "../assets/logoNavbar.png";
 
 
 export default function HelpPage() {
@@ -44,8 +45,10 @@ const filteredFaqs = faqs.filter(
       <AppBar position="static" sx={{ bgcolor: '#232A3B', boxShadow: 'none' }}>
         <Toolbar sx={{ justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <img src={logo} alt="Logo" style={{ width: 100 }} />
-            <Typography variant="h6" sx={{ ml: 2, fontWeight: 'bold' }}>CV Scanner Help</Typography>
+             <img src={logoNavbar} alt="Logo" style={{ width: 80 }} />
+             <Typography variant="h6" sx={{fontFamily: 'Helvetica, sans-serif', ml: 2, fontWeight: 'bold' }}>
+                            CV Scanner Help
+                          </Typography>
           </Box>
           <Button color="inherit" startIcon={<ArrowBackIcon />} onClick={() => navigate('/dashboard')}>
             Back to Dashboard
