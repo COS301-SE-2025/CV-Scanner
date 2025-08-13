@@ -39,9 +39,9 @@ const filteredFaqs = faqs.filter(
 
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#181c2f', color: '#fff', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: "#1E1E1E", color: '#fff', display: 'flex', flexDirection: 'column' }}>
           {/* Top App Bar */}
-      <AppBar position="static" sx={{ bgcolor: '#1A82AE', boxShadow: 'none' }}>
+      <AppBar position="static" sx={{ bgcolor: '#232A3B', boxShadow: 'none' }}>
         <Toolbar sx={{ justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <img src={logo} alt="Logo" style={{ width: 100 }} />
@@ -89,7 +89,7 @@ const filteredFaqs = faqs.filter(
 
 
       {/* Footer */}
-      <Box sx={{ textAlign: 'center', py: 2, bgcolor: '#1A82AE', color: '#fff' }}>
+      <Box sx={{ textAlign: 'center', py: 2, bgcolor: '#232A3B', color: '#fff' }}>
         <Typography variant="body2">&copy; {new Date().getFullYear()} Entelect CV Scanner Help Center</Typography>
       </Box>
     </Box>
