@@ -50,15 +50,28 @@ const filteredFaqs = faqs.filter(
                             CV Scanner Help
                           </Typography>
           </Box>
-          <Button color="inherit" startIcon={<ArrowBackIcon />} onClick={() => navigate('/dashboard')}>
-            Back to Dashboard
-          </Button>
+          
         </Toolbar>
       </AppBar>
 
       {/* FAQ Section */}
       <Box sx={{ p: 4, flexGrow: 1 }}>
-        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 4, color: '#e1f4ff' }}>
+                  <Button
+                    startIcon={<ArrowBackIcon />}
+                    onClick={() => navigate("/dashboard")}
+                    sx={{
+                      mb: 2,
+                      color: "#0073c1",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": {
+                        backgroundColor: "rgba(0, 115, 193, 0.1)",
+                      },
+                    }}
+                  >
+                    Back to Dashboard
+                  </Button>
+         <Typography variant="h4" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 2 }}>
           Frequently Asked Questions
         </Typography>
 
