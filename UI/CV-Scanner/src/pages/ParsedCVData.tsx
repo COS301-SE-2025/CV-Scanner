@@ -1,17 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
   Paper,
   Divider,
-  Button,
-  Snackbar,
-  Alert,
-  Grid,
+  AppBar,
+  Toolbar,
+  IconButton
 } from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditableField from "./EditableField";
 import { useLocation, useNavigate } from "react-router-dom";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import logoNavbar from "../assets/logoNavbar.png";
+
 
 export interface ParsedCVFields {
   profile?: string;
@@ -31,39 +35,19 @@ const ParsedCVData: React.FC = () => {
   const { processedData, fileUrl } = location.state || {};
 
   const [fields, setFields] = useState<ParsedCVFields>(processedData || {});
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: "success" | "error";
-  }>({ open: false, message: "", severity: "success" });
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const email = localStorage.getItem("userEmail") || "admin@email.com";
+    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
+      .then((res) => res.json())
+      .then((data) => setUser(data))
+      .catch(() => setUser(null));
+  }, []);
 
   const handleUpdate = (key: keyof ParsedCVFields, value: string) => {
     const updated = { ...fields, [key]: value };
     setFields(updated);
-  };
-
-  const handleSaveCV = async () => {
-    try {
-      const response = await fetch("http://localhost:5000/save_cv", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(fields),
-      });
-
-      if (!response.ok) throw new Error("Failed to save CV");
-
-      setSnackbar({
-        open: true,
-        message: "CV saved successfully!",
-        severity: "success",
-      });
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: "Error saving CV",
-        severity: "error",
-      });
-    }
   };
 
   if (!processedData || !fileUrl) {
@@ -75,128 +59,150 @@ const ParsedCVData: React.FC = () => {
   }
 
   return (
-    <Box sx={{ bgcolor:"#1E1E1E",p: 3 }}>
-      {/* Back Button */}
-      <Button
-        startIcon={<ArrowBackIcon />}
-        onClick={() => navigate("/upload")}
-        sx={{
-          mb: 2,
-          color: "#0073c1",
-          fontWeight: "bold",
-          textTransform: "none",
-          "&:hover": {
-            backgroundColor: "rgba(0, 115, 193, 0.1)",
-          },
-        }}
-      >
-        Back to Upload Page
-      </Button>
-
-      {/* Page Title */}
-      
-
-      <Box sx={{ display: "flex", gap: 3, height: "100%" }}>
-
-        
-        {/* Left: Editable parsed CV */}
-        <Paper
-          elevation={4}
-          sx={{
-            flex: 1,
-            p: 2,
-            bgcolor: "#DEDDEE",
-            overflowY: "auto",
-            borderRadius: 2,
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-        <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
-            Processed CV Data
-        </Typography>
-        <Divider sx={{ mb: 2 }} />
-          <Grid container spacing={2}>
-            {Object.entries(fields).map(([key, value]) => (
-              <Grid item xs={12} sm={6} key={key}>
-                <Box
-                  sx={{
-                    border: "1px solid #ccc",
-                    borderRadius: 2,
-                    p: 1.5,
-                    bgcolor: "#fff",
-                  }}
-                >
-                  <EditableField
-                    label={key.charAt(0).toUpperCase() + key.slice(1)}
-                    value={value}
-                    onSave={(val) => handleUpdate(key as keyof ParsedCVFields, val)}
-                    modalEdit // Pass a prop to open in modal instead of inline
-                  />
-                </Box>
-              </Grid>
-            ))}
-          </Grid>
-
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleSaveCV}
-            sx={{ mt: 3, alignSelf: "flex-start" }}
-          >
-            Save CV
-          </Button>
-        </Paper>
-
-        {/* Right: CV file preview */}
-        <Paper
-          elevation={4}
-          sx={{
-            flex: 1,
-            p: 2,
-            bgcolor: "#DEDDEE",
-            borderRadius: 2,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
-            Original CV
-          </Typography>
-          <Divider sx={{ mb: 2 }} />
-
-          {fileUrl ? (
-            <iframe
-              src={fileUrl}
-              style={{ width: "100%", height: "80vh", border: "none" }}
-              title="CV PDF Viewer"
+    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh", bgcolor: "#1E1E1E" }}>
+      {/* Top App Bar */}
+      <AppBar position="static" sx={{ bgcolor: "#232A3B", boxShadow: "none" }}>
+        <Toolbar sx={{ justifyContent: "space-between" }}>
+            {/* Left: Logo + Page title */}
+            <Box sx={{ display: "flex", alignItems: "center"}}>
+            <Box
+                component="img"
+                src={logoNavbar}
+                alt="Logo"
+                sx={{ width: 80 }}
             />
-          ) : (
-            <Typography variant="body2">
-              File preview not available.{" "}
-              <a href={fileUrl} target="_blank" rel="noopener noreferrer">
-                Download CV
-              </a>
+            <Typography variant="h6" sx={{ fontFamily: 'Helvetica, sans-serif',ml: 2, fontWeight: "bold" }}>
+                Processed CV Data
             </Typography>
-          )}
-        </Paper>
-      </Box>
+            </Box>
 
-      {/* Snackbar for save confirmation */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          sx={{ width: "100%" }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+            {/* Right: Help / User / Logout */}
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+            <IconButton
+                color="inherit"
+                onClick={() => navigate("/help")}
+                sx={{ ml: 1, color: "#90ee90" }}
+            >
+                <HelpOutlineIcon />
+            </IconButton>
+
+            <Box
+                sx={{
+                display: "flex",
+                alignItems: "center",
+                ml: 2,
+                cursor: "pointer",
+                "&:hover": { opacity: 0.8 },
+                }}
+                onClick={() => navigate("/settings")}
+            >
+                <AccountCircleIcon sx={{ mr: 1 }} />
+                <Typography variant="subtitle1">
+                {user
+                    ? user.first_name
+                    ? `${user.first_name} ${user.last_name || ""} (${user.role || "User"})`
+                    : (user.username || user.email) + (user.role ? ` (${user.role})` : "")
+                    : "User"}
+                </Typography>
+            </Box>
+
+            <IconButton
+                color="inherit"
+                onClick={() => navigate("/login")}
+                sx={{ ml: 1 }}
+            >
+                <ExitToAppIcon />
+            </IconButton>
+            </Box>
+        </Toolbar>
+        </AppBar>
+
+      {/* Page Content */}
+      <Box sx={{ p: 3, flex: 1 }}>
+        {/* Back Button */}
+        <Box sx={{ mb: 2 }}>
+          <IconButton
+            onClick={() => navigate("/upload-cv")}
+            sx={{
+              color: "#0073c1",
+              fontWeight: "bold",
+              "&:hover": { backgroundColor: "rgba(0, 115, 193, 0.1)" }
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h5" sx={{ display: "inline", ml: 1, fontWeight: "bold", color: "#fff" }}>
+            Processed CV Data
+          </Typography>
+        </Box>
+
+        {/* Two-column layout */}
+        <Box sx={{ display: "flex", gap: 3 }}>
+          {/* Left: Editable parsed CV */}
+          <Paper
+            elevation={4}
+            sx={{
+              flex: 1,
+              p: 3,
+              bgcolor: "#f8f9fa",
+              overflowY: "auto",
+              borderRadius: 2,
+              border: "1px solid #ccc"
+            }}
+          >
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "repeat(2, 1fr)",
+                gap: 2
+              }}
+            >
+              {Object.entries(fields).map(([key, value]) => (
+                <EditableField
+                  key={key}
+                  label={key.charAt(0).toUpperCase() + key.slice(1)}
+                  value={value}
+                  onSave={(val) => handleUpdate(key as keyof ParsedCVFields, val)}
+                />
+              ))}
+            </Box>
+          </Paper>
+
+          {/* Right: CV file preview */}
+          <Paper
+            elevation={4}
+            sx={{
+              flex: 1,
+              p: 2,
+              bgcolor: "#fff",
+              borderRadius: 2,
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column"
+            }}
+          >
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
+              Original CV
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+
+            {fileUrl ? (
+              <iframe
+                src={fileUrl}
+                style={{ width: "100%", height: "80vh", border: "none" }}
+                title="CV PDF Viewer"
+              />
+            ) : (
+              <Typography variant="body2">
+                File preview not available.{" "}
+                <a href={fileUrl} target="_blank" rel="noopener noreferrer">
+                  Download CV
+                </a>
+              </Typography>
+            )}
+          </Paper>
+        </Box>
+      </Box>
     </Box>
   );
 };
