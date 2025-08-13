@@ -1,12 +1,14 @@
-// src/pages/EditableField.tsx
 import React, { useState } from "react";
 import {
   Box,
   Typography,
   IconButton,
-  Popover,
-  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Button,
+  TextField
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 
@@ -16,87 +18,81 @@ interface EditableFieldProps {
   onSave: (value: string) => void;
 }
 
-const EditableField: React.FC<EditableFieldProps> = ({
-  label,
-  value = "",
-  onSave,
-}) => {
-  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+const EditableField: React.FC<EditableFieldProps> = ({ label, value = "", onSave }) => {
+  const [open, setOpen] = useState(false);
   const [tempValue, setTempValue] = useState(value);
 
-  const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
+  const handleOpen = () => {
     setTempValue(value);
-    setAnchorEl(event.currentTarget);
+    setOpen(true);
   };
 
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
+  const handleClose = () => setOpen(false);
 
   const handleSave = () => {
     onSave(tempValue);
-    handleClose();
+    setOpen(false);
   };
 
-  const open = Boolean(anchorEl);
-
   return (
-    <Box sx={{ mb: 2 }}>
-      {/* Label + edit icon */}
-      <Box sx={{ display: "flex", alignItems: "center" }}>
-        <Typography
-          variant="subtitle2"
-          sx={{ fontWeight: "bold", flex: 1 }}
-        >
-          {label}
-        </Typography>
+    <>
+      {/* Display field */}
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Box>
+          <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 0.5 }}>
+            {label}
+          </Typography>
+          <Typography variant="body2" sx={{ whiteSpace: "pre-line" }}>
+            {value || "N/A"}
+          </Typography>
+        </Box>
         <IconButton size="small" onClick={handleOpen}>
           <EditIcon fontSize="small" />
         </IconButton>
       </Box>
 
-      {/* Render plain text (no markdown) */}
-      <Box sx={{ pl: 1, whiteSpace: "pre-line" }}>
-        {value || (
-          <Typography variant="body2" color="text.secondary">
-            —
-          </Typography>
-        )}
-      </Box>
-
-      {/* Popover editor */}
-      <Popover
+      {/* Dialog positioned center-left */}
+      <Dialog
         open={open}
-        anchorEl={anchorEl}
         onClose={handleClose}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "left",
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{
+          sx: {
+            width: "40vw",
+            maxHeight: "80vh"
+          },
+        }}
+        sx={{
+          "& .MuiDialog-container": {
+            display: "flex",
+            justifyContent: "flex-start", // push left
+            alignItems: "center", // vertically center
+            pl: 37 // padding left
+          },
         }}
       >
-        <Box sx={{ p: 2, maxWidth: 400 }}>
-          <Typography variant="subtitle1" sx={{ mb: 1 }}>
-            Edit {label}
-          </Typography>
+        <DialogTitle>Edit {label}</DialogTitle>
+        <DialogContent>
           <TextField
+            fullWidth
+            multiline
+            minRows={4}
             value={tempValue}
             onChange={(e) => setTempValue(e.target.value)}
-            multiline
-            fullWidth
-            minRows={4}
-            size="small"
+            sx={{ mt: 1 }}
           />
-          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
-            <Button onClick={handleClose} sx={{ mr: 1 }}>
-              Cancel
-            </Button>
-            <Button variant="contained" onClick={handleSave}>
-              Save
-            </Button>
-          </Box>
-        </Box>
-      </Popover>
-    </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose} color="secondary">
+            Cancel
+          </Button>
+          <Button onClick={handleSave} variant="contained" color="primary">
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
 
