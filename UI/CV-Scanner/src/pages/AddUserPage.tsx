@@ -504,9 +504,9 @@ export default function AddUserPage() {
                   }}
                 >
                   <Button
-                    variant="outlined"
+                     variant="contained"
+                sx={{ backgroundColor: "#d0d0d0", color: "#000" }}
                     onClick={() => navigate("/user-management")}
-                    sx={{ bgcolor: "lightgrey", color: "#666" }}
                   >
                     Cancel
                   </Button>
