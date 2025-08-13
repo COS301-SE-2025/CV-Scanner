@@ -76,19 +76,20 @@ const filteredFaqs = faqs.filter(
         </Typography>
 
           <TextField
+           fullWidth
           variant="outlined"
           placeholder="Ask a question..."
-          fullWidth
+          size="small"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          sx={{ mb: 4, bgcolor: '#fff', borderRadius: 1 }}
+          sx={{ mb: 4, bgcolor: "#d1dbe5ff", borderRadius: 1 }}
         />
 
         {filteredFaqs.length > 0 ? (
           filteredFaqs.map((faq, index) => (
-            <Accordion key={index} sx={{ mb: 2, bgcolor: '#e1f4ff', color: '#000', borderRadius: 2 }}>
+            <Accordion key={index} sx={{ mb: 2, bgcolor: '#e1f4ff', color: '#000', borderRadius: 1 }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{faq.question}</Typography>
+                <Typography variant="subtitle1" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: 'bold' }}>{faq.question}</Typography>
               </AccordionSummary>
               <AccordionDetails>
                 <Typography variant="body1">{faq.answer}</Typography>
@@ -96,7 +97,7 @@ const filteredFaqs = faqs.filter(
             </Accordion>
           ))
         ) : (
-          <Paper sx={{ p: 3, textAlign: 'center', bgcolor: '#fefefe', borderRadius: 2 }}>
+          <Paper sx={{ p: 3, textAlign: 'center', bgcolor: '#fefefe', borderRadius: 1 }}>
             <Typography variant="body1" sx={{ color: '#000' }}>No results found for your question.</Typography>
              </Paper>
         )}
