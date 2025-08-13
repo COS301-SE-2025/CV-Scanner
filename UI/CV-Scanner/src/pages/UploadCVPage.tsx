@@ -307,7 +307,7 @@ const devUser = {
                 />
                 <Button
                   variant="contained"
-                  sx={{ mt: 1, background: "#204E20" }}
+                  sx={{reviewButtonStyle }}
                   onClick={handleBrowseClick}
                 >
                   Browse Files
@@ -749,6 +749,7 @@ const navButtonStyle = {
   },
 };
 
+// Review button style
 const reviewButtonStyle = {
   background: "#232A3B",
   color: "DEDDEE",
@@ -775,4 +776,3 @@ const reviewButtonStyle = {
       "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
   },
 };
-
