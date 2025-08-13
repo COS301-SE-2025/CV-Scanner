@@ -182,7 +182,7 @@ export default function AddUserPage() {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#0c0e18ff",
+        bgcolor: "#1E1E1E",
         color: "#fff",
       }}
     >
@@ -191,7 +191,7 @@ export default function AddUserPage() {
         <Box
           sx={{
             width: 220,
-            bgcolor: "#0A2540",
+            bgcolor: "#232A3B",
             display: "flex",
             flexDirection: "column",
             p: 2,
@@ -280,7 +280,7 @@ export default function AddUserPage() {
         <Box
           sx={{
             width: 40,
-            bgcolor: "#0A2540",
+            bgcolor: "#232A3B",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
@@ -302,7 +302,7 @@ export default function AddUserPage() {
 
            <AppBar
                                      position="static"
-                                     sx={{ bgcolor: "#0A2540", boxShadow: "none" }}
+                                     sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
                                    >
                                      <Toolbar sx={{ justifyContent: "flex-end" }}>
           
@@ -365,11 +365,11 @@ export default function AddUserPage() {
           <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
             <IconButton
               onClick={() => navigate("/user-management")}
-              sx={{ color: "#fff", mr: 2 }}
+              sx={{ color: "#fff", mr: 1 }}
             >
               <ArrowBackIcon />
             </IconButton>
-            <Typography variant="h4" sx={{ fontWeight: "bold" }}>
+            <Typography variant="h5" sx={{fontFamily: 'Helvetica, sans-serif', mb: 3, fontWeight: "bold" }}>
               Add New User
             </Typography>
           </Box>
@@ -388,7 +388,7 @@ export default function AddUserPage() {
               sx={{
                 p: 3,
                 borderRadius: 3,
-                bgcolor: "#75a29dff",
+                 backgroundColor: "#DEDDEE",
                 width: "100%",
                 maxWidth: 600,
               }}
@@ -513,7 +513,30 @@ export default function AddUserPage() {
                   <Button
                     variant="contained"
                     onClick={handleSubmit}
-                    sx={{ bgcolor: "#4caf50", color: "#fff" }}
+                    sx={{ background: "#232A3B",
+  color: "DEDDEE",
+  fontWeight: "bold",
+  padding: "8px 20px",
+  borderRadius: "4px",
+  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+  "&:hover": {
+    background: "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
+    transform: "translateY(-1px)",
+  },
+  textTransform: "none",
+  transition: "all 0.3s ease",
+  position: "relative",
+  overflow: "hidden",
+  "&::after": {
+    content: '""',
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    background:
+      "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
+  }, }}
                   >
                     Create User
                   </Button>
