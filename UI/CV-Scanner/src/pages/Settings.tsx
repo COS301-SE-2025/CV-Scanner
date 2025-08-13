@@ -512,7 +512,7 @@ export default function SettingsPage() {
               sx={{ mb: 4 }}
             >
               <Typography
-                variant="h5"
+                variant="h6" 
                 sx={{ fontWeight: "bold", color: "#232A3B", mb: 2, fontFamily: "Helvetica, sans-serif" }}
               >
                 Change Password
