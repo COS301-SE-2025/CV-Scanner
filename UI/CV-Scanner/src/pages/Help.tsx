@@ -5,6 +5,7 @@ import logo2 from '../assets/logo2.png';
 import logo from '../assets/logo.png';
 import { useState } from 'react';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import logoNavbar from "../assets/logoNavbar.png";
 
 
 export default function HelpPage() {
@@ -39,40 +40,56 @@ const filteredFaqs = faqs.filter(
 
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#181c2f', color: '#fff', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: "#1E1E1E", color: '#fff', display: 'flex', flexDirection: 'column' }}>
           {/* Top App Bar */}
-      <AppBar position="static" sx={{ bgcolor: '#1A82AE', boxShadow: 'none' }}>
+      <AppBar position="static" sx={{ bgcolor: '#232A3B', boxShadow: 'none' }}>
         <Toolbar sx={{ justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <img src={logo} alt="Logo" style={{ width: 100 }} />
-            <Typography variant="h6" sx={{ ml: 2, fontWeight: 'bold' }}>CV Scanner Help</Typography>
+             <img src={logoNavbar} alt="Logo" style={{ width: 80 }} />
+             <Typography variant="h6" sx={{fontFamily: 'Helvetica, sans-serif', ml: 2, fontWeight: 'bold' }}>
+                            CV Scanner Help
+                          </Typography>
           </Box>
-          <Button color="inherit" startIcon={<ArrowBackIcon />} onClick={() => navigate('/dashboard')}>
-            Back to Dashboard
-          </Button>
+          
         </Toolbar>
       </AppBar>
 
       {/* FAQ Section */}
       <Box sx={{ p: 4, flexGrow: 1 }}>
-        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 4, color: '#e1f4ff' }}>
+                  <Button
+                    startIcon={<ArrowBackIcon />}
+                    onClick={() => navigate("/dashboard")}
+                    sx={{
+                      mb: 2,
+                      color: "#0073c1",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": {
+                        backgroundColor: "rgba(0, 115, 193, 0.1)",
+                      },
+                    }}
+                  >
+                    Back to Dashboard
+                  </Button>
+         <Typography variant="h5" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 3}}>
           Frequently Asked Questions
         </Typography>
 
           <TextField
+           fullWidth
           variant="outlined"
           placeholder="Ask a question..."
-          fullWidth
+          size="medium"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          sx={{ mb: 4, bgcolor: '#fff', borderRadius: 1 }}
+          sx={{ mb: 4, bgcolor: "#d1dbe5ff", borderRadius: 1 }}
         />
 
         {filteredFaqs.length > 0 ? (
           filteredFaqs.map((faq, index) => (
-            <Accordion key={index} sx={{ mb: 2, bgcolor: '#e1f4ff', color: '#000', borderRadius: 2 }}>
+            <Accordion key={index} sx={{ mb: 2, bgcolor: '#e1f4ff', color: '#000', borderRadius: 1 }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{faq.question}</Typography>
+                <Typography variant="subtitle1" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: 'bold' }}>{faq.question}</Typography>
               </AccordionSummary>
               <AccordionDetails>
                 <Typography variant="body1">{faq.answer}</Typography>
@@ -80,7 +97,7 @@ const filteredFaqs = faqs.filter(
             </Accordion>
           ))
         ) : (
-          <Paper sx={{ p: 3, textAlign: 'center', bgcolor: '#fefefe', borderRadius: 2 }}>
+          <Paper sx={{ p: 3, textAlign: 'center', bgcolor: '#fefefe', borderRadius: 1 }}>
             <Typography variant="body1" sx={{ color: '#000' }}>No results found for your question.</Typography>
              </Paper>
         )}
@@ -89,7 +106,7 @@ const filteredFaqs = faqs.filter(
 
 
       {/* Footer */}
-      <Box sx={{ textAlign: 'center', py: 2, bgcolor: '#1A82AE', color: '#fff' }}>
+      <Box sx={{ textAlign: 'center', py: 2, bgcolor: '#232A3B', color: '#fff' }}>
         <Typography variant="body2">&copy; {new Date().getFullYear()} Entelect CV Scanner Help Center</Typography>
       </Box>
     </Box>

@@ -110,7 +110,6 @@ const devUser = {
   }
   };
 
-  // ...existing code...
   const handleProcess = async () => {
     if (file) {
       const formData = new FormData();
@@ -129,9 +128,18 @@ const devUser = {
         }
 
         const data = await response.json();
-        // data.data contains the structured CV info from FastAPI
-        setProcessedData(data.data);
-        setIsModalOpen(true);
+
+        // Create object URL for PDF preview
+        const fileUrl = URL.createObjectURL(file);
+
+        // Navigate to parsed CV page with data + fileUrl
+        navigate("/parsed-cv", {
+          state: {
+            processedData: data.data,
+            fileUrl,
+            fileType: file.type,
+          },
+        });
       } catch (error) {
         alert("An error occurred while processing the CV.");
       }
@@ -307,7 +315,7 @@ const devUser = {
                 />
                 <Button
                   variant="contained"
-                  sx={{ mt: 1, background: "#204E20" }}
+                  sx={{reviewButtonStyle }}
                   onClick={handleBrowseClick}
                 >
                   Browse Files
@@ -749,6 +757,7 @@ const navButtonStyle = {
   },
 };
 
+// Review button style
 const reviewButtonStyle = {
   background: "#232A3B",
   color: "DEDDEE",

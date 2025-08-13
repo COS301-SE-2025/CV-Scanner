@@ -16,6 +16,7 @@ import AddUserPage from './pages/AddUserPage';
 import LandingPage from './pages/LandingPage';
 import Help from './pages/Help';
 import SystemSettingsPage from './pages/SystemSettings';
+import ParsedCVData from './pages/ParsedCVData';
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
         <Route path="/landing-page" element={<LandingPage />} />
         <Route path="/help" element={<Help />} />
         <Route path="/system-settings" element={<SystemSettingsPage />} />
+        <Route path="/parsed-cv" element={<ParsedCVData />} />
         <Route path="*" element={<LandingPage />} />
       </Routes>
     </BrowserRouter>
