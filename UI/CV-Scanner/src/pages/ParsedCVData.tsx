@@ -51,6 +51,25 @@ const ParsedCVData: React.FC = () => {
     setFields(updated);
   };
 
+  // Add this inside your component, after handleUpdate
+const handleSave = async () => {
+  try {
+    const response = await fetch("http://localhost:8081/cv/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fields),
+    });
+
+    if (!response.ok) throw new Error("Failed to save CV");
+
+    alert("CV saved successfully!");
+  } catch (error) {
+    console.error(error);
+    alert("Error saving CV");
+  }
+};
+
+
   if (!processedData || !fileUrl) {
     return (
       <Typography variant="h6" sx={{ p: 3 }}>
@@ -129,6 +148,8 @@ const ParsedCVData: React.FC = () => {
               color: "#0073c1",
               fontWeight: "bold",
               textTransform: "none",
+              fontFamily: 'Helvetica, sans-serif',
+              fontSize: "0.9rem",
               "&:hover": {
                 backgroundColor: "rgba(0, 115, 193, 0.1)",
               },
@@ -176,6 +197,21 @@ const ParsedCVData: React.FC = () => {
       onSave={(val) => handleUpdate(key as keyof ParsedCVFields, val)}
     />
   ))}
+</Box>
+<Box sx={{ mt: 3, textAlign: "center" }}>
+  <Button
+    variant="contained"
+    onClick={handleSave}
+    sx={{
+      backgroundColor: "#232A3B",
+      color: "#fff",
+      fontWeight: "bold",
+      textTransform: "none",
+      "&:hover": { backgroundColor: "#3a4a5a" },
+    }}
+  >
+    Save CV
+  </Button>
 </Box>
 
           </Paper>
