@@ -6,7 +6,8 @@ import {
   Divider,
   AppBar,
   Toolbar,
-  IconButton
+  IconButton,
+  Button
 } from "@mui/material";
 import EditableField from "./EditableField";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -118,23 +119,23 @@ const ParsedCVData: React.FC = () => {
         </AppBar>
 
       {/* Page Content */}
-      <Box sx={{ p: 3, flex: 1 }}>
+      <Box sx={{ p: 3}}>
         {/* Back Button */}
-        <Box sx={{ mb: 2 }}>
-          <IconButton
-            onClick={() => navigate("/upload-cv")}
+        <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate("/candidates")}
             sx={{
+              mb: 2,
               color: "#0073c1",
               fontWeight: "bold",
-              "&:hover": { backgroundColor: "rgba(0, 115, 193, 0.1)" }
+              textTransform: "none",
+              "&:hover": {
+                backgroundColor: "rgba(0, 115, 193, 0.1)",
+              },
             }}
           >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h5" sx={{ display: "inline", ml: 1, fontWeight: "bold", color: "#fff" }}>
-            Processed CV Data
-          </Typography>
-        </Box>
+            Back to Upload CV Page
+          </Button>
 
         {/* Two-column layout */}
         <Box sx={{ display: "flex", gap: 3 }}>
@@ -150,6 +151,9 @@ const ParsedCVData: React.FC = () => {
               border: "1px solid #ccc"
             }}
           >
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
+              Processed CV Data
+            </Typography>
             <Box
               sx={{
                 display: "grid",
