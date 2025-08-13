@@ -7,9 +7,11 @@ import {
   Button,
   Snackbar,
   Alert,
+  Grid,
 } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditableField from "./EditableField";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export interface ParsedCVFields {
   profile?: string;
@@ -25,6 +27,7 @@ export interface ParsedCVFields {
 
 const ParsedCVData: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { processedData, fileUrl } = location.state || {};
 
   const [fields, setFields] = useState<ParsedCVFields>(processedData || {});
@@ -72,77 +75,109 @@ const ParsedCVData: React.FC = () => {
   }
 
   return (
-    <Box sx={{ display: "flex", gap: 3, height: "100%", p: 3 }}>
-      {/* Left: Editable parsed CV */}
-      <Paper
-        elevation={4}
+    <Box sx={{ p: 3 }}>
+      {/* Back Button */}
+      <Button
+        startIcon={<ArrowBackIcon />}
+        onClick={() => navigate("/upload-cv")}
         sx={{
-          flex: 1,
-          p: 3,
-          bgcolor: "#f8f9fa",
-          overflowY: "auto",
-          borderRadius: 2,
-          display: "flex",
-          flexDirection: "column",
+          mb: 2,
+          color: "#0073c1",
+          fontWeight: "bold",
+          textTransform: "none",
+          "&:hover": {
+            backgroundColor: "rgba(0, 115, 193, 0.1)",
+          },
         }}
       >
-        <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
-          Parsed CV Data
-        </Typography>
-        <Divider sx={{ mb: 2 }} />
+        Back to Upload Page
+      </Button>
 
-        {Object.entries(fields).map(([key, value]) => (
-          <EditableField
-            key={key}
-            label={key.charAt(0).toUpperCase() + key.slice(1)}
-            value={value}
-            onSave={(val) => handleUpdate(key as keyof ParsedCVFields, val)}
-          />
-        ))}
+      {/* Page Title */}
+      <Typography variant="h5" sx={{color:"#fff", mb: 3, fontWeight: "bold" }}>
+        Processed CV Data
+      </Typography>
 
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleSaveCV}
-          sx={{ mt: 2, alignSelf: "flex-start" }}
+      <Box sx={{ display: "flex", gap: 3, height: "100%" }}>
+        {/* Left: Editable parsed CV */}
+        <Paper
+          elevation={4}
+          sx={{
+            flex: 1,
+            p: 3,
+            bgcolor: "#f8f9fa",
+            overflowY: "auto",
+            borderRadius: 2,
+            display: "flex",
+            flexDirection: "column",
+          }}
         >
-          Save CV
-        </Button>
-      </Paper>
+          <Grid container spacing={2}>
+            {Object.entries(fields).map(([key, value]) => (
+              <Grid item xs={12} sm={6} key={key}>
+                <Box
+                  sx={{
+                    border: "1px solid #ccc",
+                    borderRadius: 2,
+                    p: 1.5,
+                    bgcolor: "#fff",
+                  }}
+                >
+                  <EditableField
+                    label={key.charAt(0).toUpperCase() + key.slice(1)}
+                    value={value}
+                    onSave={(val) => handleUpdate(key as keyof ParsedCVFields, val)}
+                    modalEdit // Pass a prop to open in modal instead of inline
+                  />
+                </Box>
+              </Grid>
+            ))}
+          </Grid>
 
-      {/* Right: CV file preview */}
-      <Paper
-        elevation={4}
-        sx={{
-          flex: 1,
-          p: 2,
-          bgcolor: "#fff",
-          borderRadius: 2,
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
-          Original CV
-        </Typography>
-        <Divider sx={{ mb: 2 }} />
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSaveCV}
+            sx={{ mt: 3, alignSelf: "flex-start" }}
+          >
+            Save CV
+          </Button>
+        </Paper>
 
-        {fileUrl ? (
-          <iframe
-            src={fileUrl}
-            style={{ width: "100%", height: "80vh", border: "none" }}
-            title="CV PDF Viewer"
-          />
-        ) : (
-          <Typography variant="body2">
-            File preview not available.{" "}
-            <a href={fileUrl} target="_blank" rel="noopener noreferrer">
-              Download CV
-            </a>
+        {/* Right: CV file preview */}
+        <Paper
+          elevation={4}
+          sx={{
+            flex: 1,
+            p: 2,
+            bgcolor: "#fff",
+            borderRadius: 2,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
+            Original CV
           </Typography>
-        )}
-      </Paper>
+          <Divider sx={{ mb: 2 }} />
+
+          {fileUrl ? (
+            <iframe
+              src={fileUrl}
+              style={{ width: "100%", height: "80vh", border: "none" }}
+              title="CV PDF Viewer"
+            />
+          ) : (
+            <Typography variant="body2">
+              File preview not available.{" "}
+              <a href={fileUrl} target="_blank" rel="noopener noreferrer">
+                Download CV
+              </a>
+            </Typography>
+          )}
+        </Paper>
+      </Box>
 
       {/* Snackbar for save confirmation */}
       <Snackbar
