@@ -71,7 +71,7 @@ const filteredFaqs = faqs.filter(
                   >
                     Back to Dashboard
                   </Button>
-         <Typography variant="h4" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 2 }}>
+         <Typography variant="h5" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 3}}>
           Frequently Asked Questions
         </Typography>
 
@@ -79,7 +79,7 @@ const filteredFaqs = faqs.filter(
            fullWidth
           variant="outlined"
           placeholder="Ask a question..."
-          size="small"
+          size="medium"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           sx={{ mb: 4, bgcolor: "#d1dbe5ff", borderRadius: 1 }}
