@@ -144,8 +144,8 @@ const ParsedCVData: React.FC = () => {
             elevation={4}
             sx={{
               flex: 1,
-              p: 3,
-              bgcolor: "#f8f9fa",
+              p: 2,
+              bgcolor: "#DEDDEE",
               overflowY: "auto",
               borderRadius: 2,
               border: "1px solid #ccc"
@@ -154,22 +154,30 @@ const ParsedCVData: React.FC = () => {
             <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
               Processed CV Data
             </Typography>
+            <Divider sx={{ mb: 2 }} />
             <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2, 1fr)",
-                gap: 2
-              }}
-            >
-              {Object.entries(fields).map(([key, value]) => (
-                <EditableField
-                  key={key}
-                  label={key.charAt(0).toUpperCase() + key.slice(1)}
-                  value={value}
-                  onSave={(val) => handleUpdate(key as keyof ParsedCVFields, val)}
-                />
-              ))}
-            </Box>
+  sx={{
+    display: "grid",
+    gridTemplateColumns: "repeat(2, 1fr)",
+    gap: 2,
+    "& > div": { // target each grid child
+      border: "1px solid #ccc",
+      borderRadius: 1,
+      padding: 1,
+      backgroundColor: "#adb6beff",
+    }
+  }}
+>
+  {Object.entries(fields).map(([key, value]) => (
+    <EditableField
+      key={key}
+      label={key.charAt(0).toUpperCase() + key.slice(1)}
+      value={value}
+      onSave={(val) => handleUpdate(key as keyof ParsedCVFields, val)}
+    />
+  ))}
+</Box>
+
           </Paper>
 
           {/* Right: CV file preview */}
@@ -178,7 +186,7 @@ const ParsedCVData: React.FC = () => {
             sx={{
               flex: 1,
               p: 2,
-              bgcolor: "#fff",
+              bgcolor: "#DEDDEE",
               borderRadius: 2,
               overflow: "hidden",
               display: "flex",
