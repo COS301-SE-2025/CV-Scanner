@@ -148,6 +148,8 @@ const handleSave = async () => {
               color: "#0073c1",
               fontWeight: "bold",
               textTransform: "none",
+              fontFamily: 'Helvetica, sans-serif',
+              fontSize: "0.9rem",
               "&:hover": {
                 backgroundColor: "rgba(0, 115, 193, 0.1)",
               },
