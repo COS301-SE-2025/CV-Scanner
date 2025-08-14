@@ -52,5 +52,28 @@ def extract_sections(text):
 		sections[section] = section_content
 	return sections
 
+def extract_skills(text):
+	skills_section = extract_sections(text).get("skills", "")
+	search_text = skills_section if len(skills_section) > 50 else text
+	doc = nlp(search_text)
+	skills = set()
+	for chunk in doc.noun_chunks:
+		if len(chunk.text) < 30:
+			if not re.search(r'\b(and|or|with|my|the|a|an)\b', chunk.text, re.I):
+				skills.add(chunk.text.strip())
+	for ent in doc.ents:
+		if ent.label_ in ["ORG", "PRODUCT"] and len(ent.text) < 25:
+			skills.add(ent.text)
+	tech_keywords = r'\b(python|java|c\+\+|javascript|sql|react|node\.?js|django|flask|aws|docker|kubernetes|machine learning|ai|tensorflow|pytorch|git|linux|html|css)\b'
+	for match in re.finditer(tech_keywords, text, re.IGNORECASE):
+		skills.add(match.group(0).lower())
+	bullet_points = re.findall(r'\n\s*[\-•]\s*([^\n]+)', search_text)
+	for point in bullet_points:
+		for skill in re.split(r',|;', point):
+			clean_skill = skill.strip()
+			if clean_skill and len(clean_skill) < 30:
+				skills.add(clean_skill)
+	return sorted(skills)
+
 if __name__ == "__main__":
 	uvicorn.run("AI:app", host="0.0.0.0", port=5000, reload=True)
