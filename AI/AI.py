@@ -1,3 +1,5 @@
+from fastapi import HTTPException
+from fastapi.responses import JSONResponse
 from fastapi import File, UploadFile
 import tempfile
 import os
@@ -88,17 +90,22 @@ def parse_resume(input_path, is_pdf=True):
 
 @app.post("/upload_pdf/")
 async def upload_pdf(file: UploadFile = File(...)):
-	temp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-	content = await file.read()
-	temp.write(content)
-	temp.close()
-	result = parse_resume(temp.name)
-	os.unlink(temp.name)
-	return {
-		"status": "success",
-		"filename": file.filename,
-		"data": result
-	}
+	if not file.filename or not file.filename.lower().endswith('.pdf'):
+		raise HTTPException(status_code=400, detail="File must have .pdf extension")
+	try:
+		temp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+		content = await file.read()
+		temp.write(content)
+		temp.close()
+		result = parse_resume(temp.name)
+		os.unlink(temp.name)
+		return JSONResponse(content={
+			"status": "success",
+			"filename": file.filename,
+			"data": result
+		})
+	except Exception as e:
+		raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
 
 if __name__ == "__main__":
 	uvicorn.run("AI:app", host="0.0.0.0", port=5000, reload=True)
