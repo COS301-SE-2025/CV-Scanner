@@ -75,5 +75,14 @@ def extract_skills(text):
 				skills.add(clean_skill)
 	return sorted(skills)
 
+def parse_resume(input_path, is_pdf=True):
+	text = extract_text_from_pdf(input_path) if is_pdf else input_path
+	text = re.sub(r'\s+', ' ', text).strip()
+	return {
+		"personal_info": extract_personal_info(text),
+		"sections": extract_sections(text),
+		"skills": extract_skills(text)
+	}
+
 if __name__ == "__main__":
 	uvicorn.run("AI:app", host="0.0.0.0", port=5000, reload=True)
