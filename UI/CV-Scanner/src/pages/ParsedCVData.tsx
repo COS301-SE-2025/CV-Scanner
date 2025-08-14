@@ -18,6 +18,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import logoNavbar from "../assets/logoNavbar.png";
 
 
+
 export interface ParsedCVFields {
   profile?: string;
   education?: string;
@@ -34,7 +35,7 @@ const ParsedCVData: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { processedData, fileUrl } = location.state || {};
-
+  const [pdfSticky, setPdfSticky] = useState(false);
   const [fields, setFields] = useState<ParsedCVFields>(processedData || {});
   const [user, setUser] = useState<any>(null);
 
@@ -142,7 +143,7 @@ const handleSave = async () => {
         {/* Back Button */}
         <Button
             startIcon={<ArrowBackIcon />}
-            onClick={() => navigate("/candidates")}
+            onClick={() => navigate("/upload")}
             sx={{
               mb: 2,
               color: "#0073c1",
@@ -216,39 +217,75 @@ const handleSave = async () => {
 
           </Paper>
 
-          {/* Right: CV file preview */}
-          <Paper
-            elevation={4}
-            sx={{
-              flex: 1,
-              p: 2,
-              bgcolor: "#DEDDEE",
-              borderRadius: 2,
-              overflow: "hidden",
-              display: "flex",
-              flexDirection: "column"
-            }}
-          >
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
-              Original CV
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
+{/* Right: CV file preview */}
+<Paper
+  elevation={4}
+  sx={{
+    flex: 1,
+    p: 2,
+    bgcolor: "#DEDDEE",
+    borderRadius: 2,
+    // ⬇️ sticky needs this to be visible
+    overflow: "visible",
+    display: "flex",
+    flexDirection: "column",
+  }}
+>
 
-            {fileUrl ? (
-              <iframe
-                src={fileUrl}
-                style={{ width: "100%", height: "80vh", border: "none" }}
-                title="CV PDF Viewer"
-              />
-            ) : (
-              <Typography variant="body2">
-                File preview not available.{" "}
-                <a href={fileUrl} target="_blank" rel="noopener noreferrer">
-                  Download CV
-                </a>
-              </Typography>
-            )}
-          </Paper>
+  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+  <Typography variant="h6" sx={{ fontWeight: "bold" }}>Original CV</Typography>
+  <Button
+    variant="outlined"
+    size="small"
+    onClick={() => setPdfSticky(v => !v)}
+    sx={{
+      textTransform: "none",
+      fontWeight: "bold",
+      color: pdfSticky ? "#f44336" : "#232A3B",
+      borderColor: pdfSticky ? "#f44336" : "#232A3B",
+      "&:hover": {
+        borderColor: pdfSticky ? "#c62828" : "#0d47a1",
+        color: pdfSticky ? "#c62828" : "#0d47a1",
+      }
+    }}
+  >
+    {pdfSticky ? "Unpin PDF" : "Pin PDF"}
+  </Button>
+</Box>
+
+<Divider sx={{ mb: 2 }} />
+
+{fileUrl ? (
+  <Box
+    // ⬇️ this wrapper is the only sticky thing
+    sx={{
+      position: pdfSticky ? "sticky" : "static",
+      top: pdfSticky ? 16 : "auto",                 // distance from viewport top
+      height: pdfSticky ? "calc(100vh - 32px)" : "80vh", // fill viewport when pinned
+      // optional niceties:
+      borderRadius: 1,
+      boxShadow: pdfSticky ? 3 : 0,
+      overflow: "hidden",
+    }}
+  >
+    <iframe
+      src={fileUrl}
+      title="CV PDF Viewer"
+      style={{
+        display: "block",
+        width: "100%",
+        height: "100%",   // fill the sticky wrapper
+        border: "none",
+      }}
+    />
+  </Box>
+) : (
+  <Typography variant="body2">
+    File preview not available.{" "}
+    <a href={fileUrl} target="_blank" rel="noopener noreferrer">Download CV</a>
+  </Typography>
+)}
+</Paper>
         </Box>
       </Box>
     </Box>
