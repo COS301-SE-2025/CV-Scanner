@@ -234,20 +234,30 @@ const handleSave = async () => {
             </Typography>
             <Divider sx={{ mb: 2 }} />
 
-            {fileUrl ? (
-              <iframe
-                src={fileUrl}
-                style={{ width: "100%", height: "80vh", border: "none" }}
-                title="CV PDF Viewer"
-              />
-            ) : (
-              <Typography variant="body2">
-                File preview not available.{" "}
-                <a href={fileUrl} target="_blank" rel="noopener noreferrer">
-                  Download CV
-                </a>
-              </Typography>
-            )}
+{fileUrl ? (
+  <Box
+    sx={{
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      height: "100%", // fill the Paper vertically
+    }}
+  >
+    <iframe
+      src={fileUrl}
+      style={{ width: "100%", height: "80vh", border: "none" }}
+      title="CV PDF Viewer"
+    />
+  </Box>
+) : (
+  <Typography variant="body2">
+    File preview not available.{" "}
+    <a href={fileUrl} target="_blank" rel="noopener noreferrer">
+      Download CV
+    </a>
+  </Typography>
+)}
+
           </Paper>
         </Box>
       </Box>
