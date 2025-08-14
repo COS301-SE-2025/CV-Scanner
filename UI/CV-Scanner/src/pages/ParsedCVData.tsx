@@ -142,7 +142,7 @@ const handleSave = async () => {
         {/* Back Button */}
         <Button
             startIcon={<ArrowBackIcon />}
-            onClick={() => navigate("/candidates")}
+            onClick={() => navigate("/upload")}
             sx={{
               mb: 2,
               color: "#0073c1",
