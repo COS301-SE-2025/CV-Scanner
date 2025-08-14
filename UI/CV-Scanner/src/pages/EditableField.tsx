@@ -65,13 +65,16 @@ const EditableField: React.FC<EditableFieldProps> = ({ label, value = "", onSave
           },
         }}
         sx={{
-          "& .MuiDialog-container": {
-            display: "flex",
-            justifyContent: "flex-start", // push left
-            alignItems: "center", // vertically center
-            pl: 37 // padding left
-          },
-        }}
+  "& .MuiDialog-container": {
+    display: "flex",
+    justifyContent: "flex-start",
+    alignItems: "center",
+  },
+  "& .MuiPaper-root": {
+    marginLeft: "calc((100% - 1350px) / 2)", // 900px is dialog width
+  },
+}}
+
       >
         <DialogTitle>Edit {label}</DialogTitle>
         <DialogContent>

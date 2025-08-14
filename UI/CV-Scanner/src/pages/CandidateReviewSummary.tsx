@@ -274,7 +274,7 @@ export default function CandidateReviewSummary() {
         <Box sx={{ p: 3 }}>
           <Button
             startIcon={<ArrowBackIcon />}
-            onClick={() => navigate("/candidates")}
+            onClick={() => navigate("/search")}
             sx={{
               mb: 2,
               color: "#0073c1",

@@ -53,6 +53,11 @@ export default function UploadCVPage() {
   const [isModalOpen, setIsModalOpen] = useState(false); // State for modal visibility
   const [contactInfo, setContactInfo] = useState(""); // State for contact information
   const [additionalInfo, setAdditionalInfo] = useState(""); // State for additional information
+  const [errorPopup, setErrorPopup] = useState<{ open: boolean; message: string }>({
+    open: false,
+    message: "",
+  });
+
 
 const devUser = {
       email: "dev@example.com",
@@ -123,7 +128,7 @@ const devUser = {
 
         if (!response.ok) {
           const errorData = await response.json();
-          alert(errorData.detail || "Failed to process CV.");
+          setErrorPopup({ open: true, message: errorData.detail || "Failed to process CV." });
           return;
         }
 
@@ -141,7 +146,7 @@ const devUser = {
           },
         });
       } catch (error) {
-        alert("An error occurred while processing the CV.");
+        setErrorPopup({ open: true, message: "An error occurred while processing the CV." });
       }
     }
   };
@@ -446,6 +451,19 @@ const devUser = {
           </Paper>
         </Box>
       </Box>
+      {/* Error Popup */}
+      <Dialog
+        open={errorPopup.open}
+        onClose={() => setErrorPopup({ ...errorPopup, open: false })}
+      >
+        <DialogTitle>Error</DialogTitle>
+        <DialogContent>
+          <Typography>{errorPopup.message}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setErrorPopup({ ...errorPopup, open: false })}>OK</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Modal for Processed Data */}
       <Dialog
