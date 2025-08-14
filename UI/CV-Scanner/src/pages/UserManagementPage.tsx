@@ -43,6 +43,7 @@ import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import logo from "../assets/logo.png";
 import logoNavbar from "../assets/logoNavbar.png";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import EditIcon from "@mui/icons-material/Edit";
 
 export default function UserManagementPage() {
   const [collapsed, setCollapsed] = useState(false);
@@ -413,27 +414,35 @@ const devUser = {
                         <Button
                           variant="contained"
                           sx={{
+                            minWidth: 40, // fixed size for consistency
+                            width: 40,
+                            height: 40,
                             bgcolor: "#0073c1",
                             color: "#fff",
-                            textTransform: "none",
+                            p: 0,
                             mr: 1,
+                            "&:hover": { bgcolor: "#005f9e" },
                           }}
                           onClick={() => handleEditClick(user)}
                           ref={idx === 0 ? firstEditRef : null}
                         >
-                          Edit
+                          <EditIcon/>
                         </Button>
                         <Button
                           variant="contained"
                           sx={{
+                            minWidth: 40,
+                            width: 40,
+                            height: 40,
                             bgcolor: "#f44336",
                             color: "#fff",
-                            textTransform: "none",
+                            p: 0,
+                            "&:hover": { bgcolor: "#d32f2f" },
                           }}
                           onClick={() => handleDeleteUser(user)}
-                          startIcon={<DeleteIcon />}
+
                         >
-                          Delete
+                          < DeleteIcon />
                         </Button>
                       </TableCell>
                     </TableRow>
