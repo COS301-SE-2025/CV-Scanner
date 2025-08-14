@@ -389,7 +389,16 @@ const devUser = {
                       <TableCell>{user.first_name || ""}</TableCell>
                       <TableCell>{user.last_name || ""}</TableCell>
 
-                      <TableCell>{user.email}</TableCell>
+                      <TableCell
+                        sx={{
+                          maxWidth: 200, // adjust to your preferred width
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {user.email}
+                      </TableCell>
                       <TableCell>
                         <Button
                           variant="contained"
@@ -404,6 +413,7 @@ const devUser = {
                             textTransform: "none",
                             fontWeight: "bold",
                             pointerEvents: "none",
+                            width: 30,
                           }}
                         >
                           {user.role}
