@@ -186,8 +186,9 @@ def plot_keyword_distribution(categorized_keywords):
     plt.show()
 
 if __name__ == "__main__":
+    
     # Extract text from PDF
-    pdf_text = extract_text_from_pdf("AI/CV.pdf")
+    pdf_text = extract_text_from_pdf("CV.pdf")
     
     # Extract searchable keywords
     searchable_keywords = extract_searchable_keywords(pdf_text)
