@@ -106,6 +106,10 @@ async def upload_pdf(file: UploadFile = File(...)):
 		})
 	except Exception as e:
 		raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+	
+@app.get("/")
+async def root():
+	return {"message": "CV Processing API is running"}
 
 if __name__ == "__main__":
 	uvicorn.run("AI:app", host="0.0.0.0", port=5000, reload=True)
