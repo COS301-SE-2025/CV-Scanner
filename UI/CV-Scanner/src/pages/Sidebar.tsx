@@ -161,16 +161,6 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, collapsed, setCollapsed }) 
 
 <Button
   fullWidth
-  sx={getButtonStyle("/candidates")}
-  className={isActive("/candidates") ? "active" : ""}
-  startIcon={<PeopleIcon />}
-  onClick={() => navigate("/candidates")}
->
-  Candidates
-</Button>
-
-<Button
-  fullWidth
   sx={getButtonStyle("/search")}
   className={isActive("/search") ? "active" : ""}
   startIcon={<SearchIcon />}
@@ -185,7 +175,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, collapsed, setCollapsed }) 
       fullWidth
       sx={getButtonStyle("/user-management")}
       className={isActive("/user-management") ? "active" : ""}
-      startIcon={<SettingsIcon />}
+      startIcon={<PeopleIcon />}
       onClick={() => navigate("/user-management")}
     >
       User Management
