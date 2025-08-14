@@ -1,3 +1,5 @@
+from fastapi import File, UploadFile
+import tempfile
 import os
 import re
 import spacy
@@ -82,6 +84,20 @@ def parse_resume(input_path, is_pdf=True):
 		"personal_info": extract_personal_info(text),
 		"sections": extract_sections(text),
 		"skills": extract_skills(text)
+	}
+
+@app.post("/upload_pdf/")
+async def upload_pdf(file: UploadFile = File(...)):
+	temp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+	content = await file.read()
+	temp.write(content)
+	temp.close()
+	result = parse_resume(temp.name)
+	os.unlink(temp.name)
+	return {
+		"status": "success",
+		"filename": file.filename,
+		"data": result
 	}
 
 if __name__ == "__main__":
