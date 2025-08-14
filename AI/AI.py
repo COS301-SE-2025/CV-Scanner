@@ -1,11 +1,12 @@
 import os
 import re
 import spacy
-from pdfminer.high_level import extract_text
+from pdfminer.high_level import extract_text as extract_pdf_text
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 import uvicorn
 import tempfile
+import docx
 
 # Initialize spaCy with the English model
 nlp = spacy.load("en_core_web_sm")
@@ -14,7 +15,21 @@ app = FastAPI()
 
 def extract_text_from_pdf(pdf_path):
     """Extract text from PDF files"""
-    return extract_text(pdf_path)
+    return extract_pdf_text(pdf_path)
+
+def extract_text_from_docx(docx_path):
+    """Extract text from Word DOCX files"""
+    doc = docx.Document(docx_path)
+    return "\n".join([paragraph.text for paragraph in doc.paragraphs])
+
+def extract_text(file_path):
+    """Extract text from supported file types (PDF or DOCX)"""
+    if file_path.lower().endswith('.pdf'):
+        return extract_text_from_pdf(file_path)
+    elif file_path.lower().endswith('.docx'):
+        return extract_text_from_docx(file_path)
+    else:
+        raise ValueError(f"Unsupported file format: {file_path}")
 
 def extract_personal_info(text):
     """Extract personal information using regex patterns"""
@@ -115,9 +130,9 @@ def extract_skills(text):
     
     return sorted(skills)
 
-def parse_resume(input_path, is_pdf=True):
+def parse_resume(file_path):
     """Main function to parse resume/CV"""
-    text = extract_text_from_pdf(input_path) if is_pdf else input_path
+    text = extract_text(file_path)  # Use the unified extract_text function
     text = re.sub(r'\s+', ' ', text).strip()  # Normalize whitespace
     
     return {
@@ -126,28 +141,39 @@ def parse_resume(input_path, is_pdf=True):
         "skills": extract_skills(text)
     }
 
-@app.post("/upload_pdf/")
-async def upload_pdf(file: UploadFile = File(...)):
-    if not file.filename or not file.filename.lower().endswith('.pdf'):
-        raise HTTPException(status_code=400, detail="File must have .pdf extension")
+@app.post("/upload/")
+async def upload_file(file: UploadFile = File(...)):
+    """Endpoint to upload and process resume files (PDF or DOCX)"""
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file uploaded")
+    
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ['.pdf', '.docx']:
+        raise HTTPException(status_code=400, detail="File must be PDF or DOCX format")
+    
     try:
-        temp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+        # Create temp file with the correct extension
+        temp = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
         content = await file.read()
         temp.write(content)
         temp.close()
+        
         result = parse_resume(temp.name)
         os.unlink(temp.name)
+        
         return JSONResponse(content={
             "status": "success",
             "filename": file.filename,
             "data": result
         })
     except Exception as e:
+        if 'temp' in locals() and os.path.exists(temp.name):
+            os.unlink(temp.name)
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
 
 @app.get("/")
 async def root():
-    return {"message": "CV Processing API is running"}
+    return {"message": "CV Processing API is running - supports PDF and DOCX files"}
 
 if __name__ == "__main__":
     uvicorn.run("AI:app", host="0.0.0.0", port=5000, reload=True)
