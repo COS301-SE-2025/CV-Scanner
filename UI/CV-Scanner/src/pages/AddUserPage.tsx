@@ -261,17 +261,13 @@ export default function AddUserPage() {
         >
           {/* Keep header at top */}
           <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-            <IconButton
-              onClick={() => navigate("/user-management")}
-              sx={{ color: "#fff", mr: 1 }}
-            >
-              <ArrowBackIcon />
-            </IconButton>
+            
             <Typography variant="h5" sx={{fontFamily: 'Helvetica, sans-serif', mb: 3, fontWeight: "bold" }}>
               Add New User
             </Typography>
+            
           </Box>
-
+          
           {/* Center form vertically and horizontally */}
           <Box
             sx={{
