@@ -19,6 +19,7 @@ import {
   Backdrop,
   Popover,
   Tooltip,
+  colors,
 } from "@mui/material";
 import {
   LineChart, Line,
@@ -237,16 +238,18 @@ const COLORS = ['#8884D8', '#00C49F', '#FFBB28', '#FF8042'];
           </Box>
 
             {/* Dashboard Graphs */}
-        <Box sx={{ 
-  display: "flex", 
-  flexWrap: "wrap", 
-  gap: 4, 
-  mb: 4,
-  '& > *': { // Ensures all child elements have these properties
-    flex: "1 1 350px",
-    minWidth: 0 // Prevents overflow issues
-  }
-}}>
+        <Box   
+        sx={{
+    display: "grid",
+    gridTemplateColumns: {
+      xs: "1fr",           // 1 column on mobile
+      sm: "1fr 1fr",       // 2 columns on small/medium
+      lg: "1fr 1fr 1fr",   // 3 columns on large
+    },
+    gap: 4, // spacing between items
+    mb: 4,
+  }}
+>
 
    {/* Line Chart: Light Blue */}
   <Paper sx={{ 
@@ -260,9 +263,9 @@ const COLORS = ['#8884D8', '#00C49F', '#FFBB28', '#FF8042'];
     <Typography variant="subtitle1" sx={{fontFamily: 'Helvetica, sans-serif', mb: 1, fontWeight: 600 }}>Monthly Candidate Uploads</Typography>
     <ResponsiveContainer width="100%" height={200}>
       <LineChart data={candidateTrends}>
-        <CartesianGrid stroke="#ccc" strokeDasharray="3 3" />
-        <XAxis dataKey="month" />
-        <YAxis />
+        <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
+        <XAxis dataKey="month"  tick={{ fill: "#575656ff", fontWeight: "bold"}}/>
+        <YAxis  tick={{ fill: "#575656ff", fontWeight: "bold"}}/>
         <Tooltip />
         <Line 
           type="monotone" 
@@ -277,34 +280,41 @@ const COLORS = ['#8884D8', '#00C49F', '#FFBB28', '#FF8042'];
   </Paper>
 
   {/* Bar Chart: Dark Blue */}
-  <Paper sx={{ 
-    p: 2, 
-    borderRadius: 3, 
-    backgroundColor: "#444444", 
-    color: "#fff",
-    transition: 'transform 0.2s',
-    '&:hover': { transform: 'translateY(-4px)' }
-  }}>
-    <Typography variant="subtitle1" sx={{ fontFamily: 'Helvetica, sans-serif',mb: 1, fontWeight: 600 }}>Weekly Tech Usage</Typography>
-    <ResponsiveContainer width="100%" height={200}>
-      <BarChart data={groupedBarData}>
-        <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
-        <XAxis dataKey="name" stroke="#fff" />
-        <YAxis stroke="#fff" />
-        <Tooltip 
-          contentStyle={{ 
-            backgroundColor: '#2b3a55',
-            borderColor: '#4a5568',
-            fontFamily: 'Helvetica, sans-serif',
-          }}
-        />
-        <Legend />
-        <Bar dataKey=".NET" fill="#8884d8" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="React" fill="#82ca9d" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="Python" fill="#ffc658" radius={[4, 4, 0, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
-  </Paper>
+<Paper sx={{ 
+  p: 2, 
+  borderRadius: 3, 
+  backgroundColor: "#DEDDEE", 
+  color: "#000",
+  transition: 'transform 0.2s',
+  '&:hover': { transform: 'translateY(-4px)' }
+}}>
+  <Typography variant="subtitle1" sx={{ fontFamily: 'Helvetica, sans-serif', mb: 1, fontWeight: 600 }}>
+    Weekly Tech Usage
+  </Typography>
+  <ResponsiveContainer width="100%" height={200}>
+    <BarChart data={groupedBarData}>
+      <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
+      <XAxis dataKey="name" stroke="#4a5568" tick={{ fill: "#575656ff", fontWeight: "bold" }} />
+      <YAxis stroke="#4a5568" tick={{ fill: "#575656ff", fontWeight: "bold" }} />
+      <Tooltip 
+        contentStyle={{ 
+          backgroundColor: '#2b3a55',
+          borderColor: '#4a5568',
+          fontFamily: 'Helvetica, sans-serif',
+        }}
+      />
+      <Legend
+  formatter={(value) => (
+    <span style={{ color: "#575656ff", fontWeight: 700 }}>{value}</span>
+  )}
+/>
+      <Bar dataKey=".NET" fill="#8884d8" radius={[4, 4, 0, 0]} />
+      <Bar dataKey="React" fill="#82ca9d" radius={[4, 4, 0, 0]} />
+      <Bar dataKey="Python" fill="#ffc658" radius={[4, 4, 0, 0]} />
+    </BarChart>
+  </ResponsiveContainer>
+</Paper>
+
 
   {/* Pie Chart: Teal Accent */}
   <Paper sx={{ 
@@ -313,7 +323,14 @@ const COLORS = ['#8884D8', '#00C49F', '#FFBB28', '#FF8042'];
     backgroundColor: "#DEDDEE", 
     color: "#000",
     transition: 'transform 0.2s',
-    '&:hover': { transform: 'translateY(-4px)' }
+    '&:hover': { transform: 'translateY(-4px)' },
+    "& .recharts-pie-label-text": {
+      fill: "#575656ff !important",
+      fontWeight: 700,
+    },
+    "& .recharts-pie-label-line": {
+      stroke: "#575656ff",
+    },
   }}>
     <Typography variant="subtitle1" sx={{fontFamily: 'Helvetica, sans-serif', mb: 1, fontWeight: 600 }}>Skill Distribution</Typography>
     <ResponsiveContainer width="100%" height={200}>
@@ -327,7 +344,7 @@ const COLORS = ['#8884D8', '#00C49F', '#FFBB28', '#FF8042'];
           outerRadius={60}
           labelLine={true}
           label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-          
+            
         >
           {skillDistribution.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -348,10 +365,22 @@ const COLORS = ['#8884D8', '#00C49F', '#FFBB28', '#FF8042'];
   <Paper sx={{ 
     p: 2, 
     borderRadius: 3, 
-    backgroundColor: "#444444", 
-    color: "#fff",
+    backgroundColor: "#DEDDEE", 
+    color: "#000",
     transition: 'transform 0.2s',
-    '&:hover': { transform: 'translateY(-4px)' }
+    '&:hover': { transform: 'translateY(-4px)' },
+    "& .recharts-pie-label-text": {
+      fill: "#575656ff !important",
+      fontWeight: 700,
+    },
+    "& .recharts-pie-label-line": {
+      stroke: "#575656ff",
+    },
+    gridColumn: {
+        xs: "auto", // normal span at small
+        sm: "auto",
+        lg: "1 / -1", // span all columns on large screens
+      },
   }}>
     <Typography variant="subtitle1" sx={{ fontFamily: 'Helvetica, sans-serif',mb: 1, fontWeight: 600 }}>Project Fit Types</Typography>
     <ResponsiveContainer width="100%" height={200}>
@@ -576,7 +605,7 @@ const statCardStyle = {
   p: 2,
   minWidth: 140,
   borderRadius: 3,
-  backgroundColor: "#888888",
+  backgroundColor: "#DEDDEE",
   textAlign: "center",
   color: "#000",
 };
