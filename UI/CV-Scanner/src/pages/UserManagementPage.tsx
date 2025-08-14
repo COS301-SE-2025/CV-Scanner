@@ -324,7 +324,13 @@ const devUser = {
               placeholder="Search users..."
               variant="outlined"
               fullWidth
-              sx={{ bgcolor: "#DEDDEE", borderRadius: 1 }}
+              sx={{
+                bgcolor: "#DEDDEE",
+                borderRadius: 1,
+                "& .MuiOutlinedInput-notchedOutline": {
+                  border: "none", // removes the outline
+                },
+              }}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               InputProps={{
