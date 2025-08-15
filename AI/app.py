@@ -38,14 +38,7 @@ async def get_categories():
 
 @app.post("/admin/categories")
 async def set_categories(payload: Dict[str, List[str]] = Body(...)):
-    """
-    Body example:
-    {
-      "Skills": ["Writer","Coder","Backend","Manager","HR Supervisor"],
-      "Education": ["Matric","Diploma","Bachelor","Honours","Masters","PhD"],
-      "Experience": ["Intern","Junior","Mid","Senior","Lead"]
-    }
-    """
+   
     try:
         save_categories(payload)
         return {"status": "saved", "categories": load_categories()}
@@ -80,6 +73,30 @@ async def classify(
         "applied": applied,
         "raw": result
     })
+
+@app.post("/upload_cv")
+async def upload_cv(file: UploadFile = File(...), top_k: int = 3):
+    """
+    Upload a CV file and get classification results.
+    """
+    data = await file.read()
+    if not data:
+        raise HTTPException(400, "Empty file.")
+    text = extract_text_auto(data, file.filename or "upload.txt")
+
+    cats = load_categories()
+    if not cats:
+        raise HTTPException(409, "No categories configured. Use POST /admin/categories first.")
+
+    result = classify_text_by_categories(text, cats, top_k=top_k)
+    applied = {cat: [x["label"] for x in info["top_k"]] for cat, info in result.items()}
+    return JSONResponse({
+        "status": "success",
+        "top_k": top_k,
+        "applied": applied,
+        "raw": result
+    })
+
 
 if __name__ == "__main__":
     import uvicorn
