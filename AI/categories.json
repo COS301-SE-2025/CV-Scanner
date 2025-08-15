@@ -1,0 +1,24 @@
+{
+  "Skills": [
+    "Writer",
+    "Coder",
+    "Backend",
+    "Manager",
+    "HR Supervisor"
+  ],
+  "Education": [
+    "Matric",
+    "Diploma",
+    "Bachelor",
+    "Honours",
+    "Masters",
+    "PhD"
+  ],
+  "Experience": [
+    "Intern",
+    "Junior",
+    "Mid",
+    "Senior",
+    "Lead"
+  ]
+}
