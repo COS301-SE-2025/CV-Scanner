@@ -29,7 +29,8 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import logo from "../assets/logo.png";
+import logo from "../assets/logoNavbar.png";
+import Sidebar from "./Sidebar";
 
 export default function AddUserPage() {
   const navigate = useNavigate();
@@ -182,119 +183,16 @@ export default function AddUserPage() {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#0c0e18ff",
+        bgcolor: "#1E1E1E",
         color: "#fff",
       }}
     >
       {/* Sidebar */}
-      {!collapsed ? (
-        <Box
-          sx={{
-            width: 220,
-            bgcolor: "#0A2540",
-            display: "flex",
-            flexDirection: "column",
-            p: 2,
-            position: "relative",
-          }}
-        >
-          {/* Collapse Button */}
-          <IconButton
-            onClick={() => setCollapsed(true)}
-            sx={{
-              color: "#fff",
-              position: "absolute",
-              top: 8,
-              left: 8,
-              zIndex: 1,
-            }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
-            <img src={logo} alt="Entelect Logo" style={{ width: 120 }} />
-          </Box>
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/dashboard" ? "active" : ""}
-            startIcon={<DashboardIcon />}
-            onClick={() => navigate("/dashboard")}
-          >
-            Dashboard
-          </Button>
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/upload" ? "active" : ""}
-            startIcon={<UploadFileIcon />}
-            onClick={() => navigate("/upload")}
-          >
-            Upload CV
-          </Button>
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/candidates" ? "active" : ""}
-            startIcon={<PeopleIcon />}
-            onClick={() => navigate("/candidates")}
-          >
-            Candidates
-          </Button>
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/search" ? "active" : ""}
-            startIcon={<SearchIcon />}
-            onClick={() => navigate("/search")}
-          >
-            Search
-          </Button>
-          {/* Only show User Management if user is Admin */}
-          {(user?.role === "Admin" || devUser.role === "Admin") && (
-            <Button
-              fullWidth
-              sx={navButtonStyle}
-              className={
-                location.pathname === "/user-management" ? "active" : ""
-              }
-              startIcon={<SettingsIcon />}
-              onClick={() => navigate("/user-management")}
-            >
-              User Management
-            </Button>
-          )}
-          {(user?.role === "Admin" || devUser.role === "Admin") && (
-            <Button
-              fullWidth
-              sx={navButtonStyle}
-              className={location.pathname === "/system-settings" ? "active" : ""}
-              startIcon={<SettingsIcon />}
-              onClick={() => navigate("/system-settings")}
-            >
-              System Settings
-            </Button>
-          )}
-        </Box>
-      ) : (
-        <Box
-          sx={{
-            width: 40,
-            bgcolor: "#0A2540",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "flex-start",
-            pt: 1,
-          }}
-        >
-          <IconButton
-            onClick={() => setCollapsed(false)}
-            sx={{ color: "#fff" }}
-          >
-            <ChevronRightIcon />
-          </IconButton>
-        </Box>
-      )}
+      <Sidebar 
+  userRole={user?.role || devUser.role} 
+  collapsed={collapsed} 
+  setCollapsed={setCollapsed} 
+/>
 
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
@@ -302,7 +200,7 @@ export default function AddUserPage() {
 
            <AppBar
                                      position="static"
-                                     sx={{ bgcolor: "#0A2540", boxShadow: "none" }}
+                                     sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
                                    >
                                      <Toolbar sx={{ justifyContent: "flex-end" }}>
           
@@ -363,17 +261,13 @@ export default function AddUserPage() {
         >
           {/* Keep header at top */}
           <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-            <IconButton
-              onClick={() => navigate("/user-management")}
-              sx={{ color: "#fff", mr: 2 }}
-            >
-              <ArrowBackIcon />
-            </IconButton>
-            <Typography variant="h4" sx={{ fontWeight: "bold" }}>
+            
+            <Typography variant="h5" sx={{fontFamily: 'Helvetica, sans-serif', mb: 3, fontWeight: "bold" }}>
               Add New User
             </Typography>
+            
           </Box>
-
+          
           {/* Center form vertically and horizontally */}
           <Box
             sx={{
@@ -388,7 +282,7 @@ export default function AddUserPage() {
               sx={{
                 p: 3,
                 borderRadius: 3,
-                bgcolor: "#75a29dff",
+                 backgroundColor: "#DEDDEE",
                 width: "100%",
                 maxWidth: 600,
               }}
@@ -504,16 +398,39 @@ export default function AddUserPage() {
                   }}
                 >
                   <Button
-                    variant="outlined"
+                     variant="contained"
+                sx={{ backgroundColor: "#d0d0d0", color: "#000" }}
                     onClick={() => navigate("/user-management")}
-                    sx={{ bgcolor: "lightgrey", color: "#666" }}
                   >
                     Cancel
                   </Button>
                   <Button
                     variant="contained"
                     onClick={handleSubmit}
-                    sx={{ bgcolor: "#4caf50", color: "#fff" }}
+                    sx={{ background: "#232A3B",
+  color: "DEDDEE",
+  fontWeight: "bold",
+  padding: "8px 20px",
+  borderRadius: "4px",
+  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+  "&:hover": {
+    background: "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
+    transform: "translateY(-1px)",
+  },
+  textTransform: "none",
+  transition: "all 0.3s ease",
+  position: "relative",
+  overflow: "hidden",
+  "&::after": {
+    content: '""',
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    background:
+      "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
+  }, }}
                   >
                     Create User
                   </Button>

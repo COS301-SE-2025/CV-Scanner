@@ -53,6 +53,11 @@ export default function UploadCVPage() {
   const [isModalOpen, setIsModalOpen] = useState(false); // State for modal visibility
   const [contactInfo, setContactInfo] = useState(""); // State for contact information
   const [additionalInfo, setAdditionalInfo] = useState(""); // State for additional information
+  const [errorPopup, setErrorPopup] = useState<{ open: boolean; message: string }>({
+    open: false,
+    message: "",
+  });
+
 
 const devUser = {
       email: "dev@example.com",
@@ -110,7 +115,6 @@ const devUser = {
   }
   };
 
-  // ...existing code...
   const handleProcess = async () => {
     if (file) {
       const formData = new FormData();
@@ -124,16 +128,25 @@ const devUser = {
 
         if (!response.ok) {
           const errorData = await response.json();
-          alert(errorData.detail || "Failed to process CV.");
+          setErrorPopup({ open: true, message: errorData.detail || "Failed to process CV." });
           return;
         }
 
         const data = await response.json();
-        // data.data contains the structured CV info from FastAPI
-        setProcessedData(data.data);
-        setIsModalOpen(true);
+
+        // Create object URL for PDF preview
+        const fileUrl = URL.createObjectURL(file);
+
+        // Navigate to parsed CV page with data + fileUrl
+        navigate("/parsed-cv", {
+          state: {
+            processedData: data.data,
+            fileUrl,
+            fileType: file.type,
+          },
+        });
       } catch (error) {
-        alert("An error occurred while processing the CV.");
+        setErrorPopup({ open: true, message: "An error occurred while processing the CV." });
       }
     }
   };
@@ -307,7 +320,7 @@ const devUser = {
                 />
                 <Button
                   variant="contained"
-                  sx={{ mt: 1, background: "#204E20" }}
+                  sx={{reviewButtonStyle }}
                   onClick={handleBrowseClick}
                 >
                   Browse Files
@@ -438,6 +451,19 @@ const devUser = {
           </Paper>
         </Box>
       </Box>
+      {/* Error Popup */}
+      <Dialog
+        open={errorPopup.open}
+        onClose={() => setErrorPopup({ ...errorPopup, open: false })}
+      >
+        <DialogTitle>Error</DialogTitle>
+        <DialogContent>
+          <Typography>{errorPopup.message}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setErrorPopup({ ...errorPopup, open: false })}>OK</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Modal for Processed Data */}
       <Dialog
@@ -749,6 +775,7 @@ const navButtonStyle = {
   },
 };
 
+// Review button style
 const reviewButtonStyle = {
   background: "#232A3B",
   color: "DEDDEE",
