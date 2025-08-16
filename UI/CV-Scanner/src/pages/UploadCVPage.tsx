@@ -14,14 +14,12 @@ import {
   TableBody,
   AppBar,
   Toolbar,
-  Badge,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   TextField,
   Divider,
-  Chip,
   Popover,
   Fade,
   Tooltip,
@@ -30,49 +28,41 @@ import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import UploadFileIcon from "@mui/icons-material/UploadFile";
-import PeopleIcon from "@mui/icons-material/People";
-import SearchIcon from "@mui/icons-material/Search";
-import SettingsIcon from "@mui/icons-material/Settings";
-import NotificationsIcon from "@mui/icons-material/Notifications";
-import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
-import logo2 from "../assets/logo2.png";
-import logo from "../assets/logo.png";
-import logoNavbar from "../assets/logoNavbar.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import Sidebar from "./Sidebar";
 
 export default function UploadCVPage() {
   const [collapsed, setCollapsed] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const [processedData, setProcessedData] = useState<any | null>(null); // State for processed data
-  const [isModalOpen, setIsModalOpen] = useState(false); // State for modal visibility
-  const [contactInfo, setContactInfo] = useState(""); // State for contact information
-  const [additionalInfo, setAdditionalInfo] = useState(""); // State for additional information
-  const [errorPopup, setErrorPopup] = useState<{ open: boolean; message: string }>({
+  const [processedData, setProcessedData] = useState<any | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [contactInfo, setContactInfo] = useState("");
+  const [additionalInfo, setAdditionalInfo] = useState("");
+  const [errorPopup, setErrorPopup] = useState<{
+    open: boolean;
+    message: string;
+  }>({
     open: false,
     message: "",
   });
 
-
-const devUser = {
-      email: "dev@example.com",
-      password: "Password123",
-      first_name: "John",
-      last_name: "Doe",
-      role: "Admin",
-    };
+  const devUser = {
+    email: "dev@example.com",
+    password: "Password123",
+    first_name: "John",
+    last_name: "Doe",
+    role: "Admin",
+  };
 
   const [user, setUser] = useState<{
     first_name?: string;
     last_name?: string;
     username?: string;
-    role?: string; // <-- add this
-    email?: string; // <-- and this
+    role?: string;
+    email?: string;
   } | null>(null);
   const [tutorialStep, setTutorialStep] = useState(0);
   const [fadeIn, setFadeIn] = useState(true);
@@ -82,6 +72,9 @@ const devUser = {
   const uploadBoxRef = useRef<HTMLDivElement>(null);
   const additionalInfoRef = useRef<HTMLInputElement>(null);
   const processBtnRef = useRef<HTMLButtonElement>(null);
+
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const email = localStorage.getItem("userEmail") || "admin@email.com";
@@ -109,61 +102,68 @@ const devUser = {
   const handleRemove = () => {
     setFile(null);
     setProcessedData(null);
-    const fileInput = document.getElementById("file-upload") as HTMLInputElement;
-  if (fileInput) {
-    fileInput.value = "";
-  }
-  };
-
-  const handleProcess = async () => {
-    if (file) {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      try {
-        const response = await fetch("http://localhost:5000/upload_pdf/", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          setErrorPopup({ open: true, message: errorData.detail || "Failed to process CV." });
-          return;
-        }
-
-        const data = await response.json();
-
-        // Create object URL for PDF preview
-        const fileUrl = URL.createObjectURL(file);
-
-        // Navigate to parsed CV page with data + fileUrl
-        navigate("/parsed-cv", {
-          state: {
-            processedData: data.data,
-            fileUrl,
-            fileType: file.type,
-          },
-        });
-      } catch (error) {
-        setErrorPopup({ open: true, message: "An error occurred while processing the CV." });
-      }
-    }
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false); // Close the modal
-  };
-
-  const handleBrowseClick = () => {
     const fileInput = document.getElementById(
       "file-upload"
     ) as HTMLInputElement;
     if (fileInput) {
-      fileInput.click();
+      fileInput.value = "";
     }
   };
 
+  const handleProcess = async () => {
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      // Calls FastAPI endpoint on 8081
+      const response = await fetch("http://localhost:5000/upload_cv?top_k=3", {
+        method: "POST",
+        body: formData,
+      });
+
+      let data: any = null;
+      try {
+        data = await response.json();
+      } catch {
+        // ignore non-JSON
+      }
+
+      if (!response.ok) {
+        const message =
+          data?.detail ||
+          data?.message ||
+          `Failed to process CV. (${response.status})`;
+        setErrorPopup({ open: true, message });
+        return;
+      }
+
+      const fileUrl = URL.createObjectURL(file);
+      const payload = data?.data ?? data;
+
+      navigate("/parsed-cv", {
+        state: {
+          processedData: payload,
+          fileUrl,
+          fileType: file.type,
+        },
+      });
+    } catch (error) {
+      setErrorPopup({
+        open: true,
+        message: "An error occurred while processing the CV.",
+      });
+    }
+  };
+
+  const handleCloseModal = () => setIsModalOpen(false);
+  const handleBrowseClick = () => {
+    const fileInput = document.getElementById(
+      "file-upload"
+    ) as HTMLInputElement;
+    if (fileInput) fileInput.click();
+  };
   const handleStepChange = (nextStep: number) => {
     setFadeIn(false);
     setTimeout(() => {
@@ -171,23 +171,7 @@ const devUser = {
       setFadeIn(true);
     }, 250);
   };
-
   const handleCloseTutorial = () => setShowTutorial(false);
-
-  const navigate = useNavigate();
-
-  const location = useLocation();
-
-  // Set anchorEl when tutorialStep changes
-  useEffect(() => {
-    if (tutorialStep === 0 && uploadBoxRef.current)
-      setAnchorEl(uploadBoxRef.current);
-    else if (tutorialStep === 1 && additionalInfoRef.current)
-      setAnchorEl(additionalInfoRef.current);
-    else if (tutorialStep === 2 && processBtnRef.current)
-      setAnchorEl(processBtnRef.current);
-    else setAnchorEl(null);
-  }, [tutorialStep]);
 
   return (
     <Box
@@ -199,21 +183,17 @@ const devUser = {
         fontFamily: "Helvetica, sans-serif",
       }}
     >
-      {/* Sidebar */}
-      <Sidebar 
-  userRole={user?.role || devUser.role} 
-  collapsed={collapsed} 
-  setCollapsed={setCollapsed} 
-/>
-      {/* Main Content with Top Bar */}
+      <Sidebar
+        userRole={user?.role || devUser.role}
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
+      />
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
-        {/* Top App Bar */}
         <AppBar
           position="static"
           sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
         >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
-            {/* Tutorial icon */}
             <Tooltip title="Run Tutorial" arrow>
               <IconButton
                 onClick={() => {
@@ -226,8 +206,6 @@ const devUser = {
                 <LightbulbRoundedIcon />
               </IconButton>
             </Tooltip>
-
-            {/* Help / FAQ icon */}
             <Tooltip title="Go to Help Page" arrow>
               <IconButton
                 color="inherit"
@@ -237,8 +215,6 @@ const devUser = {
                 <HelpOutlineIcon />
               </IconButton>
             </Tooltip>
-
-            {/* User Info */}
             <Box
               sx={{
                 display: "flex",
@@ -261,8 +237,6 @@ const devUser = {
                   : "User"}
               </Typography>
             </Box>
-
-            {/* Logout */}
             <IconButton
               color="inherit"
               onClick={() => navigate("/login")}
@@ -273,9 +247,15 @@ const devUser = {
           </Toolbar>
         </AppBar>
 
-        {/* Main Content */}
         <Box sx={{ p: 3 }}>
-          <Typography variant="h5" sx={{ mb: 3, fontWeight: "bold",fontFamily: "Helvetica, sans-serif" }}>
+          <Typography
+            variant="h5"
+            sx={{
+              mb: 3,
+              fontWeight: "bold",
+              fontFamily: "Helvetica, sans-serif",
+            }}
+          >
             Upload Candidate CV
           </Typography>
 
@@ -285,13 +265,17 @@ const devUser = {
           >
             <Typography
               variant="h6"
-              sx={{ fontWeight: "bold", color: "#000000ff", mb: 2, fontFamily: "Helvetica, sans-serif" }}
+              sx={{
+                fontWeight: "bold",
+                color: "#000000ff",
+                mb: 2,
+                fontFamily: "Helvetica, sans-serif",
+              }}
             >
               Upload a candidate's CV to automatically extract skills and
               project matches
             </Typography>
 
-            {/* Upload Box */}
             <Box
               ref={uploadBoxRef}
               sx={{
@@ -320,7 +304,7 @@ const devUser = {
                 />
                 <Button
                   variant="contained"
-                  sx={{reviewButtonStyle }}
+                  sx={reviewButtonStyle}
                   onClick={handleBrowseClick}
                 >
                   Browse Files
@@ -328,7 +312,6 @@ const devUser = {
               </Box>
             </Box>
 
-            {/* Contact Information */}
             <TextField
               label="Contact Information"
               fullWidth
@@ -344,19 +327,17 @@ const devUser = {
                   fontSize: "1rem",
                   color: "#000000ff",
                 },
-                
               }}
               InputLabelProps={{
-                  sx: {
-                    color: "#000000ff", // label text white before focus
-                    "&.Mui-focused": { borderColor: "#204E20", color: "#204E20" },
-                    fontFamily: "Helvetica, sans-serif",
-                    fontWeight: "bold",
-                  },
-                }}
+                sx: {
+                  color: "#000000ff",
+                  "&.Mui-focused": { borderColor: "#204E20", color: "#204E20" },
+                  fontFamily: "Helvetica, sans-serif",
+                  fontWeight: "bold",
+                },
+              }}
             />
 
-            {/* Additional Information */}
             <TextField
               label="Additional Information"
               fullWidth
@@ -375,13 +356,13 @@ const devUser = {
                 },
               }}
               InputLabelProps={{
-                  sx: {
-                    "&.Mui-focused": { color: "#204E20" },
-                    fontFamily: "Helvetica, sans-serif",
-                    fontWeight: "bold",
-                    color: "#000000ff",
-                  },
-                }}
+                sx: {
+                  "&.Mui-focused": { color: "#204E20" },
+                  fontFamily: "Helvetica, sans-serif",
+                  fontWeight: "bold",
+                  color: "#000000ff",
+                },
+              }}
               inputRef={additionalInfoRef}
               InputProps={{
                 sx: {
@@ -391,16 +372,23 @@ const devUser = {
                   textarea: { color: "#000000ff" },
                   borderColor: "#204E20",
                 },
-              }}           
+              }}
             />
 
-            {/* File Table */}
             {file && (
               <TableContainer sx={{ mb: 3 }}>
-                <Table sx={{"& td, & th":{color: "#000000ff", fontFamily: "Helvetica, sans-serif", fontSize: "1rem"}}}>
+                <Table
+                  sx={{
+                    "& td, & th": {
+                      color: "#000000ff",
+                      fontFamily: "Helvetica, sans-serif",
+                      fontSize: "1rem",
+                    },
+                  }}
+                >
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: "bold"}}>
+                      <TableCell sx={{ fontWeight: "bold" }}>
                         File Name
                       </TableCell>
                       <TableCell sx={{ fontWeight: "bold" }}>Size</TableCell>
@@ -424,23 +412,24 @@ const devUser = {
               </TableContainer>
             )}
 
-            {/* Process Button */}
             <Box sx={{ textAlign: "center", mb: 2 }}>
-  {file && (
-    <Button
-      variant="contained"
-      sx={reviewButtonStyle}
-      onClick={handleProcess}
-      ref={processBtnRef}
-    >
-      Process CV
-    </Button>
-  )}
-</Box>
+              {file && (
+                <Button
+                  variant="contained"
+                  sx={reviewButtonStyle}
+                  onClick={handleProcess}
+                  ref={processBtnRef}
+                >
+                  Process CV
+                </Button>
+              )}
+            </Box>
 
-
-            {/* Upload Notes */}
-            <Typography variant="body2" color="#000000ff" sx={{ fontFamily: "Helvetica, sans-serif",fontSize: "1rem", }}>
+            <Typography
+              variant="body2"
+              color="#000000ff"
+              sx={{ fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
+            >
               <strong>Requirements:</strong>
               <br />
               • Accepted formats: PDF, DOC, DOCX
@@ -451,7 +440,7 @@ const devUser = {
           </Paper>
         </Box>
       </Box>
-      {/* Error Popup */}
+
       <Dialog
         open={errorPopup.open}
         onClose={() => setErrorPopup({ ...errorPopup, open: false })}
@@ -461,11 +450,12 @@ const devUser = {
           <Typography>{errorPopup.message}</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setErrorPopup({ ...errorPopup, open: false })}>OK</Button>
+          <Button onClick={() => setErrorPopup({ ...errorPopup, open: false })}>
+            OK
+          </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Modal for Processed Data */}
       <Dialog
         open={isModalOpen}
         onClose={handleCloseModal}
@@ -502,7 +492,6 @@ const devUser = {
                 py: 1,
               }}
             >
-              {/* Left Column */}
               <Box>
                 <Typography
                   variant="subtitle2"
@@ -537,7 +526,6 @@ const devUser = {
                   {processedData.experience || "N/A"}
                 </Typography>
               </Box>
-              {/* Right Column */}
               <Box>
                 <Typography
                   variant="subtitle2"
@@ -605,7 +593,6 @@ const devUser = {
         </DialogActions>
       </Dialog>
 
-      {/* Tutorial Popover */}
       <Popover
         open={
           showTutorial &&
@@ -670,7 +657,6 @@ const devUser = {
                 </Typography>
               </>
             )}
-            {/* Shared navigation buttons */}
             <Box
               sx={{
                 display: "flex",
@@ -748,33 +734,6 @@ const devUser = {
   );
 }
 
-// ... (keep your existing style definitions)
-
-// Style reuse
-const navButtonStyle = {
-  justifyContent: "flex-start",
-  mb: 1,
-  color: "#fff",
-  backgroundColor: "transparent",
-  "&:hover": {
-    backgroundColor: "#487DA6",
-  },
-  textTransform: "none",
-  fontWeight: "bold",
-  "&.active": {
-    "&::before": {
-      content: '""',
-      position: "absolute",
-      left: 0,
-      top: 0,
-      height: "100%",
-      width: "4px",
-      backgroundColor: "black",
-      borderRadius: "0 4px 4px 0",
-    },
-  },
-};
-
 // Review button style
 const reviewButtonStyle = {
   background: "#232A3B",
@@ -784,7 +743,8 @@ const reviewButtonStyle = {
   borderRadius: "4px",
   boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
   "&:hover": {
-    background: "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
+    background:
+      "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
     transform: "translateY(-1px)",
   },
   textTransform: "none",
@@ -799,6 +759,6 @@ const reviewButtonStyle = {
     width: "100%",
     height: "100%",
     background:
-      "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
+      "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
   },
 };
