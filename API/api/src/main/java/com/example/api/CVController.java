@@ -6,10 +6,10 @@ import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -221,7 +221,7 @@ public class CVController {
     @PostMapping("/save")
     public ResponseEntity<?> save(@RequestBody CvSaveRequest body) {
         try {
-            if (body == null || body.candidate == null || isBlank(body.candidate.email)) {
+            if (body == null || body.candidate == null || CVController.isBlank(body.candidate.email)) {
                 return ResponseEntity.badRequest().body(createErrorResponse("Missing candidate/email"));
             }
 
@@ -298,56 +298,63 @@ public class CVController {
     private static String nvl(String s) {
         return s != null ? s : "";
     }
-    
+
+    private static boolean isBlank(String s) {
+        return s == null || s.trim().isEmpty();
+    }
+
     @GetMapping("/candidates")
-    public ResponseEntity<List<CandidateSummary>> listCandidates(
+    public ResponseEntity<?> listCandidates(
             @RequestParam(value = "q", required = false) String q) {
+        try {
+            String sql = """
+                WITH latest AS (
+                  SELECT cs.CandidateId, cs.FileUrl, cs.AiResult, cs.Normalized, cs.ReceivedAt
+                  FROM dbo.CvScans cs
+                  JOIN (
+                    SELECT CandidateId, MAX(ReceivedAt) AS MaxReceivedAt
+                    FROM dbo.CvScans
+                    GROUP BY CandidateId
+                  ) m ON m.CandidateId = cs.CandidateId AND m.MaxReceivedAt = cs.ReceivedAt
+                )
+                SELECT c.Id, c.FirstName, c.LastName, c.Email, l.FileUrl, l.AiResult, l.Normalized, l.ReceivedAt
+                FROM dbo.Candidates c
+                LEFT JOIN latest l ON l.CandidateId = c.Id
+                ORDER BY c.Id DESC
+            """;
 
-        String sql = """
-            WITH latest AS (
-              SELECT cs.CandidateId, cs.FileUrl, cs.AiResult, cs.Normalized, cs.ReceivedAt
-              FROM dbo.CvScans cs
-              JOIN (
-                SELECT CandidateId, MAX(ReceivedAt) AS MaxReceivedAt
-                FROM dbo.CvScans
-                GROUP BY CandidateId
-              ) m ON m.CandidateId = cs.CandidateId AND m.MaxReceivedAt = cs.ReceivedAt
-            )
-            SELECT c.Id, c.FirstName, c.LastName, c.Email, l.FileUrl, l.AiResult, l.Normalized, l.ReceivedAt
-            FROM dbo.Candidates c
-            LEFT JOIN latest l ON l.CandidateId = c.Id
-            ORDER BY c.Id DESC
-        """;
+            List<CandidateSummary> items = jdbc.query(sql, (rs, i) -> {
+                long id = rs.getLong("Id");
+                String first = rs.getString("FirstName");
+                String last = rs.getString("LastName");
+                String email = rs.getString("Email");
+                String fileUrl = rs.getString("FileUrl");
+                java.sql.Timestamp ts = rs.getTimestamp("ReceivedAt");
+                String normalized = rs.getString("Normalized");
+                String aiResult = rs.getString("AiResult");
 
-        List<CandidateSummary> items = jdbc.query(sql, (rs, i) -> {
-            long id = rs.getLong("Id");
-            String first = rs.getString("FirstName");
-            String last = rs.getString("LastName");
-            String email = rs.getString("Email");
-            String fileUrl = rs.getString("FileUrl");
-            java.sql.Timestamp ts = rs.getTimestamp("ReceivedAt");
-            String normalized = rs.getString("Normalized");
-            String aiResult = rs.getString("AiResult");
+                List<String> skills = extractSkills(normalized, aiResult);
+                String project = fileUrl != null ? lastSegment(fileUrl) : "CV";
+                String receivedAt = ts != null ? ts.toInstant().toString() : null;
 
-            List<String> skills = extractSkills(normalized, aiResult);
-            String project = fileUrl != null ? lastSegment(fileUrl) : "CV";
-            String receivedAt = ts != null ? ts.toInstant().toString() : null;
+                return new CandidateSummary(id, first, last, email, project, skills, receivedAt, "N/A");
+            });
 
-            return new CandidateSummary(id, first, last, email, project, skills, receivedAt, "N/A");
-        });
+            if (q != null && !q.isBlank()) {
+                final String needle = q.toLowerCase();
+                items = items.stream().filter(c ->
+                        (c.firstName != null && c.firstName.toLowerCase().contains(needle)) ||
+                        (c.lastName != null && c.lastName.toLowerCase().contains(needle)) ||
+                        (c.email != null && c.email.toLowerCase().contains(needle)) ||
+                        (c.project != null && c.project.toLowerCase().contains(needle)) ||
+                        c.skills.stream().anyMatch(s -> s.toLowerCase().contains(needle))
+                ).toList();
+            }
 
-        if (q != null && !q.isBlank()) {
-            final String needle = q.toLowerCase();
-            items = items.stream().filter(c ->
-                    (c.firstName != null && c.firstName.toLowerCase().contains(needle)) ||
-                    (c.lastName != null && c.lastName.toLowerCase().contains(needle)) ||
-                    (c.email != null && c.email.toLowerCase().contains(needle)) ||
-                    (c.project != null && c.project.toLowerCase().contains(needle)) ||
-                    c.skills.stream().anyMatch(s -> s.toLowerCase().contains(needle))
-            ).toList();
+            return ResponseEntity.ok(items);
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body(createErrorResponse("Failed to fetch candidates: " + ex.getMessage()));
         }
-
-        return ResponseEntity.ok(items);
     }
 
     private List<String> extractSkills(String normalizedJson, String aiResultJson) {

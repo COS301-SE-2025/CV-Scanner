@@ -32,6 +32,13 @@ import org.springframework.http.MediaType;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import java.sql.ResultSet;
+import java.sql.Timestamp;
+import java.time.Instant;
+import org.springframework.jdbc.core.RowMapper;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+
 @WebMvcTest({AuthController.class, CVController.class})
 public class ApiApplicationTests {
 
@@ -689,6 +696,112 @@ public class ApiApplicationTests {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
             .andExpect(status().isOk());
+    }
+
+    // --------- CVController: /cv/candidates tests ---------
+
+    @Test
+    void cv_candidates_success_mapsSkills_and_allFields() throws Exception {
+        // Mock jdbcTemplate.query to use the provided RowMapper with two rows
+        doAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            RowMapper<Object> rm = (RowMapper<Object>) invocation.getArgument(1);
+
+            // Row 1: normalized JSON provides skills as multiline string
+            ResultSet rs1 = mock(ResultSet.class);
+            when(rs1.getLong("Id")).thenReturn(10L);
+            when(rs1.getString("FirstName")).thenReturn("Jane");
+            when(rs1.getString("LastName")).thenReturn("Doe");
+            when(rs1.getString("Email")).thenReturn("jane.doe@example.com");
+            when(rs1.getString("FileUrl")).thenReturn("https://example.com/files/jane.pdf");
+            when(rs1.getString("Normalized")).thenReturn("{\"skills\":\"Backend\\nCoder\"}");
+            when(rs1.getString("AiResult")).thenReturn(null);
+            when(rs1.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.parse("2025-01-01T10:00:00Z")));
+
+            // Row 2: fallback to aiResult.applied.Skills array
+            ResultSet rs2 = mock(ResultSet.class);
+            when(rs2.getLong("Id")).thenReturn(11L);
+            when(rs2.getString("FirstName")).thenReturn("Alice");
+            when(rs2.getString("LastName")).thenReturn("Brown");
+            when(rs2.getString("Email")).thenReturn("alice.brown@example.com");
+            when(rs2.getString("FileUrl")).thenReturn("https://example.com/files/alice.pdf");
+            when(rs2.getString("Normalized")).thenReturn(null);
+            when(rs2.getString("AiResult")).thenReturn("{\"applied\":{\"Skills\":[\"React\",\"Angular\"]}}");
+            when(rs2.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.parse("2025-02-02T12:00:00Z")));
+
+            var list = new ArrayList<>();
+            list.add(rm.mapRow(rs1, 0));
+            list.add(rm.mapRow(rs2, 1));
+            return list;
+        }).when(jdbcTemplate).query(anyString(), any(RowMapper.class));
+
+        // Call endpoint
+        mockMvc.perform(get("/cv/candidates"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id").value(10))
+            .andExpect(jsonPath("$[0].firstName").value("Jane"))
+            .andExpect(jsonPath("$[0].lastName").value("Doe"))
+            .andExpect(jsonPath("$[0].email").value("jane.doe@example.com"))
+            .andExpect(jsonPath("$[0].project").value("jane.pdf"))
+            .andExpect(jsonPath("$[0].skills[0]").value("Backend"))
+            .andExpect(jsonPath("$[0].skills[1]").value("Coder"))
+            .andExpect(jsonPath("$[0].receivedAt").value("2025-01-01T10:00:00Z"))
+            .andExpect(jsonPath("$[1].id").value(11))
+            .andExpect(jsonPath("$[1].firstName").value("Alice"))
+            .andExpect(jsonPath("$[1].skills[0]").value("React"))
+            .andExpect(jsonPath("$[1].skills[1]").value("Angular"));
+
+        // Verify single DB call, then no more interactions
+        verify(jdbcTemplate).query(anyString(), any(RowMapper.class));
+        verifyNoMoreInteractions(jdbcTemplate);
+    }
+
+    @Test
+    void cv_candidates_filters_by_query_param() throws Exception {
+        // Return two items; controller will filter by 'alice'
+        doAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            RowMapper<Object> rm = (RowMapper<Object>) invocation.getArgument(1);
+
+            ResultSet rs1 = mock(ResultSet.class);
+            when(rs1.getLong("Id")).thenReturn(1L);
+            when(rs1.getString("FirstName")).thenReturn("Jane");
+            when(rs1.getString("LastName")).thenReturn("Doe");
+            when(rs1.getString("Email")).thenReturn("jane@example.com");
+            when(rs1.getString("FileUrl")).thenReturn("cv1.pdf");
+            when(rs1.getString("Normalized")).thenReturn("{\"skills\":\"Backend\"}");
+            when(rs1.getString("AiResult")).thenReturn(null);
+            when(rs1.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.parse("2025-01-01T00:00:00Z")));
+
+            ResultSet rs2 = mock(ResultSet.class);
+            when(rs2.getLong("Id")).thenReturn(2L);
+            when(rs2.getString("FirstName")).thenReturn("Alice");
+            when(rs2.getString("LastName")).thenReturn("Brown");
+            when(rs2.getString("Email")).thenReturn("alice@example.com");
+            when(rs2.getString("FileUrl")).thenReturn("cv2.pdf");
+            when(rs2.getString("Normalized")).thenReturn("{\"skills\":\"React\"}");
+            when(rs2.getString("AiResult")).thenReturn(null);
+            when(rs2.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.parse("2025-02-02T00:00:00Z")));
+
+            var list = new ArrayList<>();
+            list.add(rm.mapRow(rs1, 0));
+            list.add(rm.mapRow(rs2, 1));
+            return list;
+        }).when(jdbcTemplate).query(anyString(), any(RowMapper.class));
+
+        mockMvc.perform(get("/cv/candidates").param("q", "alice"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].firstName").value("Alice"));
+    }
+
+    @Test
+    void cv_candidates_db_error_returnsServerError() throws Exception {
+        when(jdbcTemplate.query(anyString(), any(RowMapper.class)))
+            .thenThrow(new RuntimeException("DB error"));
+
+        mockMvc.perform(get("/cv/candidates"))
+            .andExpect(status().is5xxServerError());
     }
 
 }
