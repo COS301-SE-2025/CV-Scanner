@@ -1,10 +1,12 @@
 package com.example.api;
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
-
+import java.nio.file.Files;
+import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,6 +16,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doAnswer;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -28,6 +31,13 @@ import org.springframework.http.MediaType;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+import java.sql.ResultSet;
+import java.sql.Timestamp;
+import java.time.Instant;
+import org.springframework.jdbc.core.RowMapper;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 @WebMvcTest({AuthController.class, CVController.class})
 public class ApiApplicationTests {
@@ -477,6 +487,321 @@ public class ApiApplicationTests {
                 .content(json))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Failed to update profile")));
+    }
+
+    private static void setPrivateField(Object target, String fieldName, Object value) {
+        try {
+            var f = target.getClass().getDeclaredField(fieldName);
+            f.setAccessible(true);
+            f.set(target, value);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    void getCategories_direct_success() throws Exception {
+        Path temp = Files.createTempFile("categories-", ".json");
+        String json = """
+        {
+          "Skills": ["Writer", "Coder"],
+          "Education": ["Bachelor"],
+          "Experience": ["Junior"]
+        }
+        """;
+        Files.writeString(temp, json, StandardCharsets.UTF_8);
+
+        AuthController controller = new AuthController();
+        setPrivateField(controller, "categoriesPath", temp);
+
+        ResponseEntity<?> resp = controller.getCategories();
+
+        assertEquals(200, resp.getStatusCodeValue());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) resp.getBody();
+        assertTrue(body.containsKey("Skills"));
+        assertTrue(body.containsKey("Education"));
+        assertTrue(body.containsKey("Experience"));
+    }
+
+    @Test
+    void getCategories_direct_notFound() throws Exception {
+        Path tempDir = Files.createTempDirectory("cats-dir");
+        Path missing = tempDir.resolve("categories.json");
+
+        AuthController controller = new AuthController();
+        setPrivateField(controller, "categoriesPath", missing);
+
+        ResponseEntity<?> resp = controller.getCategories();
+        assertEquals(404, resp.getStatusCodeValue());
+        assertTrue(resp.getBody().toString().contains("categories.json not found"));
+    }
+
+    @Test
+    void updateCategories_direct_success() throws Exception {
+        Path tempDir = Files.createTempDirectory("cats-update");
+        Path file = tempDir.resolve("categories.json");
+
+        AuthController controller = new AuthController();
+        setPrivateField(controller, "categoriesPath", file);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("Skills", List.of("Backend", "DevOps"));
+        payload.put("Education", List.of("Matric", "Diploma"));
+        payload.put("Experience", List.of("Intern", "Senior"));
+
+        ResponseEntity<?> resp = controller.updateCategories(payload);
+        assertEquals(200, resp.getStatusCodeValue());
+        String saved = Files.readString(file, StandardCharsets.UTF_8);
+        Map<?, ?> savedMap = new ObjectMapper().readValue(saved, Map.class);
+        assertEquals(List.of("Backend", "DevOps"), savedMap.get("Skills"));
+        assertEquals(List.of("Matric", "Diploma"), savedMap.get("Education"));
+        assertEquals(List.of("Intern", "Senior"), savedMap.get("Experience"));
+    }
+
+    @Test
+    void updateCategories_direct_validationError() throws Exception {
+        Path tempDir = Files.createTempDirectory("cats-bad");
+        Path file = tempDir.resolve("categories.json");
+
+        AuthController controller = new AuthController();
+        setPrivateField(controller, "categoriesPath", file);
+
+        Map<String, Object> badPayload = new HashMap<>();
+        badPayload.put("Skills", List.of("Writer", 42));
+
+        ResponseEntity<?> resp = controller.updateCategories(badPayload);
+
+        assertEquals(400, resp.getStatusCodeValue());
+        assertTrue(resp.getBody().toString().contains("must be strings"));
+    }
+
+    // --------- CVController: /cv/save tests ---------
+
+    @Test
+    void cv_save_missing_email_returnsBadRequest() throws Exception {
+        String json = """
+        {
+          "candidate": { "firstName": "Jane", "lastName": "Doe" },
+          "fileUrl": "https://example.com/cv.pdf",
+          "normalized": { "skills": "Backend" },
+          "aiResult": { "status": "success" },
+          "raw": { "Skills": { "labels": ["Backend"] } },
+          "receivedAt": "2025-08-18T20:30:00Z"
+        }
+        """;
+
+        mockMvc.perform(post("/cv/save")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void cv_save_existing_candidate_success() throws Exception {
+        // Candidate exists path
+        when(jdbcTemplate.queryForObject(anyString(), org.mockito.ArgumentMatchers.eq(Long.class), any()))
+            .thenReturn(100L);
+
+        // Update candidate names
+        when(jdbcTemplate.update(anyString(), anyString(), anyString(), any()))
+            .thenReturn(1);
+
+        // Insert CV scan
+        when(jdbcTemplate.update(anyString(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(1);
+
+        String json = """
+        {
+          "candidate": { "firstName": "Jane", "lastName": "Doe", "email": "jane.doe@example.com" },
+          "fileUrl": "https://example.com/cv.pdf",
+          "normalized": { "skills": "Backend" },
+          "aiResult": { "status": "success", "top_k": 3 },
+          "raw": { "Skills": { "labels": ["Backend","Writer","Coder"] } },
+          "receivedAt": "2025-08-18T20:30:00Z"
+        }
+        """;
+
+        mockMvc.perform(post("/cv/save")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+            .andExpect(status().isOk());
+    }
+
+    @Test
+    void cv_save_db_error_returnsServerError() throws Exception {
+        // Candidate exists
+        when(jdbcTemplate.queryForObject(anyString(), org.mockito.ArgumentMatchers.eq(Long.class), any()))
+            .thenReturn(101L);
+
+        // Fail on insert CV scan
+        when(jdbcTemplate.update(anyString(), any(), any(), any(), any(), any(), any()))
+            .thenThrow(new RuntimeException("DB insert failed"));
+
+        String json = """
+        {
+          "candidate": { "firstName": "John", "lastName": "Smith", "email": "john.smith@example.com" },
+          "fileUrl": "https://example.com/file.pdf",
+          "normalized": { "skills": "DevOps" },
+          "aiResult": { "status": "success" },
+          "raw": { "Skills": { "labels": ["DevOps"] } },
+          "receivedAt": "2025-08-18T21:00:00Z"
+        }
+        """;
+
+        mockMvc.perform(post("/cv/save")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+            .andExpect(status().is5xxServerError());
+    }
+
+    // Optional: insert-path success (mock generated key)
+    @Test
+    void cv_save_inserts_new_candidate_success() throws Exception {
+        // Force "not found" path -> insert candidate
+        when(jdbcTemplate.queryForObject(anyString(), org.mockito.ArgumentMatchers.eq(Long.class), any()))
+            .thenThrow(new org.springframework.dao.EmptyResultDataAccessException(1));
+
+        // Mock insert candidate with KeyHolder (simulate generated key = 555)
+        doAnswer(invocation -> {
+            Object khObj = invocation.getArgument(1);
+            if (khObj instanceof org.springframework.jdbc.support.GeneratedKeyHolder kh) {
+                // GeneratedKeyHolder reads the first key from keyList[0]["GENERATED_KEY"]
+                java.util.Map<String, Object> m = new java.util.HashMap<>();
+                m.put("GENERATED_KEY", 555L);
+                kh.getKeyList().add(m);
+            }
+            return 1;
+        }).when(jdbcTemplate).update(
+            any(org.springframework.jdbc.core.PreparedStatementCreator.class),
+            any(org.springframework.jdbc.support.KeyHolder.class)
+        );
+
+        // Insert CV scan
+        when(jdbcTemplate.update(anyString(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(1);
+
+        String json = """
+        {
+          "candidate": { "firstName": "Alice", "lastName": "Brown", "email": "alice.brown@example.com" },
+          "fileUrl": "https://example.com/alice.pdf",
+          "normalized": { "skills": "Fullstack" },
+          "aiResult": { "status": "success" },
+          "raw": { "Skills": { "labels": ["Fullstack"] } },
+          "receivedAt": "2025-08-18T22:00:00Z"
+        }
+        """;
+
+        mockMvc.perform(post("/cv/save")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+            .andExpect(status().isOk());
+    }
+
+    // --------- CVController: /cv/candidates tests ---------
+
+    @Test
+    void cv_candidates_success_mapsSkills_and_allFields() throws Exception {
+        // Mock jdbcTemplate.query to use the provided RowMapper with two rows
+        doAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            RowMapper<Object> rm = (RowMapper<Object>) invocation.getArgument(1);
+
+            // Row 1: normalized JSON provides skills as multiline string
+            ResultSet rs1 = mock(ResultSet.class);
+            when(rs1.getLong("Id")).thenReturn(10L);
+            when(rs1.getString("FirstName")).thenReturn("Jane");
+            when(rs1.getString("LastName")).thenReturn("Doe");
+            when(rs1.getString("Email")).thenReturn("jane.doe@example.com");
+            when(rs1.getString("FileUrl")).thenReturn("https://example.com/files/jane.pdf");
+            when(rs1.getString("Normalized")).thenReturn("{\"skills\":\"Backend\\nCoder\"}");
+            when(rs1.getString("AiResult")).thenReturn(null);
+            when(rs1.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.parse("2025-01-01T10:00:00Z")));
+
+            // Row 2: fallback to aiResult.applied.Skills array
+            ResultSet rs2 = mock(ResultSet.class);
+            when(rs2.getLong("Id")).thenReturn(11L);
+            when(rs2.getString("FirstName")).thenReturn("Alice");
+            when(rs2.getString("LastName")).thenReturn("Brown");
+            when(rs2.getString("Email")).thenReturn("alice.brown@example.com");
+            when(rs2.getString("FileUrl")).thenReturn("https://example.com/files/alice.pdf");
+            when(rs2.getString("Normalized")).thenReturn(null);
+            when(rs2.getString("AiResult")).thenReturn("{\"applied\":{\"Skills\":[\"React\",\"Angular\"]}}");
+            when(rs2.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.parse("2025-02-02T12:00:00Z")));
+
+            var list = new ArrayList<>();
+            list.add(rm.mapRow(rs1, 0));
+            list.add(rm.mapRow(rs2, 1));
+            return list;
+        }).when(jdbcTemplate).query(anyString(), any(RowMapper.class));
+
+        // Call endpoint
+        mockMvc.perform(get("/cv/candidates"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id").value(10))
+            .andExpect(jsonPath("$[0].firstName").value("Jane"))
+            .andExpect(jsonPath("$[0].lastName").value("Doe"))
+            .andExpect(jsonPath("$[0].email").value("jane.doe@example.com"))
+            .andExpect(jsonPath("$[0].project").value("jane.pdf"))
+            .andExpect(jsonPath("$[0].skills[0]").value("Backend"))
+            .andExpect(jsonPath("$[0].skills[1]").value("Coder"))
+            .andExpect(jsonPath("$[0].receivedAt").value("2025-01-01T10:00:00Z"))
+            .andExpect(jsonPath("$[1].id").value(11))
+            .andExpect(jsonPath("$[1].firstName").value("Alice"))
+            .andExpect(jsonPath("$[1].skills[0]").value("React"))
+            .andExpect(jsonPath("$[1].skills[1]").value("Angular"));
+
+        // Verify single DB call, then no more interactions
+        verify(jdbcTemplate).query(anyString(), any(RowMapper.class));
+        verifyNoMoreInteractions(jdbcTemplate);
+    }
+
+    @Test
+    void cv_candidates_filters_by_query_param() throws Exception {
+        // Return two items; controller will filter by 'alice'
+        doAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            RowMapper<Object> rm = (RowMapper<Object>) invocation.getArgument(1);
+
+            ResultSet rs1 = mock(ResultSet.class);
+            when(rs1.getLong("Id")).thenReturn(1L);
+            when(rs1.getString("FirstName")).thenReturn("Jane");
+            when(rs1.getString("LastName")).thenReturn("Doe");
+            when(rs1.getString("Email")).thenReturn("jane@example.com");
+            when(rs1.getString("FileUrl")).thenReturn("cv1.pdf");
+            when(rs1.getString("Normalized")).thenReturn("{\"skills\":\"Backend\"}");
+            when(rs1.getString("AiResult")).thenReturn(null);
+            when(rs1.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.parse("2025-01-01T00:00:00Z")));
+
+            ResultSet rs2 = mock(ResultSet.class);
+            when(rs2.getLong("Id")).thenReturn(2L);
+            when(rs2.getString("FirstName")).thenReturn("Alice");
+            when(rs2.getString("LastName")).thenReturn("Brown");
+            when(rs2.getString("Email")).thenReturn("alice@example.com");
+            when(rs2.getString("FileUrl")).thenReturn("cv2.pdf");
+            when(rs2.getString("Normalized")).thenReturn("{\"skills\":\"React\"}");
+            when(rs2.getString("AiResult")).thenReturn(null);
+            when(rs2.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.parse("2025-02-02T00:00:00Z")));
+
+            var list = new ArrayList<>();
+            list.add(rm.mapRow(rs1, 0));
+            list.add(rm.mapRow(rs2, 1));
+            return list;
+        }).when(jdbcTemplate).query(anyString(), any(RowMapper.class));
+
+        mockMvc.perform(get("/cv/candidates").param("q", "alice"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].firstName").value("Alice"));
+    }
+
+    @Test
+    void cv_candidates_db_error_returnsServerError() throws Exception {
+        when(jdbcTemplate.query(anyString(), any(RowMapper.class)))
+            .thenThrow(new RuntimeException("DB error"));
+
+        mockMvc.perform(get("/cv/candidates"))
+            .andExpect(status().is5xxServerError());
     }
 
 }

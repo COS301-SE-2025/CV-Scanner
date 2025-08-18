@@ -4,3 +4,4 @@ python-multipart
 tika
 transformers
 spacy
+torch
