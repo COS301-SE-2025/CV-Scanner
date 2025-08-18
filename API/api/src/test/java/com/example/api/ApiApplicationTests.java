@@ -16,6 +16,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doAnswer;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -566,6 +567,128 @@ public class ApiApplicationTests {
 
         assertEquals(400, resp.getStatusCodeValue());
         assertTrue(resp.getBody().toString().contains("must be strings"));
+    }
+
+    // --------- CVController: /cv/save tests ---------
+
+    @Test
+    void cv_save_missing_email_returnsBadRequest() throws Exception {
+        String json = """
+        {
+          "candidate": { "firstName": "Jane", "lastName": "Doe" },
+          "fileUrl": "https://example.com/cv.pdf",
+          "normalized": { "skills": "Backend" },
+          "aiResult": { "status": "success" },
+          "raw": { "Skills": { "labels": ["Backend"] } },
+          "receivedAt": "2025-08-18T20:30:00Z"
+        }
+        """;
+
+        mockMvc.perform(post("/cv/save")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void cv_save_existing_candidate_success() throws Exception {
+        // Candidate exists path
+        when(jdbcTemplate.queryForObject(anyString(), org.mockito.ArgumentMatchers.eq(Long.class), any()))
+            .thenReturn(100L);
+
+        // Update candidate names
+        when(jdbcTemplate.update(anyString(), anyString(), anyString(), any()))
+            .thenReturn(1);
+
+        // Insert CV scan
+        when(jdbcTemplate.update(anyString(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(1);
+
+        String json = """
+        {
+          "candidate": { "firstName": "Jane", "lastName": "Doe", "email": "jane.doe@example.com" },
+          "fileUrl": "https://example.com/cv.pdf",
+          "normalized": { "skills": "Backend" },
+          "aiResult": { "status": "success", "top_k": 3 },
+          "raw": { "Skills": { "labels": ["Backend","Writer","Coder"] } },
+          "receivedAt": "2025-08-18T20:30:00Z"
+        }
+        """;
+
+        mockMvc.perform(post("/cv/save")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+            .andExpect(status().isOk());
+    }
+
+    @Test
+    void cv_save_db_error_returnsServerError() throws Exception {
+        // Candidate exists
+        when(jdbcTemplate.queryForObject(anyString(), org.mockito.ArgumentMatchers.eq(Long.class), any()))
+            .thenReturn(101L);
+
+        // Fail on insert CV scan
+        when(jdbcTemplate.update(anyString(), any(), any(), any(), any(), any(), any()))
+            .thenThrow(new RuntimeException("DB insert failed"));
+
+        String json = """
+        {
+          "candidate": { "firstName": "John", "lastName": "Smith", "email": "john.smith@example.com" },
+          "fileUrl": "https://example.com/file.pdf",
+          "normalized": { "skills": "DevOps" },
+          "aiResult": { "status": "success" },
+          "raw": { "Skills": { "labels": ["DevOps"] } },
+          "receivedAt": "2025-08-18T21:00:00Z"
+        }
+        """;
+
+        mockMvc.perform(post("/cv/save")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+            .andExpect(status().is5xxServerError());
+    }
+
+    // Optional: insert-path success (mock generated key)
+    @Test
+    void cv_save_inserts_new_candidate_success() throws Exception {
+        // Force "not found" path -> insert candidate
+        when(jdbcTemplate.queryForObject(anyString(), org.mockito.ArgumentMatchers.eq(Long.class), any()))
+            .thenThrow(new org.springframework.dao.EmptyResultDataAccessException(1));
+
+        // Mock insert candidate with KeyHolder (simulate generated key = 555)
+        doAnswer(invocation -> {
+            Object khObj = invocation.getArgument(1);
+            if (khObj instanceof org.springframework.jdbc.support.GeneratedKeyHolder kh) {
+                // GeneratedKeyHolder reads the first key from keyList[0]["GENERATED_KEY"]
+                java.util.Map<String, Object> m = new java.util.HashMap<>();
+                m.put("GENERATED_KEY", 555L);
+                kh.getKeyList().add(m);
+            }
+            return 1;
+        }).when(jdbcTemplate).update(
+            any(org.springframework.jdbc.core.PreparedStatementCreator.class),
+            any(org.springframework.jdbc.support.KeyHolder.class)
+        );
+
+        // Insert CV scan
+        when(jdbcTemplate.update(anyString(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(1);
+
+        String json = """
+        {
+          "candidate": { "firstName": "Alice", "lastName": "Brown", "email": "alice.brown@example.com" },
+          "fileUrl": "https://example.com/alice.pdf",
+          "normalized": { "skills": "Fullstack" },
+          "aiResult": { "status": "success" },
+          "raw": { "Skills": { "labels": ["Fullstack"] } },
+          "receivedAt": "2025-08-18T22:00:00Z"
+        }
+        """;
+
+        mockMvc.perform(post("/cv/save")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+            .andExpect(status().isOk());
     }
 
 }

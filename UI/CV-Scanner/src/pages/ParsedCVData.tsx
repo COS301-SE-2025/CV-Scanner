@@ -164,6 +164,11 @@ const ParsedCVData: React.FC = () => {
   const navigate = useNavigate();
   const { processedData, fileUrl, candidate } = location.state || {};
 
+  // Add missing state
+  const [user, setUser] = useState<any>(null);
+  const [pdfSticky, setPdfSticky] = useState(false);
+  const [showRaw, setShowRaw] = useState(false);
+
   // Prefill from Upload page
   const [firstName, setFirstName] = useState<string>(
     candidate?.firstName ?? ""
@@ -200,6 +205,29 @@ const ParsedCVData: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rawData, fields]);
 
+  // Optional: load current user (safe no-op if endpoint not available)
+  useEffect(() => {
+    const ue = localStorage.getItem("userEmail");
+    if (!ue) return;
+    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(ue)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setUser(d))
+      .catch(() => {});
+  }, []);
+
+  const displayName = useMemo(() => {
+    if (!user) return "User";
+    if (user.first_name) {
+      return `${user.first_name} ${user.last_name || ""} (${
+        user.role || "User"
+      })`;
+    }
+    return (
+      (user.username || user.email || "User") +
+      (user.role ? ` (${user.role})` : "")
+    );
+  }, [user]);
+
   const handleUpdate = (key: keyof ParsedCVFields, value: string) => {
     const updated = { ...fields, [key]: value };
     setFields(updated);
@@ -221,7 +249,8 @@ const ParsedCVData: React.FC = () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error("Failed to save CV");
+    const text = await res.text();
+    if (!res.ok) throw new Error(text || "Failed to save CV");
     alert("CV saved successfully!");
   };
 
@@ -286,16 +315,7 @@ const ParsedCVData: React.FC = () => {
               onClick={() => navigate("/settings")}
             >
               <AccountCircleIcon sx={{ mr: 1 }} />
-              <Typography variant="subtitle1">
-                {user
-                  ? user.first_name
-                    ? `${user.first_name} ${user.last_name || ""} (${
-                        user.role || "User"
-                      })`
-                    : (user.username || user.email) +
-                      (user.role ? ` (${user.role})` : "")
-                  : "User"}
-              </Typography>
+              <Typography variant="subtitle1">{displayName}</Typography>
             </Box>
 
             <IconButton
