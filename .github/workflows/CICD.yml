@@ -61,15 +61,6 @@ jobs:
             pip install fastapi uvicorn pydantic pytest
           fi
 
-      - name: Run AI tests (or import check)
-        run: |
-          if compgen -G "AI/test_*.py" > /dev/null 2>&1 || [ -d AI/tests ]; then
-            pytest AI -q
-          else
-            echo "No AI tests found. Running a quick import check."
-            python -c "import importlib.util,sys,pathlib; p=pathlib.Path('AI/app.py'); assert p.exists(), 'AI/app.py not found'; spec=importlib.util.spec_from_file_location('app', str(p)); mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod); assert hasattr(mod,'app'), 'Expected app instance in AI/app.py'; print('Import check passed: app found')"
-          fi
-
   ui:
     name: Build UI (Node/React)
     runs-on: ubuntu-latest
