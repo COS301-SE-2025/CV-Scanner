@@ -1,10 +1,12 @@
 package com.example.api;
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
-
+import java.nio.file.Files;
+import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
@@ -477,6 +479,93 @@ public class ApiApplicationTests {
                 .content(json))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Failed to update profile")));
+    }
+
+    private static void setPrivateField(Object target, String fieldName, Object value) {
+        try {
+            var f = target.getClass().getDeclaredField(fieldName);
+            f.setAccessible(true);
+            f.set(target, value);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    void getCategories_direct_success() throws Exception {
+        Path temp = Files.createTempFile("categories-", ".json");
+        String json = """
+        {
+          "Skills": ["Writer", "Coder"],
+          "Education": ["Bachelor"],
+          "Experience": ["Junior"]
+        }
+        """;
+        Files.writeString(temp, json, StandardCharsets.UTF_8);
+
+        AuthController controller = new AuthController();
+        setPrivateField(controller, "categoriesPath", temp);
+
+        ResponseEntity<?> resp = controller.getCategories();
+
+        assertEquals(200, resp.getStatusCodeValue());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) resp.getBody();
+        assertTrue(body.containsKey("Skills"));
+        assertTrue(body.containsKey("Education"));
+        assertTrue(body.containsKey("Experience"));
+    }
+
+    @Test
+    void getCategories_direct_notFound() throws Exception {
+        Path tempDir = Files.createTempDirectory("cats-dir");
+        Path missing = tempDir.resolve("categories.json");
+
+        AuthController controller = new AuthController();
+        setPrivateField(controller, "categoriesPath", missing);
+
+        ResponseEntity<?> resp = controller.getCategories();
+        assertEquals(404, resp.getStatusCodeValue());
+        assertTrue(resp.getBody().toString().contains("categories.json not found"));
+    }
+
+    @Test
+    void updateCategories_direct_success() throws Exception {
+        Path tempDir = Files.createTempDirectory("cats-update");
+        Path file = tempDir.resolve("categories.json");
+
+        AuthController controller = new AuthController();
+        setPrivateField(controller, "categoriesPath", file);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("Skills", List.of("Backend", "DevOps"));
+        payload.put("Education", List.of("Matric", "Diploma"));
+        payload.put("Experience", List.of("Intern", "Senior"));
+
+        ResponseEntity<?> resp = controller.updateCategories(payload);
+        assertEquals(200, resp.getStatusCodeValue());
+        String saved = Files.readString(file, StandardCharsets.UTF_8);
+        Map<?, ?> savedMap = new ObjectMapper().readValue(saved, Map.class);
+        assertEquals(List.of("Backend", "DevOps"), savedMap.get("Skills"));
+        assertEquals(List.of("Matric", "Diploma"), savedMap.get("Education"));
+        assertEquals(List.of("Intern", "Senior"), savedMap.get("Experience"));
+    }
+
+    @Test
+    void updateCategories_direct_validationError() throws Exception {
+        Path tempDir = Files.createTempDirectory("cats-bad");
+        Path file = tempDir.resolve("categories.json");
+
+        AuthController controller = new AuthController();
+        setPrivateField(controller, "categoriesPath", file);
+
+        Map<String, Object> badPayload = new HashMap<>();
+        badPayload.put("Skills", List.of("Writer", 42));
+
+        ResponseEntity<?> resp = controller.updateCategories(badPayload);
+
+        assertEquals(400, resp.getStatusCodeValue());
+        assertTrue(resp.getBody().toString().contains("must be strings"));
     }
 
 }
