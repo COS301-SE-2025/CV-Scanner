@@ -39,8 +39,9 @@ export default function UploadCVPage() {
   const [file, setFile] = useState<File | null>(null);
   const [processedData, setProcessedData] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [contactInfo, setContactInfo] = useState("");
-  const [additionalInfo, setAdditionalInfo] = useState("");
+  const [candidateName, setCandidateName] = useState("");
+  const [candidateSurname, setCandidateSurname] = useState("");
+  const [candidateEmail, setCandidateEmail] = useState("");
   const [errorPopup, setErrorPopup] = useState<{
     open: boolean;
     message: string;
@@ -313,11 +314,11 @@ export default function UploadCVPage() {
             </Box>
 
             <TextField
-              label="Contact Information"
+              label="Candidate Name"
               fullWidth
               variant="outlined"
-              value={contactInfo}
-              onChange={(e) => setContactInfo(e.target.value)}
+              value={candidateName}
+              onChange={(e) => setCandidateName(e.target.value)}
               sx={{
                 fontFamily: "Helvetica, sans-serif",
                 mb: 3,
@@ -339,20 +340,18 @@ export default function UploadCVPage() {
             />
 
             <TextField
-              label="Additional Information"
+              label="Candidate Surname"
               fullWidth
               variant="outlined"
-              multiline
-              rows={3}
-              value={additionalInfo}
-              onChange={(e) => setAdditionalInfo(e.target.value)}
+              value={candidateSurname}
+              onChange={(e) => setCandidateSurname(e.target.value)}
               sx={{
                 mb: 3,
                 "& .MuiOutlinedInput-root": {
                   "& fieldset": { borderColor: "#000000ff" },
                   fontFamily: "Helvetica, sans-serif",
                   fontSize: "1rem",
-                  color: "#fff",
+                  color: "#000000ff",
                 },
               }}
               InputLabelProps={{
@@ -363,17 +362,33 @@ export default function UploadCVPage() {
                   color: "#000000ff",
                 },
               }}
-              inputRef={additionalInfoRef}
-              InputProps={{
-                sx: {
+            />
+
+            <TextField
+              label="Candidate Email"
+              fullWidth
+              variant="outlined"
+              value={candidateEmail}
+              onChange={(e) => setCandidateEmail(e.target.value)}
+              sx={{
+                mb: 3,
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": { borderColor: "#000000ff" },
+                  fontFamily: "Helvetica, sans-serif",
+                  fontSize: "1rem",
                   color: "#000000ff",
-                  borderRadius: 2,
-                  input: { color: "#000000ff" },
-                  textarea: { color: "#000000ff" },
-                  borderColor: "#204E20",
+                },
+              }}
+              InputLabelProps={{
+                sx: {
+                  "&.Mui-focused": { color: "#204E20" },
+                  fontFamily: "Helvetica, sans-serif",
+                  fontWeight: "bold",
+                  color: "#000000ff",
                 },
               }}
             />
+
 
             {file && (
               <TableContainer sx={{ mb: 3 }}>
