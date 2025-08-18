@@ -34,6 +34,8 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import Sidebar from "./Sidebar";
 
+const CONFIG_BASE = "http://localhost:8081"; // Spring Boot base (AuthController)
+
 export default function UploadCVPage() {
   const [collapsed, setCollapsed] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -42,8 +44,10 @@ export default function UploadCVPage() {
   const [candidateName, setCandidateName] = useState("");
   const [candidateSurname, setCandidateSurname] = useState("");
   const [candidateEmail, setCandidateEmail] = useState("");
-  const [configJson, setConfigJson] = useState<string>("");        
-  const [originalConfig, setOriginalConfig] = useState<string>(""); 
+
+  // Config editor state
+  const [configJson, setConfigJson] = useState<string>("");
+  const [originalConfig, setOriginalConfig] = useState<string>("");
   const [isEditingConfig, setIsEditingConfig] = useState(false);
   const [configSavedPopup, setConfigSavedPopup] = useState(false);
 
@@ -100,6 +104,71 @@ export default function UploadCVPage() {
     else setAnchorEl(null);
   }, [tutorialStep]);
 
+  // Load config from Spring when admin and a file is selected (reveals the box)
+  useEffect(() => {
+    if (file && user?.role === "Admin") {
+      loadConfig();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file, user?.role]);
+
+  const loadConfig = async () => {
+    try {
+      const res = await fetch(`${CONFIG_BASE}/auth/config/categories`);
+      if (!res.ok) {
+        let msg = `Failed to load configuration (${res.status})`;
+        try {
+          const j = await res.json();
+          msg = j?.detail || msg;
+        } catch {}
+        setErrorPopup({ open: true, message: msg });
+        return;
+      }
+      const json = await res.json();
+      const pretty = JSON.stringify(json, null, 2);
+      setConfigJson(pretty);
+      setOriginalConfig(pretty);
+      setIsEditingConfig(false);
+    } catch (e) {
+      setErrorPopup({ open: true, message: "Could not load configuration." });
+    }
+  };
+
+  const saveConfig = async () => {
+    let parsed: any;
+    try {
+      parsed = JSON.parse(configJson);
+    } catch {
+      setErrorPopup({
+        open: true,
+        message: "Invalid JSON. Please fix before saving.",
+      });
+      return;
+    }
+
+    try {
+      const res = await fetch(`${CONFIG_BASE}/auth/config/categories`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsed),
+      });
+      if (!res.ok) {
+        let msg = `Failed to save configuration (${res.status})`;
+        try {
+          const j = await res.json();
+          msg = j?.detail || msg;
+        } catch {}
+        setErrorPopup({ open: true, message: msg });
+        return;
+      }
+      setOriginalConfig(configJson);
+      setIsEditingConfig(false);
+      setConfigSavedPopup(true);
+    } catch (e) {
+      setErrorPopup({ open: true, message: "Could not save configuration." });
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (selected) setFile(selected);
@@ -123,7 +192,7 @@ export default function UploadCVPage() {
     formData.append("file", file);
 
     try {
-      // Calls FastAPI endpoint on 8081
+      // Calls FastAPI endpoint on port 5000
       const response = await fetch("http://localhost:5000/upload_cv?top_k=3", {
         method: "POST",
         body: formData,
@@ -398,7 +467,6 @@ export default function UploadCVPage() {
               }}
             />
 
-
             {file && (
               <TableContainer sx={{ mb: 3 }}>
                 <Table
@@ -436,74 +504,90 @@ export default function UploadCVPage() {
               </TableContainer>
             )}
 
-{/* Admin-only config editor, visible only if a file is uploaded */}
-{file && user?.role === "Admin" && (
-  <Paper sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: "#f5f5f5" }}>
-    <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
-      CV Extraction Configuration
-    </Typography>
+            {/* Admin-only config editor, visible only if a file is uploaded */}
+            {file && user?.role === "Admin" && (
+              <Paper sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: "#f5f5f5" }}>
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
+                  CV Extraction Configuration
+                </Typography>
 
-    {!isEditingConfig ? (
-      <>
-        <Box
-          sx={{
-            fontFamily: "monospace",
-            bgcolor: "#e0e0e0",
-            p: 2,
-            borderRadius: 1,
-            whiteSpace: "pre-wrap",
-            mb: 2,
-            maxHeight: 300,
-            overflowY: "auto",
-          }}
-        >
-          {configJson}
-        </Box>
-        <Button
-          variant="contained"
-          sx={{ bgcolor: "#232A3B", "&:hover": { bgcolor: "#3a4b66" } }}
-          onClick={() => setIsEditingConfig(true)}
-        >
-          Edit
-        </Button>
-      </>
-    ) : (
-      <>
-        <TextField
-          fullWidth
-          multiline
-          minRows={10}
-          value={configJson}
-          onChange={(e) => setConfigJson(e.target.value)}
-          sx={{ fontFamily: "monospace", mb: 2 }}
-        />
-        <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
-          <Button
-            variant="outlined"
-            onClick={() => {
-              setConfigJson(originalConfig);
-              setIsEditingConfig(false);
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            sx={{ bgcolor: "#232A3B", "&:hover": { bgcolor: "#3a4b66" } }}
-            onClick={() => {
-              setOriginalConfig(configJson);
-              setIsEditingConfig(false);
-              setConfigSavedPopup(true);
-            }}
-          >
-            Save
-          </Button>
-        </Box>
-      </>
-    )}
-  </Paper>
-)}
-
+                {!isEditingConfig ? (
+                  <>
+                    <Box
+                      sx={{
+                        fontFamily: "monospace",
+                        bgcolor: "#e0e0e0",
+                        p: 2,
+                        borderRadius: 1,
+                        whiteSpace: "pre-wrap",
+                        mb: 2,
+                        maxHeight: 300,
+                        overflowY: "auto",
+                      }}
+                    >
+                      {configJson || "No configuration loaded."}
+                    </Box>
+                    <Box sx={{ display: "flex", gap: 1 }}>
+                      <Button
+                        variant="outlined"
+                        onClick={loadConfig}
+                        sx={{ borderColor: "#232A3B", color: "#232A3B" }}
+                      >
+                        Reload
+                      </Button>
+                      <Button
+                        variant="contained"
+                        sx={{
+                          bgcolor: "#232A3B",
+                          "&:hover": { bgcolor: "#3a4b66" },
+                        }}
+                        onClick={() => setIsEditingConfig(true)}
+                      >
+                        Edit
+                      </Button>
+                    </Box>
+                  </>
+                ) : (
+                  <>
+                    <TextField
+                      fullWidth
+                      multiline
+                      minRows={10}
+                      value={configJson}
+                      onChange={(e) => setConfigJson(e.target.value)}
+                      sx={{ fontFamily: "monospace", mb: 2 }}
+                    />
+                    <Box
+                      sx={{
+                        display: "flex",
+                        gap: 2,
+                        justifyContent: "flex-end",
+                      }}
+                    >
+                      <Button
+                        variant="outlined"
+                        onClick={() => {
+                          setConfigJson(originalConfig);
+                          setIsEditingConfig(false);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        variant="contained"
+                        sx={{
+                          bgcolor: "#232A3B",
+                          "&:hover": { bgcolor: "#3a4b66" },
+                        }}
+                        onClick={saveConfig}
+                      >
+                        Save
+                      </Button>
+                    </Box>
+                  </>
+                )}
+              </Paper>
+            )}
 
             <Box sx={{ textAlign: "center", mb: 2 }}>
               {file && (
@@ -546,6 +630,22 @@ export default function UploadCVPage() {
           <Button onClick={() => setErrorPopup({ ...errorPopup, open: false })}>
             OK
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Config saved confirmation */}
+      <Dialog
+        open={configSavedPopup}
+        onClose={() => setConfigSavedPopup(false)}
+      >
+        <DialogTitle>Configuration Saved</DialogTitle>
+        <DialogContent>
+          <Typography>
+            The extraction configuration was saved successfully.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfigSavedPopup(false)}>OK</Button>
         </DialogActions>
       </Dialog>
 
