@@ -42,9 +42,9 @@ function toLines(v: any): string | undefined {
 function normalizeToParsedFields(input: any): ParsedCVFields {
   if (!input) return {};
   const data = input.data ?? input.result ?? input.payload ?? input;
+  const applied = data.applied || data.classification || {};
 
-  const applied = data.applied || data.classification || undefined;
-
+  // Start with the default fields
   const fields: ParsedCVFields = {
     profile:
       toLines(data.profile) || toLines(data.summary) || toLines(data.objective),
@@ -70,10 +70,16 @@ function normalizeToParsedFields(input: any): ParsedCVFields {
       toLines(data.contacts),
     languages: toLines(data.languages),
     other:
-      // Prefer a compact "raw" block if present; else show the whole normalized payload
       toLines(data.raw) ??
       (Object.keys(data).length ? toLines(data) : undefined),
   };
+
+  // Add all keys from applied that aren't already present
+  Object.keys(applied).forEach((key) => {
+    if (!(key.toLowerCase() in fields)) {
+      fields[key] = toLines(applied[key]);
+    }
+  });
 
   // Drop empty keys
   Object.keys(fields).forEach((k) => {

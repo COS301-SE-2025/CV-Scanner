@@ -10,6 +10,5 @@
   "CloudProviders" : [ "AWS", "Azure", "GCP" ],
   "SoftSkills" : [ "Communication", "Leadership", "Problem Solving", "Teamwork" ],
   "Methodologies" : [ "Agile", "Scrum", "Kanban", "Waterfall" ],
-  "Industries" : [ "Finance", "Healthcare", "Retail", "Telecom" ],
-  "JobTypes" : [ "Full-Time", "Part-Time", "Contract", "Internship" ]
+  "Industries" : [ "Finance", "Healthcare", "Retail", "Telecom" ]
 }
