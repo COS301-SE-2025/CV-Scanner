@@ -187,12 +187,19 @@ export default function UploadCVPage() {
 
   const handleProcess = async () => {
     if (!file) return;
+    // Require candidate fields
+    if (!candidateName || !candidateSurname || !candidateEmail) {
+      setErrorPopup({
+        open: true,
+        message: "Please enter candidate name, surname, and email.",
+      });
+      return;
+    }
 
     const formData = new FormData();
     formData.append("file", file);
 
     try {
-      // Calls FastAPI endpoint on port 5000
       const response = await fetch("http://localhost:5000/upload_cv?top_k=3", {
         method: "POST",
         body: formData,
@@ -222,6 +229,11 @@ export default function UploadCVPage() {
           processedData: payload,
           fileUrl,
           fileType: file.type,
+          candidate: {
+            firstName: candidateName,
+            lastName: candidateSurname,
+            email: candidateEmail,
+          },
         },
       });
     } catch (error) {

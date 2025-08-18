@@ -162,10 +162,14 @@ function toLines(value: any): string | undefined {
 const ParsedCVData: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { processedData, fileUrl } = location.state || {};
-  const [user, setUser] = useState<any>(null);
-  const [pdfSticky, setPdfSticky] = useState(false);
-  const [showRaw, setShowRaw] = useState(false);
+  const { processedData, fileUrl, candidate } = location.state || {};
+
+  // Prefill from Upload page
+  const [firstName, setFirstName] = useState<string>(
+    candidate?.firstName ?? ""
+  );
+  const [lastName, setLastName] = useState<string>(candidate?.lastName ?? "");
+  const [email, setEmail] = useState<string>(candidate?.email ?? "");
 
   // Derive normalized fields from the AI response
   const fieldsInitial = useMemo(
@@ -185,13 +189,16 @@ const ParsedCVData: React.FC = () => {
     setRawData(processedData?.data ?? processedData);
   }, [fieldsInitial, processedData]);
 
+  // If email not provided, try to extract from raw once
   useEffect(() => {
-    const email = localStorage.getItem("userEmail") || "admin@email.com";
-    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
-      .then((res) => res.json())
-      .then((data) => setUser(data))
-      .catch(() => setUser(null));
-  }, []);
+    if (email) return;
+    const text = [fields?.contact, JSON.stringify(rawData ?? {}, null, 2)]
+      .filter(Boolean)
+      .join("\n");
+    const match = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+    if (match) setEmail(match[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawData, fields]);
 
   const handleUpdate = (key: keyof ParsedCVFields, value: string) => {
     const updated = { ...fields, [key]: value };
@@ -201,18 +208,21 @@ const ParsedCVData: React.FC = () => {
   };
 
   const handleSave = async () => {
-    try {
-      const response = await fetch("http://localhost:8081/cv/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(fields),
-      });
-      if (!response.ok) throw new Error("Failed to save CV");
-      alert("CV saved successfully!");
-    } catch (error) {
-      console.error(error);
-      alert("Error saving CV");
-    }
+    const payload = {
+      candidate: { firstName, lastName, email },
+      fileUrl,
+      normalized: fields,
+      aiResult: processedData,
+      raw: rawData,
+      receivedAt: new Date().toISOString(),
+    };
+    const res = await fetch("http://localhost:8081/cv/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error("Failed to save CV");
+    alert("CV saved successfully!");
   };
 
   if (!processedData || !fileUrl) {
