@@ -30,12 +30,59 @@ export interface ParsedCVFields {
   other?: string;
 }
 
-function toLines(v: any): string | undefined {
-  if (v == null) return undefined;
-  if (typeof v === "string") return v;
-  if (Array.isArray(v)) return v.filter(Boolean).join("\n");
-  if (typeof v === "object") return JSON.stringify(v, null, 2);
-  return String(v);
+// Helper to TitleCase keys for data.applied/classification (e.g., "Education")
+function titleCase(s: string) {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
+// Map normalized field keys to possible raw keys
+const RAW_WRITE_MAP: Record<keyof ParsedCVFields, string[]> = {
+  profile: ["profile", "summary", "objective"],
+  education: ["education", "studies", "qualifications"],
+  skills: ["skills", "technologies", "tech_stack"],
+  experience: ["experience", "work_history"],
+  projects: ["projects", "project_experience"],
+  achievements: ["achievements", "awards"],
+  contact: ["contact", "contact_info", "contacts"],
+  languages: ["languages"],
+  other: ["raw"],
+};
+
+function applyFieldToRaw(
+  prevRaw: any,
+  key: keyof ParsedCVFields,
+  value: string
+) {
+  const clone = JSON.parse(JSON.stringify(prevRaw ?? {}));
+  // If multiline, store as array for readability; else keep as string
+  const val: any =
+    typeof value === "string" && value.indexOf("\n") !== -1
+      ? value.split(/\r?\n/).filter(Boolean)
+      : value;
+
+  const appliedKey = clone?.applied
+    ? "applied"
+    : clone?.classification
+    ? "classification"
+    : null;
+  const candidates = RAW_WRITE_MAP[key] || [key];
+
+  // Update applied/classification if present
+  if (appliedKey) {
+    clone[appliedKey] = clone[appliedKey] || {};
+    for (const k of candidates) {
+      clone[appliedKey][titleCase(k)] = val;
+    }
+  }
+
+  // Update existing top-level keys if they exist
+  for (const k of candidates) {
+    if (k in clone) clone[k] = val;
+  }
+  // Always set the canonical normalized key on top-level for visibility
+  clone[key] = val;
+
+  return clone;
 }
 
 // Try to map common AI response shapes into ParsedCVFields
@@ -90,6 +137,28 @@ function normalizeToParsedFields(input: any): ParsedCVFields {
   return fields;
 }
 
+// Convert various shapes (string | string[] | object) into a displayable string
+function toLines(value: any): string | undefined {
+  if (value == null) return undefined;
+  if (typeof value === "string") {
+    const s = value.trim();
+    return s.length ? s : undefined;
+  }
+  if (Array.isArray(value)) {
+    const s = value
+      .map((v) => (typeof v === "string" ? v : JSON.stringify(v)))
+      .join("\n")
+      .trim();
+    return s.length ? s : undefined;
+  }
+  if (typeof value === "object") {
+    const s = JSON.stringify(value, null, 2);
+    return s.length ? s : undefined;
+  }
+  const s = String(value).trim();
+  return s.length ? s : undefined;
+}
+
 const ParsedCVData: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -105,10 +174,16 @@ const ParsedCVData: React.FC = () => {
   );
   const [fields, setFields] = useState<ParsedCVFields>(fieldsInitial);
 
-  // Keep local state in sync if a new response arrives
+  // Keep a live raw object to display and mutate as edits happen
+  const [rawData, setRawData] = useState<any>(
+    () => processedData?.data ?? processedData
+  );
+
+  // Keep local states in sync if a new response arrives
   useEffect(() => {
     setFields(fieldsInitial);
-  }, [fieldsInitial]);
+    setRawData(processedData?.data ?? processedData);
+  }, [fieldsInitial, processedData]);
 
   useEffect(() => {
     const email = localStorage.getItem("userEmail") || "admin@email.com";
@@ -121,6 +196,8 @@ const ParsedCVData: React.FC = () => {
   const handleUpdate = (key: keyof ParsedCVFields, value: string) => {
     const updated = { ...fields, [key]: value };
     setFields(updated);
+    // Also reflect the change into the raw JSON view
+    setRawData((prev: any) => applyFieldToRaw(prev, key, value));
   };
 
   const handleSave = async () => {
@@ -334,11 +411,7 @@ const ParsedCVData: React.FC = () => {
                   Raw Response
                 </Typography>
                 <pre style={{ margin: 0 }}>
-                  {JSON.stringify(
-                    processedData?.data ?? processedData,
-                    null,
-                    2
-                  )}
+                  {JSON.stringify(rawData, null, 2)}
                 </pre>
               </Box>
             </Collapse>
