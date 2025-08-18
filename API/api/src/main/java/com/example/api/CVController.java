@@ -8,6 +8,8 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Map;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -289,20 +291,140 @@ public class CVController {
         }, kh);
 
         Number key = kh.getKey();
-        if (key == null) throw new IllegalStateException("Failed to obtain candidate ID");
+        if (key == null) throw new RuntimeException("Failed to obtain candidate ID");
         return key.longValue();
     }
 
-    private static boolean isBlank(String s) { return s == null || s.trim().isEmpty(); }
-    private static String nvl(String s) { return s == null ? "" : s; }
+    private static String nvl(String s) {
+        return s != null ? s : "";
+    }
+    
+    @GetMapping("/candidates")
+    public ResponseEntity<List<CandidateSummary>> listCandidates(
+            @RequestParam(value = "q", required = false) String q) {
 
-    // DTOs for /cv/save
+        String sql = """
+            WITH latest AS (
+              SELECT cs.CandidateId, cs.FileUrl, cs.AiResult, cs.Normalized, cs.ReceivedAt
+              FROM dbo.CvScans cs
+              JOIN (
+                SELECT CandidateId, MAX(ReceivedAt) AS MaxReceivedAt
+                FROM dbo.CvScans
+                GROUP BY CandidateId
+              ) m ON m.CandidateId = cs.CandidateId AND m.MaxReceivedAt = cs.ReceivedAt
+            )
+            SELECT c.Id, c.FirstName, c.LastName, c.Email, l.FileUrl, l.AiResult, l.Normalized, l.ReceivedAt
+            FROM dbo.Candidates c
+            LEFT JOIN latest l ON l.CandidateId = c.Id
+            ORDER BY c.Id DESC
+        """;
+
+        List<CandidateSummary> items = jdbc.query(sql, (rs, i) -> {
+            long id = rs.getLong("Id");
+            String first = rs.getString("FirstName");
+            String last = rs.getString("LastName");
+            String email = rs.getString("Email");
+            String fileUrl = rs.getString("FileUrl");
+            java.sql.Timestamp ts = rs.getTimestamp("ReceivedAt");
+            String normalized = rs.getString("Normalized");
+            String aiResult = rs.getString("AiResult");
+
+            List<String> skills = extractSkills(normalized, aiResult);
+            String project = fileUrl != null ? lastSegment(fileUrl) : "CV";
+            String receivedAt = ts != null ? ts.toInstant().toString() : null;
+
+            return new CandidateSummary(id, first, last, email, project, skills, receivedAt, "N/A");
+        });
+
+        if (q != null && !q.isBlank()) {
+            final String needle = q.toLowerCase();
+            items = items.stream().filter(c ->
+                    (c.firstName != null && c.firstName.toLowerCase().contains(needle)) ||
+                    (c.lastName != null && c.lastName.toLowerCase().contains(needle)) ||
+                    (c.email != null && c.email.toLowerCase().contains(needle)) ||
+                    (c.project != null && c.project.toLowerCase().contains(needle)) ||
+                    c.skills.stream().anyMatch(s -> s.toLowerCase().contains(needle))
+            ).toList();
+        }
+
+        return ResponseEntity.ok(items);
+    }
+
+    private List<String> extractSkills(String normalizedJson, String aiResultJson) {
+        try {
+            if (normalizedJson != null && !normalizedJson.isBlank()) {
+                Map<String, Object> norm = json.readValue(normalizedJson, Map.class);
+                List<String> s = coerceToStringList(norm.get("skills"));
+                if (!s.isEmpty()) return s;
+            }
+            if (aiResultJson != null && !aiResultJson.isBlank()) {
+                Map<String, Object> root = json.readValue(aiResultJson, Map.class);
+                Object applied = root.get("applied");
+                if (applied instanceof Map<?,?> a) {
+                    List<String> s = coerceToStringList(((Map<?,?>) a).get("Skills"));
+                    if (!s.isEmpty()) return s;
+                }
+            }
+        } catch (Exception ignored) {}
+        return Collections.emptyList();
+    }
+
+    private List<String> coerceToStringList(Object v) {
+        List<String> out = new ArrayList<>();
+        if (v == null) return out;
+        if (v instanceof List<?> list) {
+            for (Object o : list) if (o != null) out.add(String.valueOf(o));
+        } else if (v instanceof String s) {
+            for (String line : s.split("\\r?\\n")) {
+                String t = line.trim();
+                if (!t.isEmpty()) out.add(t);
+            }
+        } else {
+            out.add(String.valueOf(v));
+        }
+        return out;
+    }
+
+    private String lastSegment(String url) {
+        try {
+            int q = url.indexOf('?');
+            String u = q >= 0 ? url.substring(0, q) : url;
+            int slash = Math.max(u.lastIndexOf('/'), u.lastIndexOf('\\'));
+            return slash >= 0 ? u.substring(slash + 1) : u;
+        } catch (Exception e) {
+            return url;
+        }
+    }
+
+    public static class CandidateSummary {
+        public long id;
+        public String firstName;
+        public String lastName;
+        public String email;
+        public String project;
+        public List<String> skills;
+        public String receivedAt; // ISO-8601
+        public String match;      // placeholder
+
+        public CandidateSummary(long id, String firstName, String lastName, String email,
+                                String project, List<String> skills, String receivedAt, String match) {
+            this.id = id;
+            this.firstName = firstName;
+            this.lastName = lastName;
+            this.email = email;
+            this.project = project;
+            this.skills = skills;
+            this.receivedAt = receivedAt;
+            this.match = match;
+        }
+    }
+
+    // ---------- Add these DTOs inside CVController ----------
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Candidate {
         public String firstName;
         public String lastName;
         public String email;
-        // getters/setters optional with public fields
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -312,7 +434,6 @@ public class CVController {
         public Map<String, Object> normalized;
         public Map<String, Object> aiResult;
         public Map<String, Object> raw;
-        public String receivedAt; // was Instant
+        public String receivedAt; // ISO-8601 string
     }
-    
 }
