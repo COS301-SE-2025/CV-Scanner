@@ -1,5 +1,15 @@
 package com.example.api;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.sql.PreparedStatement;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
@@ -7,22 +17,41 @@ import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
-import org.springframework.http.*;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.List;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RestController
 @RequestMapping("/cv")
 @CrossOrigin(origins = "*") // Enable CORS for frontend access
 public class CVController {
+    
+    // New: DB + JSON helpers
+    private final JdbcTemplate jdbc;
+    private final ObjectMapper json;
+
+    public CVController(JdbcTemplate jdbc, ObjectMapper json) {
+        this.jdbc = jdbc;
+        this.json = json;
+    }
     
     // Configure this in application.properties
     @Value("${cv.engine.url:http://localhost:8080/process-cv}")
@@ -185,5 +214,83 @@ public class CVController {
         }
     }
     
+    // ---------- New endpoint: save candidate + AI result ----------
+    @PostMapping("/save")
+    public ResponseEntity<?> save(@RequestBody CvSaveRequest body) throws Exception {
+        if (body == null || body.candidate == null || isBlank(body.candidate.email)) {
+            return ResponseEntity.badRequest().body(createErrorResponse("Missing candidate/email"));
+        }
 
+        long candidateId = upsertCandidate(body.candidate);
+        Instant when = body.receivedAt != null ? body.receivedAt : Instant.now();
+
+        String aiResult = body.aiResult != null ? json.writeValueAsString(body.aiResult) : "{}";
+        String raw      = body.raw != null ? json.writeValueAsString(body.raw) : null;
+        String norm     = body.normalized != null ? json.writeValueAsString(body.normalized) : null;
+
+        jdbc.update(
+            "INSERT INTO dbo.CvScans (CandidateId, FileUrl, AiResult, Raw, Normalized, ReceivedAt) VALUES (?,?,?,?,?,?)",
+            candidateId,
+            body.fileUrl,
+            aiResult,
+            raw,
+            norm,
+            Timestamp.from(when)
+        );
+
+        return ResponseEntity.ok().build();
+    }
+
+    private long upsertCandidate(Candidate c) {
+        Long id = null;
+        try {
+            id = jdbc.queryForObject(
+                "SELECT Id FROM dbo.Candidates WHERE LOWER(Email) = LOWER(?)",
+                Long.class,
+                c.email
+            );
+        } catch (Exception ignored) {}
+
+        if (id != null) {
+            jdbc.update(
+                "UPDATE dbo.Candidates SET FirstName = ?, LastName = ? WHERE Id = ?",
+                nvl(c.firstName), nvl(c.lastName), id
+            );
+            return id;
+        }
+
+        KeyHolder kh = new GeneratedKeyHolder();
+        jdbc.update(con -> {
+            PreparedStatement ps = con.prepareStatement(
+                "INSERT INTO dbo.Candidates (FirstName, LastName, Email) VALUES (?,?,?)",
+                Statement.RETURN_GENERATED_KEYS
+            );
+            ps.setString(1, nvl(c.firstName));
+            ps.setString(2, nvl(c.lastName));
+            ps.setString(3, c.email);
+            return ps;
+        }, kh);
+
+        Number key = kh.getKey();
+        if (key == null) throw new IllegalStateException("Failed to obtain candidate ID");
+        return key.longValue();
+    }
+
+    private static boolean isBlank(String s) { return s == null || s.trim().isEmpty(); }
+    private static String nvl(String s) { return s == null ? "" : s; }
+
+    // DTOs for /cv/save
+    public static class Candidate {
+        public String firstName;
+        public String lastName;
+        public String email;
+    }
+    public static class CvSaveRequest {
+        public Candidate candidate;
+        public String fileUrl;
+        public Map<String, Object> normalized;
+        public Map<String, Object> aiResult;
+        public Map<String, Object> raw;
+        public Instant receivedAt;
+    }
 }
