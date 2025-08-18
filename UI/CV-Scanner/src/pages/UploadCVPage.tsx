@@ -42,6 +42,11 @@ export default function UploadCVPage() {
   const [candidateName, setCandidateName] = useState("");
   const [candidateSurname, setCandidateSurname] = useState("");
   const [candidateEmail, setCandidateEmail] = useState("");
+  const [configJson, setConfigJson] = useState<string>("");        
+  const [originalConfig, setOriginalConfig] = useState<string>(""); 
+  const [isEditingConfig, setIsEditingConfig] = useState(false);
+  const [configSavedPopup, setConfigSavedPopup] = useState(false);
+
   const [errorPopup, setErrorPopup] = useState<{
     open: boolean;
     message: string;
@@ -316,6 +321,7 @@ export default function UploadCVPage() {
             <TextField
               label="Candidate Name"
               fullWidth
+              required
               variant="outlined"
               value={candidateName}
               onChange={(e) => setCandidateName(e.target.value)}
@@ -342,6 +348,7 @@ export default function UploadCVPage() {
             <TextField
               label="Candidate Surname"
               fullWidth
+              required
               variant="outlined"
               value={candidateSurname}
               onChange={(e) => setCandidateSurname(e.target.value)}
@@ -367,6 +374,8 @@ export default function UploadCVPage() {
             <TextField
               label="Candidate Email"
               fullWidth
+              required
+              type="email"
               variant="outlined"
               value={candidateEmail}
               onChange={(e) => setCandidateEmail(e.target.value)}
@@ -426,6 +435,75 @@ export default function UploadCVPage() {
                 </Table>
               </TableContainer>
             )}
+
+{/* Admin-only config editor, visible only if a file is uploaded */}
+{file && user?.role === "Admin" && (
+  <Paper sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: "#f5f5f5" }}>
+    <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
+      CV Extraction Configuration
+    </Typography>
+
+    {!isEditingConfig ? (
+      <>
+        <Box
+          sx={{
+            fontFamily: "monospace",
+            bgcolor: "#e0e0e0",
+            p: 2,
+            borderRadius: 1,
+            whiteSpace: "pre-wrap",
+            mb: 2,
+            maxHeight: 300,
+            overflowY: "auto",
+          }}
+        >
+          {configJson}
+        </Box>
+        <Button
+          variant="contained"
+          sx={{ bgcolor: "#232A3B", "&:hover": { bgcolor: "#3a4b66" } }}
+          onClick={() => setIsEditingConfig(true)}
+        >
+          Edit
+        </Button>
+      </>
+    ) : (
+      <>
+        <TextField
+          fullWidth
+          multiline
+          minRows={10}
+          value={configJson}
+          onChange={(e) => setConfigJson(e.target.value)}
+          sx={{ fontFamily: "monospace", mb: 2 }}
+        />
+        <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              setConfigJson(originalConfig);
+              setIsEditingConfig(false);
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            sx={{ bgcolor: "#232A3B", "&:hover": { bgcolor: "#3a4b66" } }}
+            onClick={() => {
+              setOriginalConfig(configJson);
+              setIsEditingConfig(false);
+              setConfigSavedPopup(true);
+            }}
+          >
+            Save
+          </Button>
+        </Box>
+      </>
+    )}
+  </Paper>
+)}
+
 
             <Box sx={{ textAlign: "center", mb: 2 }}>
               {file && (
