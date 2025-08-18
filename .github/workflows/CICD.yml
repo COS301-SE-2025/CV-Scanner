@@ -63,7 +63,7 @@ jobs:
 
   ui:
     name: Build UI (Node/React)
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -79,7 +79,7 @@ jobs:
         working-directory: UI/CV-Scanner
         run: npm ci
 
-      - name: Build UI 
+      - name: Build UI
         working-directory: UI/CV-Scanner
         run: npx vite build
 
