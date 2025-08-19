@@ -1,4 +1,5 @@
 # 📄 CV-Scanner
+---
 
 ## 📊 Project Metrics
 
