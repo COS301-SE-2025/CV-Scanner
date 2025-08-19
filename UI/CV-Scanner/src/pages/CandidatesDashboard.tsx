@@ -62,6 +62,7 @@ export default function CandidatesDashboard() {
   const [recent, setRecent] = useState<
     Array<{ id: number; name: string; skills: string; fit: string }>
   >([]);
+  const [totalCandidates, setTotalCandidates] = useState<number | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -86,14 +87,19 @@ export default function CandidatesDashboard() {
   useEffect(() => {
     document.title = "Candidates Dashboard";
 
-    // Fetch user info from API
     const email = localStorage.getItem("userEmail") || "admin@email.com";
     fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
       .then((res) => res.json())
       .then((data) => setUser(data))
       .catch(() => setUser(null));
 
-    // Load recent candidates to replace hard-coded rows
+    // Load stats (total candidates)
+    fetch("http://localhost:8081/cv/stats")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setTotalCandidates(data?.totalCandidates ?? 0))
+      .catch(() => setTotalCandidates(0));
+
+    // Load recent candidates (top 3)
     fetch("http://localhost:8081/cv/recent?limit=3")
       .then((r) => (r.ok ? r.json() : []))
       .then((rows) => setRecent(Array.isArray(rows) ? rows.slice(0, 3) : []))
@@ -246,7 +252,13 @@ export default function CandidatesDashboard() {
           {/* Stat Cards */}
           <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap", mb: 4 }}>
             {[
-              { label: "Candidates", value: "142" },
+              {
+                label: "Candidates",
+                value:
+                  totalCandidates != null
+                    ? String(totalCandidates)
+                    : "—",
+              },
               { label: "Pending Review", value: "24" },
               { label: "Top Technology", value: ".NET" },
               { label: "Technical Matches", value: "78%" },
