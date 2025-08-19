@@ -65,7 +65,7 @@ You can view or download the full user manual here:  [CV Scanner User Manual](ht
 
 ## 📑 Coding Standards
 
-You can view our Coding Standards document here:[Coding Standards and Quality](https://drive.google.com/file/d/1rp8JnNfPehe5iU65XTH6DaiwV4-LpNIT/view?usp=sharing).
+You can view our Coding Standards document here: [Coding Standards and Quality](https://drive.google.com/file/d/1rp8JnNfPehe5iU65XTH6DaiwV4-LpNIT/view?usp=sharing).
 
 ---
 ## 👨‍💻 Team: Quantum Stack
