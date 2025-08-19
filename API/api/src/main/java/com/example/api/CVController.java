@@ -492,6 +492,18 @@ public class CVController {
         }
     }
 
+    @GetMapping("/stats")
+    public ResponseEntity<?> stats() {
+        try {
+            Long total = jdbc.queryForObject("SELECT COUNT(*) FROM dbo.Candidates", Long.class);
+            var body = new java.util.HashMap<String, Object>();
+            body.put("totalCandidates", total != null ? total : 0L);
+            return ResponseEntity.ok(body);
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body(createErrorResponse("Failed to fetch stats: " + ex.getMessage()));
+        }
+    }
+
     private String buildName(String first, String last, String email) {
         String full = ((first != null ? first.trim() : "") + " " + (last != null ? last.trim() : "")).trim();
         return !full.isEmpty() ? full : (email != null ? email : "Unknown");
