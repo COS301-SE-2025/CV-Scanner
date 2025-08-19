@@ -25,18 +25,6 @@
 
 ---
 
-## 📄 Access the Manual
-
-You can view or download the full user manual here:  [CV Scanner User Manual](https://drive.google.com/file/d/1U7zqDIqY-VYKJQcDi8kkhpHsde9DV53l/view?usp=sharing)
-
----
-
-## 📑 Coding Standards
-
-You can view our Coding Standards document here: [Coding Standards and Quality](https://drive.google.com/file/d/1rp8JnNfPehe5iU65XTH6DaiwV4-LpNIT/view?usp=sharing).
-
----
-
 ## 🧠 About the Project
 
 **CV-Scanner** is an AI-powered recruitment platform developed by **Quantum Stack** to revolutionize candidate screening. Leveraging state-of-the-art **Natural Language Processing (NLP)** and AI models, the system intelligently extracts:
@@ -45,6 +33,18 @@ You can view our Coding Standards document here: [Coding Standards and Quality](
 - Project suitability indicators
 
 It supports both **PDF and Word** CV formats and automatically summarizes candidate profiles into a secure, centralized database. These summaries are accessible via a **role-based admin portal**, ensuring efficient and secure HR workflows.
+
+---
+
+## 📄 Access the Manual
+
+You can view or download the full user manual here:  [CV Scanner User Manual](https://drive.google.com/file/d/1U7zqDIqY-VYKJQcDi8kkhpHsde9DV53l/view?usp=sharing).
+
+---
+
+## 📑 Coding Standards
+
+You can view our Coding Standards document here: [Coding Standards and Quality](https://drive.google.com/file/d/1rp8JnNfPehe5iU65XTH6DaiwV4-LpNIT/view?usp=sharing).
 
 ---
 
