@@ -1,43 +1,55 @@
 package com.example.api;
-import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.List;
-import java.util.ArrayList;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.doAnswer;
-import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.test.web.servlet.MockMvc;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.time.Instant;
-import org.springframework.jdbc.core.RowMapper;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+// JUnit
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+// Mockito argument matchers
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+
+// Mockito core
+import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+
+// Spring MVC test builders and matchers
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest({AuthController.class, CVController.class})
 public class ApiApplicationTests {
@@ -701,11 +713,12 @@ public class ApiApplicationTests {
     // --------- CVController: /cv/candidates tests ---------
 
     @Test
+    @SuppressWarnings("unchecked")
     void cv_candidates_success_mapsSkills_and_allFields() throws Exception {
         // Mock jdbcTemplate.query to use the provided RowMapper with two rows
         doAnswer(invocation -> {
-            @SuppressWarnings("unchecked")
-            RowMapper<Object> rm = (RowMapper<Object>) invocation.getArgument(1);
+            RowMapper<CVController.CandidateSummary> rm =
+                (RowMapper<CVController.CandidateSummary>) invocation.getArgument(1);
 
             // Row 1: normalized JSON provides skills as multiline string
             ResultSet rs1 = mock(ResultSet.class);
@@ -729,13 +742,12 @@ public class ApiApplicationTests {
             when(rs2.getString("AiResult")).thenReturn("{\"applied\":{\"Skills\":[\"React\",\"Angular\"]}}");
             when(rs2.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.parse("2025-02-02T12:00:00Z")));
 
-            var list = new ArrayList<>();
+            var list = new ArrayList<CVController.CandidateSummary>();
             list.add(rm.mapRow(rs1, 0));
             list.add(rm.mapRow(rs2, 1));
             return list;
         }).when(jdbcTemplate).query(anyString(), any(RowMapper.class));
 
-        // Call endpoint
         mockMvc.perform(get("/cv/candidates"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].id").value(10))
@@ -751,17 +763,17 @@ public class ApiApplicationTests {
             .andExpect(jsonPath("$[1].skills[0]").value("React"))
             .andExpect(jsonPath("$[1].skills[1]").value("Angular"));
 
-        // Verify single DB call, then no more interactions
         verify(jdbcTemplate).query(anyString(), any(RowMapper.class));
         verifyNoMoreInteractions(jdbcTemplate);
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void cv_candidates_filters_by_query_param() throws Exception {
         // Return two items; controller will filter by 'alice'
         doAnswer(invocation -> {
-            @SuppressWarnings("unchecked")
-            RowMapper<Object> rm = (RowMapper<Object>) invocation.getArgument(1);
+            RowMapper<CVController.CandidateSummary> rm =
+                (RowMapper<CVController.CandidateSummary>) invocation.getArgument(1);
 
             ResultSet rs1 = mock(ResultSet.class);
             when(rs1.getLong("Id")).thenReturn(1L);
@@ -783,7 +795,7 @@ public class ApiApplicationTests {
             when(rs2.getString("AiResult")).thenReturn(null);
             when(rs2.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.parse("2025-02-02T00:00:00Z")));
 
-            var list = new ArrayList<>();
+            var list = new ArrayList<CVController.CandidateSummary>();
             list.add(rm.mapRow(rs1, 0));
             list.add(rm.mapRow(rs2, 1));
             return list;
@@ -804,4 +816,81 @@ public class ApiApplicationTests {
             .andExpect(status().is5xxServerError());
     }
 
+    // --------- CVController: /cv/recent tests ---------
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void cv_recent_success_returnsRows() throws Exception {
+        doAnswer(invocation -> {
+            RowMapper<CVController.RecentRow> rm =
+                (RowMapper<CVController.RecentRow>) invocation.getArgument(1);
+
+            // Row 1
+            ResultSet rs1 = mock(ResultSet.class);
+            when(rs1.getLong("Id")).thenReturn(1L);
+            when(rs1.getString("FirstName")).thenReturn("Jane");
+            when(rs1.getString("LastName")).thenReturn("Doe");
+            when(rs1.getString("Email")).thenReturn("jane@example.com");
+            when(rs1.getString("Normalized")).thenReturn("{\"skills\":\"React\\nAngular\\nNode\"}");
+            when(rs1.getString("AiResult")).thenReturn(null);
+            when(rs1.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.parse("2025-01-01T00:00:00Z")));
+
+            // Row 2
+            ResultSet rs2 = mock(ResultSet.class);
+            when(rs2.getLong("Id")).thenReturn(2L);
+            when(rs2.getString("FirstName")).thenReturn(null);
+            when(rs2.getString("LastName")).thenReturn(null);
+            when(rs2.getString("Email")).thenReturn("alice@example.com");
+            when(rs2.getString("Normalized")).thenReturn(null);
+            when(rs2.getString("AiResult")).thenReturn("{\"applied\":{\"Skills\":[\"Java\",\"Spring\",\"SQL\",\"Docker\"]}}");
+            when(rs2.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.parse("2025-02-02T12:00:00Z")));
+
+            var list = new ArrayList<CVController.RecentRow>();
+            list.add(rm.mapRow(rs1, 0));
+            list.add(rm.mapRow(rs2, 1));
+            return list;
+        }).when(jdbcTemplate).query(anyString(), any(RowMapper.class));
+
+        mockMvc.perform(get("/cv/recent").param("limit", "5"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(2))
+            .andExpect(jsonPath("$[0].id").value(1))
+            .andExpect(jsonPath("$[0].name").value("Jane Doe"))
+            .andExpect(jsonPath("$[0].skills").value("React, Angular, Node"))
+            .andExpect(jsonPath("$[0].fit").value("N/A"))
+            .andExpect(jsonPath("$[1].id").value(2))
+            .andExpect(jsonPath("$[1].name").value("alice@example.com"))
+            .andExpect(jsonPath("$[1].skills").value("Java, Spring, SQL"))
+            .andExpect(jsonPath("$[1].fit").value("N/A"));
+    }
+
+    @Test
+    void cv_recent_db_error_returnsServerError() throws Exception {
+        when(jdbcTemplate.query(anyString(), any(RowMapper.class)))
+            .thenThrow(new RuntimeException("DB fail"));
+
+        mockMvc.perform(get("/cv/recent"))
+            .andExpect(status().is5xxServerError());
+    }
+
+    // --------- CVController: /cv/stats tests ---------
+
+    @Test
+    void cv_stats_success_returnsCount() throws Exception {
+        when(jdbcTemplate.queryForObject(anyString(), org.mockito.ArgumentMatchers.eq(Long.class)))
+            .thenReturn(42L);
+
+        mockMvc.perform(get("/cv/stats"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalCandidates").value(42));
+    }
+
+    @Test
+    void cv_stats_db_error_returnsServerError() throws Exception {
+        when(jdbcTemplate.queryForObject(anyString(), org.mockito.ArgumentMatchers.eq(Long.class)))
+            .thenThrow(new RuntimeException("DB error"));
+
+        mockMvc.perform(get("/cv/stats"))
+            .andExpect(status().is5xxServerError());
+    }
 }

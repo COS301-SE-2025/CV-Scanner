@@ -6,9 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -255,57 +253,152 @@ public class CVController {
         }
     }
 
-    private static Instant parseInstantOrNow(String s) {
-        if (s == null || s.isBlank()) return Instant.now();
-        try { return Instant.parse(s); } catch (Exception ignored) { return Instant.now(); }
-    }
-
-    private long upsertCandidate(Candidate c) {
-        Long id = null;
-        try {
-            id = jdbc.queryForObject(
-                "SELECT Id FROM dbo.Candidates WHERE LOWER(Email) = LOWER(?)",
-                Long.class,
-                c.email
-            );
-        } catch (Exception ignored) {}
-
-        if (id != null) {
+    // Upsert candidate: insert if not exists, else update and return id
+    private long upsertCandidate(Candidate candidate) {
+        // Try to find candidate by email
+        String sqlSelect = "SELECT Id FROM dbo.Candidates WHERE Email = ?";
+        List<Long> ids = jdbc.query(sqlSelect, new Object[]{candidate.email}, (rs, rowNum) -> rs.getLong("Id"));
+        if (!ids.isEmpty()) {
+            // Optionally update candidate info
             jdbc.update(
                 "UPDATE dbo.Candidates SET FirstName = ?, LastName = ? WHERE Id = ?",
-                nvl(c.firstName), nvl(c.lastName), id
+                candidate.firstName, candidate.lastName, ids.get(0)
             );
-            return id;
+            return ids.get(0);
+        } else {
+            // Insert new candidate
+            KeyHolder keyHolder = new GeneratedKeyHolder();
+            jdbc.update(connection -> {
+                PreparedStatement ps = connection.prepareStatement(
+                    "INSERT INTO dbo.Candidates (FirstName, LastName, Email) VALUES (?, ?, ?)",
+                    Statement.RETURN_GENERATED_KEYS
+                );
+                ps.setString(1, candidate.firstName);
+                ps.setString(2, candidate.lastName);
+                ps.setString(3, candidate.email);
+                return ps;
+            }, keyHolder);
+            Number key = keyHolder.getKey();
+            return key != null ? key.longValue() : -1;
         }
-
-        KeyHolder kh = new GeneratedKeyHolder();
-        jdbc.update(con -> {
-            PreparedStatement ps = con.prepareStatement(
-                "INSERT INTO dbo.Candidates (FirstName, LastName, Email) VALUES (?,?,?)",
-                Statement.RETURN_GENERATED_KEYS
-            );
-            ps.setString(1, nvl(c.firstName));
-            ps.setString(2, nvl(c.lastName));
-            ps.setString(3, c.email);
-            return ps;
-        }, kh);
-
-        Number key = kh.getKey();
-        if (key == null) throw new RuntimeException("Failed to obtain candidate ID");
-        return key.longValue();
     }
 
+    // ---- Helpers (add inside CVController) ----
     private static String nvl(String s) {
-        return s != null ? s : "";
+        return s == null ? "" : s;
     }
 
     private static boolean isBlank(String s) {
         return s == null || s.trim().isEmpty();
     }
 
+    private static Instant parseInstantOrNow(String s) {
+        if (isBlank(s)) return Instant.now();
+        try { return Instant.parse(s); } catch (Exception e) { return Instant.now(); }
+    }
+
+    // Return last path segment of a URL or file path (handles /, \ and ?query)
+    private static String lastSegment(String url) {
+        if (url == null) return null;
+        try {
+            int q = url.indexOf('?');
+            String u = q >= 0 ? url.substring(0, q) : url;
+            int slash = Math.max(u.lastIndexOf('/'), u.lastIndexOf('\\'));
+            return slash >= 0 ? u.substring(slash + 1) : u;
+        } catch (Exception e) {
+            return url;
+        }
+    }
+
+    // Extract skills from normalized JSON or aiResult.applied.Skills
+    @SuppressWarnings("unchecked")
+    private List<String> extractSkills(String normalizedJson, String aiResultJson) {
+        try {
+            var mapper = this.json != null ? this.json : new com.fasterxml.jackson.databind.ObjectMapper();
+
+            if (!isBlank(normalizedJson)) {
+                Map<String, Object> norm = mapper.readValue(normalizedJson, Map.class);
+                List<String> s = coerceToStringList(norm.get("skills"));
+                if (!s.isEmpty()) return s;
+            }
+            if (!isBlank(aiResultJson)) {
+                Map<String, Object> root = mapper.readValue(aiResultJson, Map.class);
+                Object applied = root.get("applied");
+                if (applied instanceof Map<?, ?> a) {
+                    List<String> s = coerceToStringList(((Map<?, ?>) a).get("Skills"));
+                    if (!s.isEmpty()) return s;
+                }
+            }
+        } catch (Exception ignored) {}
+        return java.util.Collections.emptyList();
+    }
+
+    private List<String> coerceToStringList(Object v) {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        if (v == null) return out;
+        if (v instanceof java.util.List<?> list) {
+            for (Object o : list) if (o != null) out.add(String.valueOf(o));
+        } else if (v instanceof String s) {
+            for (String line : s.split("\\r?\\n")) {
+                String t = line.trim();
+                if (!t.isEmpty()) out.add(t);
+            }
+        } else {
+            out.add(String.valueOf(v));
+        }
+        return out;
+    }
+
+    public static class CandidateSummary {
+        public long id;
+        public String firstName;
+        public String lastName;
+        public String email;
+        public String project;
+        public List<String> skills;
+        public String receivedAt; // ISO-8601
+        public String match;      // placeholder
+
+        public CandidateSummary(long id, String firstName, String lastName, String email,
+                                String project, List<String> skills, String receivedAt, String match) {
+            this.id = id;
+            this.firstName = firstName;
+            this.lastName = lastName;
+            this.email = email;
+            this.project = project;
+            this.skills = skills;
+            this.receivedAt = receivedAt;
+            this.match = match;
+        }
+    }
+
+    public static class RecentRow {
+        public long id;
+        public String name;
+        public String skills; // comma-separated top 3
+        public String fit;    // placeholder for now
+    }
+
+    // ---------- Add these DTOs inside CVController ----------
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class Candidate {
+        public String firstName;
+        public String lastName;
+        public String email;
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class CvSaveRequest {
+        public Candidate candidate;
+        public String fileUrl;
+        public Map<String, Object> normalized;
+        public Map<String, Object> aiResult;
+        public Map<String, Object> raw;
+        public String receivedAt; // ISO-8601 string
+    }
+
     @GetMapping("/candidates")
-    public ResponseEntity<?> listCandidates(
-            @RequestParam(value = "q", required = false) String q) {
+    public ResponseEntity<?> listCandidates(@RequestParam(value = "q", required = false) String q) {
         try {
             String sql = """
                 WITH latest AS (
@@ -329,7 +422,7 @@ public class CVController {
                 String last = rs.getString("LastName");
                 String email = rs.getString("Email");
                 String fileUrl = rs.getString("FileUrl");
-                java.sql.Timestamp ts = rs.getTimestamp("ReceivedAt");
+                Timestamp ts = rs.getTimestamp("ReceivedAt");
                 String normalized = rs.getString("Normalized");
                 String aiResult = rs.getString("AiResult");
 
@@ -357,90 +450,62 @@ public class CVController {
         }
     }
 
-    private List<String> extractSkills(String normalizedJson, String aiResultJson) {
+    @GetMapping("/recent")
+    public ResponseEntity<?> listRecent(@RequestParam(value = "limit", required = false, defaultValue = "10") int limit) {
         try {
-            if (normalizedJson != null && !normalizedJson.isBlank()) {
-                Map<String, Object> norm = json.readValue(normalizedJson, Map.class);
-                List<String> s = coerceToStringList(norm.get("skills"));
-                if (!s.isEmpty()) return s;
-            }
-            if (aiResultJson != null && !aiResultJson.isBlank()) {
-                Map<String, Object> root = json.readValue(aiResultJson, Map.class);
-                Object applied = root.get("applied");
-                if (applied instanceof Map<?,?> a) {
-                    List<String> s = coerceToStringList(((Map<?,?>) a).get("Skills"));
-                    if (!s.isEmpty()) return s;
-                }
-            }
-        } catch (Exception ignored) {}
-        return Collections.emptyList();
-    }
+            int top = Math.max(1, Math.min(limit, 100));
+            String sql = """
+                WITH latest AS (
+                  SELECT cs.*, ROW_NUMBER() OVER (PARTITION BY cs.CandidateId ORDER BY cs.ReceivedAt DESC) rn
+                  FROM dbo.CvScans cs
+                )
+                SELECT TOP %d
+                       c.Id, c.FirstName, c.LastName, c.Email,
+                       l.Normalized, l.AiResult, l.ReceivedAt
+                FROM dbo.Candidates c
+                JOIN latest l ON l.CandidateId = c.Id AND l.rn = 1
+                ORDER BY l.ReceivedAt DESC
+            """.formatted(top);
 
-    private List<String> coerceToStringList(Object v) {
-        List<String> out = new ArrayList<>();
-        if (v == null) return out;
-        if (v instanceof List<?> list) {
-            for (Object o : list) if (o != null) out.add(String.valueOf(o));
-        } else if (v instanceof String s) {
-            for (String line : s.split("\\r?\\n")) {
-                String t = line.trim();
-                if (!t.isEmpty()) out.add(t);
-            }
-        } else {
-            out.add(String.valueOf(v));
+            List<RecentRow> rows = jdbc.query(sql, (rs, i) -> {
+                long id = rs.getLong("Id");
+                String first = rs.getString("FirstName");
+                String last = rs.getString("LastName");
+                String email = rs.getString("Email");
+                String normalized = rs.getString("Normalized");
+                String aiResult = rs.getString("AiResult");
+
+                List<String> skills = extractSkills(normalized, aiResult);
+                String topSkills = String.join(", ", skills.stream().limit(3).toList());
+
+                RecentRow r = new RecentRow();
+                r.id = id;
+                r.name = buildName(first, last, email);
+                r.skills = topSkills;
+                r.fit = "N/A";
+                return r;
+            });
+
+            return ResponseEntity.ok(rows);
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body(createErrorResponse("Failed to fetch recent: " + ex.getMessage()));
         }
-        return out;
     }
 
-    private String lastSegment(String url) {
+    @GetMapping("/stats")
+    public ResponseEntity<?> stats() {
         try {
-            int q = url.indexOf('?');
-            String u = q >= 0 ? url.substring(0, q) : url;
-            int slash = Math.max(u.lastIndexOf('/'), u.lastIndexOf('\\'));
-            return slash >= 0 ? u.substring(slash + 1) : u;
-        } catch (Exception e) {
-            return url;
+            Long total = jdbc.queryForObject("SELECT COUNT(*) FROM dbo.Candidates", Long.class);
+            var body = new java.util.HashMap<String, Object>();
+            body.put("totalCandidates", total != null ? total : 0L);
+            return ResponseEntity.ok(body);
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body(createErrorResponse("Failed to fetch stats: " + ex.getMessage()));
         }
     }
 
-    public static class CandidateSummary {
-        public long id;
-        public String firstName;
-        public String lastName;
-        public String email;
-        public String project;
-        public List<String> skills;
-        public String receivedAt; // ISO-8601
-        public String match;      // placeholder
-
-        public CandidateSummary(long id, String firstName, String lastName, String email,
-                                String project, List<String> skills, String receivedAt, String match) {
-            this.id = id;
-            this.firstName = firstName;
-            this.lastName = lastName;
-            this.email = email;
-            this.project = project;
-            this.skills = skills;
-            this.receivedAt = receivedAt;
-            this.match = match;
-        }
-    }
-
-    // ---------- Add these DTOs inside CVController ----------
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Candidate {
-        public String firstName;
-        public String lastName;
-        public String email;
-    }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class CvSaveRequest {
-        public Candidate candidate;
-        public String fileUrl;
-        public Map<String, Object> normalized;
-        public Map<String, Object> aiResult;
-        public Map<String, Object> raw;
-        public String receivedAt; // ISO-8601 string
+    private String buildName(String first, String last, String email) {
+        String full = ((first != null ? first.trim() : "") + " " + (last != null ? last.trim() : "")).trim();
+        return !full.isEmpty() ? full : (email != null ? email : "Unknown");
     }
 }
