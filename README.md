@@ -56,6 +56,21 @@ We implemented the core processing engine in **C++** to leverage its performance
 **Python** was selected for our AI/CV module due to its extensive machine learning and natural language processing libraries (like spaCy, scikit-learn, and OpenCV). It allowed us to rapidly prototype and integrate intelligent functionality into our system.
 
 ---
+
+## 📄 Access the Manual
+
+You can view or download the full user manual here:  
+[CV Scanner User Manual](https://drive.google.com/file/d/1U7zqDIqY-VYKJQcDi8kkhpHsde9DV53l/view?usp=sharing)
+
+---
+
+## 📑 Coding Standards
+
+You can view our Coding Standards document here:
+[Coding Standards and Quality](https://drive.google.com/file/d/1rp8JnNfPehe5iU65XTH6DaiwV4-LpNIT/view?usp=sharing).
+
+---
+---
 ## 👨‍💻 Team: Quantum Stack
 
 ### Abdullah Pochee  
@@ -113,20 +128,6 @@ viewed, edited, or optimized via an admin portal.
 ## 📋 Project Board  
 Track our development progress here:  
 🔗 [GitHub Project Board](https://github.com/orgs/COS301-SE-2025/projects/110/views/1)
-
----
-
-## 📄 Access the Manual
-
-You can view or download the full user manual here:  
-[CV Scanner User Manual](https://drive.google.com/file/d/1U7zqDIqY-VYKJQcDi8kkhpHsde9DV53l/view?usp=sharing)
-
----
-
-## 📑 Coding Standards
-
-You can view our Coding Standards document here:
-[Coding Standards and Quality](https://drive.google.com/file/d/1rp8JnNfPehe5iU65XTH6DaiwV4-LpNIT/view?usp=sharing).
 
 ---
 
