@@ -38,7 +38,8 @@ It supports both **PDF and Word** CV formats and automatically summarizes candid
 
 ## 📄 Architectural Requirements and Design
 
-You can view or download the Architectural Requirements and Design document here:  [CV Scanner Architectural Requirements and Design](https://drive.google.com/file/d/1VhFjvYFYU73nHl929ZE86LR9yMAGkc_y/view?usp=sharing).
+You can view or download the Architectural Requirements and Design document here:
+[CV Scanner Architectural Requirements and Design](https://drive.google.com/file/d/1VhFjvYFYU73nHl929ZE86LR9yMAGkc_y/view?usp=sharing).
 
 ---
 
