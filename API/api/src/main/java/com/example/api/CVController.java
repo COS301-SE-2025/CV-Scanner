@@ -357,6 +357,57 @@ public class CVController {
         }
     }
 
+    @GetMapping("/recent")
+    public ResponseEntity<?> listRecent(
+        @RequestParam(value = "limit", required = false, defaultValue = "10") int limit
+    ) {
+        try {
+            int top = Math.max(1, Math.min(limit, 100)); // bound to 1..100
+
+            String sql = """
+                WITH latest AS (
+                  SELECT cs.*, ROW_NUMBER() OVER (PARTITION BY cs.CandidateId ORDER BY cs.ReceivedAt DESC) rn
+                  FROM dbo.CvScans cs
+                )
+                SELECT TOP %d
+                       c.Id, c.FirstName, c.LastName, c.Email,
+                       l.Normalized, l.AiResult, l.ReceivedAt
+                FROM dbo.Candidates c
+                JOIN latest l ON l.CandidateId = c.Id AND l.rn = 1
+                ORDER BY l.ReceivedAt DESC
+            """.formatted(top);
+
+            List<RecentRow> rows = jdbc.query(sql, (rs, i) -> {
+                long id = rs.getLong("Id");
+                String first = rs.getString("FirstName");
+                String last = rs.getString("LastName");
+                String email = rs.getString("Email");
+                String normalized = rs.getString("Normalized");
+                String aiResult = rs.getString("AiResult");
+
+                List<String> skills = extractSkills(normalized, aiResult);
+                String topSkills = String.join(", ", skills.stream().limit(3).toList());
+
+                RecentRow r = new RecentRow();
+                r.id = id;
+                r.name = buildName(first, last, email);
+                r.skills = topSkills;
+                r.fit = "N/A"; // placeholder
+                return r;
+            });
+
+            return ResponseEntity.ok(rows);
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body(createErrorResponse("Failed to fetch recent: " + ex.getMessage()));
+        }
+    }
+
+    private String buildName(String first, String last, String email) {
+        String full = ((first != null ? first.trim() : "") + " " + (last != null ? last.trim() : "")).trim();
+        return !full.isEmpty() ? full : (email != null ? email : "Unknown");
+    }
+
+    // Reuse helpers; add if missing
     private List<String> extractSkills(String normalizedJson, String aiResultJson) {
         try {
             if (normalizedJson != null && !normalizedJson.isBlank()) {
@@ -373,11 +424,11 @@ public class CVController {
                 }
             }
         } catch (Exception ignored) {}
-        return Collections.emptyList();
+        return java.util.Collections.emptyList();
     }
 
     private List<String> coerceToStringList(Object v) {
-        List<String> out = new ArrayList<>();
+        List<String> out = new java.util.ArrayList<>();
         if (v == null) return out;
         if (v instanceof List<?> list) {
             for (Object o : list) if (o != null) out.add(String.valueOf(o));
@@ -390,17 +441,6 @@ public class CVController {
             out.add(String.valueOf(v));
         }
         return out;
-    }
-
-    private String lastSegment(String url) {
-        try {
-            int q = url.indexOf('?');
-            String u = q >= 0 ? url.substring(0, q) : url;
-            int slash = Math.max(u.lastIndexOf('/'), u.lastIndexOf('\\'));
-            return slash >= 0 ? u.substring(slash + 1) : u;
-        } catch (Exception e) {
-            return url;
-        }
     }
 
     public static class CandidateSummary {
@@ -424,6 +464,13 @@ public class CVController {
             this.receivedAt = receivedAt;
             this.match = match;
         }
+    }
+
+    public static class RecentRow {
+        public long id;
+        public String name;
+        public String skills; // comma-separated top 3
+        public String fit;    // placeholder for now
     }
 
     // ---------- Add these DTOs inside CVController ----------
