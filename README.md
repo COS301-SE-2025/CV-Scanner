@@ -9,6 +9,7 @@
 ![Last Commit](https://img.shields.io/github/last-commit/COS301-SE-2025/CV-Scanner)
 ![Repo Size](https://img.shields.io/github/repo-size/COS301-SE-2025/CV-Scanner)
 ---
+
 ## 🔗 Demo Links
 
 - [**Demo1 Video**](https://drive.google.com/file/d/1BtbS0klLEC0HWkYhbL0k7NyrCFnGpLrS/view?usp=sharing)
