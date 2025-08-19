@@ -8,6 +8,7 @@
 [![Closed Issues](https://img.shields.io/github/issues-closed/COS301-SE-2025/CV-Scanner)](https://github.com/COS301-SE-2025/CV-Scanner/issues?q=is%3Aissue+is%3Aclosed)
 ![Last Commit](https://img.shields.io/github/last-commit/COS301-SE-2025/CV-Scanner)
 ![Repo Size](https://img.shields.io/github/repo-size/COS301-SE-2025/CV-Scanner)
+
 ---
 
 ## 🔗 Demo Links
