@@ -94,9 +94,9 @@ export default function CandidatesDashboard() {
       .catch(() => setUser(null));
 
     // Load recent candidates to replace hard-coded rows
-    fetch("http://localhost:8081/cv/recent?limit=10")
+    fetch("http://localhost:8081/cv/recent?limit=3")
       .then((r) => (r.ok ? r.json() : []))
-      .then((rows) => setRecent(Array.isArray(rows) ? rows : []))
+      .then((rows) => setRecent(Array.isArray(rows) ? rows.slice(0, 3) : []))
       .catch(() => setRecent([]));
   }, []);
 
