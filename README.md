@@ -136,9 +136,7 @@ graph TD;
     Dev-->UI;
     Dev-->API;
     Dev-->AI;
-    Dev-->Engine;
     UI-->UIFeatureBranch;
-    Engine-->EngineFeatureBranch;
     API-->APIFeatureBranch;
     AI-->AIFeatureBranch;
 ```
