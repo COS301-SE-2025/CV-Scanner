@@ -27,6 +27,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo from "../assets/logo.png";
+import logoNavbar from "../assets/logoNavbar.png";
 
 export default function CandidateSkillsPage() {
   const navigate = useNavigate();
@@ -108,7 +109,7 @@ export default function CandidateSkillsPage() {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#181c2f",
+        bgcolor: "#1E1E1E",
         color: "#fff",
       }}
     >
@@ -117,12 +118,12 @@ export default function CandidateSkillsPage() {
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
 
-        <AppBar position="static" sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}>
+        <AppBar position="static" sx={{ bgcolor: "#232A3B ", boxShadow: "none" }}>
           <Toolbar sx={{ justifyContent: "space-between" }}>
             {/* Left: Logo and heading */}
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <img src={logo} alt="Logo" style={{ width: 80 }} />
-              <Typography variant="h6" sx={{ ml: 2, fontWeight: 'bold' }}>
+              <img src={logoNavbar} alt="Logo" style={{ width: 80 }} />
+              <Typography variant="h6" sx={{fontFamily: 'Helvetica, sans-serif', ml: 2, fontWeight: 'bold' }}>
                 Candidate Skills
               </Typography>
             </Box>
@@ -217,10 +218,10 @@ export default function CandidateSkillsPage() {
         >
           <Fade in={fadeIn} timeout={250}>
             <Box sx={{ position: "relative" }}>
-              <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+              <Typography variant="h6" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 1 }}>
                 {tutorialStep === 0 ? "Skills List" : "Add Skill"}
               </Typography>
-              <Typography sx={{ mb: 2 }}>
+              <Typography sx={{fontFamily: 'Helvetica, sans-serif', mb: 2 }}>
                 {tutorialStep === 0
                   ? "This section shows the candidate's technical skills. You can remove skills by clicking the X."
                   : "Use this input to add a new skill to the candidate's profile."}
@@ -302,7 +303,7 @@ export default function CandidateSkillsPage() {
         <Box sx={{ p: 3 }}>
           <Button
             startIcon={<ArrowBackIcon />}
-            onClick={() => navigate("/candidates")}
+            onClick={() => navigate("/search")}
             sx={{
               mb: 2,
               color: "#0073c1",
@@ -316,7 +317,7 @@ export default function CandidateSkillsPage() {
             Back to Candidates
           </Button>
 
-          <Typography variant="h4" sx={{ fontWeight: "bold", mb: 2 }}>
+          <Typography variant="h4" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 2 }}>
             Jane Smith
           </Typography>
           <Typography variant="subtitle1" sx={{ mb: 4 }}>
@@ -352,9 +353,9 @@ export default function CandidateSkillsPage() {
           {/* Skills Section */}
           <Paper
             elevation={6}
-            sx={{ p: 3, borderRadius: 3, bgcolor: "#e1f4ff" }}
+            sx={{ p: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
           >
-            <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
+            <Typography variant="h6" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 2 }}>
               Technical Skills
             </Typography>
             <Box
@@ -366,7 +367,7 @@ export default function CandidateSkillsPage() {
                   key={idx}
                   label={skill}
                   onDelete={() => handleDeleteSkill(skill)}
-                  sx={{ bgcolor: "#0073c1", color: "#fff" }}
+                  sx={{ bgcolor: "#08726aff", color: "#fff" }}
                 />
               ))}
             </Box>
@@ -384,7 +385,7 @@ export default function CandidateSkillsPage() {
               <Button
                 variant="contained"
                 onClick={handleAddSkill}
-                sx={{ bgcolor: "#0073c1" }}
+                sx={{ bgcolor: "#08726aff" }}
               >
                 Add
               </Button>

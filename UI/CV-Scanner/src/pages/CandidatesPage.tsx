@@ -36,12 +36,21 @@ import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import SettingsIcon from "@mui/icons-material/Settings";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import Sidebar from "./Sidebar";
 
 export default function CandidatesPage() {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+
+  const devUser = {
+      email: "dev@example.com",
+      password: "Password123",
+      first_name: "John",
+      last_name: "Doe",
+      role: "Admin",
+    };
 
   const [user, setUser] = useState<{
     first_name?: string;
@@ -117,124 +126,23 @@ export default function CandidatesPage() {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#181c2f",
+        bgcolor: "#1E1E1E",
         color: "#fff",
       }}
     >
-      {/* Sidebar */}
-      {!collapsed ? (
-        <Box
-          sx={{
-            width: 220,
-            bgcolor: "#1A82AE",
-            display: "flex",
-            flexDirection: "column",
-            p: 2,
-            position: "relative",
-          }}
-        >
-          {/* Collapse Button */}
-          <IconButton
-            onClick={() => setCollapsed(true)}
-            sx={{
-              color: "#fff",
-              position: "absolute",
-              top: 8,
-              left: 8,
-              zIndex: 1,
-            }}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <rect x="3" y="6" width="18" height="2" fill="currentColor" />
-              <rect x="3" y="11" width="18" height="2" fill="currentColor" />
-              <rect x="3" y="16" width="18" height="2" fill="currentColor" />
-            </svg>
-          </IconButton>
-
-          <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
-            <img src={logo} alt="Team Logo" style={{ width: 120 }} />
-          </Box>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/dashboard" ? "active" : ""}
-            startIcon={<DashboardIcon />}
-            onClick={() => navigate("/dashboard")}
-          >
-            Dashboard
-          </Button>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/upload" ? "active" : ""}
-            startIcon={<UploadFileIcon />}
-            onClick={() => navigate("/upload")}
-          >
-            Upload CV
-          </Button>
-
-          <Button
-            fullWidth
-            sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
-            className={location.pathname === "/candidates" ? "active" : ""}
-            startIcon={<PeopleIcon />}
-            onClick={() => navigate("/candidates")}
-          >
-            Candidates
-          </Button>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/search" ? "active" : ""}
-            startIcon={<SearchIcon />}
-            onClick={() => navigate("/search")}
-          >
-            Search
-          </Button>
-                    {/* Only show User Management if user is Admin */}
-          {user?.role === "Admin" && (
-            <Button
-              fullWidth
-              sx={navButtonStyle}
-              className={location.pathname === "/user-management" ? "active" : ""}
-              startIcon={<SettingsIcon />}
-              onClick={() => navigate("/user-management")}
-            >
-              User Management
-            </Button>
-          )}
-        </Box>
-      ) : (
-        // Expand Icon when sidebar is collapsed
-        <Box
-          sx={{
-            width: 40,
-            bgcolor: "#1A82AE",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "flex-start",
-            pt: 1,
-          }}
-        >
-          <IconButton
-            onClick={() => setCollapsed(false)}
-            sx={{ color: "#fff" }}
-          >
-            <ChevronRightIcon />
-          </IconButton>
-        </Box>
-      )}
-
+{/* Sidebar */}
+      <Sidebar 
+  userRole={user?.role || devUser.role} 
+  collapsed={collapsed} 
+  setCollapsed={setCollapsed} 
+/>
       {/* Main Content */}
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
         {/* Top App Bar */}
 
          <AppBar
                   position="static"
-                  sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
+                  sx={{ bgcolor: "#232A3B ", boxShadow: "none" }}
                 >
                   <Toolbar sx={{ justifyContent: "flex-end" }}>
           {/* Tutorial icon */}
@@ -295,17 +203,25 @@ export default function CandidatesPage() {
                 </AppBar>
 
         {/* Main Page Content */}
-        <Box sx={{ p: 3 }}>
+
+          <Box sx={{ p: 3 }}>
+          <Typography variant="h5" sx={{fontFamily: 'Helvetica, sans-serif', mb: 3, fontWeight: "bold" }}>
+            Candidate Dictionary
+          </Typography>
+        </Box>
+
+        <Box sx={{  pt: 0, px: 3, pb: 3  }}>
           <Paper
             elevation={6}
-            sx={{ p: 3, borderRadius: 3, backgroundColor: "#d0f0ff" }}
+            sx={{ p: 3, borderRadius: 3, backgroundColor: "#DEDDEE" }}
           >
-            <Typography
+           {/*<Typography
               variant="h5"
               sx={{ fontWeight: "bold", color: "#0073c1", mb: 2 }}
             >
               Candidate Directory
-            </Typography>
+                </Typography> */}
+            
 
             {/* Search Controls */}
             <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
@@ -316,12 +232,12 @@ export default function CandidatesPage() {
                 size="small"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                sx={{ backgroundColor: "#fff", borderRadius: 1 }}
+                sx={{ backgroundColor: "#d1dbe5ff", borderRadius: 1 }}
                 inputRef={searchRef}
               />
               <Button
                 variant="contained"
-                sx={{ backgroundColor: "#4cb0ff", color: "#fff" }}
+                sx={{ backgroundColor: "#08726aff", color: "#fff" }}
                 onClick={() => setSearchTerm(searchInput)}
               >
                 Search
@@ -337,6 +253,7 @@ export default function CandidatesPage() {
                 Clear
               </Button>
             </Box>
+            
 
             {/* Table */}
             <TableContainer>
@@ -402,6 +319,7 @@ export default function CandidatesPage() {
           </Paper>
         </Box>
       </Box>
+      
 
       {/* Tutorial Popover */}
       <Popover
@@ -433,7 +351,7 @@ export default function CandidatesPage() {
           <Box sx={{ position: "relative" }}>
             {tutorialStep === 0 && (
               <>
-                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                <Typography variant="h6" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 1 }}>
                   Search Candidates
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
@@ -444,7 +362,7 @@ export default function CandidatesPage() {
             )}
             {tutorialStep === 1 && (
               <>
-                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                <Typography variant="h6" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 1 }}>
                   Review a Candidate
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
@@ -558,13 +476,28 @@ const navButtonStyle = {
 
 // Review button style
 const reviewButtonStyle = {
-  background: "linear-gradient(45deg, #0a1172 0%, #00b300 100%)",
-  color: "white",
+  background: "#232A3B",
+  color: "DEDDEE",
   fontWeight: "bold",
-  padding: "6px 16px",
+  padding: "8px 20px",
   borderRadius: "4px",
-  textTransform: "none",
+  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
   "&:hover": {
-    background: "linear-gradient(45deg, #081158 0%, #009a00 100%)",
+    background: "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
+    transform: "translateY(-1px)",
+  },
+  textTransform: "none",
+  transition: "all 0.3s ease",
+  position: "relative",
+  overflow: "hidden",
+  "&::after": {
+    content: '""',
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    background:
+      "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
   },
 };

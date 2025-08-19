@@ -14,14 +14,12 @@ import {
   TableBody,
   AppBar,
   Toolbar,
-  Badge,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   TextField,
   Divider,
-  Chip,
   Popover,
   Fade,
   Tooltip,
@@ -30,34 +28,51 @@ import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import UploadFileIcon from "@mui/icons-material/UploadFile";
-import PeopleIcon from "@mui/icons-material/People";
-import SearchIcon from "@mui/icons-material/Search";
-import SettingsIcon from "@mui/icons-material/Settings";
-import NotificationsIcon from "@mui/icons-material/Notifications";
-import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
-import logo2 from "../assets/logo2.png";
-import logo from "../assets/logo.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import Sidebar from "./Sidebar";
+
+const CONFIG_BASE = "http://localhost:8081"; // Spring Boot base (AuthController)
 
 export default function UploadCVPage() {
   const [collapsed, setCollapsed] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const [processedData, setProcessedData] = useState<any | null>(null); // State for processed data
-  const [isModalOpen, setIsModalOpen] = useState(false); // State for modal visibility
-  const [contactInfo, setContactInfo] = useState(""); // State for contact information
-  const [additionalInfo, setAdditionalInfo] = useState(""); // State for additional information
+  const [processedData, setProcessedData] = useState<any | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [candidateName, setCandidateName] = useState("");
+  const [candidateSurname, setCandidateSurname] = useState("");
+  const [candidateEmail, setCandidateEmail] = useState("");
+
+  // Config editor state
+  const [configJson, setConfigJson] = useState<string>("");
+  const [originalConfig, setOriginalConfig] = useState<string>("");
+  const [isEditingConfig, setIsEditingConfig] = useState(false);
+  const [configSavedPopup, setConfigSavedPopup] = useState(false);
+
+  const [errorPopup, setErrorPopup] = useState<{
+    open: boolean;
+    message: string;
+  }>({
+    open: false,
+    message: "",
+  });
+
+  const devUser = {
+    email: "dev@example.com",
+    password: "Password123",
+    first_name: "John",
+    last_name: "Doe",
+    role: "Admin",
+  };
 
   const [user, setUser] = useState<{
     first_name?: string;
     last_name?: string;
     username?: string;
-    role?: string; // <-- add this
-    email?: string; // <-- and this
+    role?: string;
+    email?: string;
   } | null>(null);
   const [tutorialStep, setTutorialStep] = useState(0);
   const [fadeIn, setFadeIn] = useState(true);
@@ -67,6 +82,9 @@ export default function UploadCVPage() {
   const uploadBoxRef = useRef<HTMLDivElement>(null);
   const additionalInfoRef = useRef<HTMLInputElement>(null);
   const processBtnRef = useRef<HTMLButtonElement>(null);
+
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const email = localStorage.getItem("userEmail") || "admin@email.com";
@@ -86,6 +104,71 @@ export default function UploadCVPage() {
     else setAnchorEl(null);
   }, [tutorialStep]);
 
+  // Load config from Spring when admin and a file is selected (reveals the box)
+  useEffect(() => {
+    if (file && user?.role === "Admin") {
+      loadConfig();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file, user?.role]);
+
+  const loadConfig = async () => {
+    try {
+      const res = await fetch(`${CONFIG_BASE}/auth/config/categories`);
+      if (!res.ok) {
+        let msg = `Failed to load configuration (${res.status})`;
+        try {
+          const j = await res.json();
+          msg = j?.detail || msg;
+        } catch {}
+        setErrorPopup({ open: true, message: msg });
+        return;
+      }
+      const json = await res.json();
+      const pretty = JSON.stringify(json, null, 2);
+      setConfigJson(pretty);
+      setOriginalConfig(pretty);
+      setIsEditingConfig(false);
+    } catch (e) {
+      setErrorPopup({ open: true, message: "Could not load configuration." });
+    }
+  };
+
+  const saveConfig = async () => {
+    let parsed: any;
+    try {
+      parsed = JSON.parse(configJson);
+    } catch {
+      setErrorPopup({
+        open: true,
+        message: "Invalid JSON. Please fix before saving.",
+      });
+      return;
+    }
+
+    try {
+      const res = await fetch(`${CONFIG_BASE}/auth/config/categories`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsed),
+      });
+      if (!res.ok) {
+        let msg = `Failed to save configuration (${res.status})`;
+        try {
+          const j = await res.json();
+          msg = j?.detail || msg;
+        } catch {}
+        setErrorPopup({ open: true, message: msg });
+        return;
+      }
+      setOriginalConfig(configJson);
+      setIsEditingConfig(false);
+      setConfigSavedPopup(true);
+    } catch (e) {
+      setErrorPopup({ open: true, message: "Could not save configuration." });
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (selected) setFile(selected);
@@ -93,50 +176,81 @@ export default function UploadCVPage() {
 
   const handleRemove = () => {
     setFile(null);
-    setProcessedData(null); // Clear processed data when file is removed
-  };
-
-  // ...existing code...
-  const handleProcess = async () => {
-    if (file) {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      try {
-        const response = await fetch("http://localhost:5000/upload_pdf/", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          alert(errorData.detail || "Failed to process CV.");
-          return;
-        }
-
-        const data = await response.json();
-        // data.data contains the structured CV info from FastAPI
-        setProcessedData(data.data);
-        setIsModalOpen(true);
-      } catch (error) {
-        alert("An error occurred while processing the CV.");
-      }
-    }
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false); // Close the modal
-  };
-
-  const handleBrowseClick = () => {
+    setProcessedData(null);
     const fileInput = document.getElementById(
       "file-upload"
     ) as HTMLInputElement;
     if (fileInput) {
-      fileInput.click();
+      fileInput.value = "";
     }
   };
 
+  const handleProcess = async () => {
+    if (!file) return;
+    // Require candidate fields
+    if (!candidateName || !candidateSurname || !candidateEmail) {
+      setErrorPopup({
+        open: true,
+        message: "Please enter candidate name, surname, and email.",
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("http://localhost:5000/upload_cv?top_k=3", {
+        method: "POST",
+        body: formData,
+      });
+
+      let data: any = null;
+      try {
+        data = await response.json();
+      } catch {
+        // ignore non-JSON
+      }
+
+      if (!response.ok) {
+        const message =
+          data?.detail ||
+          data?.message ||
+          `Failed to process CV. (${response.status})`;
+        setErrorPopup({ open: true, message });
+        return;
+      }
+
+      const fileUrl = URL.createObjectURL(file);
+      const payload = data?.data ?? data;
+
+      navigate("/parsed-cv", {
+        state: {
+          processedData: payload,
+          fileUrl,
+          fileType: file.type,
+          candidate: {
+            firstName: candidateName,
+            lastName: candidateSurname,
+            email: candidateEmail,
+          },
+        },
+      });
+    } catch (error) {
+      setErrorPopup({
+        open: true,
+        message: "An error occurred while processing the CV.",
+      });
+    }
+  };
+
+  const handleCloseModal = () => setIsModalOpen(false);
+  const handleBrowseClick = () => {
+    const fileInput = document.getElementById(
+      "file-upload"
+    ) as HTMLInputElement;
+    if (fileInput) fileInput.click();
+  };
   const handleStepChange = (nextStep: number) => {
     setFadeIn(false);
     setTimeout(() => {
@@ -144,151 +258,29 @@ export default function UploadCVPage() {
       setFadeIn(true);
     }, 250);
   };
-
   const handleCloseTutorial = () => setShowTutorial(false);
-
-  const navigate = useNavigate();
-
-  const location = useLocation();
-
-  // Set anchorEl when tutorialStep changes
-  useEffect(() => {
-    if (tutorialStep === 0 && uploadBoxRef.current)
-      setAnchorEl(uploadBoxRef.current);
-    else if (tutorialStep === 1 && additionalInfoRef.current)
-      setAnchorEl(additionalInfoRef.current);
-    else if (tutorialStep === 2 && processBtnRef.current)
-      setAnchorEl(processBtnRef.current);
-    else setAnchorEl(null);
-  }, [tutorialStep]);
 
   return (
     <Box
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#181c2f",
+        bgcolor: "#1E1E1E",
         color: "#fff",
+        fontFamily: "Helvetica, sans-serif",
       }}
     >
-      {/* Sidebar */}
-      {!collapsed ? (
-        <Box
-          sx={{
-            width: 220,
-            bgcolor: "#1A82AE",
-            display: "flex",
-            flexDirection: "column",
-            p: 2,
-            position: "relative",
-          }}
-        >
-          {/* Collapse Button */}
-          <IconButton
-            onClick={() => setCollapsed(true)}
-            sx={{
-              color: "#fff",
-              position: "absolute",
-              top: 8,
-              left: 8,
-              zIndex: 1,
-            }}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <rect x="3" y="6" width="18" height="2" fill="currentColor" />
-              <rect x="3" y="11" width="18" height="2" fill="currentColor" />
-              <rect x="3" y="16" width="18" height="2" fill="currentColor" />
-            </svg>
-          </IconButton>
-
-          <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
-            <img src={logo} alt="Team Logo" style={{ width: 120 }} />
-          </Box>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/dashboard" ? "active" : ""}
-            startIcon={<DashboardIcon />}
-            onClick={() => navigate("/dashboard")}
-          >
-            Dashboard
-          </Button>
-
-          <Button
-            fullWidth
-            sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
-            className={location.pathname === "/upload" ? "active" : ""}
-            startIcon={<UploadFileIcon />}
-            onClick={() => navigate("/upload")}
-          >
-            Upload CV
-          </Button>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/candidates" ? "active" : ""}
-            startIcon={<PeopleIcon />}
-            onClick={() => navigate("/candidates")}
-          >
-            Candidates
-          </Button>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/search" ? "active" : ""}
-            startIcon={<SearchIcon />}
-            onClick={() => navigate("/search")}
-          >
-            Search
-          </Button>
-          {/* Only show User Management if user is Admin */}
-          {user?.role === "Admin" && (
-            <Button
-              fullWidth
-              sx={navButtonStyle}
-              className={
-                location.pathname === "/user-management" ? "active" : ""
-              }
-              startIcon={<SettingsIcon />}
-              onClick={() => navigate("/user-management")}
-            >
-              User Management
-            </Button>
-          )}
-        </Box>
-      ) : (
-        // Expand Icon when sidebar is collapsed
-        <Box
-          sx={{
-            width: 40,
-            bgcolor: "#1A82AE",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "flex-start",
-            pt: 1,
-          }}
-        >
-          <IconButton
-            onClick={() => setCollapsed(false)}
-            sx={{ color: "#fff" }}
-          >
-            <ChevronRightIcon />
-          </IconButton>
-        </Box>
-      )}
-
-      {/* Main Content with Top Bar */}
+      <Sidebar
+        userRole={user?.role || devUser.role}
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
+      />
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
-        {/* Top App Bar */}
         <AppBar
           position="static"
-          sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
+          sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
         >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
-            {/* Tutorial icon */}
             <Tooltip title="Run Tutorial" arrow>
               <IconButton
                 onClick={() => {
@@ -301,8 +293,6 @@ export default function UploadCVPage() {
                 <LightbulbRoundedIcon />
               </IconButton>
             </Tooltip>
-
-            {/* Help / FAQ icon */}
             <Tooltip title="Go to Help Page" arrow>
               <IconButton
                 color="inherit"
@@ -312,8 +302,6 @@ export default function UploadCVPage() {
                 <HelpOutlineIcon />
               </IconButton>
             </Tooltip>
-
-            {/* User Info */}
             <Box
               sx={{
                 display: "flex",
@@ -336,8 +324,6 @@ export default function UploadCVPage() {
                   : "User"}
               </Typography>
             </Box>
-
-            {/* Logout */}
             <IconButton
               color="inherit"
               onClick={() => navigate("/login")}
@@ -348,25 +334,35 @@ export default function UploadCVPage() {
           </Toolbar>
         </AppBar>
 
-        {/* Main Content */}
         <Box sx={{ p: 3 }}>
-          <Typography variant="h5" sx={{ mb: 3, fontWeight: "bold" }}>
+          <Typography
+            variant="h5"
+            sx={{
+              mb: 3,
+              fontWeight: "bold",
+              fontFamily: "Helvetica, sans-serif",
+            }}
+          >
             Upload Candidate CV
           </Typography>
 
           <Paper
             elevation={6}
-            sx={{ p: 4, borderRadius: 3, backgroundColor: "#bce4ff" }}
+            sx={{ p: 4, borderRadius: 3, backgroundColor: "#DEDDEE" }}
           >
             <Typography
               variant="h6"
-              sx={{ fontWeight: "bold", color: "#0073c1", mb: 2 }}
+              sx={{
+                fontWeight: "bold",
+                color: "#000000ff",
+                mb: 2,
+                fontFamily: "Helvetica, sans-serif",
+              }}
             >
               Upload a candidate's CV to automatically extract skills and
               project matches
             </Typography>
 
-            {/* Upload Box */}
             <Box
               ref={uploadBoxRef}
               sx={{
@@ -378,7 +374,7 @@ export default function UploadCVPage() {
                 justifyContent: "center",
                 flexDirection: "column",
                 mb: 3,
-                bgcolor: "#fff",
+                bgcolor: "#cbd5e0",
               }}
             >
               <CloudUploadIcon fontSize="large" />
@@ -395,7 +391,7 @@ export default function UploadCVPage() {
                 />
                 <Button
                   variant="contained"
-                  sx={{ mt: 1, background: "#0077cc" }}
+                  sx={reviewButtonStyle}
                   onClick={handleBrowseClick}
                 >
                   Browse Files
@@ -403,33 +399,97 @@ export default function UploadCVPage() {
               </Box>
             </Box>
 
-            {/* Contact Information */}
             <TextField
-              label="Contact Information"
+              label="Candidate Name"
               fullWidth
+              required
               variant="outlined"
-              value={contactInfo}
-              onChange={(e) => setContactInfo(e.target.value)}
-              sx={{ mb: 3 }}
+              value={candidateName}
+              onChange={(e) => setCandidateName(e.target.value)}
+              sx={{
+                fontFamily: "Helvetica, sans-serif",
+                mb: 3,
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": { borderColor: "#000000ff" },
+                  fontFamily: "Helvetica, sans-serif",
+                  fontSize: "1rem",
+                  color: "#000000ff",
+                },
+              }}
+              InputLabelProps={{
+                sx: {
+                  color: "#000000ff",
+                  "&.Mui-focused": { borderColor: "#204E20", color: "#204E20" },
+                  fontFamily: "Helvetica, sans-serif",
+                  fontWeight: "bold",
+                },
+              }}
             />
 
-            {/* Additional Information */}
             <TextField
-              label="Additional Information"
+              label="Candidate Surname"
               fullWidth
+              required
               variant="outlined"
-              multiline
-              rows={3}
-              value={additionalInfo}
-              onChange={(e) => setAdditionalInfo(e.target.value)}
-              sx={{ mb: 3 }}
-              inputRef={additionalInfoRef}
+              value={candidateSurname}
+              onChange={(e) => setCandidateSurname(e.target.value)}
+              sx={{
+                mb: 3,
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": { borderColor: "#000000ff" },
+                  fontFamily: "Helvetica, sans-serif",
+                  fontSize: "1rem",
+                  color: "#000000ff",
+                },
+              }}
+              InputLabelProps={{
+                sx: {
+                  "&.Mui-focused": { color: "#204E20" },
+                  fontFamily: "Helvetica, sans-serif",
+                  fontWeight: "bold",
+                  color: "#000000ff",
+                },
+              }}
             />
 
-            {/* File Table */}
+            <TextField
+              label="Candidate Email"
+              fullWidth
+              required
+              type="email"
+              variant="outlined"
+              value={candidateEmail}
+              onChange={(e) => setCandidateEmail(e.target.value)}
+              sx={{
+                mb: 3,
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": { borderColor: "#000000ff" },
+                  fontFamily: "Helvetica, sans-serif",
+                  fontSize: "1rem",
+                  color: "#000000ff",
+                },
+              }}
+              InputLabelProps={{
+                sx: {
+                  "&.Mui-focused": { color: "#204E20" },
+                  fontFamily: "Helvetica, sans-serif",
+                  fontWeight: "bold",
+                  color: "#000000ff",
+                },
+              }}
+            />
+
             {file && (
               <TableContainer sx={{ mb: 3 }}>
-                <Table>
+                <Table
+                  sx={{
+                    "& td, & th": {
+                      color: "#000000ff",
+                      fontFamily: "Helvetica, sans-serif",
+                      fontSize: "1rem",
+                    },
+                  }}
+                >
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ fontWeight: "bold" }}>
@@ -456,21 +516,109 @@ export default function UploadCVPage() {
               </TableContainer>
             )}
 
-            {/* Process Button */}
+            {/* Admin-only config editor, visible only if a file is uploaded */}
+            {file && user?.role === "Admin" && (
+              <Paper sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: "#f5f5f5" }}>
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
+                  CV Extraction Configuration
+                </Typography>
+
+                {!isEditingConfig ? (
+                  <>
+                    <Box
+                      sx={{
+                        fontFamily: "monospace",
+                        bgcolor: "#e0e0e0",
+                        p: 2,
+                        borderRadius: 1,
+                        whiteSpace: "pre-wrap",
+                        mb: 2,
+                        maxHeight: 300,
+                        overflowY: "auto",
+                      }}
+                    >
+                      {configJson || "No configuration loaded."}
+                    </Box>
+                    <Box sx={{ display: "flex", gap: 1 }}>
+                      <Button
+                        variant="outlined"
+                        onClick={loadConfig}
+                        sx={{ borderColor: "#232A3B", color: "#232A3B" }}
+                      >
+                        Reload
+                      </Button>
+                      <Button
+                        variant="contained"
+                        sx={{
+                          bgcolor: "#232A3B",
+                          "&:hover": { bgcolor: "#3a4b66" },
+                        }}
+                        onClick={() => setIsEditingConfig(true)}
+                      >
+                        Edit
+                      </Button>
+                    </Box>
+                  </>
+                ) : (
+                  <>
+                    <TextField
+                      fullWidth
+                      multiline
+                      minRows={10}
+                      value={configJson}
+                      onChange={(e) => setConfigJson(e.target.value)}
+                      sx={{ fontFamily: "monospace", mb: 2 }}
+                    />
+                    <Box
+                      sx={{
+                        display: "flex",
+                        gap: 2,
+                        justifyContent: "flex-end",
+                      }}
+                    >
+                      <Button
+                        variant="outlined"
+                        onClick={() => {
+                          setConfigJson(originalConfig);
+                          setIsEditingConfig(false);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        variant="contained"
+                        sx={{
+                          bgcolor: "#232A3B",
+                          "&:hover": { bgcolor: "#3a4b66" },
+                        }}
+                        onClick={saveConfig}
+                      >
+                        Save
+                      </Button>
+                    </Box>
+                  </>
+                )}
+              </Paper>
+            )}
+
             <Box sx={{ textAlign: "center", mb: 2 }}>
-              <Button
-                variant="contained"
-                disabled={!file}
-                sx={reviewButtonStyle}
-                onClick={handleProcess}
-                ref={processBtnRef}
-              >
-                Process CV
-              </Button>
+              {file && (
+                <Button
+                  variant="contained"
+                  sx={reviewButtonStyle}
+                  onClick={handleProcess}
+                  ref={processBtnRef}
+                >
+                  Process CV
+                </Button>
+              )}
             </Box>
 
-            {/* Upload Notes */}
-            <Typography variant="body2" color="black">
+            <Typography
+              variant="body2"
+              color="#000000ff"
+              sx={{ fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
+            >
               <strong>Requirements:</strong>
               <br />
               • Accepted formats: PDF, DOC, DOCX
@@ -482,7 +630,37 @@ export default function UploadCVPage() {
         </Box>
       </Box>
 
-      {/* Modal for Processed Data */}
+      <Dialog
+        open={errorPopup.open}
+        onClose={() => setErrorPopup({ ...errorPopup, open: false })}
+      >
+        <DialogTitle>Error</DialogTitle>
+        <DialogContent>
+          <Typography>{errorPopup.message}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setErrorPopup({ ...errorPopup, open: false })}>
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Config saved confirmation */}
+      <Dialog
+        open={configSavedPopup}
+        onClose={() => setConfigSavedPopup(false)}
+      >
+        <DialogTitle>Configuration Saved</DialogTitle>
+        <DialogContent>
+          <Typography>
+            The extraction configuration was saved successfully.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfigSavedPopup(false)}>OK</Button>
+        </DialogActions>
+      </Dialog>
+
       <Dialog
         open={isModalOpen}
         onClose={handleCloseModal}
@@ -519,7 +697,6 @@ export default function UploadCVPage() {
                 py: 1,
               }}
             >
-              {/* Left Column */}
               <Box>
                 <Typography
                   variant="subtitle2"
@@ -554,7 +731,6 @@ export default function UploadCVPage() {
                   {processedData.experience || "N/A"}
                 </Typography>
               </Box>
-              {/* Right Column */}
               <Box>
                 <Typography
                   variant="subtitle2"
@@ -622,7 +798,6 @@ export default function UploadCVPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Tutorial Popover */}
       <Popover
         open={
           showTutorial &&
@@ -687,7 +862,6 @@ export default function UploadCVPage() {
                 </Typography>
               </>
             )}
-            {/* Shared navigation buttons */}
             <Box
               sx={{
                 display: "flex",
@@ -765,42 +939,17 @@ export default function UploadCVPage() {
   );
 }
 
-// ... (keep your existing style definitions)
-
-// Style reuse
-const navButtonStyle = {
-  justifyContent: "flex-start",
-  mb: 1,
-  color: "#fff",
-  backgroundColor: "transparent",
-  "&:hover": {
-    backgroundColor: "#487DA6",
-  },
-  textTransform: "none",
-  fontWeight: "bold",
-  "&.active": {
-    "&::before": {
-      content: '""',
-      position: "absolute",
-      left: 0,
-      top: 0,
-      height: "100%",
-      width: "4px",
-      backgroundColor: "black",
-      borderRadius: "0 4px 4px 0",
-    },
-  },
-};
-
+// Review button style
 const reviewButtonStyle = {
-  background: "linear-gradient(45deg, #0a1172 0%, #032c3b 50%, #00b300 100%)",
-  color: "#ffffff !important",
+  background: "#232A3B",
+  color: "DEDDEE",
   fontWeight: "bold",
   padding: "8px 20px",
   borderRadius: "4px",
   boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
   "&:hover": {
-    background: "linear-gradient(45deg, #081158 0%, #022028 50%, #009a00 100%)",
+    background:
+      "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
     transform: "translateY(-1px)",
   },
   textTransform: "none",

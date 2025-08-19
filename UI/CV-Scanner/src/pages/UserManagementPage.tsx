@@ -24,7 +24,9 @@ import {
   Popover,
   Fade,
   Tooltip,
+  InputAdornment,
 } from "@mui/material";
+import Sidebar from "./Sidebar";
 import { useNavigate, useLocation } from "react-router-dom";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
@@ -39,7 +41,9 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import logo from "../assets/logo.png";
+import logoNavbar from "../assets/logoNavbar.png";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import EditIcon from "@mui/icons-material/Edit";
 
 export default function UserManagementPage() {
   const [collapsed, setCollapsed] = useState(false);
@@ -53,6 +57,14 @@ export default function UserManagementPage() {
     role?: string;
     email?: string;
   } | null>(null);
+
+const devUser = {
+      email: "dev@example.com",
+      password: "Password123",
+      first_name: "John",
+      last_name: "Doe",
+      role: "Admin",
+    };
 
   const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -221,125 +233,23 @@ export default function UserManagementPage() {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#181c2f",
+        bgcolor: "#1E1E1E",
         color: "#fff",
       }}
     >
       {/* Sidebar */}
-      {!collapsed ? (
-        <Box
-          sx={{
-            width: 220,
-            bgcolor: "#1A82AE",
-            display: "flex",
-            flexDirection: "column",
-            p: 2,
-            position: "relative",
-          }}
-        >
-          {/* Collapse Button */}
-          <IconButton
-            onClick={() => setCollapsed(true)}
-            sx={{
-              color: "#fff",
-              position: "absolute",
-              top: 8,
-              left: 8,
-              zIndex: 1,
-            }}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <rect x="3" y="6" width="18" height="2" fill="currentColor" />
-              <rect x="3" y="11" width="18" height="2" fill="currentColor" />
-              <rect x="3" y="16" width="18" height="2" fill="currentColor" />
-            </svg>
-          </IconButton>
-
-          <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
-            <img src={logo} alt="Team Logo" style={{ width: 120 }} />
-          </Box>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/dashboard" ? "active" : ""}
-            startIcon={<DashboardIcon />}
-            onClick={() => navigate("/dashboard")}
-          >
-            Dashboard
-          </Button>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/upload" ? "active" : ""}
-            startIcon={<UploadFileIcon />}
-            onClick={() => navigate("/upload")}
-          >
-            Upload CV
-          </Button>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/candidates" ? "active" : ""}
-            startIcon={<PeopleIcon />}
-            onClick={() => navigate("/candidates")}
-          >
-            Candidates
-          </Button>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/search" ? "active" : ""}
-            startIcon={<SearchIcon />}
-            onClick={() => navigate("/search")}
-          >
-            Search
-          </Button>
-
-          {/* Only show User Management if user is Admin */}
-          {user?.role === "Admin" && (
-            <Button
-              fullWidth
-              sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
-              className={
-                location.pathname === "/user-management" ? "active" : ""
-              }
-              startIcon={<SettingsIcon />}
-              onClick={() => navigate("/user-management")}
-            >
-              User Management
-            </Button>
-          )}
-        </Box>
-      ) : (
-        <Box
-          sx={{
-            width: 40,
-            bgcolor: "#1A82AE",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "flex-start",
-            pt: 1,
-          }}
-        >
-          <IconButton
-            onClick={() => setCollapsed(false)}
-            sx={{ color: "#fff" }}
-          >
-            <ChevronRightIcon />
-          </IconButton>
-        </Box>
-      )}
+      <Sidebar 
+  userRole={user?.role || devUser.role} 
+  collapsed={collapsed} 
+  setCollapsed={setCollapsed} 
+/>
 
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
         <AppBar
           position="static"
-          sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
+          sx={{ bgcolor: "#232A3B ", boxShadow: "none" }}
         >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
             {/* Tutorial icon */}
@@ -402,26 +312,41 @@ export default function UserManagementPage() {
 
         {/* User Management Content */}
         <Box sx={{ p: 3 }}>
-          <Typography variant="h4" sx={{ fontWeight: "bold", mb: 3 }}>
+          <Typography variant="h5" sx={{ fontFamily: 'Helvetica, sans-serif', fontWeight: "bold", mb: 3, color: "#fff " }}>
             User Management
           </Typography>
 
           {/* Search and Filter Section */}
           <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+            
             <TextField
               inputRef={searchRef}
               placeholder="Search users..."
               variant="outlined"
               fullWidth
-              sx={{ bgcolor: "#fff", borderRadius: 1 }}
+              sx={{
+                bgcolor: "#DEDDEE",
+                borderRadius: 1,
+                "& .MuiOutlinedInput-notchedOutline": {
+                  border: "none", // removes the outline
+                },
+              }}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
             />
+            
             <div ref={filterBoxRef}>
               <Select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                sx={{ bgcolor: "#fff", borderRadius: 1, minWidth: 150 }}
+                sx={{ bgcolor: "#DEDDEE", borderRadius: 1, minWidth: 150 }}
               >
                 <MenuItem value="All Roles">All Roles</MenuItem>
                 <MenuItem value="Admin">Admin</MenuItem>
@@ -431,7 +356,7 @@ export default function UserManagementPage() {
             </div>
             <Button
               variant="contained"
-              sx={{ bgcolor: "#4caf50", color: "#fff", textTransform: "none" }}
+              sx={{ bgcolor: "#0D9488", color: "#fff", textTransform: "none" }}
               onClick={() => navigate("/add-user")}
               ref={addUserRef}
             >
@@ -442,12 +367,12 @@ export default function UserManagementPage() {
           {/* User Table */}
           <Paper
             elevation={6}
-            sx={{ p: 3, borderRadius: 3, bgcolor: "#e1f4ff" }}
+            sx={{ p: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
           >
             <TableContainer>
-              <Table>
+              <Table sx={{"& td, & th": { fontFamily: 'Helvetica, sans-serif'}}}>
                 {/* 2. Update the table headers: */}
-                <TableHead>
+                <TableHead sx={{ "& th": {fontSize: 16 } }}>
                   <TableRow>
                     <TableCell sx={{ fontWeight: "bold" }}>Username</TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>
@@ -463,14 +388,23 @@ export default function UserManagementPage() {
                   </TableRow>
                 </TableHead>
                 {/* 3. Update the table rows: */}
-                <TableBody>
+                <TableBody sx={{ "& td": { fontSize: 18, fontWeight: 400 } }}>
                   {paginatedUsers.map((user, idx) => (
                     <TableRow key={idx}>
                       <TableCell>{user.username || ""}</TableCell>
                       <TableCell>{user.first_name || ""}</TableCell>
                       <TableCell>{user.last_name || ""}</TableCell>
 
-                      <TableCell>{user.email}</TableCell>
+                      <TableCell
+                        sx={{
+                          maxWidth: 200, // adjust to your preferred width
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {user.email}
+                      </TableCell>
                       <TableCell>
                         <Button
                           variant="contained"
@@ -480,11 +414,12 @@ export default function UserManagementPage() {
                                 ? "#f44336"
                                 : user.role === "Editor"
                                 ? "#ff9800"
-                                : "#4caf50",
+                                : "#10B981",
                             color: "#fff",
                             textTransform: "none",
                             fontWeight: "bold",
                             pointerEvents: "none",
+                            width: 30,
                           }}
                         >
                           {user.role}
@@ -495,27 +430,35 @@ export default function UserManagementPage() {
                         <Button
                           variant="contained"
                           sx={{
+                            minWidth: 40, // fixed size for consistency
+                            width: 40,
+                            height: 40,
                             bgcolor: "#0073c1",
                             color: "#fff",
-                            textTransform: "none",
+                            p: 0,
                             mr: 1,
+                            "&:hover": { bgcolor: "#005f9e" },
                           }}
                           onClick={() => handleEditClick(user)}
                           ref={idx === 0 ? firstEditRef : null}
                         >
-                          Edit
+                          <EditIcon/>
                         </Button>
                         <Button
                           variant="contained"
                           sx={{
+                            minWidth: 40,
+                            width: 40,
+                            height: 40,
                             bgcolor: "#f44336",
                             color: "#fff",
-                            textTransform: "none",
+                            p: 0,
+                            "&:hover": { bgcolor: "#d32f2f" },
                           }}
                           onClick={() => handleDeleteUser(user)}
-                          startIcon={<DeleteIcon />}
+
                         >
-                          Delete
+                          < DeleteIcon />
                         </Button>
                       </TableCell>
                     </TableRow>

@@ -31,17 +31,19 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo2 from "../assets/logo2.png";
 import logo from "../assets/logo.png";
+import logoNavbar from "../assets/logoNavbar.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import Sidebar from "./Sidebar";
 
 export default function Search() {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const [searchText, setSearchText] = useState("");
-  const [selectedSkills, setSelectedSkills] = useState([]);
-  const [selectedFits, setSelectedFits] = useState([]);
-  const [selectedDetails, setSelectedDetails] = useState([]);
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [selectedFits, setSelectedFits] = useState<string[]>([]);
+  const [selectedDetails, setSelectedDetails] = useState<string[]>([]);
   const [user, setUser] = useState<{
     first_name?: string;
     last_name?: string;
@@ -49,48 +51,54 @@ export default function Search() {
     role?: string;
     email?: string;
   } | null>(null);
-  const [tutorialStep, setTutorialStep] = useState(-1); // -1 means not showing
+  const [tutorialStep, setTutorialStep] = useState(-1);
   const [fadeIn, setFadeIn] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
-  const location = useLocation();
+  // Replace hard-coded candidates with data from API
+  type ApiCandidate = {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    project?: string;
+    skills: string[];
+    receivedAt?: string;
+    match?: string;
+  };
+  type CandidateCard = {
+    name: string;
+    skills: string[];
+    project: string;
+    uploaded: string;
+    match: string;
+    initials: string;
+    details: string[];
+    fit?: string;
+  };
+  const [candidates, setCandidates] = useState<CandidateCard[]>([]);
 
-  const candidates = [
-    {
-      name: "Jane Smith",
-      skills: [".NET", "Azure", "SQL"],
-      project: ".NET Aam S2L CD",
-      uploaded: "2 days ago",
-      match: "99% technical",
-      initials: "JS",
-      details: ["My Uploads"],
-      fit: "Technical",
-    },
-    {
-      name: "Mike Johnson",
-      skills: ["React", "Node.js", "JavaScript"],
-      project: "Sarah Khabad (Amberly)",
-      uploaded: "1 week ago",
-      match: "95% collaborative",
-      initials: "MJ",
-      details: ["Last 7 Days"],
-      fit: "Collaborative",
-    },
-    {
-      name: "Sarah Lee",
-      skills: ["Java", "Spring Boot", "SQL"],
-      project: "BizFin Project X",
-      uploaded: "3 days ago",
-      match: "93% business",
-      initials: "SL",
-      details: ["My Uploads", "Last 7 Days"],
-      fit: "Business",
-    },
-  ];
+  // Toggle helper for checkbox filters
+  function toggle(list: string[], value: string) {
+    return list.includes(value)
+      ? list.filter((v) => v !== value)
+      : [...list, value];
+  }
 
+  // Handler for checkbox groups
+  function handleCheckboxChange(
+    kind: "skill" | "fit" | "detail",
+    value: string
+  ) {
+    if (kind === "skill") setSelectedSkills((s) => toggle(s, value));
+    else if (kind === "fit") setSelectedFits((s) => toggle(s, value));
+    else setSelectedDetails((s) => toggle(s, value));
+  }
+
+  // Derived list used by render
   const filteredCandidates = useMemo(() => {
+    const text = searchText.toLowerCase();
     return candidates.filter((c) => {
-      const text = searchText.toLowerCase();
       const matchesText =
         c.name.toLowerCase().includes(text) ||
         c.project.toLowerCase().includes(text) ||
@@ -98,48 +106,84 @@ export default function Search() {
 
       const matchesSkills =
         selectedSkills.length === 0 ||
-        selectedSkills.some((skill) => c.skills.includes(skill));
+        selectedSkills.some((skill) =>
+          c.skills.map((s) => s.toLowerCase()).includes(skill.toLowerCase())
+        );
+
       const matchesFit =
-        selectedFits.length === 0 || selectedFits.includes(c.fit);
+        selectedFits.length === 0 ||
+        (c.fit ? selectedFits.includes(c.fit) : true);
+
       const matchesDetails =
         selectedDetails.length === 0 ||
         selectedDetails.some((d) => c.details.includes(d));
 
       return matchesText && matchesSkills && matchesFit && matchesDetails;
     });
-  }, [searchText, selectedSkills, selectedFits, selectedDetails]);
+  }, [searchText, selectedSkills, selectedFits, selectedDetails, candidates]);
 
-  const handleCheckboxChange = (type, value) => {
-    const setFunc = {
-      skill: setSelectedSkills,
-      fit: setSelectedFits,
-      detail: setSelectedDetails,
-    }[type];
-
-    const currentValues = {
-      skill: selectedSkills,
-      fit: selectedFits,
-      detail: selectedDetails,
-    }[type];
-
-    if (currentValues.includes(value)) {
-      setFunc(currentValues.filter((v) => v !== value));
-    } else {
-      setFunc([...currentValues, value]);
-    }
-  };
+  function initialsOf(first?: string, last?: string) {
+    const a = (first || "").trim();
+    const b = (last || "").trim();
+    const init = (a[0] || "") + (b[0] || "");
+    return init.toUpperCase() || "NA";
+  }
+  function relativeFrom(iso?: string) {
+    if (!iso) return "Unknown";
+    const then = new Date(iso).getTime();
+    const now = Date.now();
+    const diff = Math.max(0, now - then);
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${mins} min ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs} hour${hrs === 1 ? "" : "s"} ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days} day${days === 1 ? "" : "s"} ago`;
+  }
+  function withinLast7Days(iso?: string) {
+    if (!iso) return false;
+    const then = new Date(iso).getTime();
+    return Date.now() - then <= 7 * 24 * 60 * 60 * 1000;
+  }
 
   useEffect(() => {
-
+    // Load current user (unchanged)
     document.title = "Search Candidates";
     const email = localStorage.getItem("userEmail") || "admin@email.com";
     fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
       .then((res) => res.json())
-      .then((data) => {
-        console.log("Fetched user:", data);
-        setUser(data);
-      })
+      .then((data) => setUser(data))
       .catch(() => setUser(null));
+
+    // Fetch candidates from API
+    fetch("http://localhost:8081/cv/candidates")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list: ApiCandidate[]) => {
+        const mapped: CandidateCard[] = list.map((c) => {
+          const name =
+            `${c.firstName || ""} ${c.lastName || ""}`.trim() ||
+            c.email ||
+            "Unknown";
+          const project = c.project || "CV";
+          const uploaded = relativeFrom(c.receivedAt);
+          const initials = initialsOf(c.firstName, c.lastName);
+          const details: string[] = withinLast7Days(c.receivedAt)
+            ? ["Last 7 Days"]
+            : [];
+          return {
+            name,
+            skills: Array.isArray(c.skills) ? c.skills : [],
+            project,
+            uploaded,
+            match: c.match || "N/A",
+            initials,
+            details,
+            fit: undefined,
+          };
+        });
+        setCandidates(mapped);
+      })
+      .catch(() => setCandidates([]));
   }, []);
 
   const searchBarRef = useRef<HTMLInputElement>(null);
@@ -169,228 +213,151 @@ export default function Search() {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: "#181c2f",
+        bgcolor: "#1E1E1E",
         color: "#fff",
       }}
     >
       {/* Sidebar */}
-      {!collapsed ? (
-        <Box
-          sx={{
-            width: 220,
-            bgcolor: "#1A82AE",
-            display: "flex",
-            flexDirection: "column",
-            p: 2,
-            position: "relative",
-          }}
-        >
-          {/* Collapse Button */}
-          <IconButton
-            onClick={() => setCollapsed(true)}
-            sx={{
-              color: "#fff",
-              position: "absolute",
-              top: 8,
-              left: 8,
-              zIndex: 1,
-            }}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <rect x="3" y="6" width="18" height="2" fill="currentColor" />
-              <rect x="3" y="11" width="18" height="2" fill="currentColor" />
-              <rect x="3" y="16" width="18" height="2" fill="currentColor" />
-            </svg>
-          </IconButton>
-
-          <Box sx={{ display: "flex", justifyContent: "center", mb: 3, mt: 5 }}>
-            <img src={logo} alt="Team Logo" style={{ width: 120 }} />
-          </Box>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/dashboard" ? "active" : ""}
-            startIcon={<DashboardIcon />}
-            onClick={() => navigate("/dashboard")}
-          >
-            Dashboard
-          </Button>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/upload" ? "active" : ""}
-            startIcon={<UploadFileIcon />}
-            onClick={() => navigate("/upload")}
-          >
-            Upload CV
-          </Button>
-
-          <Button
-            fullWidth
-            sx={navButtonStyle}
-            className={location.pathname === "/candidates" ? "active" : ""}
-            startIcon={<PeopleIcon />}
-            onClick={() => navigate("/candidates")}
-          >
-            Candidates
-          </Button>
-
-          <Button
-            fullWidth
-            sx={{ ...navButtonStyle, bgcolor: "#d8f0ff", color: "#000" }}
-            className={location.pathname === "/search" ? "active" : ""}
-            startIcon={<SearchIcon />}
-            onClick={() => navigate("/search")}
-          >
-            Search
-          </Button>
-          {/* Only show User Management if user is Admin */}
-          {user?.role === "Admin" && (
-            <Button
-              fullWidth
-              sx={navButtonStyle}
-              className={location.pathname === "/user-management" ? "active" : ""}
-              startIcon={<SettingsIcon />}
-              onClick={() => navigate("/user-management")}
-            >
-              User Management
-            </Button>
-          )}
-        </Box>
-      ) : (
-        <Box
-          sx={{
-            width: 40,
-            bgcolor: "#1A82AE",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "flex-start",
-            pt: 1,
-          }}
-        >
-          <IconButton
-            onClick={() => setCollapsed(false)}
-            sx={{ color: "#fff" }}
-          >
-            <ChevronRightIcon />
-          </IconButton>
-        </Box>
-      )}
+      <Sidebar
+        userRole={user?.role ?? "User"}
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
+      />
 
       {/* Main Content */}
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
         {/* Top Bar */}
-          <AppBar
-                   position="static"
-                   sx={{ bgcolor: "#1A82AE", boxShadow: "none" }}
-                 >
-                   <Toolbar sx={{ justifyContent: "flex-end" }}>
-           {/* Tutorial icon */}
-           <Tooltip title="Run Tutorial" arrow>
-             <IconButton
-               onClick={() => {
-                 setTutorialStep(0);
-                 setFadeIn(true);
-               }}
-               sx={{ml: 1, color: '#FFEB3B'}}
-             >
-               <LightbulbRoundedIcon />
-             </IconButton>
-           </Tooltip>
-         
-           {/* Help / FAQ icon */}
-           <Tooltip title="Go to Help Page" arrow>
-             <IconButton
-               color="inherit"
-               onClick={() => navigate("/help")}
-               sx={{ ml: 1, color: '#90ee90' }}
-             >
-               <HelpOutlineIcon />
-             </IconButton>
-           </Tooltip>
-         
-           {/* User Info */}
-           <Box
-             sx={{
-               display: "flex",
-               alignItems: "center",
-               ml: 2,
-               cursor: "pointer",
-               "&:hover": { opacity: 0.8 },
-             }}
-             onClick={() => navigate("/settings")}
-           >
-             <AccountCircleIcon sx={{ mr: 1 }} />
-             <Typography variant="subtitle1">
-               {user
-                 ? user.first_name
-                   ? `${user.first_name} ${user.last_name || ""} (${user.role || "User"})`
-                   : (user.username || user.email) +
-                     (user.role ? ` (${user.role})` : "")
-                 : "User"}
-             </Typography>
-           </Box>
-         
-           {/* Logout */}
-           <IconButton
-             color="inherit"
-             onClick={() => navigate("/login")}
-             sx={{ ml: 1 }}
-           >
-             <ExitToAppIcon />
-           </IconButton>
-         </Toolbar>
-                   
-                 </AppBar>
+        <AppBar
+          position="static"
+          sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
+        >
+          <Toolbar sx={{ justifyContent: "flex-end" }}>
+            {/* Tutorial icon */}
+            <Tooltip title="Run Tutorial" arrow>
+              <IconButton
+                onClick={() => {
+                  setTutorialStep(0);
+                  setFadeIn(true);
+                }}
+                sx={{ ml: 1, color: "#FFEB3B" }}
+              >
+                <LightbulbRoundedIcon />
+              </IconButton>
+            </Tooltip>
 
-        {/* Page Content */}
-        <Box sx={{ p: 3 }}>
-          <Paper
-            elevation={6}
-            sx={{ p: 3, borderRadius: 3, backgroundColor: "#bce4ff" }}
-          >
-            <Typography
-              variant="h5"
-              sx={{ fontWeight: "bold", color: "#0073c1", mb: 3 }}
-            >
-              Search Candidates
-            </Typography>
+            {/* Help / FAQ icon */}
+            <Tooltip title="Go to Help Page" arrow>
+              <IconButton
+                color="inherit"
+                onClick={() => navigate("/help")}
+                sx={{ ml: 1, color: "#90ee90" }}
+              >
+                <HelpOutlineIcon />
+              </IconButton>
+            </Tooltip>
 
-            {/* Search Bar */}
+            {/* User Info */}
             <Box
               sx={{
                 display: "flex",
                 alignItems: "center",
-                mb: 4,
-                bgcolor: "#fff",
-                borderRadius: 1,
-                px: 2,
-                py: 1,
+                ml: 2,
+                cursor: "pointer",
+                "&:hover": { opacity: 0.8 },
               }}
-              ref={searchBarRef}
+              onClick={() => navigate("/settings")}
             >
-              <SearchIcon color="action" />
-              <InputBase
-                placeholder="Search by name, skills, or project type..."
-                sx={{ ml: 1, flex: 1 }}
-                fullWidth
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-              />
+              <AccountCircleIcon sx={{ mr: 1 }} />
+              <Typography variant="subtitle1">
+                {user
+                  ? user.first_name
+                    ? `${user.first_name} ${user.last_name || ""} (${
+                        user.role || "User"
+                      })`
+                    : (user.username || user.email) +
+                      (user.role ? ` (${user.role})` : "")
+                  : "User"}
+              </Typography>
             </Box>
 
+            {/* Logout */}
+            <IconButton
+              color="inherit"
+              onClick={() => navigate("/login")}
+              sx={{ ml: 1 }}
+            >
+              <ExitToAppIcon />
+            </IconButton>
+          </Toolbar>
+        </AppBar>
+
+        {/* Page Content */}
+        <Box sx={{ p: 3 }}>
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: "bold",
+              mb: 3,
+              fontFamily: "Helvetica, sans-serif",
+              color: "#fff",
+            }}
+          >
+            Search Candidates
+          </Typography>
+          {/* Search Bar */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              mb: 4,
+              bgcolor: "#DEDDEE",
+              borderRadius: 1,
+              px: 2,
+              py: 1,
+              fontFamily: "Helvetica, sans-serif",
+            }}
+            ref={searchBarRef}
+          >
+            <SearchIcon color="action" />
+            <InputBase
+              placeholder="Search by name, skills, or project type..."
+              sx={{
+                ml: 1,
+                flex: 1,
+                fontFamily: "Helvetica, sans-serif",
+                fontSize: "1rem",
+              }}
+              fullWidth
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+            />
+          </Box>
+          <Paper
+            elevation={6}
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              backgroundColor: "#DEDDEE",
+              fontFamily: "Helvetica, sans-serif",
+              color: "#fff",
+            }}
+          >
             {/* Filters */}
             <Box sx={{ display: "flex", gap: 6, mb: 4 }} ref={checkboxesRef}>
               <Box>
                 <Typography
                   variant="subtitle1"
-                  sx={{ fontWeight: "bold", mb: 2 }}
+                  sx={{
+                    color: "#000000ff",
+                    fontWeight: "bold",
+                    mb: 2,
+                    fontFamily: "Helvetica, sans-serif",
+                    fontSize: "1rem",
+                  }}
                 >
                   Primary Skills
                 </Typography>
-                <FormGroup>
+                <FormGroup sx={{ color: "#000000ff" }}>
                   {[".NET", "Java", "React", "Azure"].map((skill) => (
                     <FormControlLabel
                       key={skill}
@@ -399,12 +366,21 @@ export default function Search() {
                           checked={selectedSkills.includes(skill)}
                           onChange={() => handleCheckboxChange("skill", skill)}
                           sx={{
-                            color: "#0073c1",
-                            "&.Mui-checked": { color: "#0073c1" },
+                            color: "#204E20", // green
+                            "&.Mui-checked": { color: "#204E20" }, //green
                           }}
                         />
                       }
-                      label={skill}
+                      label={
+                        <Typography
+                          sx={{
+                            fontFamily: "Helvetica, sans-serif",
+                            fontSize: "1rem",
+                          }}
+                        >
+                          {skill}
+                        </Typography>
+                      }
                     />
                   ))}
                 </FormGroup>
@@ -412,11 +388,17 @@ export default function Search() {
               <Box>
                 <Typography
                   variant="subtitle1"
-                  sx={{ fontWeight: "bold", mb: 2 }}
+                  sx={{
+                    color: "#000000ff",
+                    fontWeight: "bold",
+                    mb: 2,
+                    fontFamily: "Helvetica, sans-serif",
+                    fontSize: "1rem",
+                  }}
                 >
                   Project Fit
                 </Typography>
-                <FormGroup>
+                <FormGroup sx={{ color: "#000000ff" }}>
                   {["Technical", "Collaborative", "Business"].map((fit) => (
                     <FormControlLabel
                       key={fit}
@@ -425,12 +407,21 @@ export default function Search() {
                           checked={selectedFits.includes(fit)}
                           onChange={() => handleCheckboxChange("fit", fit)}
                           sx={{
-                            color: "#0073c1",
-                            "&.Mui-checked": { color: "#0073c1" },
+                            color: "#204E20", //green
+                            "&.Mui-checked": { color: "#204E20" }, //green
                           }}
                         />
                       }
-                      label={fit}
+                      label={
+                        <Typography
+                          sx={{
+                            fontFamily: "Helvetica, sans-serif",
+                            fontSize: "1rem",
+                          }}
+                        >
+                          {fit}
+                        </Typography>
+                      }
                     />
                   ))}
                 </FormGroup>
@@ -438,11 +429,17 @@ export default function Search() {
               <Box>
                 <Typography
                   variant="subtitle1"
-                  sx={{ fontWeight: "bold", mb: 2 }}
+                  sx={{
+                    color: "#000000ff",
+                    fontWeight: "bold",
+                    mb: 2,
+                    fontFamily: "Helvetica, sans-serif",
+                    fontSize: "1rem",
+                  }}
                 >
                   Upload Details
                 </Typography>
-                <FormGroup>
+                <FormGroup sx={{ color: "#000000ff" }}>
                   {["My Uploads", "Last 7 Days"].map((detail) => (
                     <FormControlLabel
                       key={detail}
@@ -453,12 +450,21 @@ export default function Search() {
                             handleCheckboxChange("detail", detail)
                           }
                           sx={{
-                            color: "#0073c1",
-                            "&.Mui-checked": { color: "#0073c1" },
+                            color: "#204E20", //green
+                            "&.Mui-checked": { color: "#204E20" }, //green
                           }}
                         />
                       }
-                      label={detail}
+                      label={
+                        <Typography
+                          sx={{
+                            fontFamily: "Helvetica, sans-serif",
+                            fontSize: "1rem",
+                          }}
+                        >
+                          {detail}
+                        </Typography>
+                      }
                     />
                   ))}
                 </FormGroup>
@@ -468,7 +474,16 @@ export default function Search() {
             <Divider sx={{ my: 3 }} />
 
             {/* Results Count */}
-            <Typography variant="subtitle1" sx={{ mb: 3, fontWeight: "bold" }}>
+            <Typography
+              variant="subtitle1"
+              sx={{
+                color: "#000000ff",
+                mb: 3,
+                fontWeight: "bold",
+                fontFamily: "Helvetica, sans-serif",
+                fontSize: "1rem",
+              }}
+            >
               Showing {filteredCandidates.length} of {candidates.length}{" "}
               candidates
             </Typography>
@@ -484,7 +499,7 @@ export default function Search() {
                       p: 3,
                       mb: 3,
                       borderRadius: 3,
-                      backgroundColor: "#e1f4ff",
+                      backgroundColor: "#adb6beff",
                       cursor: "pointer", // Shows it's clickable
                       "&:hover": {
                         boxShadow: "0 4px 8px rgba(0,0,0,0.2)", // Visual feedback
@@ -500,10 +515,12 @@ export default function Search() {
                     >
                       <Avatar
                         sx={{
-                          bgcolor: "#0073c1",
+                          bgcolor: "#93AFF7",
                           width: 56,
                           height: 56,
                           fontSize: "1.5rem",
+                          fontWeight: "bold",
+                          fontFamily: "Helvetica, sans-serif",
                         }}
                       >
                         {candidate.initials}
@@ -511,16 +528,33 @@ export default function Search() {
                       <Box sx={{ flexGrow: 1 }}>
                         <Typography
                           variant="h6"
-                          sx={{ fontWeight: "bold", mb: 0.5 }}
+                          sx={{
+                            fontWeight: "bold",
+                            mb: 0.5,
+                            fontFamily: "Helvetica, sans-serif",
+                            fontSize: "1.2rem",
+                          }}
                         >
                           {candidate.name}
                         </Typography>
-                        <Typography variant="body1" sx={{ mb: 1 }}>
+                        <Typography
+                          variant="body1"
+                          sx={{
+                            mb: 1,
+                            fontFamily: "Helvetica, sans-serif",
+                            fontSize: "1rem",
+                          }}
+                        >
                           {candidate.project}
                         </Typography>
                         <Typography
                           variant="body2"
-                          sx={{ mb: 1.5, color: "#555" }}
+                          sx={{
+                            mb: 1.5,
+                            color: "#black",
+                            fontFamily: "Helvetica, sans-serif",
+                            fontSize: "1rem",
+                          }}
                         >
                           Uploaded: {candidate.uploaded}
                         </Typography>
@@ -537,13 +571,24 @@ export default function Search() {
                               key={i}
                               label={skill}
                               size="small"
-                              sx={{ backgroundColor: "#d0e8ff" }}
+                              sx={{
+                                backgroundColor: "#93AFF7",
+                                fontFamily: "Helvetica, sans-serif",
+                                fontSize: "1rem",
+                                fontWeight: "bold",
+                                color: "#204E20",
+                              }}
                             />
                           ))}
                         </Box>
                         <Typography
                           variant="body2"
-                          sx={{ color: "#0073c1", fontWeight: "bold" }}
+                          sx={{
+                            color: "#204E20",
+                            fontWeight: "bold",
+                            fontFamily: "Helvetica, sans-serif",
+                            fontSize: "1rem",
+                          }}
                         >
                           Match: {candidate.match}
                         </Typography>
@@ -554,7 +599,13 @@ export default function Search() {
               ) : (
                 <Typography
                   variant="body1"
-                  sx={{ mt: 2, fontStyle: "italic", color: "#555" }}
+                  sx={{
+                    mt: 2,
+                    fontStyle: "italic",
+                    color: "#555",
+                    fontFamily: "Helvetica, sans-serif",
+                    fontSize: "1rem",
+                  }}
                 >
                   No results found. Try adjusting your search or filters.
                 </Typography>
@@ -562,7 +613,6 @@ export default function Search() {
             </div>
 
             {/* Pagination ... */}
-
           </Paper>
         </Box>
       </Box>

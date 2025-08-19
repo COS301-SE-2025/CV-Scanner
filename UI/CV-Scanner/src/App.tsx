@@ -15,6 +15,8 @@ import Settings from './pages/Settings';
 import AddUserPage from './pages/AddUserPage';
 import LandingPage from './pages/LandingPage';
 import Help from './pages/Help';
+import SystemSettingsPage from './pages/SystemSettings';
+import ParsedCVData from './pages/ParsedCVData';
 
 function App() {
   return (
@@ -23,21 +25,22 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-
-          <Route path="/dashboard" element={<CandidatesDashboard />} />
-          <Route path="/upload" element={<UploadCVPage />} />
-           <Route path="/candidates" element={<CandidatesPage />} />
-            <Route path="/search" element={<Search />} />
-            <Route path="/candidate-review" element={<CandidateReviewSummary />} />
-            <Route path="/candidate-skills" element={<CandidateSkillsPage />} />
-            <Route path="/candidate-experience" element={<CandidateExperiencePage />} />
-            <Route path="/candidate-notes" element={<CandidateNotesPage />} />
-            <Route path="/user-management" element={<UserManagementPage />} />
-             <Route path="/settings" element={<Settings />} />
-             <Route path="/add-user" element={<AddUserPage />} />
-             <Route path="/landing-page" element={<LandingPage />} />
-             <Route path="/help" element={<Help />} />
-       <Route path="*" element={<LandingPage />} />
+        <Route path="/dashboard" element={<CandidatesDashboard />} />
+        <Route path="/upload" element={<UploadCVPage />} />
+        <Route path="/candidates" element={<CandidatesPage />} />
+        <Route path="/search" element={<Search />} />
+        <Route path="/candidate-review" element={<CandidateReviewSummary />} />
+        <Route path="/candidate-skills" element={<CandidateSkillsPage />} />
+        <Route path="/candidate-experience" element={<CandidateExperiencePage />} />
+        <Route path="/candidate-notes" element={<CandidateNotesPage />} />
+        <Route path="/user-management" element={<UserManagementPage />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/add-user" element={<AddUserPage />} />
+        <Route path="/landing-page" element={<LandingPage />} />
+        <Route path="/help" element={<Help />} />
+        <Route path="/system-settings" element={<SystemSettingsPage />} />
+        <Route path="/parsed-cv" element={<ParsedCVData />} />
+        <Route path="*" element={<LandingPage />} />
       </Routes>
     </BrowserRouter>
   );
