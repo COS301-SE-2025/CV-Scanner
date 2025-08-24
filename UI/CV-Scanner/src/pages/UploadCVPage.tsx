@@ -104,20 +104,8 @@ export default function UploadCVPage() {
       setAnchorEl(candidateDetailsRef.current);
     else if (tutorialStep === 2 && file && cvTableRef.current)
       setAnchorEl(cvTableRef.current);
-    else if (tutorialStep === 3 && additionalInfoRef.current)
-      setAnchorEl(additionalInfoRef.current);
-    else if (tutorialStep === 4 && processBtnRef.current)
-      setAnchorEl(processBtnRef.current);
-    else if (
-      tutorialStep === 5 &&
-      file &&
-      user?.role === "Admin" &&
-      configJson &&
-      configBoxRef.current
-    )
-      setAnchorEl(configBoxRef.current);
-    else setAnchorEl(null);
-  }, [tutorialStep, file, user, configJson]);
+    else setAnchorEl(null); // Only show up to step 2 (table)
+  }, [tutorialStep, file]);
 
   // Load config from Spring when admin and a file is selected (reveals the box)
   useEffect(() => {
@@ -831,7 +819,7 @@ export default function UploadCVPage() {
         open={
           showTutorial &&
           tutorialStep >= 0 &&
-          tutorialStep <= 4 &&
+          tutorialStep <= 2 &&
           Boolean(anchorEl)
         }
         anchorEl={anchorEl}
@@ -892,39 +880,6 @@ export default function UploadCVPage() {
                 </Typography>
               </>
             )}
-            {tutorialStep === 3 && (
-              <>
-                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-                  Step 4: Additional Information
-                </Typography>
-                <Typography sx={{ mb: 2 }}>
-                  Fill in any extra details about the candidate or the CV here.
-                </Typography>
-              </>
-            )}
-            {tutorialStep === 4 && (
-              <>
-                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-                  Step 5: Process the CV
-                </Typography>
-                <Typography sx={{ mb: 2 }}>
-                  When you're ready, click <b>Process CV</b> to extract skills
-                  and information from the uploaded file.
-                </Typography>
-              </>
-            )}
-            {tutorialStep === 5 && (
-              <>
-                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-                  Step 6: CV Extraction Configuration (Admin Only)
-                </Typography>
-                <Typography sx={{ mb: 2 }}>
-                  As an admin, you can view and edit the CV extraction
-                  configuration here. This controls how candidate data is
-                  extracted from the CV.
-                </Typography>
-              </>
-            )}
             <Box
               sx={{
                 display: "flex",
@@ -964,7 +919,7 @@ export default function UploadCVPage() {
                     Previous
                   </Button>
                 )}
-                {tutorialStep < 5 ? (
+                {tutorialStep < 2 ? (
                   <Button
                     variant="contained"
                     onClick={() => handleStepChange(tutorialStep + 1)}
