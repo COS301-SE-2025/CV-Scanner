@@ -84,6 +84,7 @@ export default function UploadCVPage() {
   const uploadBoxRef = useRef<HTMLDivElement>(null);
   const additionalInfoRef = useRef<HTMLInputElement>(null);
   const processBtnRef = useRef<HTMLButtonElement>(null);
+  const configBoxRef = useRef<HTMLDivElement>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -107,8 +108,16 @@ export default function UploadCVPage() {
       setAnchorEl(additionalInfoRef.current);
     else if (tutorialStep === 4 && processBtnRef.current)
       setAnchorEl(processBtnRef.current);
+    else if (
+      tutorialStep === 5 &&
+      file &&
+      user?.role === "Admin" &&
+      configJson &&
+      configBoxRef.current
+    )
+      setAnchorEl(configBoxRef.current);
     else setAnchorEl(null);
-  }, [tutorialStep, file]);
+  }, [tutorialStep, file, user, configJson]);
 
   // Load config from Spring when admin and a file is selected (reveals the box)
   useEffect(() => {
@@ -535,7 +544,10 @@ export default function UploadCVPage() {
 
             {/* Admin-only config editor, visible only if a file is uploaded */}
             {file && user?.role === "Admin" && (
-              <Paper sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: "#f5f5f5" }}>
+              <Paper
+                ref={configBoxRef}
+                sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: "#f5f5f5" }}
+              >
                 <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
                   CV Extraction Configuration
                 </Typography>
@@ -901,6 +913,18 @@ export default function UploadCVPage() {
                 </Typography>
               </>
             )}
+            {tutorialStep === 5 && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Step 6: CV Extraction Configuration (Admin Only)
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  As an admin, you can view and edit the CV extraction
+                  configuration here. This controls how candidate data is
+                  extracted from the CV.
+                </Typography>
+              </>
+            )}
             <Box
               sx={{
                 display: "flex",
@@ -940,7 +964,7 @@ export default function UploadCVPage() {
                     Previous
                   </Button>
                 )}
-                {tutorialStep < 4 ? (
+                {tutorialStep < 5 ? (
                   <Button
                     variant="contained"
                     onClick={() => handleStepChange(tutorialStep + 1)}
