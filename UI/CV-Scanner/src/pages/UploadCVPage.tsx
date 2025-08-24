@@ -429,7 +429,21 @@ export default function UploadCVPage() {
             </Box>
 
             {/* Candidate Details Section */}
-            <Box ref={candidateDetailsRef}>
+            <Box
+              ref={candidateDetailsRef}
+              sx={{
+                zIndex: showTutorial && tutorialStep === 1 ? 1501 : "auto",
+                boxShadow:
+                  showTutorial && tutorialStep === 1
+                    ? "0 0 0 6px #fff, 0 8px 32px 0 rgba(31,38,135,0.37)"
+                    : undefined,
+                transform:
+                  showTutorial && tutorialStep === 1 ? "scale(1.04)" : "none",
+                transition: "box-shadow 0.3s, transform 0.3s",
+                position:
+                  showTutorial && tutorialStep === 1 ? "relative" : "static",
+              }}
+            >
               <TextField
                 label="Candidate Name"
                 fullWidth
@@ -516,7 +530,21 @@ export default function UploadCVPage() {
 
             {/* CV Table Section */}
             {file && (
-              <Box ref={cvTableRef}>
+              <Box
+                ref={cvTableRef}
+                sx={{
+                  zIndex: showTutorial && tutorialStep === 2 ? 1501 : "auto",
+                  boxShadow:
+                    showTutorial && tutorialStep === 2
+                      ? "0 0 0 6px #fff, 0 8px 32px 0 rgba(31,38,135,0.37)"
+                      : undefined,
+                  transform:
+                    showTutorial && tutorialStep === 2 ? "scale(1.04)" : "none",
+                  transition: "box-shadow 0.3s, transform 0.3s",
+                  position:
+                    showTutorial && tutorialStep === 2 ? "relative" : "static",
+                }}
+              >
                 <TableContainer sx={{ mb: 3 }}>
                   <Table
                     sx={{
@@ -916,7 +944,7 @@ export default function UploadCVPage() {
             borderRadius: 2,
             boxShadow: 6,
             minWidth: 280,
-            zIndex: 1500,
+            zIndex: 1502, // higher than overlay and focused box
             textAlign: "center",
           },
         }}
