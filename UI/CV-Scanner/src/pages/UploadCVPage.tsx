@@ -44,6 +44,7 @@ export default function UploadCVPage() {
   const [candidateName, setCandidateName] = useState("");
   const [candidateSurname, setCandidateSurname] = useState("");
   const [candidateEmail, setCandidateEmail] = useState("");
+  const candidateDetailsRef = useRef<HTMLDivElement>(null);
 
   // Config editor state
   const [configJson, setConfigJson] = useState<string>("");
@@ -97,9 +98,11 @@ export default function UploadCVPage() {
   useEffect(() => {
     if (tutorialStep === 0 && uploadBoxRef.current)
       setAnchorEl(uploadBoxRef.current);
-    else if (tutorialStep === 1 && additionalInfoRef.current)
+    else if (tutorialStep === 1 && candidateDetailsRef.current)
+      setAnchorEl(candidateDetailsRef.current);
+    else if (tutorialStep === 2 && additionalInfoRef.current)
       setAnchorEl(additionalInfoRef.current);
-    else if (tutorialStep === 2 && processBtnRef.current)
+    else if (tutorialStep === 3 && processBtnRef.current)
       setAnchorEl(processBtnRef.current);
     else setAnchorEl(null);
   }, [tutorialStep]);
@@ -399,85 +402,91 @@ export default function UploadCVPage() {
               </Box>
             </Box>
 
-            <TextField
-              label="Candidate Name"
-              fullWidth
-              required
-              variant="outlined"
-              value={candidateName}
-              onChange={(e) => setCandidateName(e.target.value)}
-              sx={{
-                fontFamily: "Helvetica, sans-serif",
-                mb: 3,
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": { borderColor: "#000000ff" },
+            {/* Candidate Details Section */}
+            <Box ref={candidateDetailsRef}>
+              <TextField
+                label="Candidate Name"
+                fullWidth
+                required
+                variant="outlined"
+                value={candidateName}
+                onChange={(e) => setCandidateName(e.target.value)}
+                sx={{
                   fontFamily: "Helvetica, sans-serif",
-                  fontSize: "1rem",
-                  color: "#000000ff",
-                },
-              }}
-              InputLabelProps={{
-                sx: {
-                  color: "#000000ff",
-                  "&.Mui-focused": { borderColor: "#204E20", color: "#204E20" },
-                  fontFamily: "Helvetica, sans-serif",
-                  fontWeight: "bold",
-                },
-              }}
-            />
+                  mb: 3,
+                  "& .MuiOutlinedInput-root": {
+                    "& fieldset": { borderColor: "#000000ff" },
+                    fontFamily: "Helvetica, sans-serif",
+                    fontSize: "1rem",
+                    color: "#000000ff",
+                  },
+                }}
+                InputLabelProps={{
+                  sx: {
+                    color: "#000000ff",
+                    "&.Mui-focused": {
+                      borderColor: "#204E20",
+                      color: "#204E20",
+                    },
+                    fontFamily: "Helvetica, sans-serif",
+                    fontWeight: "bold",
+                  },
+                }}
+              />
 
-            <TextField
-              label="Candidate Surname"
-              fullWidth
-              required
-              variant="outlined"
-              value={candidateSurname}
-              onChange={(e) => setCandidateSurname(e.target.value)}
-              sx={{
-                mb: 3,
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": { borderColor: "#000000ff" },
-                  fontFamily: "Helvetica, sans-serif",
-                  fontSize: "1rem",
-                  color: "#000000ff",
-                },
-              }}
-              InputLabelProps={{
-                sx: {
-                  "&.Mui-focused": { color: "#204E20" },
-                  fontFamily: "Helvetica, sans-serif",
-                  fontWeight: "bold",
-                  color: "#000000ff",
-                },
-              }}
-            />
+              <TextField
+                label="Candidate Surname"
+                fullWidth
+                required
+                variant="outlined"
+                value={candidateSurname}
+                onChange={(e) => setCandidateSurname(e.target.value)}
+                sx={{
+                  mb: 3,
+                  "& .MuiOutlinedInput-root": {
+                    "& fieldset": { borderColor: "#000000ff" },
+                    fontFamily: "Helvetica, sans-serif",
+                    fontSize: "1rem",
+                    color: "#000000ff",
+                  },
+                }}
+                InputLabelProps={{
+                  sx: {
+                    "&.Mui-focused": { color: "#204E20" },
+                    fontFamily: "Helvetica, sans-serif",
+                    fontWeight: "bold",
+                    color: "#000000ff",
+                  },
+                }}
+              />
 
-            <TextField
-              label="Candidate Email"
-              fullWidth
-              required
-              type="email"
-              variant="outlined"
-              value={candidateEmail}
-              onChange={(e) => setCandidateEmail(e.target.value)}
-              sx={{
-                mb: 3,
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": { borderColor: "#000000ff" },
-                  fontFamily: "Helvetica, sans-serif",
-                  fontSize: "1rem",
-                  color: "#000000ff",
-                },
-              }}
-              InputLabelProps={{
-                sx: {
-                  "&.Mui-focused": { color: "#204E20" },
-                  fontFamily: "Helvetica, sans-serif",
-                  fontWeight: "bold",
-                  color: "#000000ff",
-                },
-              }}
-            />
+              <TextField
+                label="Candidate Email"
+                fullWidth
+                required
+                type="email"
+                variant="outlined"
+                value={candidateEmail}
+                onChange={(e) => setCandidateEmail(e.target.value)}
+                sx={{
+                  mb: 3,
+                  "& .MuiOutlinedInput-root": {
+                    "& fieldset": { borderColor: "#000000ff" },
+                    fontFamily: "Helvetica, sans-serif",
+                    fontSize: "1rem",
+                    color: "#000000ff",
+                  },
+                }}
+                InputLabelProps={{
+                  sx: {
+                    "&.Mui-focused": { color: "#204E20" },
+                    fontFamily: "Helvetica, sans-serif",
+                    fontWeight: "bold",
+                    color: "#000000ff",
+                  },
+                }}
+              />
+            </Box>
 
             {file && (
               <TableContainer sx={{ mb: 3 }}>
@@ -802,7 +811,7 @@ export default function UploadCVPage() {
         open={
           showTutorial &&
           tutorialStep >= 0 &&
-          tutorialStep <= 2 &&
+          tutorialStep <= 3 &&
           Boolean(anchorEl)
         }
         anchorEl={anchorEl}
@@ -844,17 +853,28 @@ export default function UploadCVPage() {
             {tutorialStep === 1 && (
               <>
                 <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-                  Step 2: Additional Information
+                  Step 2: Candidate Details
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
-                  Fill in any extra details about the candidate or the CV here.
+                  Enter the candidate's name, surname, and email address in
+                  these fields.
                 </Typography>
               </>
             )}
             {tutorialStep === 2 && (
               <>
                 <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-                  Step 3: Process the CV
+                  Step 3: Additional Information
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  Fill in any extra details about the candidate or the CV here.
+                </Typography>
+              </>
+            )}
+            {tutorialStep === 3 && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Step 4: Process the CV
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
                   When you're ready, click <b>Process CV</b> to extract skills
@@ -901,7 +921,7 @@ export default function UploadCVPage() {
                     Previous
                   </Button>
                 )}
-                {tutorialStep < 2 ? (
+                {tutorialStep < 3 ? (
                   <Button
                     variant="contained"
                     onClick={() => handleStepChange(tutorialStep + 1)}
