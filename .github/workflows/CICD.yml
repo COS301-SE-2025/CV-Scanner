@@ -1,28 +1,88 @@
-name: Java CI with Maven
+name: CI
 
 on:
   push:
-    branches: [ main,dev ]
+    branches: [main, dev, API-3]
   pull_request:
-    branches: [ main,dev ]
+    branches: [main, dev, API-3]
 
 jobs:
-  build:
+  api:
+    name: Build API (Java/Maven)
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up JDK 21
-      uses: actions/setup-java@v4
-      with:
-        java-version: '21'
-        distribution: 'temurin'
+      - name: Cache Maven repo
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ runner.os }}-${{ hashFiles('API/api/pom.xml') }}
+          restore-keys: maven-${{ runner.os }}-
 
-    - name: Build with Maven
-      run: mvn -B package --file API/api/pom.xml
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
 
-    - name: Run tests
-      run: mvn -f API/api/pom.xml test
-      
+      - name: Build with Maven
+        run: mvn -B -f API/api/pom.xml package
+
+      - name: Run tests
+        run: mvn -f API/api/pom.xml test
+
+  ai:
+    name: Build AI (Python/FastAPI)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ hashFiles('AI/requirements*.txt') }}
+          restore-keys: pip-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f AI/requirements.txt ]; then
+            pip install -r AI/requirements.txt
+          else
+            pip install fastapi uvicorn pydantic pytest
+          fi
+
+  ui:
+    name: Build UI (Node/React)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: UI/CV-Scanner/package-lock.json
+
+      - name: Install deps
+        working-directory: UI/CV-Scanner
+        run: npm ci
+
+      - name: Build UI
+        working-directory: UI/CV-Scanner
+        run: npx vite build
+
+      - name: Test UI
+        working-directory: UI/CV-Scanner
+        run: npm test --if-present -- --watchAll=false

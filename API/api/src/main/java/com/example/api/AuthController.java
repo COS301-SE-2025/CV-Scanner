@@ -1,9 +1,19 @@
 package com.example.api;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.Map;
+import java.util.List;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -17,6 +27,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.annotation.PostConstruct;
+
 @RestController
 @CrossOrigin(origins = "*")
 @RequestMapping("/auth")
@@ -26,6 +38,9 @@ public class AuthController {
     private JdbcTemplate jdbcTemplate;
 
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private String categoriesFilePathProp = null; 
+    private java.nio.file.Path categoriesPath;
+    private com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
 
     public void setJdbcTemplate(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
@@ -291,6 +306,90 @@ public class AuthController {
         }
     }
 
+    @PostConstruct
+    public void initCategoriesPath() throws IOException {
+        if (categoriesFilePathProp != null && !categoriesFilePathProp.isBlank()) {
+            categoriesPath = Paths.get(categoriesFilePathProp).toAbsolutePath().normalize();
+        } else {
+            // Fallback: <repo root>\AI\categories.json
+            Path userDir = Paths.get(System.getProperty("user.dir")).toAbsolutePath();
+            // user.dir ≈ ...\CV-Scanner\API\api → go up 2 to CV-Scanner
+            Path projectRoot = userDir.getParent() != null && userDir.getParent().getParent() != null
+                ? userDir.getParent().getParent()
+                : userDir;
+            categoriesPath = projectRoot.resolve("AI").resolve("categories.json");
+        }
+
+        if (Files.notExists(categoriesPath)) {
+            Files.createDirectories(categoriesPath.getParent());
+            // Seed default structure if missing
+            Map<String, List<String>> seed = Map.of(
+                "Skills", List.of("Writer", "Coder", "Backend", "Manager", "HR Supervisor"),
+                "Education", List.of("Matric", "Diploma", "Bachelor", "Honours", "Masters", "PhD"),
+                "Experience", List.of("Intern", "Junior", "Mid", "Senior", "Lead")
+            );
+            writeJson(seed);
+        }
+    }
+
+    @GetMapping("/config/categories")
+    public ResponseEntity<?> getCategories() {
+        try {
+            Map<String, Object> data = readJson();
+            return ResponseEntity.ok(data);
+        } catch (NoSuchFileException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("detail", "categories.json not found"));
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(Map.of("detail", "Failed to parse categories.json: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/config/categories")
+    public ResponseEntity<?> updateCategories(@RequestBody Map<String, Object> payload) {
+        try {
+            validatePayload(payload);
+            writeJson(payload);
+            return ResponseEntity.ok(Map.of("status", "ok", "message", "categories.json updated"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("detail", ex.getMessage()));
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("detail", "Failed to write categories.json: " + e.getMessage()));
+        }
+    }
+
+    // ----- helpers -----
+    private Map<String, Object> readJson() throws IOException {
+        byte[] bytes = Files.readAllBytes(categoriesPath);
+        return mapper.readValue(bytes, new TypeReference<Map<String, Object>>() {});
+    }
+
+    private void writeJson(Object obj) throws IOException {
+        byte[] bytes = mapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(obj);
+        Files.writeString(
+            categoriesPath,
+            new String(bytes, StandardCharsets.UTF_8),
+            StandardOpenOption.CREATE,
+            StandardOpenOption.TRUNCATE_EXISTING
+        );
+    }
+
+    private void validatePayload(Map<String, Object> payload) {
+        if (payload == null || payload.isEmpty())
+            throw new IllegalArgumentException("Body must be a non-empty JSON object.");
+
+        for (Map.Entry<String, Object> e : payload.entrySet()) {
+            Object v = e.getValue();
+            if (!(v instanceof List<?> list))
+                throw new IllegalArgumentException("Key '" + e.getKey() + "' must be an array.");
+            for (Object item : list) {
+                if (!(item instanceof String))
+                    throw new IllegalArgumentException("All entries under '" + e.getKey() + "' must be strings.");
+            }
+        }
+    }
 }
 
 class RegisterRequest {
