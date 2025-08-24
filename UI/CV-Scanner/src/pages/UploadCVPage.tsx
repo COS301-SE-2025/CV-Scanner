@@ -45,6 +45,7 @@ export default function UploadCVPage() {
   const [candidateSurname, setCandidateSurname] = useState("");
   const [candidateEmail, setCandidateEmail] = useState("");
   const candidateDetailsRef = useRef<HTMLDivElement>(null);
+  const cvTableRef = useRef<HTMLDivElement>(null);
 
   // Config editor state
   const [configJson, setConfigJson] = useState<string>("");
@@ -100,12 +101,14 @@ export default function UploadCVPage() {
       setAnchorEl(uploadBoxRef.current);
     else if (tutorialStep === 1 && candidateDetailsRef.current)
       setAnchorEl(candidateDetailsRef.current);
-    else if (tutorialStep === 2 && additionalInfoRef.current)
+    else if (tutorialStep === 2 && file && cvTableRef.current)
+      setAnchorEl(cvTableRef.current);
+    else if (tutorialStep === 3 && additionalInfoRef.current)
       setAnchorEl(additionalInfoRef.current);
-    else if (tutorialStep === 3 && processBtnRef.current)
+    else if (tutorialStep === 4 && processBtnRef.current)
       setAnchorEl(processBtnRef.current);
     else setAnchorEl(null);
-  }, [tutorialStep]);
+  }, [tutorialStep, file]);
 
   // Load config from Spring when admin and a file is selected (reveals the box)
   useEffect(() => {
@@ -488,41 +491,46 @@ export default function UploadCVPage() {
               />
             </Box>
 
+            {/* CV Table Section */}
             {file && (
-              <TableContainer sx={{ mb: 3 }}>
-                <Table
-                  sx={{
-                    "& td, & th": {
-                      color: "#000000ff",
-                      fontFamily: "Helvetica, sans-serif",
-                      fontSize: "1rem",
-                    },
-                  }}
-                >
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: "bold" }}>
-                        File Name
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: "bold" }}>Size</TableCell>
-                      <TableCell sx={{ fontWeight: "bold" }}>Action</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell>{file.name}</TableCell>
-                      <TableCell>
-                        {(file.size / 1024 / 1024).toFixed(2)} MB
-                      </TableCell>
-                      <TableCell>
-                        <IconButton color="error" onClick={handleRemove}>
-                          <DeleteIcon />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              <Box ref={cvTableRef}>
+                <TableContainer sx={{ mb: 3 }}>
+                  <Table
+                    sx={{
+                      "& td, & th": {
+                        color: "#000000ff",
+                        fontFamily: "Helvetica, sans-serif",
+                        fontSize: "1rem",
+                      },
+                    }}
+                  >
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: "bold" }}>
+                          File Name
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: "bold" }}>Size</TableCell>
+                        <TableCell sx={{ fontWeight: "bold" }}>
+                          Action
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>{file.name}</TableCell>
+                        <TableCell>
+                          {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </TableCell>
+                        <TableCell>
+                          <IconButton color="error" onClick={handleRemove}>
+                            <DeleteIcon />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
             )}
 
             {/* Admin-only config editor, visible only if a file is uploaded */}
@@ -811,7 +819,7 @@ export default function UploadCVPage() {
         open={
           showTutorial &&
           tutorialStep >= 0 &&
-          tutorialStep <= 3 &&
+          tutorialStep <= 4 &&
           Boolean(anchorEl)
         }
         anchorEl={anchorEl}
@@ -864,17 +872,28 @@ export default function UploadCVPage() {
             {tutorialStep === 2 && (
               <>
                 <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-                  Step 3: Additional Information
+                  Step 3: CV Table
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
-                  Fill in any extra details about the candidate or the CV here.
+                  Here you can see the uploaded CV file. You can remove it if
+                  needed before processing.
                 </Typography>
               </>
             )}
             {tutorialStep === 3 && (
               <>
                 <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-                  Step 4: Process the CV
+                  Step 4: Additional Information
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  Fill in any extra details about the candidate or the CV here.
+                </Typography>
+              </>
+            )}
+            {tutorialStep === 4 && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Step 5: Process the CV
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
                   When you're ready, click <b>Process CV</b> to extract skills
@@ -921,7 +940,7 @@ export default function UploadCVPage() {
                     Previous
                   </Button>
                 )}
-                {tutorialStep < 3 ? (
+                {tutorialStep < 4 ? (
                   <Button
                     variant="contained"
                     onClick={() => handleStepChange(tutorialStep + 1)}
