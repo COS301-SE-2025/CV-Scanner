@@ -111,6 +111,13 @@ export default function UploadCVPage() {
       configBoxRef.current
     )
       setAnchorEl(configBoxRef.current);
+    else if (
+      tutorialStep === 3 &&
+      file &&
+      user?.role !== "Admin" &&
+      processBtnRef.current
+    )
+      setAnchorEl(processBtnRef.current);
     else if (tutorialStep === 4 && processBtnRef.current)
       setAnchorEl(processBtnRef.current);
     else setAnchorEl(null);
@@ -889,7 +896,7 @@ export default function UploadCVPage() {
                 </Typography>
               </>
             )}
-            {tutorialStep === 3 && (
+            {tutorialStep === 3 && user?.role === "Admin" && (
               <>
                 <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
                   Step 4: CV Extraction Configuration (Admin Only)
@@ -897,6 +904,17 @@ export default function UploadCVPage() {
                 <Typography sx={{ mb: 2 }}>
                   As an admin, you can view and edit the CV extraction
                   configuration here.
+                </Typography>
+              </>
+            )}
+            {tutorialStep === 3 && user?.role !== "Admin" && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Step 4: Process the CV
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  When you're ready, click <b>Process CV</b> to extract skills
+                  and information from the uploaded file.
                 </Typography>
               </>
             )}
