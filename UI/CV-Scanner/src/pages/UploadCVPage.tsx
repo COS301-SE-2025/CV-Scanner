@@ -104,8 +104,17 @@ export default function UploadCVPage() {
       setAnchorEl(candidateDetailsRef.current);
     else if (tutorialStep === 2 && file && cvTableRef.current)
       setAnchorEl(cvTableRef.current);
-    else setAnchorEl(null); // Only show up to step 2 (table)
-  }, [tutorialStep, file]);
+    else if (
+      tutorialStep === 3 &&
+      file &&
+      user?.role === "Admin" &&
+      configBoxRef.current
+    )
+      setAnchorEl(configBoxRef.current);
+    else if (tutorialStep === 4 && processBtnRef.current)
+      setAnchorEl(processBtnRef.current);
+    else setAnchorEl(null);
+  }, [tutorialStep, file, user]);
 
   // Load config from Spring when admin and a file is selected (reveals the box)
   useEffect(() => {
@@ -819,7 +828,7 @@ export default function UploadCVPage() {
         open={
           showTutorial &&
           tutorialStep >= 0 &&
-          tutorialStep <= 2 &&
+          tutorialStep <= 4 &&
           Boolean(anchorEl)
         }
         anchorEl={anchorEl}
@@ -880,6 +889,28 @@ export default function UploadCVPage() {
                 </Typography>
               </>
             )}
+            {tutorialStep === 3 && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Step 4: CV Extraction Configuration (Admin Only)
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  As an admin, you can view and edit the CV extraction
+                  configuration here.
+                </Typography>
+              </>
+            )}
+            {tutorialStep === 4 && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Step 5: Process the CV
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  When you're ready, click <b>Process CV</b> to extract skills
+                  and information from the uploaded file.
+                </Typography>
+              </>
+            )}
             <Box
               sx={{
                 display: "flex",
@@ -919,7 +950,7 @@ export default function UploadCVPage() {
                     Previous
                   </Button>
                 )}
-                {tutorialStep < 2 ? (
+                {tutorialStep < 4 ? (
                   <Button
                     variant="contained"
                     onClick={() => handleStepChange(tutorialStep + 1)}
