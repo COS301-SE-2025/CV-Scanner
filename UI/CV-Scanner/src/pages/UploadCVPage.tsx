@@ -394,16 +394,6 @@ export default function UploadCVPage() {
                 flexDirection: "column",
                 mb: 3,
                 bgcolor: "#cbd5e0",
-                zIndex: showTutorial && tutorialStep === 0 ? 1501 : "auto",
-                boxShadow:
-                  showTutorial && tutorialStep === 0
-                    ? "0 0 0 6px #fff, 0 8px 32px 0 rgba(31,38,135,0.37)"
-                    : undefined,
-                transform:
-                  showTutorial && tutorialStep === 0 ? "scale(1.04)" : "none",
-                transition: "box-shadow 0.3s, transform 0.3s",
-                position:
-                  showTutorial && tutorialStep === 0 ? "relative" : "static",
               }}
             >
               <CloudUploadIcon fontSize="large" />
@@ -432,16 +422,7 @@ export default function UploadCVPage() {
             <Box
               ref={candidateDetailsRef}
               sx={{
-                zIndex: showTutorial && tutorialStep === 1 ? 1501 : "auto",
-                boxShadow:
-                  showTutorial && tutorialStep === 1
-                    ? "0 0 0 6px #fff, 0 8px 32px 0 rgba(31,38,135,0.37)"
-                    : undefined,
-                transform:
-                  showTutorial && tutorialStep === 1 ? "scale(1.04)" : "none",
-                transition: "box-shadow 0.3s, transform 0.3s",
-                position:
-                  showTutorial && tutorialStep === 1 ? "relative" : "static",
+                // No highlight/focus styles
               }}
             >
               <TextField
@@ -533,16 +514,7 @@ export default function UploadCVPage() {
               <Box
                 ref={cvTableRef}
                 sx={{
-                  zIndex: showTutorial && tutorialStep === 2 ? 1501 : "auto",
-                  boxShadow:
-                    showTutorial && tutorialStep === 2
-                      ? "0 0 0 6px #fff, 0 8px 32px 0 rgba(31,38,135,0.37)"
-                      : undefined,
-                  transform:
-                    showTutorial && tutorialStep === 2 ? "scale(1.04)" : "none",
-                  transition: "box-shadow 0.3s, transform 0.3s",
-                  position:
-                    showTutorial && tutorialStep === 2 ? "relative" : "static",
+                  // No highlight/focus styles
                 }}
               >
                 <TableContainer sx={{ mb: 3 }}>
@@ -593,16 +565,6 @@ export default function UploadCVPage() {
                   mb: 3,
                   borderRadius: 2,
                   bgcolor: "#f5f5f5",
-                  zIndex: showTutorial && tutorialStep === 3 ? 1501 : "auto",
-                  boxShadow:
-                    showTutorial && tutorialStep === 3
-                      ? "0 0 0 6px #fff, 0 8px 32px 0 rgba(31,38,135,0.37)"
-                      : undefined,
-                  transform:
-                    showTutorial && tutorialStep === 3 ? "scale(1.04)" : "none",
-                  transition: "box-shadow 0.3s, transform 0.3s",
-                  position:
-                    showTutorial && tutorialStep === 3 ? "relative" : "static",
                 }}
               >
                 <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
@@ -694,41 +656,6 @@ export default function UploadCVPage() {
                   sx={reviewButtonStyle}
                   onClick={handleProcess}
                   ref={processBtnRef}
-                  zIndex={
-                    showTutorial &&
-                    ((tutorialStep === 3 && user?.role !== "Admin") ||
-                      tutorialStep === 4)
-                      ? 1501
-                      : "auto"
-                  }
-                  sx={{
-                    ...reviewButtonStyle,
-                    zIndex:
-                      showTutorial &&
-                      ((tutorialStep === 3 && user?.role !== "Admin") ||
-                        tutorialStep === 4)
-                        ? 1501
-                        : "auto",
-                    boxShadow:
-                      showTutorial &&
-                      ((tutorialStep === 3 && user?.role !== "Admin") ||
-                        tutorialStep === 4)
-                        ? "0 0 0 6px #fff, 0 8px 32px 0 rgba(31,38,135,0.37)"
-                        : undefined,
-                    transform:
-                      showTutorial &&
-                      ((tutorialStep === 3 && user?.role !== "Admin") ||
-                        tutorialStep === 4)
-                        ? "scale(1.04)"
-                        : "none",
-                    transition: "box-shadow 0.3s, transform 0.3s",
-                    position:
-                      showTutorial &&
-                      ((tutorialStep === 3 && user?.role !== "Admin") ||
-                        tutorialStep === 4)
-                        ? "relative"
-                        : "static",
-                  }}
                 >
                   Process CV
                 </Button>
@@ -1090,22 +1017,6 @@ export default function UploadCVPage() {
           </Box>
         </Fade>
       </Popover>
-
-      {showTutorial && Boolean(anchorEl) && (
-        <Box
-          sx={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            bgcolor: "rgba(30, 30, 30, 0.55)",
-            zIndex: 1400,
-            pointerEvents: "none",
-            transition: "background 0.3s",
-          }}
-        />
-      )}
     </Box>
   );
 }
