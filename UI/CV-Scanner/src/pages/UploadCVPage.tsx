@@ -80,6 +80,7 @@ export default function UploadCVPage() {
   const [fadeIn, setFadeIn] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [sidebarAnimating, setSidebarAnimating] = useState(false);
 
   const uploadBoxRef = useRef<HTMLDivElement>(null);
   const additionalInfoRef = useRef<HTMLInputElement>(null);
@@ -287,12 +288,17 @@ export default function UploadCVPage() {
         bgcolor: "#1E1E1E",
         color: "#fff",
         fontFamily: "Helvetica, sans-serif",
+        
       }}
     >
       <Sidebar
         userRole={user?.role || devUser.role}
         collapsed={collapsed}
-        setCollapsed={setCollapsed}
+        setCollapsed={(val) => {
+          setCollapsed(val);
+          setSidebarAnimating(true);
+          setTimeout(() => setSidebarAnimating(false), 300); // match sidebar animation duration
+        }}
       />
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
         <AppBar
