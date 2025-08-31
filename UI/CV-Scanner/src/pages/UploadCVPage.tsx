@@ -421,9 +421,11 @@ export default function UploadCVPage() {
             {/* Candidate Details Section */}
             <Box
               ref={candidateDetailsRef}
-              sx={{
-                // No highlight/focus styles
-              }}
+              sx={
+                {
+                  // No highlight/focus styles
+                }
+              }
             >
               <TextField
                 label="Candidate Name"
@@ -513,9 +515,11 @@ export default function UploadCVPage() {
             {file && (
               <Box
                 ref={cvTableRef}
-                sx={{
-                  // No highlight/focus styles
-                }}
+                sx={
+                  {
+                    // No highlight/focus styles
+                  }
+                }
               >
                 <TableContainer sx={{ mb: 3 }}>
                   <Table
