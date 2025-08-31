@@ -32,6 +32,7 @@ import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import Sidebar from "./Sidebar";
 
 const CONFIG_BASE = "http://localhost:8081"; // Spring Boot base (AuthController)
@@ -80,11 +81,15 @@ export default function UploadCVPage() {
   const [fadeIn, setFadeIn] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [sidebarAnimating, setSidebarAnimating] = useState(false);
 
   const uploadBoxRef = useRef<HTMLDivElement>(null);
   const additionalInfoRef = useRef<HTMLInputElement>(null);
   const processBtnRef = useRef<HTMLButtonElement>(null);
   const configBoxRef = useRef<HTMLDivElement>(null);
+
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -190,12 +195,19 @@ export default function UploadCVPage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
-    if (selected) setFile(selected);
+    if (selected) {
+      setFile(selected);
+      setPdfUrl(URL.createObjectURL(selected));
+    }
   };
 
   const handleRemove = () => {
     setFile(null);
     setProcessedData(null);
+    if (pdfUrl) {
+      URL.revokeObjectURL(pdfUrl);
+      setPdfUrl(null);
+    }
     const fileInput = document.getElementById(
       "file-upload"
     ) as HTMLInputElement;
@@ -292,7 +304,11 @@ export default function UploadCVPage() {
       <Sidebar
         userRole={user?.role || devUser.role}
         collapsed={collapsed}
-        setCollapsed={setCollapsed}
+        setCollapsed={(val) => {
+          setCollapsed(val);
+          setSidebarAnimating(true);
+          setTimeout(() => setSidebarAnimating(false), 300); // match sidebar animation duration
+        }}
       />
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
         <AppBar
@@ -394,16 +410,6 @@ export default function UploadCVPage() {
                 flexDirection: "column",
                 mb: 3,
                 bgcolor: "#cbd5e0",
-                zIndex: showTutorial && tutorialStep === 0 ? 1501 : "auto",
-                boxShadow:
-                  showTutorial && tutorialStep === 0
-                    ? "0 0 0 6px #fff, 0 8px 32px 0 rgba(31,38,135,0.37)"
-                    : undefined,
-                transform:
-                  showTutorial && tutorialStep === 0 ? "scale(1.04)" : "none",
-                transition: "box-shadow 0.3s, transform 0.3s",
-                position:
-                  showTutorial && tutorialStep === 0 ? "relative" : "static",
               }}
             >
               <CloudUploadIcon fontSize="large" />
@@ -431,18 +437,11 @@ export default function UploadCVPage() {
             {/* Candidate Details Section */}
             <Box
               ref={candidateDetailsRef}
-              sx={{
-                zIndex: showTutorial && tutorialStep === 1 ? 1501 : "auto",
-                boxShadow:
-                  showTutorial && tutorialStep === 1
-                    ? "0 0 0 6px #fff, 0 8px 32px 0 rgba(31,38,135,0.37)"
-                    : undefined,
-                transform:
-                  showTutorial && tutorialStep === 1 ? "scale(1.04)" : "none",
-                transition: "box-shadow 0.3s, transform 0.3s",
-                position:
-                  showTutorial && tutorialStep === 1 ? "relative" : "static",
-              }}
+              sx={
+                {
+                  // No highlight/focus styles
+                }
+              }
             >
               <TextField
                 label="Candidate Name"
@@ -532,18 +531,11 @@ export default function UploadCVPage() {
             {file && (
               <Box
                 ref={cvTableRef}
-                sx={{
-                  zIndex: showTutorial && tutorialStep === 2 ? 1501 : "auto",
-                  boxShadow:
-                    showTutorial && tutorialStep === 2
-                      ? "0 0 0 6px #fff, 0 8px 32px 0 rgba(31,38,135,0.37)"
-                      : undefined,
-                  transform:
-                    showTutorial && tutorialStep === 2 ? "scale(1.04)" : "none",
-                  transition: "box-shadow 0.3s, transform 0.3s",
-                  position:
-                    showTutorial && tutorialStep === 2 ? "relative" : "static",
-                }}
+                sx={
+                  {
+                    // No highlight/focus styles
+                  }
+                }
               >
                 <TableContainer sx={{ mb: 3 }}>
                   <Table
@@ -568,7 +560,22 @@ export default function UploadCVPage() {
                     </TableHead>
                     <TableBody>
                       <TableRow>
-                        <TableCell>{file.name}</TableCell>
+                        <TableCell>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              cursor: "pointer",
+                              color: "#003cbdff",
+                              textDecoration: "underline",
+                              "&:hover": { color: "#204E20" },
+                            }}
+                            onClick={() => setPdfPreviewOpen(true)}
+                          >
+                            <PictureAsPdfIcon sx={{ mr: 1 }} />
+                            {file.name}
+                          </Box>
+                        </TableCell>
                         <TableCell>
                           {(file.size / 1024 / 1024).toFixed(2)} MB
                         </TableCell>
@@ -593,16 +600,6 @@ export default function UploadCVPage() {
                   mb: 3,
                   borderRadius: 2,
                   bgcolor: "#f5f5f5",
-                  zIndex: showTutorial && tutorialStep === 3 ? 1501 : "auto",
-                  boxShadow:
-                    showTutorial && tutorialStep === 3
-                      ? "0 0 0 6px #fff, 0 8px 32px 0 rgba(31,38,135,0.37)"
-                      : undefined,
-                  transform:
-                    showTutorial && tutorialStep === 3 ? "scale(1.04)" : "none",
-                  transition: "box-shadow 0.3s, transform 0.3s",
-                  position:
-                    showTutorial && tutorialStep === 3 ? "relative" : "static",
                 }}
               >
                 <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
@@ -694,41 +691,6 @@ export default function UploadCVPage() {
                   sx={reviewButtonStyle}
                   onClick={handleProcess}
                   ref={processBtnRef}
-                  zIndex={
-                    showTutorial &&
-                    ((tutorialStep === 3 && user?.role !== "Admin") ||
-                      tutorialStep === 4)
-                      ? 1501
-                      : "auto"
-                  }
-                  sx={{
-                    ...reviewButtonStyle,
-                    zIndex:
-                      showTutorial &&
-                      ((tutorialStep === 3 && user?.role !== "Admin") ||
-                        tutorialStep === 4)
-                        ? 1501
-                        : "auto",
-                    boxShadow:
-                      showTutorial &&
-                      ((tutorialStep === 3 && user?.role !== "Admin") ||
-                        tutorialStep === 4)
-                        ? "0 0 0 6px #fff, 0 8px 32px 0 rgba(31,38,135,0.37)"
-                        : undefined,
-                    transform:
-                      showTutorial &&
-                      ((tutorialStep === 3 && user?.role !== "Admin") ||
-                        tutorialStep === 4)
-                        ? "scale(1.04)"
-                        : "none",
-                    transition: "box-shadow 0.3s, transform 0.3s",
-                    position:
-                      showTutorial &&
-                      ((tutorialStep === 3 && user?.role !== "Admin") ||
-                        tutorialStep === 4)
-                        ? "relative"
-                        : "static",
-                  }}
                 >
                   Process CV
                 </Button>
@@ -919,6 +881,29 @@ export default function UploadCVPage() {
         </DialogActions>
       </Dialog>
 
+      <Dialog
+        open={pdfPreviewOpen}
+        onClose={() => setPdfPreviewOpen(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>Preview: {file?.name}</DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          {pdfUrl && (
+            <iframe
+              src={pdfUrl}
+              title="PDF Preview"
+              width="100%"
+              height="600px"
+              style={{ border: "none" }}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPdfPreviewOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
       <Popover
         open={
           showTutorial &&
@@ -1090,22 +1075,6 @@ export default function UploadCVPage() {
           </Box>
         </Fade>
       </Popover>
-
-      {showTutorial && Boolean(anchorEl) && (
-        <Box
-          sx={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            bgcolor: "rgba(30, 30, 30, 0.55)",
-            zIndex: 1400,
-            pointerEvents: "none",
-            transition: "background 0.3s",
-          }}
-        />
-      )}
     </Box>
   );
 }
