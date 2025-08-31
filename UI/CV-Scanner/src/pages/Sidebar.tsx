@@ -53,6 +53,9 @@ const Sidebar: React.FC<SidebarProps> = ({
     setTimeout(() => setIsAnimating(false), 300);
   };
 
+  // Animation progress for collapsing
+  const animationProgress = isCollapsing ? 1 : 0;
+
   if (collapsed) {
     return (
       <Box
@@ -175,12 +178,20 @@ const Sidebar: React.FC<SidebarProps> = ({
             fontWeight: 600,
             color: "#fff",
             fontSize: "1.1rem",
+            // Animate text disappearing from right to left
+            overflow: "hidden",
+            display: "inline-block",
+            whiteSpace: "nowrap",
+            transition: "width 0.3s, opacity 0.3s",
+            width: isCollapsing ? 0 : "auto",
+            opacity: isCollapsing ? 0 : 1,
           }}
         >
           Quantum Stack
         </Typography>
       </Box>
 
+      {/* Animate each button's label to disappear right-to-left */}
       <Button
         fullWidth
         sx={getButtonStyle("/dashboard")}
@@ -188,7 +199,18 @@ const Sidebar: React.FC<SidebarProps> = ({
         startIcon={<DashboardIcon />}
         onClick={() => navigate("/dashboard")}
       >
-        Dashboard
+        <span
+          style={{
+            display: "inline-block",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+            transition: "width 0.3s, opacity 0.3s",
+            width: isCollapsing ? 0 : "auto",
+            opacity: isCollapsing ? 0 : 1,
+          }}
+        >
+          Dashboard
+        </span>
       </Button>
 
       <Button
@@ -198,7 +220,18 @@ const Sidebar: React.FC<SidebarProps> = ({
         startIcon={<UploadFileIcon />}
         onClick={() => navigate("/upload")}
       >
-        Upload CV
+        <span
+          style={{
+            display: "inline-block",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+            transition: "width 0.3s, opacity 0.3s",
+            width: isCollapsing ? 0 : "auto",
+            opacity: isCollapsing ? 0 : 1,
+          }}
+        >
+          Upload CV
+        </span>
       </Button>
 
       <Button
@@ -208,7 +241,18 @@ const Sidebar: React.FC<SidebarProps> = ({
         startIcon={<SearchIcon />}
         onClick={() => navigate("/search")}
       >
-        Search
+        <span
+          style={{
+            display: "inline-block",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+            transition: "width 0.3s, opacity 0.3s",
+            width: isCollapsing ? 0 : "auto",
+            opacity: isCollapsing ? 0 : 1,
+          }}
+        >
+          Search
+        </span>
       </Button>
 
       {userRole === "Admin" && (
@@ -220,7 +264,18 @@ const Sidebar: React.FC<SidebarProps> = ({
             startIcon={<PeopleIcon />}
             onClick={() => navigate("/user-management")}
           >
-            User Management
+            <span
+              style={{
+                display: "inline-block",
+                overflow: "hidden",
+                whiteSpace: "nowrap",
+                transition: "width 0.3s, opacity 0.3s",
+                width: isCollapsing ? 0 : "auto",
+                opacity: isCollapsing ? 0 : 1,
+              }}
+            >
+              User Management
+            </span>
           </Button>
           <Button
             fullWidth
@@ -229,7 +284,18 @@ const Sidebar: React.FC<SidebarProps> = ({
             startIcon={<SettingsIcon />}
             onClick={() => navigate("/system-settings")}
           >
-            System Settings
+            <span
+              style={{
+                display: "inline-block",
+                overflow: "hidden",
+                whiteSpace: "nowrap",
+                transition: "width 0.3s, opacity 0.3s",
+                width: isCollapsing ? 0 : "auto",
+                opacity: isCollapsing ? 0 : 1,
+              }}
+            >
+              System Settings
+            </span>
           </Button>
         </>
       )}
