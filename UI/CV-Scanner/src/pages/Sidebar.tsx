@@ -34,14 +34,23 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isClosing, setIsClosing] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [isCollapsing, setIsCollapsing] = useState(false);
 
   const handleCollapse = () => {
-    setIsClosing(true);
+    setIsCollapsing(true);
+    setIsAnimating(true);
     setTimeout(() => {
-      setIsClosing(false);
+      setIsCollapsing(false);
       setCollapsed(true);
-    }, 300); // match transition duration
+      setTimeout(() => setIsAnimating(false), 300); // End animation after transition
+    }, 300);
+  };
+
+  const handleExpand = () => {
+    setCollapsed(false);
+    setIsAnimating(true);
+    setTimeout(() => setIsAnimating(false), 300);
   };
 
   if (collapsed) {
@@ -55,10 +64,19 @@ const Sidebar: React.FC<SidebarProps> = ({
           alignItems: "flex-start",
           pt: 1,
           position: "relative",
+          transition: "width 0.3s ease-in-out",
+          overflow: "hidden",
+          ...(isAnimating && {
+            animation: "sidebarOpen 0.3s",
+          }),
+          "@keyframes sidebarOpen": {
+            from: { opacity: 0.5, transform: "scaleX(0.8)" },
+            to: { opacity: 1, transform: "scaleX(1)" },
+          },
         }}
       >
         <IconButton
-          onClick={() => setCollapsed(false)}
+          onClick={handleExpand}
           sx={{
             position: "fixed",
             bottom: 16,
@@ -92,12 +110,20 @@ const Sidebar: React.FC<SidebarProps> = ({
         mt: -2.2,
         transition: "width 0.3s ease-in-out, padding 0.3s ease-in-out",
         overflow: "hidden",
-        ...(isClosing && {
-          animation: "sidebarClose 0.3s forwards",
+        ...(isCollapsing && {
+          animation: "sidebarClose 0.3s",
         }),
+        ...(isAnimating &&
+          !isCollapsing && {
+            animation: "sidebarOpen 0.3s",
+          }),
         "@keyframes sidebarClose": {
           from: { opacity: 1, transform: "scaleX(1)" },
           to: { opacity: 0.5, transform: "scaleX(0.8)" },
+        },
+        "@keyframes sidebarOpen": {
+          from: { opacity: 0.5, transform: "scaleX(0.8)" },
+          to: { opacity: 1, transform: "scaleX(1)" },
         },
       }}
     >
@@ -114,10 +140,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           height: 40,
           zIndex: 1300,
           transition: "transform 0.3s",
-          ...(isClosing && {
-            transform: "scale(0.8)",
-            opacity: 0.5,
-          }),
           "&:hover": {
             bgcolor: "#375f87",
           },
