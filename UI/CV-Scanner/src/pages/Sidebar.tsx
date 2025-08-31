@@ -70,8 +70,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             animation: "sidebarOpen 0.3s",
           }),
           "@keyframes sidebarOpen": {
-            from: { opacity: 0.5, transform: "translateX(-40px) scaleX(0.8)" },
-            to: { opacity: 1, transform: "translateX(0) scaleX(1)" },
+            from: { opacity: 0.5, transform: "scaleX(0.8) translateX(-40px)" },
+            to: { opacity: 1, transform: "scaleX(1) translateX(0)" },
           },
         }}
       >
@@ -108,22 +108,24 @@ const Sidebar: React.FC<SidebarProps> = ({
         p: collapsed ? 1 : 2,
         position: "relative",
         mt: -2.2,
-        transition: "width 0.3s ease-in-out, padding 0.3s ease-in-out",
+        transition:
+          "width 0.3s cubic-bezier(0.7,0.2,0.2,1), padding 0.3s cubic-bezier(0.7,0.2,0.2,1)",
         overflow: "hidden",
         ...(isCollapsing && {
-          animation: "sidebarClose 0.3s",
+          animation:
+            "sidebarCloseCrush 0.3s cubic-bezier(0.7,0.2,0.2,1) forwards",
         }),
         ...(isAnimating &&
           !isCollapsing && {
-            animation: "sidebarOpen 0.3s",
+            animation: "sidebarOpen 0.3s cubic-bezier(0.7,0.2,0.2,1)",
           }),
-        "@keyframes sidebarClose": {
-          from: { opacity: 1, transform: "translateX(0) scaleX(1)" },
-          to: { opacity: 0.5, transform: "translateX(220px) scaleX(0.8)" },
+        "@keyframes sidebarCloseCrush": {
+          from: { opacity: 1, transform: "scaleX(1) translateX(0)" },
+          to: { opacity: 0.5, transform: "scaleX(0.8) translateX(-220px)" },
         },
         "@keyframes sidebarOpen": {
-          from: { opacity: 0.5, transform: "translateX(-40px) scaleX(0.8)" },
-          to: { opacity: 1, transform: "translateX(0) scaleX(1)" },
+          from: { opacity: 0.5, transform: "scaleX(0.8) translateX(-40px)" },
+          to: { opacity: 1, transform: "scaleX(1) translateX(0)" },
         },
       }}
     >
