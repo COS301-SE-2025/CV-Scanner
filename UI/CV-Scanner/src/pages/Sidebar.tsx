@@ -53,9 +53,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     setTimeout(() => setIsAnimating(false), 300);
   };
 
-  // Animation progress for collapsing
-  const animationProgress = isCollapsing ? 1 : 0;
-
   if (collapsed) {
     return (
       <Box
@@ -67,10 +64,10 @@ const Sidebar: React.FC<SidebarProps> = ({
           alignItems: "flex-start",
           pt: 1,
           position: "relative",
-          transition: "width 0.3s ease-in-out",
+          transition: "width 0.3s cubic-bezier(0.7,0.2,0.2,1)",
           overflow: "hidden",
           ...(isAnimating && {
-            animation: "sidebarOpen 0.3s",
+            animation: "sidebarOpen 0.3s cubic-bezier(0.7,0.2,0.2,1)",
           }),
           "@keyframes sidebarOpen": {
             from: { opacity: 0.5, transform: "scaleX(0.8) translateX(-40px)" },
