@@ -32,6 +32,7 @@ import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import Sidebar from "./Sidebar";
 
 const CONFIG_BASE = "http://localhost:8081"; // Spring Boot base (AuthController)
@@ -86,6 +87,9 @@ export default function UploadCVPage() {
   const additionalInfoRef = useRef<HTMLInputElement>(null);
   const processBtnRef = useRef<HTMLButtonElement>(null);
   const configBoxRef = useRef<HTMLDivElement>(null);
+
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -191,12 +195,19 @@ export default function UploadCVPage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
-    if (selected) setFile(selected);
+    if (selected) {
+      setFile(selected);
+      setPdfUrl(URL.createObjectURL(selected));
+    }
   };
 
   const handleRemove = () => {
     setFile(null);
     setProcessedData(null);
+    if (pdfUrl) {
+      URL.revokeObjectURL(pdfUrl);
+      setPdfUrl(null);
+    }
     const fileInput = document.getElementById(
       "file-upload"
     ) as HTMLInputElement;
@@ -288,7 +299,6 @@ export default function UploadCVPage() {
         bgcolor: "#1E1E1E",
         color: "#fff",
         fontFamily: "Helvetica, sans-serif",
-        
       }}
     >
       <Sidebar
@@ -550,7 +560,22 @@ export default function UploadCVPage() {
                     </TableHead>
                     <TableBody>
                       <TableRow>
-                        <TableCell>{file.name}</TableCell>
+                        <TableCell>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              cursor: "pointer",
+                              color: "#003cbdff",
+                              textDecoration: "underline",
+                              "&:hover": { color: "#204E20" },
+                            }}
+                            onClick={() => setPdfPreviewOpen(true)}
+                          >
+                            <PictureAsPdfIcon sx={{ mr: 1 }} />
+                            {file.name}
+                          </Box>
+                        </TableCell>
                         <TableCell>
                           {(file.size / 1024 / 1024).toFixed(2)} MB
                         </TableCell>
@@ -853,6 +878,29 @@ export default function UploadCVPage() {
           >
             Close
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={pdfPreviewOpen}
+        onClose={() => setPdfPreviewOpen(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>Preview: {file?.name}</DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          {pdfUrl && (
+            <iframe
+              src={pdfUrl}
+              title="PDF Preview"
+              width="100%"
+              height="600px"
+              style={{ border: "none" }}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPdfPreviewOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
 
