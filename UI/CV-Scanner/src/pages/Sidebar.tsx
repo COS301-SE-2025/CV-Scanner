@@ -113,9 +113,10 @@ const Sidebar: React.FC<SidebarProps> = ({
         ...(isCollapsing && {
           animation: "sidebarClose 0.3s",
         }),
-        ...(isAnimating && !isCollapsing && {
-          animation: "sidebarOpen 0.3s",
-        }),
+        ...(isAnimating &&
+          !isCollapsing && {
+            animation: "sidebarOpen 0.3s",
+          }),
         "@keyframes sidebarClose": {
           from: { opacity: 1, transform: "translateX(0) scaleX(1)" },
           to: { opacity: 0.5, transform: "translateX(220px) scaleX(0.8)" },
