@@ -19,14 +19,23 @@ import {
   Backdrop,
   Popover,
   Tooltip,
+  colors,
 } from "@mui/material";
 import {
-  LineChart, Line,
-  BarChart, Bar,
-  PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip as RechartTooltip, Legend,
-  ResponsiveContainer
-} from 'recharts';
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartTooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 import { useNavigate, useLocation } from "react-router-dom";
 import logo2 from "../assets/logo2.png";
 import logo from "../assets/logo.png";
@@ -50,16 +59,20 @@ export default function CandidatesDashboard() {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [tutorialStep, setTutorialStep] = useState(0); // For future multi-step
   const [fadeIn, setFadeIn] = useState(true);
+  const [recent, setRecent] = useState<
+    Array<{ id: number; name: string; skills: string; fit: string }>
+  >([]);
+  const [totalCandidates, setTotalCandidates] = useState<number | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
   const devUser = {
-      email: "dev@example.com",
-      password: "Password123",
-      first_name: "John",
-      last_name: "Doe",
-      role: "Admin",
-    };
+    email: "dev@example.com",
+    password: "Password123",
+    first_name: "John",
+    last_name: "Doe",
+    role: "Admin",
+  };
 
   const [user, setUser] = useState<{
     first_name?: string;
@@ -74,12 +87,23 @@ export default function CandidatesDashboard() {
   useEffect(() => {
     document.title = "Candidates Dashboard";
 
-    // Fetch user info from API
     const email = localStorage.getItem("userEmail") || "admin@email.com";
     fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
       .then((res) => res.json())
       .then((data) => setUser(data))
       .catch(() => setUser(null));
+
+    // Load stats (total candidates)
+    fetch("http://localhost:8081/cv/stats")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setTotalCandidates(data?.totalCandidates ?? 0))
+      .catch(() => setTotalCandidates(0));
+
+    // Load recent candidates (top 3)
+    fetch("http://localhost:8081/cv/recent?limit=3")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((rows) => setRecent(Array.isArray(rows) ? rows.slice(0, 3) : []))
+      .catch(() => setRecent([]));
   }, []);
 
   useEffect(() => {
@@ -97,39 +121,37 @@ export default function CandidatesDashboard() {
   };
   const handleCloseTutorial = () => setShowTutorial(false);
 
-//Mock data for graphs 
+  //Mock data for graphs
 
-const candidateTrends = [
-  { month: 'Jan', candidates: 30 },
-  { month: 'Feb', candidates: 45 },
-  { month: 'Mar', candidates: 60 },
-  { month: 'Apr', candidates: 50 },
-  { month: 'May', candidates: 80 },
-];
+  const candidateTrends = [
+    { month: "Jan", candidates: 30 },
+    { month: "Feb", candidates: 45 },
+    { month: "Mar", candidates: 60 },
+    { month: "Apr", candidates: 50 },
+    { month: "May", candidates: 80 },
+  ];
 
-const skillDistribution = [
-  { name: '.NET', value: 400 },
-  { name: 'React', value: 300 },
-  { name: 'Java', value: 300 },
-  { name: 'Python', value: 200 },
-];
+  const skillDistribution = [
+    { name: ".NET", value: 400 },
+    { name: "React", value: 300 },
+    { name: "Java", value: 300 },
+    { name: "Python", value: 200 },
+  ];
 
-const projectFitData = [
-  { type: 'Technical', value: 50 },
-  { type: 'Collaborative', value: 30 },
-  { type: 'Autonomous', value: 20 },
-];
+  const projectFitData = [
+    { type: "Technical", value: 50 },
+    { type: "Collaborative", value: 30 },
+    { type: "Autonomous", value: 20 },
+  ];
 
-const groupedBarData = [
-  { name: 'Week 1', ".NET": 40, React: 24, Python: 24 },
-  { name: 'Week 2', ".NET": 30, React: 13, Python: 22 },
-  { name: 'Week 3', ".NET": 20, React: 98, Python: 22 },
-  { name: 'Week 4', ".NET": 27, React: 39, Python: 20 },
-];
+  const groupedBarData = [
+    { name: "Week 1", ".NET": 40, React: 24, Python: 24 },
+    { name: "Week 2", ".NET": 30, React: 13, Python: 22 },
+    { name: "Week 3", ".NET": 20, React: 98, Python: 22 },
+    { name: "Week 4", ".NET": 27, React: 39, Python: 20 },
+  ];
 
-
-const COLORS = ['#8884D8', '#00C49F', '#FFBB28', '#FF8042'];
-
+  const COLORS = ["#8884D8", "#00C49F", "#FFBB28", "#FF8042"];
 
   return (
     <Box
@@ -140,12 +162,12 @@ const COLORS = ['#8884D8', '#00C49F', '#FFBB28', '#FF8042'];
         color: "#fff",
       }}
     >
-    {/* Sidebar */}
-          <Sidebar 
-      userRole={user?.role || devUser.role} 
-      collapsed={collapsed} 
-      setCollapsed={setCollapsed} 
-    />
+      {/* Sidebar */}
+      <Sidebar
+        userRole={user?.role || devUser.role}
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
+      />
 
       {/* Main Content */}
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
@@ -155,76 +177,88 @@ const COLORS = ['#8884D8', '#00C49F', '#FFBB28', '#FF8042'];
           sx={{ bgcolor: "#232A3B ", boxShadow: "none" }}
         >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
+            {/* Tutorial icon */}
+            <Tooltip title="Run Tutorial" arrow>
+              <IconButton
+                onClick={() => {
+                  setShowTutorial(true);
+                  setTutorialStep(0);
+                  setFadeIn(true);
+                }}
+                sx={{ ml: 1, color: "#FFEB3B" }}
+              >
+                <LightbulbRoundedIcon />
+              </IconButton>
+            </Tooltip>
 
-  {/* Tutorial icon */}
-  <Tooltip title="Run Tutorial" arrow>
-    <IconButton
-      onClick={() => {
-        setShowTutorial(true);
-        setTutorialStep(0);
-        setFadeIn(true);
-      }}
-      sx={{ml: 1, color: '#FFEB3B'}}
-    >
-      <LightbulbRoundedIcon />
-    </IconButton>
-  </Tooltip>
+            {/* Help / FAQ icon */}
+            <Tooltip title="Go to Help Page" arrow>
+              <IconButton
+                onClick={() => navigate("/help")}
+                sx={{ ml: 1, color: "#90ee90" }}
+              >
+                <HelpOutlineIcon />
+              </IconButton>
+            </Tooltip>
 
-  {/* Help / FAQ icon */}
-  <Tooltip title="Go to Help Page" arrow>
-    <IconButton
-      onClick={() => navigate("/help")}
-      sx={{ ml: 1, color: '#90ee90' }}
-    >
-      <HelpOutlineIcon />
-    </IconButton>
-  </Tooltip>
+            {/* User Info */}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                ml: 2,
+                cursor: "pointer",
+                "&:hover": { opacity: 0.8 },
+              }}
+              onClick={() => navigate("/settings")}
+            >
+              <AccountCircleIcon sx={{ mr: 1 }} />
+              <Typography variant="subtitle1">
+                {user
+                  ? user.first_name
+                    ? `${user.first_name} ${user.last_name || ""} (${
+                        user.role || "User"
+                      })`
+                    : (user.username || user.email) +
+                      (user.role ? ` (${user.role})` : "")
+                  : "User"}
+              </Typography>
+            </Box>
 
-  {/* User Info */}
-  <Box
-    sx={{
-      display: "flex",
-      alignItems: "center",
-      ml: 2,
-      cursor: "pointer",
-      "&:hover": { opacity: 0.8 },
-    }}
-    onClick={() => navigate("/settings")}
-  >
-    <AccountCircleIcon sx={{ mr: 1 }} />
-    <Typography variant="subtitle1">
-      {user
-        ? user.first_name
-          ? `${user.first_name} ${user.last_name || ""} (${user.role || "User"})`
-          : (user.username || user.email) +
-            (user.role ? ` (${user.role})` : "")
-        : "User"}
-    </Typography>
-  </Box>
-
-  {/* Logout */}
-  <IconButton
-    color="inherit"
-    onClick={() => navigate("/login")}
-    sx={{ ml: 1 }}
-  >
-    <ExitToAppIcon />
-  </IconButton>
-</Toolbar>
-          
-
+            {/* Logout */}
+            <IconButton
+              color="inherit"
+              onClick={() => navigate("/login")}
+              sx={{ ml: 1 }}
+            >
+              <ExitToAppIcon />
+            </IconButton>
+          </Toolbar>
         </AppBar>
 
         {/* Content */}
         <Box sx={{ p: 3 }}>
-          <Typography variant="h5" sx={{fontFamily: 'Helvetica, sans-serif', mb: 3, fontWeight: "bold" }}>
+          <Typography
+            variant="h5"
+            sx={{
+              fontFamily: "Helvetica, sans-serif",
+              mb: 3,
+              fontWeight: "bold",
+            }}
+          >
             Candidates Dashboard
           </Typography>
 
           {/* Stat Cards */}
           <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap", mb: 4 }}>
             {[
-              { label: "Candidates", value: "142" },
+              {
+                label: "Candidates",
+                value:
+                  totalCandidates != null
+                    ? String(totalCandidates)
+                    : "—",
+              },
               { label: "Pending Review", value: "24" },
               { label: "Top Technology", value: ".NET" },
               { label: "Technical Matches", value: "78%" },
@@ -236,155 +270,241 @@ const COLORS = ['#8884D8', '#00C49F', '#FFBB28', '#FF8042'];
             ))}
           </Box>
 
-            {/* Dashboard Graphs */}
-        <Box sx={{ 
-  display: "flex", 
-  flexWrap: "wrap", 
-  gap: 4, 
-  mb: 4,
-  '& > *': { // Ensures all child elements have these properties
-    flex: "1 1 350px",
-    minWidth: 0 // Prevents overflow issues
-  }
-}}>
+          {/* Dashboard Graphs */}
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr", // 1 column on mobile
+                sm: "1fr 1fr", // 2 columns on small/medium
+                lg: "1fr 1fr 1fr", // 3 columns on large
+              },
+              gap: 4, // spacing between items
+              mb: 4,
+            }}
+          >
+            {/* Line Chart: Light Blue */}
+            <Paper
+              sx={{
+                p: 2,
+                borderRadius: 3,
+                backgroundColor: "#DEDDEE",
+                color: "#000",
+                transition: "transform 0.2s",
+                "&:hover": { transform: "translateY(-4px)" },
+              }}
+            >
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  fontFamily: "Helvetica, sans-serif",
+                  mb: 1,
+                  fontWeight: 600,
+                }}
+              >
+                Monthly Candidate Uploads
+              </Typography>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={candidateTrends}>
+                  <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fill: "#575656ff", fontWeight: "bold" }}
+                  />
+                  <YAxis tick={{ fill: "#575656ff", fontWeight: "bold" }} />
+                  <Tooltip />
+                  <Line
+                    type="monotone"
+                    dataKey="candidates"
+                    stroke="#0A2540 "
+                    strokeWidth={2}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6, fill: "#0A2540 " }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </Paper>
 
-   {/* Line Chart: Light Blue */}
-  <Paper sx={{ 
-    p: 2, 
-    borderRadius: 3, 
-    backgroundColor: "#DEDDEE", 
-    color: "#000",
-    transition: 'transform 0.2s',
-    '&:hover': { transform: 'translateY(-4px)' }
-  }}>
-    <Typography variant="subtitle1" sx={{fontFamily: 'Helvetica, sans-serif', mb: 1, fontWeight: 600 }}>Monthly Candidate Uploads</Typography>
-    <ResponsiveContainer width="100%" height={200}>
-      <LineChart data={candidateTrends}>
-        <CartesianGrid stroke="#ccc" strokeDasharray="3 3" />
-        <XAxis dataKey="month" />
-        <YAxis />
-        <Tooltip />
-        <Line 
-          type="monotone" 
-          dataKey="candidates" 
-          stroke="#0A2540 " 
-          strokeWidth={2}
-          dot={{ r: 4 }}
-          activeDot={{ r: 6, fill: "#0A2540 " }}
-        />
-      </LineChart>
-    </ResponsiveContainer>
-  </Paper>
+            {/* Bar Chart: Dark Blue */}
+            <Paper
+              sx={{
+                p: 2,
+                borderRadius: 3,
+                backgroundColor: "#DEDDEE",
+                color: "#000",
+                transition: "transform 0.2s",
+                "&:hover": { transform: "translateY(-4px)" },
+              }}
+            >
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  fontFamily: "Helvetica, sans-serif",
+                  mb: 1,
+                  fontWeight: 600,
+                }}
+              >
+                Weekly Tech Usage
+              </Typography>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={groupedBarData}>
+                  <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="name"
+                    stroke="#4a5568"
+                    tick={{ fill: "#575656ff", fontWeight: "bold" }}
+                  />
+                  <YAxis
+                    stroke="#4a5568"
+                    tick={{ fill: "#575656ff", fontWeight: "bold" }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#2b3a55",
+                      borderColor: "#4a5568",
+                      fontFamily: "Helvetica, sans-serif",
+                    }}
+                  />
+                  <Legend
+                    formatter={(value) => (
+                      <span style={{ color: "#575656ff", fontWeight: 700 }}>
+                        {value}
+                      </span>
+                    )}
+                  />
+                  <Bar dataKey=".NET" fill="#8884d8" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="React" fill="#82ca9d" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Python" fill="#ffc658" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </Paper>
 
-  {/* Bar Chart: Dark Blue */}
-  <Paper sx={{ 
-    p: 2, 
-    borderRadius: 3, 
-    backgroundColor: "#444444", 
-    color: "#fff",
-    transition: 'transform 0.2s',
-    '&:hover': { transform: 'translateY(-4px)' }
-  }}>
-    <Typography variant="subtitle1" sx={{ fontFamily: 'Helvetica, sans-serif',mb: 1, fontWeight: 600 }}>Weekly Tech Usage</Typography>
-    <ResponsiveContainer width="100%" height={200}>
-      <BarChart data={groupedBarData}>
-        <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
-        <XAxis dataKey="name" stroke="#fff" />
-        <YAxis stroke="#fff" />
-        <Tooltip 
-          contentStyle={{ 
-            backgroundColor: '#2b3a55',
-            borderColor: '#4a5568',
-            fontFamily: 'Helvetica, sans-serif',
-          }}
-        />
-        <Legend />
-        <Bar dataKey=".NET" fill="#8884d8" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="React" fill="#82ca9d" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="Python" fill="#ffc658" radius={[4, 4, 0, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
-  </Paper>
+            {/* Pie Chart: Teal Accent */}
+            <Paper
+              sx={{
+                p: 2,
+                borderRadius: 3,
+                backgroundColor: "#DEDDEE",
+                color: "#000",
+                transition: "transform 0.2s",
+                "&:hover": { transform: "translateY(-4px)" },
+                "& .recharts-pie-label-text": {
+                  fill: "#575656ff !important",
+                  fontWeight: 700,
+                },
+                "& .recharts-pie-label-line": {
+                  stroke: "#575656ff",
+                },
+              }}
+            >
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  fontFamily: "Helvetica, sans-serif",
+                  mb: 1,
+                  fontWeight: 600,
+                }}
+              >
+                Skill Distribution
+              </Typography>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={skillDistribution}
+                    dataKey="value"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={60}
+                    labelLine={true}
+                    label={({ name, percent }) =>
+                      `${name}: ${(percent * 100).toFixed(0)}%`
+                    }
+                  >
+                    {skillDistribution.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value, name, props) => [
+                      value,
+                      `${name}: ${(props.payload.percent * 100).toFixed(1)}%`,
+                    ]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </Paper>
 
-  {/* Pie Chart: Teal Accent */}
-  <Paper sx={{ 
-    p: 2, 
-    borderRadius: 3, 
-    backgroundColor: "#DEDDEE", 
-    color: "#000",
-    transition: 'transform 0.2s',
-    '&:hover': { transform: 'translateY(-4px)' }
-  }}>
-    <Typography variant="subtitle1" sx={{fontFamily: 'Helvetica, sans-serif', mb: 1, fontWeight: 600 }}>Skill Distribution</Typography>
-    <ResponsiveContainer width="100%" height={200}>
-      <PieChart>
-        <Pie
-        
-          data={skillDistribution}
-          dataKey="value"
-          cx="50%"
-          cy="50%"
-          outerRadius={60}
-          labelLine={true}
-          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-          
-        >
-          {skillDistribution.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-          ))}
-        </Pie>
-        <Tooltip 
-          formatter={(value, name, props) => [
-            value, 
-            `${name}: ${(props.payload.percent * 100).toFixed(1)}%`
-          ]}
-          
-        />
-      </PieChart>
-    </ResponsiveContainer>
-  </Paper>
-
-  {/* Doughnut Chart: Dark Blue */}
-  <Paper sx={{ 
-    p: 2, 
-    borderRadius: 3, 
-    backgroundColor: "#444444", 
-    color: "#fff",
-    transition: 'transform 0.2s',
-    '&:hover': { transform: 'translateY(-4px)' }
-  }}>
-    <Typography variant="subtitle1" sx={{ fontFamily: 'Helvetica, sans-serif',mb: 1, fontWeight: 600 }}>Project Fit Types</Typography>
-    <ResponsiveContainer width="100%" height={200}>
-      <PieChart>
-        <Pie
-          data={projectFitData}
-          dataKey="value"
-          cx="50%"
-          cy="50%"
-          innerRadius={40}
-          outerRadius={60}
-          label={({ type, percent }) => `${type}: ${(percent * 100).toFixed(0)}%`}
-          labelLine={true}
-        >
-          {projectFitData.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-          ))}
-        </Pie>
-        <Tooltip 
-          contentStyle={{ 
-            backgroundColor: '#2b3a55',
-            borderColor: '#4a5568'
-          }}
-          formatter={(value, name, props) => [
-            value, 
-            `${name}: ${(props.payload.percent * 100).toFixed(1)}%`
-          ]}
-        />
-      </PieChart>
-    </ResponsiveContainer>
-  </Paper>
-
-</Box>
+            {/* Doughnut Chart: Dark Blue */}
+            <Paper
+              sx={{
+                p: 2,
+                borderRadius: 3,
+                backgroundColor: "#DEDDEE",
+                color: "#000",
+                transition: "transform 0.2s",
+                "&:hover": { transform: "translateY(-4px)" },
+                "& .recharts-pie-label-text": {
+                  fill: "#575656ff !important",
+                  fontWeight: 700,
+                },
+                "& .recharts-pie-label-line": {
+                  stroke: "#575656ff",
+                },
+                gridColumn: {
+                  xs: "auto", // normal span at small
+                  sm: "auto",
+                  lg: "1 / -1", // span all columns on large screens
+                },
+              }}
+            >
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  fontFamily: "Helvetica, sans-serif",
+                  mb: 1,
+                  fontWeight: 600,
+                }}
+              >
+                Project Fit Types
+              </Typography>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={projectFitData}
+                    dataKey="value"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={60}
+                    label={({ type, percent }) =>
+                      `${type}: ${(percent * 100).toFixed(0)}%`
+                    }
+                    labelLine={true}
+                  >
+                    {projectFitData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#2b3a55",
+                      borderColor: "#4a5568",
+                    }}
+                    formatter={(value, name, props) => [
+                      value,
+                      `${name}: ${(props.payload.percent * 100).toFixed(1)}%`,
+                    ]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </Paper>
+          </Box>
 
           {/* Recent Table */}
           <Paper
@@ -393,7 +513,12 @@ const COLORS = ['#8884D8', '#00C49F', '#FFBB28', '#FF8042'];
           >
             <Typography
               variant="h6"
-              sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", color: "#232A3B", mb: 2 }}
+              sx={{
+                fontFamily: "Helvetica, sans-serif",
+                fontWeight: "bold",
+                color: "#232A3B",
+                mb: 2,
+              }}
             >
               Recently Processed
             </Typography>
@@ -402,47 +527,59 @@ const COLORS = ['#8884D8', '#00C49F', '#FFBB28', '#FF8042'];
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{fontFamily: 'Helvetica, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
+                    <TableCell
+                      sx={{
+                        fontFamily: "Helvetica, sans-serif",
+                        fontWeight: "bold",
+                        fontSize: "1.2rem",
+                      }}
+                    >
                       Candidate
                     </TableCell>
-                    <TableCell sx={{fontFamily: 'Helvetica, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
+                    <TableCell
+                      sx={{
+                        fontFamily: "Helvetica, sans-serif",
+                        fontWeight: "bold",
+                        fontSize: "1.2rem",
+                      }}
+                    >
                       Top Skills
                     </TableCell>
-                    <TableCell sx={{fontFamily: 'Helvetica, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
+                    <TableCell
+                      sx={{
+                        fontFamily: "Helvetica, sans-serif",
+                        fontWeight: "bold",
+                        fontSize: "1.2rem",
+                      }}
+                    >
                       Project Fit
                     </TableCell>
-                    <TableCell sx={{fontFamily: 'Helvetica, sans-serif', fontWeight: "bold", fontSize: "1.2rem" }}>
+                    <TableCell
+                      sx={{
+                        fontFamily: "Helvetica, sans-serif",
+                        fontWeight: "bold",
+                        fontSize: "1.2rem",
+                      }}
+                    >
                       Actions
                     </TableCell>
                   </TableRow>
                 </TableHead>
-                <TableBody >
-                  {[
-                    {
-                      name: "Jane Smith",
-                      skills: ".NET, Azure, SQL",
-                      fit: "Technical (92%)",
-                    },
-                    {
-                      name: "Mike Johnson",
-                      skills: "React, Node.js",
-                      fit: "Collaborative (85%)",
-                    },
-                    {
-                      name: "Peter Griffin",
-                      skills: "C++, C, Python",
-                      fit: "Technical (64%)",
-                    },
-                  ].map((candidate, idx) => (
-                    <TableRow key={candidate.name}>
+                <TableBody>
+                  {recent.map((candidate, idx) => (
+                    <TableRow key={candidate.id ?? idx}>
                       <TableCell>{candidate.name}</TableCell>
-                      <TableCell>{candidate.skills}</TableCell>
-                      <TableCell>{candidate.fit}</TableCell>
+                      <TableCell>{candidate.skills || "—"}</TableCell>
+                      <TableCell>{candidate.fit || "N/A"}</TableCell>
                       <TableCell>
                         <Button
                           variant="contained"
                           sx={reviewButtonStyle}
-                          onClick={() => navigate("/candidate-review")}
+                          onClick={() =>
+                            navigate("/candidate-review", {
+                              state: { candidateId: candidate.id },
+                            })
+                          }
                           ref={idx === 0 ? reviewBtnRef : null}
                         >
                           Review
@@ -478,11 +615,20 @@ const COLORS = ['#8884D8', '#00C49F', '#FFBB28', '#FF8042'];
                               <Box sx={{ position: "relative" }}>
                                 <Typography
                                   variant="h6"
-                                  sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 1 }}
+                                  sx={{
+                                    fontFamily: "Helvetica, sans-serif",
+                                    fontWeight: "bold",
+                                    mb: 1,
+                                  }}
                                 >
                                   Quick Tip
                                 </Typography>
-                                <Typography sx={{fontFamily: 'Helvetica, sans-serif', mb: 2 }}>
+                                <Typography
+                                  sx={{
+                                    fontFamily: "Helvetica, sans-serif",
+                                    mb: 2,
+                                  }}
+                                >
                                   Click <b>Review</b> to view and assess this
                                   candidate's CV.
                                 </Typography>
@@ -519,7 +665,7 @@ const COLORS = ['#8884D8', '#00C49F', '#FFBB28', '#FF8042'];
                                       sx={{
                                         bgcolor: "#5a88ad",
                                         color: "#fff",
-                                        fontFamily: 'Helvetica, sans-serif',
+                                        fontFamily: "Helvetica, sans-serif",
                                         fontWeight: "bold",
                                         textTransform: "none",
                                         "&:hover": { bgcolor: "#487DA6" },
@@ -576,7 +722,7 @@ const statCardStyle = {
   p: 2,
   minWidth: 140,
   borderRadius: 3,
-  backgroundColor: "#888888",
+  backgroundColor: "#DEDDEE",
   textAlign: "center",
   color: "#000",
 };
@@ -589,7 +735,8 @@ const reviewButtonStyle = {
   borderRadius: "4px",
   boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
   "&:hover": {
-    background: "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
+    background:
+      "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
     transform: "translateY(-1px)",
   },
   textTransform: "none",

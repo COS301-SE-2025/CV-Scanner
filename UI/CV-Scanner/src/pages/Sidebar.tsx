@@ -52,14 +52,15 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, collapsed, setCollapsed }) 
 <IconButton
   onClick={() => setCollapsed(false)}
   sx={{
-    position: "absolute",
+    position: "fixed",
     bottom: 16,
-    right: 0,
+    left: 0,
     bgcolor: "#487DA6",
     color: "#fff",
     borderRadius: "50%",
     width: 40,
     height: 40,
+    zIndex: 1300,
     "&:hover": {
       bgcolor: "#375f87",
     },
@@ -88,17 +89,18 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, collapsed, setCollapsed }) 
     }}
   >
 
-      <IconButton
+<IconButton
   onClick={() => setCollapsed(true)}
   sx={{
-    position: "absolute",
+    position: "fixed", // stays fixed to viewport
     bottom: 16,
-    right: 16,
+    left: collapsed ? 0 : 205, // adjust based on sidebar width
     bgcolor: "#487DA6",
     color: "#fff",
     borderRadius: "50%",
     width: 40,
     height: 40,
+    zIndex: 1300, // keep above other elements
     "&:hover": {
       bgcolor: "#375f87",
     },
@@ -106,6 +108,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, collapsed, setCollapsed }) 
 >
   <ChevronLeftIcon />
 </IconButton>
+
 
 <Box
   sx={{
@@ -161,16 +164,6 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, collapsed, setCollapsed }) 
 
 <Button
   fullWidth
-  sx={getButtonStyle("/candidates")}
-  className={isActive("/candidates") ? "active" : ""}
-  startIcon={<PeopleIcon />}
-  onClick={() => navigate("/candidates")}
->
-  Candidates
-</Button>
-
-<Button
-  fullWidth
   sx={getButtonStyle("/search")}
   className={isActive("/search") ? "active" : ""}
   startIcon={<SearchIcon />}
@@ -185,7 +178,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, collapsed, setCollapsed }) 
       fullWidth
       sx={getButtonStyle("/user-management")}
       className={isActive("/user-management") ? "active" : ""}
-      startIcon={<SettingsIcon />}
+      startIcon={<PeopleIcon />}
       onClick={() => navigate("/user-management")}
     >
       User Management

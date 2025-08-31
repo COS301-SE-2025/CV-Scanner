@@ -58,7 +58,8 @@ export default function LoginPage() {
     })
       .then((res) => res.text())
       .then((data) => {
-        if (data.toLowerCase().includes("success")) {
+        // if (data.toLowerCase().includes("success")) {
+        if (data.toLowerCase().indexOf("success") !== -1) {
           localStorage.setItem("userEmail", email);
           navigate("/dashboard");
         } else {
@@ -83,16 +84,18 @@ export default function LoginPage() {
     <>
       {/* Header */}
       <AppBar position="fixed" sx={{ bgcolor: "#0A2540", boxShadow: "none" }}>
-  <Toolbar sx={{ justifyContent: "space-between" }}>
-    <Box sx={{ display: "flex", alignItems: "center" }}>
-      <img src={logo3} alt="Logo" style={{ width: 80 }} />
-      <Typography variant="h6" sx={{ ml: 2, fontWeight: "bold", color: "#fff" }}>
-        CV Scanner
-      </Typography>
-    </Box>
-  </Toolbar>
-</AppBar>
-
+        <Toolbar sx={{ justifyContent: "space-between" }}>
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <img src={logo3} alt="Logo" style={{ width: 80 }} />
+            <Typography
+              variant="h6"
+              sx={{ ml: 2, fontWeight: "bold", color: "#fff" }}
+            >
+              CV Scanner
+            </Typography>
+          </Box>
+        </Toolbar>
+      </AppBar>
 
       {/* Main Content */}
       <Box
@@ -105,7 +108,6 @@ export default function LoginPage() {
           mt: 10,
           bgcolor: "transparent",
           background: "linear-gradient(to bottom right, #0f172a, #1e293b)",
-
         }}
       >
         {/* Login Form */}
@@ -116,26 +118,25 @@ export default function LoginPage() {
             width: "100%",
             maxWidth: 420,
             borderRadius: 3,
-              bgcolor: "#1e2539",
-             background: "linear-gradient(145deg, #1e2539, #2a314b)",
-             boxShadow: "0px 8px 20px rgba(0,0,0,0.4)",
+            bgcolor: "#1e2539",
+            background: "linear-gradient(145deg, #1e2539, #2a314b)",
+            boxShadow: "0px 8px 20px rgba(0,0,0,0.4)",
           }}
         >
-           <Typography
-          variant="h4"
-          align="center"
-         gutterBottom
-          sx={{
-            fontWeight: 700,
-            fontFamily: 'Inter, sans-serif',
-            background: "linear-gradient(to right, #6ddf6d, #b0e0ff)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-          }}
-        >
-          Welcome Back
-        </Typography>
-
+          <Typography
+            variant="h4"
+            align="center"
+            gutterBottom
+            sx={{
+              fontWeight: 700,
+              fontFamily: "Inter, sans-serif",
+              background: "linear-gradient(to right, #6ddf6d, #b0e0ff)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
+            Welcome Back
+          </Typography>
 
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -159,12 +160,12 @@ export default function LoginPage() {
                   color: "#fff",
                   borderRadius: 2,
                   input: { color: "#fff" },
-                  '& .MuiFilledInput-underline:before': {
-                 borderBottom: '1px solid #4bb34b',
-                },
-                '&:hover:not(.Mui-disabled):before': {
-               borderBottom: '2px solid #6ddf6d',
-                 },
+                  "& .MuiFilledInput-underline:before": {
+                    borderBottom: "1px solid #4bb34b",
+                  },
+                  "&:hover:not(.Mui-disabled):before": {
+                    borderBottom: "2px solid #6ddf6d",
+                  },
                 },
               }}
               InputLabelProps={{
