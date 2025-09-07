@@ -626,18 +626,55 @@ const [processingCandidates, setProcessingCandidates] = useState<string[]>([]); 
                         </Typography>
                       </Box>
                       <Box sx={{ mt: 1 }}>
-                        <Button
-                          variant="contained"
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation(); // <--- prevents the Paper click
-                            reExtractCandidate(candidate);
-                          }}
-                          disabled={processingCandidates.includes(candidate.email)}
-                          sx={{ textTransform: "none" }}
-                        >
-                          {processingCandidates.includes(candidate.email) ? "Processing..." : "Re-Extract"}
-                        </Button>
+<Button
+  variant="contained"
+  size="small"
+  onClick={async (e) => {
+    e.stopPropagation(); // Prevents triggering the Paper onClick
+
+    // Show loading state if needed
+    if (processingCandidates.includes(candidate.email)) return;
+
+    // Add candidate to processing list
+    setProcessingCandidates((prev) => [...prev, candidate.email]);
+
+    try {
+      // Fetch processed data from your backend
+      const response = await fetch(`http://localhost:5000/upload_cv_for_candidate?email=${encodeURIComponent(candidate.email)}&top_k=3`);
+      const data = await response.json();
+
+      // Prepare payload (mimic UploadCVPage)
+      const payload = data?.data ?? data;
+
+      // Navigate to Parsed CV page
+navigate("/parsed-cv", {
+  state: {
+    processedData: payload,
+    fileUrl: candidate.cvFileUrl, // must exist
+    fileType: candidate.cvFileType, // must exist
+    candidate: {
+      firstName: candidate.name.split(" ")[0],
+      lastName: candidate.name.split(" ")[1] || "",
+      email: candidate.email,
+    },
+  },
+});
+
+    } catch (error) {
+      console.error("Failed to re-extract candidate:", error);
+    } finally {
+      // Remove candidate from processing list
+      setProcessingCandidates((prev) =>
+        prev.filter((email) => email !== candidate.email)
+      );
+    }
+  }}
+  disabled={processingCandidates.includes(candidate.email)}
+  sx={{ textTransform: "none" }}
+>
+  {processingCandidates.includes(candidate.email) ? "Processing..." : "Re-Extract"}
+</Button>
+
 
                       </Box>
                     </Box>
