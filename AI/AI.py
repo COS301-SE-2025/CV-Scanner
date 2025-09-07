@@ -95,6 +95,53 @@ def extract_name_with_context(text):
     """Extract name using multiple methods with context analysis"""
     candidates = []
     
+    # Method 1: Check the very first line (most common for names)
+    first_lines = text.split('\n')[:8]  # Check first 8 lines
+    for i, line in enumerate(first_lines):
+        line = line.strip()
+        
+        # Skip empty lines or lines with contact info
+        if not line or '@' in line or re.search(r'\d{3}[-\s]?\d{3}[-\s]?\d{4}', line):
+            continue
+            
+        # Check for name patterns (including all caps)
+        name_patterns = [
+            r'^([A-Z][A-Z\s]+[A-Z])$',  # ALL CAPS name like "TALHAH KARODIA"
+            r'^([A-Z][a-z]+ [A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)$',  # First Last or First Middle Last
+            r'^([A-Z][a-z]+\s+[A-Z]\.\s+[A-Z][a-z]+)$',  # First M. Last
+            r'^([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)(?:\s|$)',  # Name at start of line
+        ]
+        
+        for pattern in name_patterns:
+            match = re.search(pattern, line)
+            if match:
+                potential_name = match.group(1).strip()
+                
+                # Additional validation for all-caps names
+                if potential_name.isupper():
+                    # Convert to title case and validate
+                    title_name = potential_name.title()
+                    words = title_name.split()
+                    
+                    # Must be 2-4 words, each reasonable length
+                    if 2 <= len(words) <= 4 and all(2 <= len(word) <= 15 for word in words):
+                        # Check it's not a common title or section
+                        if not any(keyword in title_name.lower() for keyword in 
+                                 ["curriculum", "resume", "cv", "contact", "about", "education", 
+                                  "experience", "skills", "computer", "science", "student", "profile"]):
+                            score = 5.0 - (i * 0.3)  # Very high score for early all-caps names
+                            candidates.append((title_name, score))
+                            continue
+                
+                # Validate regular case names
+                if not any(keyword in potential_name.lower() for keyword in 
+                         ["curriculum", "resume", "cv", "contact", "about", "education", "experience", "skills"]):
+                    
+                    # Higher score for earlier lines
+                    score = 4.0 - (i * 0.5)
+                    candidates.append((potential_name, score))
+    
+    # Method 2: Named entities with spaCy (if available)
     if nlp:
         doc = nlp(text[:2000])  # Analyze first 2000 characters
         
@@ -109,7 +156,6 @@ def extract_name_with_context(text):
             "curriculum vitae", "resume", "contact", "phone", "email", "address"
         }
         
-        # Method 1: Named entities
         for ent in doc.ents:
             if ent.label_ == "PERSON":
                 candidate_text = ent.text.lower()
@@ -137,35 +183,6 @@ def extract_name_with_context(text):
                     score += 0.5
                 
                 candidates.append((ent.text, score))
-    
-    # Method 2: First line analysis (often contains name)
-    first_lines = text.split('\n')[:5]  # Check first 5 lines
-    for i, line in enumerate(first_lines):
-        line = line.strip()
-        
-        # Skip empty lines or lines with contact info
-        if not line or '@' in line or re.search(r'\d{3}[-\s]?\d{3}[-\s]?\d{4}', line):
-            continue
-            
-        # Look for name patterns
-        name_patterns = [
-            r'^([A-Z][a-z]+ [A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)$',  # First Last or First Middle Last
-            r'^([A-Z][a-z]+\s+[A-Z]\.\s+[A-Z][a-z]+)$',  # First M. Last
-            r'^([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)(?:\s|$)',  # Name at start of line
-        ]
-        
-        for pattern in name_patterns:
-            match = re.search(pattern, line)
-            if match:
-                potential_name = match.group(1).strip()
-                
-                # Validate it's not a title or section header
-                if not any(keyword in potential_name.lower() for keyword in 
-                         ["curriculum", "resume", "cv", "contact", "about", "education", "experience", "skills"]):
-                    
-                    # Higher score for earlier lines
-                    score = 4.0 - (i * 0.5)
-                    candidates.append((potential_name, score))
     
     # Method 3: Look for name after common prefixes
     name_prefix_patterns = [
