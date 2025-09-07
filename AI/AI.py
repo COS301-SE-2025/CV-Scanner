@@ -53,22 +53,60 @@ def extract_text(file_path):
 
 def extract_personal_info(text):
     """Extract personal information using improved AI and pattern matching"""
-    if not nlp:
-        logger.warning("spaCy model not available, using basic extraction")
-        return extract_personal_info_basic(text)
-    
-    # Extract email/phone using regex
+    # Extract email/phone using regex first
     email = re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", text, re.I)
     phone = re.search(r"(\+?\d{1,3}[-\.\s]?)?\(?\d{3}\)?[-\.\s]?\d{3}[-\.\s]?\d{4}", text)
     
-    # AI-powered name extraction with better context understanding
-    name = extract_name_with_context(text)
+    # Try name extraction - use multiple methods for robustness
+    name = None
+    
+    # Method 1: Use our advanced name extraction if spaCy is available
+    if nlp:
+        try:
+            name = extract_name_with_context(text)
+        except Exception as e:
+            logger.warning(f"Advanced name extraction failed: {e}")
+    
+    # Method 2: Fallback to basic name extraction
+    if not name:
+        try:
+            name = extract_name_basic(text)
+        except Exception as e:
+            logger.warning(f"Basic name extraction failed: {e}")
     
     return {
         "name": name,
         "email": email.group(0) if email else None,
         "phone": phone.group(0) if phone else None
     }
+
+def extract_name_basic(text):
+    """Basic name extraction as fallback"""
+    lines = text.split('\n')[:10]  # Check first 10 lines
+    
+    for i, line in enumerate(lines):
+        line = line.strip()
+        
+        # Skip empty lines or lines with contact info
+        if not line or '@' in line or re.search(r'\d{3}[-\s]?\d{3}[-\s]?\d{4}', line):
+            continue
+        
+        # Check for ALL CAPS names (common in CVs)
+        if re.match(r'^[A-Z][A-Z\s]+[A-Z]$', line):
+            words = line.split()
+            if 2 <= len(words) <= 4 and all(2 <= len(word) <= 15 for word in words):
+                # Check it's not a section header
+                if not any(keyword in line.lower() for keyword in 
+                         ['computer', 'science', 'student', 'profile', 'resume', 'cv', 'education', 'experience']):
+                    return line.title()  # Convert to title case
+        
+        # Check for regular title case names
+        if re.match(r'^[A-Z][a-z]+ [A-Z][a-z]+(?:\s+[A-Z][a-z]+)?$', line):
+            if not any(keyword in line.lower() for keyword in 
+                     ['computer', 'science', 'student', 'profile', 'resume', 'cv']):
+                return line
+    
+    return None
 
 def extract_personal_info_basic(text):
     """Fallback method for personal info extraction without spaCy"""
@@ -757,53 +795,240 @@ def parse_resume(file_path):
         raise
 
 def generate_cv_summary(text, personal_info, sections, skills):
-    """Generate an overall CV summary using AI"""
+    """Generate an intelligent AI-powered CV summary"""
     try:
-        # Create a summary prompt based on available information
-        summary_parts = []
+        # Build a comprehensive summary prompt from all extracted data
+        summary_components = []
         
+        # Start with candidate identification
         if personal_info.get('name'):
-            summary_parts.append(f"Professional profile for {personal_info['name']}")
+            summary_components.append(f"{personal_info['name']} is a")
         else:
-            summary_parts.append("Professional CV profile")
+            summary_components.append("This candidate is a")
         
-        # Add experience information
-        if sections.get('experience'):
-            summary_parts.append("with relevant work experience")
-        
-        # Add education information  
+        # Analyze education for professional level
+        education_level = "professional"
         if sections.get('education'):
-            summary_parts.append("and educational background")
+            education_text = sections['education'].lower()
+            if 'bachelor' in education_text or 'computer science' in education_text:
+                education_level = "computer science graduate"
+            elif 'master' in education_text:
+                education_level = "master's degree holder"
+            elif 'phd' in education_text or 'doctorate' in education_text:
+                education_level = "PhD holder"
+            elif 'student' in education_text:
+                education_level = "student"
         
-        # Add skills count
+        # Add skills summary
         if skills:
-            summary_parts.append(f"skilled in {len(skills)} technologies")
+            skill_categories = categorize_skills(skills)
+            skill_summary = create_skill_summary(skill_categories)
+            summary_components.append(f"{education_level} with expertise in {skill_summary}")
+        else:
+            summary_components.append(education_level)
         
-        # Combine sections for AI summarization
-        combined_text = ""
-        for section_name, content in sections.items():
-            if content:
-                combined_text += f"{section_name.title()}: {content} "
+        # Add experience insights
+        if sections.get('experience'):
+            experience_summary = extract_experience_highlights(sections['experience'])
+            if experience_summary:
+                summary_components.append(f"Experience includes {experience_summary}")
         
-        if summarizer and len(combined_text) > 100:
+        # Add project insights
+        if sections.get('projects'):
+            project_summary = extract_project_highlights(sections['projects'])
+            if project_summary:
+                summary_components.append(f"Notable projects involve {project_summary}")
+        
+        # Combine into a natural summary
+        base_summary = ". ".join(summary_components) + "."
+        
+        # Use AI to refine and enhance the summary if available
+        if summarizer and len(base_summary) > 50:
             try:
-                summary = summarizer(
-                    combined_text[:1000],  # Limit input length
-                    max_length=100,
-                    min_length=20,
+                # Create a more detailed prompt for the AI
+                detailed_prompt = f"""
+                Professional Summary: {base_summary}
+                
+                Technical Skills: {', '.join(skills[:10])}
+                
+                Background: {sections.get('education', 'Not specified')[:200]}
+                
+                Experience: {sections.get('experience', 'Not specified')[:200]}
+                """
+                
+                ai_summary = summarizer(
+                    detailed_prompt,
+                    max_length=80,
+                    min_length=30,
                     do_sample=False,
                     truncation=True
                 )
-                return summary[0]['summary_text']
+                
+                # Ensure the AI summary is coherent and professional
+                ai_text = ai_summary[0]['summary_text'].strip()
+                if len(ai_text) > 20 and not ai_text.startswith('Professional Summary'):
+                    return ai_text
+                
             except Exception as e:
-                logger.warning(f"AI summarization failed: {e}")
+                logger.warning(f"AI summary generation failed: {e}")
         
-        # Fallback to basic summary
-        return ". ".join(summary_parts) + "."
+        # Fallback to our constructed summary
+        return base_summary
         
     except Exception as e:
         logger.warning(f"Error generating summary: {e}")
-        return "Professional CV profile available for review."
+        return create_fallback_summary(personal_info, skills, sections)
+
+def categorize_skills(skills):
+    """Categorize skills into technology areas"""
+    categories = {
+        'programming_languages': [],
+        'web_technologies': [],
+        'databases': [],
+        'tools_frameworks': [],
+        'other': []
+    }
+    
+    # Define skill categories
+    programming_langs = {'python', 'java', 'javascript', 'typescript', 'c++', 'c#', 'php', 'ruby', 'go', 'rust', 'kotlin', 'swift', 'c', 'sql'}
+    web_techs = {'html', 'css', 'react', 'angular', 'vue', 'node.js', 'express', 'django', 'flask', 'bootstrap', 'jquery'}
+    databases = {'mysql', 'postgresql', 'mongodb', 'redis', 'sqlite', 'oracle'}
+    tools = {'git', 'github', 'docker', 'kubernetes', 'aws', 'azure', 'jenkins', 'webpack', 'babel'}
+    
+    for skill in skills:
+        skill_lower = skill.lower()
+        if skill_lower in programming_langs:
+            categories['programming_languages'].append(skill)
+        elif skill_lower in web_techs:
+            categories['web_technologies'].append(skill)
+        elif skill_lower in databases:
+            categories['databases'].append(skill)
+        elif skill_lower in tools:
+            categories['tools_frameworks'].append(skill)
+        else:
+            categories['other'].append(skill)
+    
+    return categories
+
+def create_skill_summary(skill_categories):
+    """Create a natural language summary of skills"""
+    summary_parts = []
+    
+    if skill_categories['programming_languages']:
+        langs = skill_categories['programming_languages'][:3]  # Top 3
+        summary_parts.append(f"programming languages including {', '.join(langs)}")
+    
+    if skill_categories['web_technologies']:
+        web = skill_categories['web_technologies'][:3]
+        summary_parts.append(f"web technologies such as {', '.join(web)}")
+    
+    if skill_categories['databases']:
+        dbs = skill_categories['databases'][:2]
+        summary_parts.append(f"database systems like {', '.join(dbs)}")
+    
+    if skill_categories['tools_frameworks']:
+        tools = skill_categories['tools_frameworks'][:2]
+        summary_parts.append(f"development tools including {', '.join(tools)}")
+    
+    if not summary_parts and skill_categories['other']:
+        # Fallback if no categorized skills
+        other_skills = skill_categories['other'][:5]
+        summary_parts.append(f"various technologies including {', '.join(other_skills)}")
+    
+    if len(summary_parts) > 1:
+        return ', '.join(summary_parts[:-1]) + f", and {summary_parts[-1]}"
+    elif summary_parts:
+        return summary_parts[0]
+    else:
+        return "multiple technical areas"
+
+def extract_experience_highlights(experience_text):
+    """Extract key highlights from experience section"""
+    if not experience_text or len(experience_text) < 20:
+        return None
+    
+    # Look for key action verbs and achievements
+    highlights = []
+    
+    # Extract sentences with key action verbs
+    action_verbs = ['developed', 'created', 'implemented', 'designed', 'built', 'managed', 'led', 'worked']
+    sentences = experience_text.split('.')
+    
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if any(verb in sentence.lower() for verb in action_verbs) and len(sentence) > 20:
+            # Clean up the sentence
+            clean_sentence = sentence[:100] + '...' if len(sentence) > 100 else sentence
+            highlights.append(clean_sentence.lower())
+    
+    # Extract key technologies mentioned in experience
+    tech_mentions = []
+    common_techs = ['web application', 'full-stack', 'ai algorithms', 'software engineering', 'database', 'api']
+    
+    for tech in common_techs:
+        if tech in experience_text.lower():
+            tech_mentions.append(tech)
+    
+    if highlights:
+        return highlights[0]  # Return the first meaningful highlight
+    elif tech_mentions:
+        return f"work with {', '.join(tech_mentions[:3])}"
+    else:
+        return "software development and technical projects"
+
+def extract_project_highlights(projects_text):
+    """Extract key highlights from projects section"""
+    if not projects_text or len(projects_text) < 20:
+        return None
+    
+    # Look for project types and technologies
+    project_keywords = ['simulation', 'web application', 'application', 'system', 'platform', 'tool']
+    tech_keywords = ['city environment', 'streaming service', 'resource management', 'efficiency', 'simplicity']
+    
+    found_projects = []
+    found_techs = []
+    
+    projects_lower = projects_text.lower()
+    
+    for keyword in project_keywords:
+        if keyword in projects_lower:
+            found_projects.append(keyword)
+    
+    for keyword in tech_keywords:
+        if keyword in projects_lower:
+            found_techs.append(keyword)
+    
+    if found_projects and found_techs:
+        return f"{found_projects[0]} development with focus on {found_techs[0]}"
+    elif found_projects:
+        return f"{found_projects[0]} development"
+    elif found_techs:
+        return f"projects focusing on {found_techs[0]}"
+    else:
+        return "software development projects"
+
+def create_fallback_summary(personal_info, skills, sections):
+    """Create a basic fallback summary"""
+    summary_parts = []
+    
+    if personal_info.get('name'):
+        summary_parts.append(f"{personal_info['name']} is a software professional")
+    else:
+        summary_parts.append("Software professional")
+    
+    if skills:
+        if len(skills) >= 5:
+            summary_parts.append(f"with expertise in {len(skills)} technologies including {', '.join(skills[:3])}")
+        else:
+            summary_parts.append(f"skilled in {', '.join(skills[:3])}")
+    
+    if sections.get('education'):
+        summary_parts.append("with relevant educational background")
+    
+    if sections.get('experience'):
+        summary_parts.append("and practical work experience")
+    
+    return ". ".join(summary_parts) + "."
 
 def analyze_cv_quality(text, personal_info, sections, skills):
     """Analyze CV quality and provide recommendations"""
