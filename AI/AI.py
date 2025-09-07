@@ -1116,4 +1116,6 @@ async def root():
     return {"message": "CV Processing API is running - supports PDF and DOCX files"}
 
 if __name__ == "__main__":
-    uvicorn.run("AI:app", host="0.0.0.0", port=5000, reload=True)
+    # Only start server if not in testing mode
+    if not os.environ.get('TESTING'):
+        uvicorn.run("AI:app", host="0.0.0.0", port=5000, reload=True)
