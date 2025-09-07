@@ -4,3 +4,7 @@ python-multipart
 tika
 transformers
 spacy
+torch
+pdfminer.six
+python-docx
+numpy
