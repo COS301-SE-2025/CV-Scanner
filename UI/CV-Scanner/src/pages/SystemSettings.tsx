@@ -60,39 +60,48 @@ const CONFIG_BASE = "http://localhost:8081";
     }
   }, [user, navigate]);
 
+const loadConfig = async () => {
+  try {
+    const res = await fetch(`${CONFIG_BASE}/auth/config/categories`);
+    if (!res.ok) {
+      let msg = `Failed to load configuration (${res.status})`;
+      try {
+        const j = await res.json();
+        msg = j?.detail || msg;
+      } catch {}
+      alert(msg);
+      return;
+    }
+    const json = await res.json();
+    const pretty = JSON.stringify(json, null, 2);
+    setConfigContent(pretty); // your local state
+    setEditing(false); // reset editing state
+  } catch (e) {
+    alert("Could not load configuration.");
+    console.error(e);
+  }
+};
+
 useEffect(() => {
-  fetch(`${CONFIG_BASE}/get_config`)
-    .then((res) => res.json())
-    .then((data) => {
-      if (data && data.config) {
-        setConfigContent(data.config);
-      } else {
-        setConfigContent("// No config returned");
-      }
-    })
-    .catch((err) => {
-      console.error("Error fetching config:", err);
-      setConfigContent("// Failed to fetch config");
-    });
+  loadConfig();
 }, []);
 
 const handleSaveConfig = async () => {
   try {
-    const res = await fetch(`${CONFIG_BASE}/save_config`, {
+    const res = await fetch(`${CONFIG_BASE}/auth/config/categories`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ config: configContent }),
+      body: configContent, // backend expects JSON
     });
-
     if (res.ok) {
       alert("Config saved successfully!");
       setEditing(false);
     } else {
-      alert("Failed to save config.");
+      alert("Failed to save config");
     }
   } catch (err) {
-    console.error("Save error:", err);
-    alert("Error saving config.");
+    console.error(err);
+    alert("Error saving config");
   }
 };
   // Local state for blacklist and whitelist
@@ -435,13 +444,23 @@ const handleSaveConfig = async () => {
   <Box sx={{ mt: 2, display: "flex", gap: 2 }}>
     {editing ? (
       <>
-        <Button variant="contained" color="success" onClick={handleSaveConfig}>
+        <Button
+          variant="contained"
+          color="success"
+          onClick={async () => {
+            await handleSaveConfig();
+            loadConfig(); // refresh config after saving
+          }}
+        >
           Save
         </Button>
         <Button
           variant="outlined"
           color="inherit"
-          onClick={() => setEditing(false)}
+          onClick={() => {
+            loadConfig(); // reload original config on cancel
+            setEditing(false);
+          }}
         >
           Cancel
         </Button>
@@ -453,6 +472,7 @@ const handleSaveConfig = async () => {
     )}
   </Box>
 </Box>
+
 
         </Box>
       </Box>
