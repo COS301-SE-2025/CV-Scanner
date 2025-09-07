@@ -60,10 +60,13 @@ def extract_personal_info(text):
     # Try name extraction - use multiple methods for robustness
     name = None
     
+    logger.info(f"Starting name extraction, nlp available: {nlp is not None}")
+    
     # Method 1: Use our advanced name extraction if spaCy is available
     if nlp:
         try:
             name = extract_name_with_context(text)
+            logger.info(f"Advanced name extraction result: {name}")
         except Exception as e:
             logger.warning(f"Advanced name extraction failed: {e}")
     
@@ -71,8 +74,11 @@ def extract_personal_info(text):
     if not name:
         try:
             name = extract_name_basic(text)
+            logger.info(f"Basic name extraction result: {name}")
         except Exception as e:
             logger.warning(f"Basic name extraction failed: {e}")
+    
+    logger.info(f"Final name result: {name}")
     
     return {
         "name": name,
@@ -755,10 +761,15 @@ def parse_resume(file_path):
         
         logger.info(f"Extracted text length: {len(text)} characters")
         
-        # Extract basic information
+        # Extract basic information with debugging
         personal_info = extract_personal_info(text)
+        logger.info(f"Personal info extracted: {personal_info}")
+        
         sections = extract_sections(text)
+        logger.info(f"Sections extracted: {list(sections.keys())}")
+        
         skills = extract_skills(text)
+        logger.info(f"Skills extracted: {len(skills)} skills")
         
         # Generate summaries for longer sections
         summarized_sections = {}
@@ -781,6 +792,7 @@ def parse_resume(file_path):
         
         # Generate overall summary
         summary = generate_cv_summary(text, personal_info, summarized_sections, skills)
+        logger.info(f"Generated summary: {summary[:100]}...")
         
         return {
             "personal_info": personal_info,
@@ -817,7 +829,7 @@ def generate_cv_summary(text, personal_info, sections, skills):
             elif 'phd' in education_text or 'doctorate' in education_text:
                 education_level = "PhD holder"
             elif 'student' in education_text:
-                education_level = "student"
+                education_level = "computer science student"
         
         # Add skills summary
         if skills:
