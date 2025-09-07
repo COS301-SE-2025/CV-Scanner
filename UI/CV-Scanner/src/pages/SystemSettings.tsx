@@ -77,20 +77,24 @@ useEffect(() => {
 }, []);
 
 const handleSaveConfig = async () => {
-  const res = await fetch("http://localhost:8081/save_config", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ config: configContent }),
-  });
+  try {
+    const res = await fetch(`${CONFIG_BASE}/save_config`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ config: configContent }),
+    });
 
-  if (res.ok) {
-    alert("Config saved successfully!");
-    setEditing(false);
-  } else {
-    alert("Failed to save config.");
+    if (res.ok) {
+      alert("Config saved successfully!");
+      setEditing(false);
+    } else {
+      alert("Failed to save config.");
+    }
+  } catch (err) {
+    console.error("Save error:", err);
+    alert("Error saving config.");
   }
 };
-
   // Local state for blacklist and whitelist
   const [blacklist, setBlacklist] = useState<string[]>([]);
   const [whitelist, setWhitelist] = useState<string[]>([]);
