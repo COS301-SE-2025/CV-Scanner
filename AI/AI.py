@@ -158,60 +158,90 @@ def extract_name_with_context(text):
 
 def extract_sections(text):
     """Improved section extraction with better boundary detection and AI summarization"""
+    # Clean text for better pattern matching
+    text_clean = re.sub(r'\s+', ' ', text)
+    
     section_headers = {
-        "education": r"(education|academic background|degrees|qualifications|academics|educational background)",
-        "experience": r"(experience|work history|employment|professional background|work experience|career|professional experience)",
-        "skills": r"(skills|technical skills|competencies|proficiencies|technologies|expertise|abilities)",
-        "projects": r"(projects|personal projects|key projects|project experience|portfolio|notable projects)",
-        "certificates": r"(certificates|certifications|licenses|awards|achievements|honors)"
+        "education": r"(?i)\b(education|academic\s+background|qualifications|academics|educational\s+background|degrees?)\b",
+        "experience": r"(?i)\b(experience|work\s+history|employment|professional\s+background|work\s+experience|career|professional\s+experience|employment\s+history)\b",
+        "skills": r"(?i)\b(skills|technical\s+skills|competencies|proficiencies|technologies|expertise|abilities|programming\s+languages)\b",
+        "projects": r"(?i)\b(projects|personal\s+projects|key\s+projects|project\s+experience|portfolio|notable\s+projects)\b",
+        "certificates": r"(?i)\b(certificates?|certifications?|licenses?|awards?|achievements?|honors?)\b"
     }
     
-    # Find all section headers with their positions
-    section_positions = []
-    for section, pattern in section_headers.items():
-        for match in re.finditer(pattern, text, re.IGNORECASE):
-            # Check if this is actually a section header (not just a word in text)
-            line_start = text.rfind('\n', 0, match.start()) + 1
-            line_end = text.find('\n', match.end())
-            if line_end == -1:
-                line_end = len(text)
-            
-            line = text[line_start:line_end].strip()
-            
-            # Section headers are usually short and don't have too much other text
-            if len(line) < 100 and not re.search(r'[.,:;]', line[:match.start() - line_start]):
-                section_positions.append((match.start(), section, match.group(), line_start))
-    
-    # Sort by position
-    section_positions.sort(key=lambda x: x[0])
-    
+    # Find section boundaries more accurately
     sections = {}
-    for i, (start_idx, section, header, line_start) in enumerate(section_positions):
-        # Find end of section (start of next section or end of document)
-        if i + 1 < len(section_positions):
-            end_idx = section_positions[i + 1][3]  # Start of next section's line
-        else:
-            end_idx = len(text)
-        
-        # Extract content (skip the header line)
-        header_line_end = text.find('\n', start_idx)
-        if header_line_end == -1:
+    lines = text.split('\n')
+    current_section = None
+    current_content = []
+    
+    for i, line in enumerate(lines):
+        line_clean = line.strip()
+        if not line_clean:
             continue
             
-        content_start = header_line_end + 1
-        section_content = text[content_start:end_idx].strip()
+        # Check if this line is a section header
+        found_section = None
+        for section_name, pattern in section_headers.items():
+            if re.search(pattern, line_clean) and len(line_clean) < 100:
+                # Additional validation - should not be in middle of sentence
+                if not re.search(r'[.,:;]\s*$', line_clean):
+                    found_section = section_name
+                    break
         
-        # Clean up section content
-        section_content = re.sub(r'\s+', ' ', section_content)
-        section_content = re.sub(r'\n+', '\n', section_content)
-        
-        # AI-powered summarization for long sections
-        if summarizer and len(section_content) > 200:
-            section_content = summarize_section(section_content, section)
-        
-        sections[section] = section_content
+        if found_section:
+            # Save previous section
+            if current_section and current_content:
+                content = '\n'.join(current_content).strip()
+                if content:
+                    sections[current_section] = clean_section_content(content, current_section)
+            
+            # Start new section
+            current_section = found_section
+            current_content = []
+        elif current_section:
+            # Add content to current section
+            current_content.append(line_clean)
+    
+    # Save last section
+    if current_section and current_content:
+        content = '\n'.join(current_content).strip()
+        if content:
+            sections[current_section] = clean_section_content(content, current_section)
     
     return sections
+
+def clean_section_content(content, section_type):
+    """Clean and process section content"""
+    # Remove excessive whitespace
+    content = re.sub(r'\s+', ' ', content)
+    
+    # Remove common CV formatting artifacts
+    content = re.sub(r'[-•▪▫]+\s*', '• ', content)  # Normalize bullets
+    content = re.sub(r'\|\s*', ', ', content)       # Replace pipes with commas
+    
+    # Section-specific cleaning
+    if section_type == "skills":
+        # For skills, keep it concise
+        return content[:300] + "..." if len(content) > 300 else content
+    elif section_type in ["experience", "projects"]:
+        # For experience/projects, use AI summarization if available and content is long
+        if summarizer and len(content) > 400:
+            try:
+                summary = summarizer(
+                    content,
+                    max_length=200,
+                    min_length=50,
+                    do_sample=False,
+                    truncation=True
+                )
+                return summary[0]['summary_text']
+            except Exception as e:
+                logger.warning(f"Summarization failed: {e}")
+                return content[:400] + "..."
+        return content
+    else:
+        return content
 
 def summarize_section(content, section_type):
     """Use AI to summarize section content intelligently"""
@@ -276,184 +306,237 @@ def summarize_section(content, section_type):
         return content[:500] + "..." if len(content) > 500 else content
 
 def extract_skills(text):
-    """Advanced skills extraction using multiple AI techniques"""
+    """Focused skills extraction using predefined technology lists and careful filtering"""
     # Get skills section if available
     sections = extract_sections(text)
     skills_section = sections.get("skills", "")
     
-    # Use skills section primarily, but fall back to full text if needed
-    search_text = skills_section if len(skills_section) > 50 else text
+    # Use skills section primarily, but also scan full text for known technologies
+    search_text = skills_section if len(skills_section) > 30 else text
     
     skills = set()
     
-    # Method 1: NLP-based extraction with spaCy
-    if nlp:
-        skills.update(extract_skills_with_nlp(search_text))
+    # Method 1: Known technology patterns (most reliable)
+    skills.update(extract_known_technologies(text))
     
-    # Method 2: Pattern-based extraction
-    skills.update(extract_skills_with_patterns(search_text))
+    # Method 2: Skills from structured lists in skills section
+    if skills_section:
+        skills.update(extract_from_skills_section(skills_section))
     
-    # Method 3: Structured data extraction (bullet points, lists)
-    skills.update(extract_skills_from_structure(search_text))
+    # Method 3: Programming languages with careful validation
+    skills.update(extract_programming_languages(text))
     
-    # Clean and filter skills
-    cleaned_skills = clean_and_filter_skills(skills)
+    # Clean and validate all extracted skills
+    cleaned_skills = []
+    for skill in skills:
+        cleaned = clean_skill_text(skill)
+        if is_legitimate_skill(cleaned):
+            cleaned_skills.append(cleaned)
     
-    return sorted(cleaned_skills)
+    return sorted(list(set(cleaned_skills)))
 
-def extract_skills_with_nlp(text):
-    """Extract skills using advanced NLP techniques"""
-    if not nlp:
-        return set()
-    
-    doc = nlp(text)
+def extract_known_technologies(text):
+    """Extract well-known technologies using precise patterns"""
     skills = set()
     
-    # Extract from noun chunks
-    for chunk in doc.noun_chunks:
-        chunk_text = chunk.text.strip()
-        if is_valid_skill(chunk_text):
-            skills.add(chunk_text.lower())
-    
-    # Extract from named entities (technologies, organizations, products)
-    for ent in doc.ents:
-        if ent.label_ in ["ORG", "PRODUCT", "TECH"] and is_valid_skill(ent.text):
-            skills.add(ent.text.lower())
-    
-    return skills
-
-def extract_skills_with_patterns(text):
-    """Extract skills using regex patterns for common technologies"""
-    skills = set()
-    
-    # Comprehensive technology patterns
-    tech_patterns = {
-        # Programming languages
-        r'\b(python|java|javascript|typescript|c\+\+|c#|php|ruby|go|rust|kotlin|swift|scala|r|matlab)\b',
-        # Web technologies
-        r'\b(html|css|react|angular|vue|node\.?js|express|django|flask|spring|laravel|rails)\b',
+    # Define comprehensive but precise technology lists
+    technologies = {
+        # Programming Languages (case-insensitive but exact matches)
+        'languages': [
+            'python', 'java', 'javascript', 'typescript', 'c++', 'c#', 'csharp', 'c',
+            'php', 'ruby', 'go', 'rust', 'kotlin', 'swift', 'scala', 'r', 'matlab',
+            'perl', 'lua', 'dart', 'objective-c', 'visual basic', 'fortran', 'cobol'
+        ],
+        
+        # Web Technologies
+        'web': [
+            'html', 'css', 'react', 'angular', 'vue', 'vue.js', 'node.js', 'nodejs',
+            'express', 'django', 'flask', 'spring', 'laravel', 'rails', 'asp.net',
+            'jquery', 'bootstrap', 'tailwind', 'sass', 'less', 'webpack', 'babel'
+        ],
+        
         # Databases
-        r'\b(mysql|postgresql|mongodb|redis|cassandra|oracle|sql\s+server|sqlite|dynamodb)\b',
+        'databases': [
+            'mysql', 'postgresql', 'mongodb', 'redis', 'cassandra', 'oracle',
+            'sql server', 'sqlite', 'dynamodb', 'elasticsearch', 'neo4j', 'couchdb'
+        ],
+        
         # Cloud & DevOps
-        r'\b(aws|azure|gcp|docker|kubernetes|terraform|jenkins|git|github|gitlab|ci/cd)\b',
-        # Frameworks & Libraries
-        r'\b(tensorflow|pytorch|scikit-learn|pandas|numpy|bootstrap|jquery|webpack|babel)\b',
-        # Tools & Technologies
-        r'\b(machine learning|artificial intelligence|data science|blockchain|microservices)\b'
+        'cloud': [
+            'aws', 'azure', 'gcp', 'google cloud', 'docker', 'kubernetes', 'terraform',
+            'jenkins', 'git', 'github', 'gitlab', 'bitbucket', 'ci/cd', 'ansible'
+        ],
+        
+        # Data Science & AI
+        'data_ai': [
+            'tensorflow', 'pytorch', 'scikit-learn', 'pandas', 'numpy', 'matplotlib',
+            'seaborn', 'jupyter', 'anaconda', 'spark', 'hadoop', 'tableau', 'power bi'
+        ],
+        
+        # Mobile Development
+        'mobile': [
+            'android', 'ios', 'react native', 'flutter', 'xamarin', 'ionic'
+        ]
     }
     
-    for pattern in tech_patterns:
+    # Create combined pattern for all technologies
+    all_techs = []
+    for category in technologies.values():
+        all_techs.extend(category)
+    
+    # Create regex pattern that matches whole words
+    for tech in all_techs:
+        # Escape special regex characters and create word boundary pattern
+        escaped_tech = re.escape(tech)
+        pattern = rf'\b{escaped_tech}\b'
+        
         matches = re.finditer(pattern, text, re.IGNORECASE)
         for match in matches:
-            skill = match.group(0).lower()
-            if is_valid_skill(skill):
-                skills.add(skill)
+            # Validate context - shouldn't be part of email, URL, or sentence
+            context_start = max(0, match.start() - 20)
+            context_end = min(len(text), match.end() + 20)
+            context = text[context_start:context_end]
+            
+            # Skip if it's part of an email or URL
+            if '@' in context or 'http' in context.lower():
+                continue
+                
+            skills.add(tech.lower())
     
     return skills
 
-def extract_skills_from_structure(text):
-    """Extract skills from structured lists and bullet points"""
+def extract_from_skills_section(skills_text):
+    """Extract skills specifically from the skills section using structure"""
     skills = set()
     
-    # Bullet points and dashes
-    bullet_patterns = [
-        r'\n\s*[\-•▪▫]\s*([^\n]+)',
-        r'\n\s*\*\s*([^\n]+)',
-        r'\n\s*\d+\.\s*([^\n]+)'
-    ]
+    # Split by common separators
+    separators = [',', ';', '|', '\n', '•', '-', '*']
+    items = [skills_text]
     
-    for pattern in bullet_patterns:
-        matches = re.finditer(pattern, text)
-        for match in matches:
-            items = re.split(r'[,;|]', match.group(1))
-            for item in items:
-                skill = item.strip()
-                if is_valid_skill(skill):
-                    skills.add(skill.lower())
+    for sep in separators:
+        new_items = []
+        for item in items:
+            new_items.extend(item.split(sep))
+        items = new_items
     
-    # Comma-separated lists (common in skills sections)
-    lines = text.split('\n')
-    for line in lines:
-        if len(line.split(',')) > 2:  # Likely a comma-separated list
-            items = [item.strip() for item in line.split(',')]
-            for item in items:
-                if is_valid_skill(item):
-                    skills.add(item.lower())
+    for item in items:
+        item = item.strip()
+        if item and 2 <= len(item) <= 30:  # Reasonable skill length
+            # Remove common prefixes/suffixes
+            item = re.sub(r'^(programming\s+)?(languages?:?\s*)', '', item, flags=re.I)
+            item = re.sub(r'^(technologies?:?\s*)', '', item, flags=re.I)
+            item = item.strip()
+            
+            if item and not contains_personal_info(item):
+                skills.add(item.lower())
     
     return skills
 
-def is_valid_skill(skill_text):
-    """Validate if extracted text is likely a skill"""
-    skill = skill_text.strip()
+def extract_programming_languages(text):
+    """Extract programming languages with additional context validation"""
+    languages = set()
     
-    # Basic validation
-    if not skill or len(skill) < 2 or len(skill) > 40:
+    # Look for explicit programming language mentions
+    patterns = [
+        r'programming\s+languages?:?\s*([^.]+)',
+        r'languages?:?\s*([^.]+)',
+        r'proficient\s+in:?\s*([^.]+)',
+        r'experienced\s+with:?\s*([^.]+)'
+    ]
+    
+    for pattern in patterns:
+        matches = re.finditer(pattern, text, re.I)
+        for match in matches:
+            lang_text = match.group(1)
+            # Split by common separators and validate
+            for lang in re.split(r'[,;|]', lang_text):
+                lang = lang.strip()
+                if is_programming_language(lang):
+                    languages.add(lang.lower())
+    
+    return languages
+
+def is_programming_language(text):
+    """Check if text is likely a programming language"""
+    known_languages = {
+        'python', 'java', 'javascript', 'typescript', 'c++', 'c#', 'c',
+        'php', 'ruby', 'go', 'rust', 'kotlin', 'swift', 'scala', 'r',
+        'matlab', 'perl', 'lua', 'dart', 'html', 'css', 'sql'
+    }
+    
+    return text.lower() in known_languages
+
+def contains_personal_info(text):
+    """Check if text contains personal information that shouldn't be a skill"""
+    personal_indicators = [
+        r'\d{3}[-\s]?\d{3}[-\s]?\d{4}',  # Phone numbers
+        r'@',  # Email addresses
+        r'\b\d{1,4}\s+\w+\s+street\b',  # Addresses
+        r'\b(street|avenue|road|drive|lane)\b',  # Street names
+        r'\b(january|february|march|april|may|june|july|august|september|october|november|december)\b',  # Months
+        r'\b\d{4}\b.*\b\d{4}\b'  # Date ranges
+    ]
+    
+    for pattern in personal_indicators:
+        if re.search(pattern, text, re.I):
+            return True
+    return False
+
+def clean_skill_text(skill):
+    """Clean individual skill text"""
+    # Remove common prefixes and suffixes
+    skill = re.sub(r'^(the\s+|a\s+|an\s+)', '', skill, flags=re.I)
+    skill = re.sub(r'(ing|ed|er|ly)$', '', skill)  # Remove common suffixes
+    skill = re.sub(r'[^\w\s\-\+\.#]', '', skill)  # Remove special characters
+    skill = skill.strip()
+    
+    # Normalize common variations
+    normalizations = {
+        'js': 'javascript',
+        'ts': 'typescript',
+        'nodejs': 'node.js',
+        'reactjs': 'react',
+        'c++': 'cpp',
+        'c#': 'csharp'
+    }
+    
+    return normalizations.get(skill.lower(), skill.lower())
+
+def is_legitimate_skill(skill):
+    """Final validation to ensure extracted text is a legitimate skill"""
+    if not skill or len(skill) < 2 or len(skill) > 25:
         return False
     
     # Skip common non-skill words
-    skip_words = {
+    non_skills = {
         'and', 'or', 'with', 'the', 'a', 'an', 'in', 'on', 'at', 'to', 'for', 'of', 'as',
-        'my', 'me', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'this', 'that', 'these',
-        'those', 'am', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has',
-        'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might',
-        'can', 'very', 'really', 'quite', 'rather', 'fairly', 'pretty', 'much', 'many'
+        'this', 'that', 'these', 'those', 'my', 'me', 'i', 'you', 'he', 'she', 'it',
+        'we', 'they', 'am', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+        'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should',
+        'contact', 'phone', 'email', 'address', 'street', 'city', 'state', 'country',
+        'university', 'college', 'school', 'student', 'bachelor', 'master', 'degree',
+        'years', 'year', 'month', 'day', 'time', 'work', 'job', 'position', 'role'
     }
     
-    if skill.lower() in skip_words:
+    if skill.lower() in non_skills:
         return False
     
-    # Skip if contains too many common words
-    words = skill.lower().split()
-    if len(words) > 1 and sum(1 for word in words if word in skip_words) > len(words) / 2:
+    # Skip if contains numbers (except for C++ style languages)
+    if re.search(r'\d', skill) and not re.search(r'(c\+\+|c#|\.net|2\.0|3\.0)', skill, re.I):
         return False
     
-    # Skip sentences (skills shouldn't be full sentences)
-    if skill.count(' ') > 4 or '.' in skill:
+    # Skip if it's obviously personal information
+    if contains_personal_info(skill):
+        return False
+    
+    # Must contain at least one letter
+    if not re.search(r'[a-zA-Z]', skill):
         return False
     
     return True
 
-def clean_and_filter_skills(skills):
-    """Clean and filter the extracted skills list"""
-    cleaned = set()
-    
-    for skill in skills:
-        # Clean the skill text
-        skill = re.sub(r'[^\w\s\-\+\.#]', '', skill)  # Remove special chars except common ones
-        skill = skill.strip()
-        
-        if not skill:
-            continue
-        
-        # Normalize common variations
-        skill = normalize_skill_name(skill)
-        
-        # Final validation
-        if is_valid_skill(skill):
-            cleaned.add(skill)
-    
-    return cleaned
-
-def normalize_skill_name(skill):
-    """Normalize skill names to standard forms"""
-    normalizations = {
-        'js': 'javascript',
-        'ts': 'typescript', 
-        'nodejs': 'node.js',
-        'reactjs': 'react',
-        'angularjs': 'angular',
-        'vuejs': 'vue',
-        'c++': 'cpp',
-        'c#': 'csharp',
-        'artificial intelligence': 'ai',
-        'machine learning': 'ml'
-    }
-    
-    skill_lower = skill.lower()
-    return normalizations.get(skill_lower, skill_lower)
-
 def parse_resume(file_path):
-    """Main function to parse resume/CV with comprehensive AI analysis"""
+    """Main function to parse resume/CV with improved AI analysis"""
     try:
         text = extract_text(file_path)
         text = re.sub(r'\s+', ' ', text).strip()  # Normalize whitespace
@@ -465,244 +548,88 @@ def parse_resume(file_path):
         sections = extract_sections(text)
         skills = extract_skills(text)
         
-        # Enhance sections with AI analysis
-        enhanced_sections = enhance_sections_with_ai(sections, text)
+        # Generate summaries for longer sections
+        summarized_sections = {}
+        for section_name, content in sections.items():
+            if content and len(content) > 300 and summarizer:
+                try:
+                    summary = summarizer(
+                        content,
+                        max_length=150,
+                        min_length=30,
+                        do_sample=False,
+                        truncation=True
+                    )
+                    summarized_sections[section_name] = summary[0]['summary_text']
+                except Exception as e:
+                    logger.warning(f"Summarization failed for {section_name}: {e}")
+                    summarized_sections[section_name] = content[:200] + "..."
+            else:
+                summarized_sections[section_name] = content
         
         # Generate overall summary
-        summary = generate_cv_summary(text, personal_info, enhanced_sections, skills)
+        summary = generate_cv_summary(text, personal_info, summarized_sections, skills)
         
         return {
             "personal_info": personal_info,
-            "sections": enhanced_sections,
+            "sections": summarized_sections,
             "skills": skills,
             "summary": summary,
-            "analysis": analyze_cv_quality(text, personal_info, enhanced_sections, skills)
+            "analysis": analyze_cv_quality(text, personal_info, summarized_sections, skills)
         }
         
     except Exception as e:
         logger.error(f"Error parsing resume: {str(e)}")
         raise
 
-def enhance_sections_with_ai(sections, full_text):
-    """Enhance extracted sections with AI analysis and better formatting"""
-    enhanced = {}
-    
-    for section_name, content in sections.items():
-        if not content.strip():
-            enhanced[section_name] = "No information found in this section."
-            continue
-            
-        try:
-            if section_name == "experience":
-                enhanced[section_name] = enhance_experience_section(content)
-            elif section_name == "education":
-                enhanced[section_name] = enhance_education_section(content)
-            elif section_name == "projects":
-                enhanced[section_name] = enhance_projects_section(content)
-            elif section_name == "skills":
-                enhanced[section_name] = enhance_skills_section(content)
-            else:
-                enhanced[section_name] = content
-                
-        except Exception as e:
-            logger.warning(f"Error enhancing {section_name} section: {e}")
-            enhanced[section_name] = content
-    
-    return enhanced
-
-def enhance_experience_section(content):
-    """Enhance work experience section with AI analysis"""
-    if len(content) < 50:
-        return content
-    
-    try:
-        # Extract key information using patterns
-        experience_items = []
-        
-        # Look for common patterns in experience descriptions
-        patterns = [
-            r'(\d{4}[-–]\d{4}|\d{4}[-–]present|\w+\s+\d{4}[-–]\w+\s+\d{4})',  # Date ranges
-            r'(developed|created|managed|led|implemented|designed|built|worked)',  # Action verbs
-            r'(company|organization|firm|corporation|inc\.|ltd\.|llc)',  # Company indicators
-        ]
-        
-        # If we have summarizer, use it for better formatting
-        if summarizer and len(content) > 200:
-            summary = summarizer(
-                f"Professional experience: {content}",
-                max_length=200,
-                min_length=50,
-                do_sample=False
-            )
-            return summary[0]['summary_text']
-        else:
-            # Basic enhancement - extract key sentences
-            sentences = content.split('.')
-            key_sentences = []
-            
-            for sentence in sentences:
-                sentence = sentence.strip()
-                if len(sentence) > 20:
-                    # Prioritize sentences with action verbs or dates
-                    if re.search(r'\b(developed|created|managed|led|implemented|designed|built|worked|responsible|achieved)\b', sentence, re.I):
-                        key_sentences.append(sentence)
-                    elif re.search(r'\d{4}', sentence):  # Contains year
-                        key_sentences.append(sentence)
-            
-            return '. '.join(key_sentences[:5]) + '.' if key_sentences else content
-            
-    except Exception as e:
-        logger.warning(f"Error enhancing experience section: {e}")
-        return content
-
-def enhance_education_section(content):
-    """Enhance education section with structured information"""
-    if len(content) < 30:
-        return content
-    
-    try:
-        # Extract key educational information
-        education_info = []
-        
-        # Look for degree patterns
-        degree_patterns = [
-            r'\b(bachelor|master|phd|doctorate|diploma|certificate|degree)\b.*?\b(in|of)\s+([^,\n]+)',
-            r'\b(b\.?[as]\.?|m\.?[as]\.?|ph\.?d\.?|mba)\b.*?([^,\n]+)',
-        ]
-        
-        for pattern in degree_patterns:
-            matches = re.finditer(pattern, content, re.I)
-            for match in matches:
-                education_info.append(match.group(0))
-        
-        # Look for institutions
-        institution_patterns = [
-            r'\b(university|college|institute|school)\s+of\s+([^,\n]+)',
-            r'\b([^,\n]*university|[^,\n]*college|[^,\n]*institute)\b',
-        ]
-        
-        institutions = []
-        for pattern in institution_patterns:
-            matches = re.finditer(pattern, content, re.I)
-            for match in matches:
-                institutions.append(match.group(0))
-        
-        if education_info or institutions:
-            enhanced = []
-            if education_info:
-                enhanced.extend(education_info[:3])  # Top 3 degrees
-            if institutions:
-                enhanced.extend(institutions[:2])   # Top 2 institutions
-            return '. '.join(enhanced) + '.'
-        
-        return content
-        
-    except Exception as e:
-        logger.warning(f"Error enhancing education section: {e}")
-        return content
-
-def enhance_projects_section(content):
-    """Enhance projects section with key project information"""
-    if len(content) < 50:
-        return content
-    
-    try:
-        # Extract project descriptions and technologies
-        projects = []
-        
-        # Split by common project separators
-        project_chunks = re.split(r'\n\s*[-•]\s*|\n\s*\d+\.\s*', content)
-        
-        for chunk in project_chunks[:5]:  # Limit to 5 projects
-            chunk = chunk.strip()
-            if len(chunk) > 30:
-                # Extract key information from each project
-                tech_matches = re.findall(r'\b(python|java|react|node\.js|javascript|html|css|sql|mongodb|aws|docker|git)\b', chunk, re.I)
-                
-                if tech_matches:
-                    projects.append(f"Project using {', '.join(set(tech_matches))}: {chunk[:100]}...")
-                else:
-                    projects.append(chunk[:150] + "..." if len(chunk) > 150 else chunk)
-        
-        return '\n• '.join(projects) if projects else content
-        
-    except Exception as e:
-        logger.warning(f"Error enhancing projects section: {e}")
-        return content
-
-def enhance_skills_section(content):
-    """Enhance skills section with categorization"""
-    # This is already handled by extract_skills function
-    return content
-
 def generate_cv_summary(text, personal_info, sections, skills):
     """Generate an overall CV summary using AI"""
     try:
-        # Create a summary prompt
-        experience_years = estimate_experience_years(text)
-        skill_count = len(skills)
-        
+        # Create a summary prompt based on available information
         summary_parts = []
         
         if personal_info.get('name'):
-            summary_parts.append(f"Candidate: {personal_info['name']}")
+            summary_parts.append(f"Professional profile for {personal_info['name']}")
+        else:
+            summary_parts.append("Professional CV profile")
         
-        if experience_years:
-            summary_parts.append(f"Approximately {experience_years} years of experience")
-        
-        if skill_count > 0:
-            summary_parts.append(f"Proficient in {skill_count} technologies/skills")
-        
-        # Add key highlights from sections
+        # Add experience information
         if sections.get('experience'):
-            exp_text = sections['experience'][:200]
-            summary_parts.append(f"Experience highlights: {exp_text}")
+            summary_parts.append("with relevant work experience")
         
-        summary_text = '. '.join(summary_parts)
+        # Add education information  
+        if sections.get('education'):
+            summary_parts.append("and educational background")
         
-        if summarizer and len(summary_text) > 100:
-            summary = summarizer(
-                summary_text,
-                max_length=100,
-                min_length=30,
-                do_sample=False
-            )
-            return summary[0]['summary_text']
+        # Add skills count
+        if skills:
+            summary_parts.append(f"skilled in {len(skills)} technologies")
         
-        return summary_text
+        # Combine sections for AI summarization
+        combined_text = ""
+        for section_name, content in sections.items():
+            if content:
+                combined_text += f"{section_name.title()}: {content} "
+        
+        if summarizer and len(combined_text) > 100:
+            try:
+                summary = summarizer(
+                    combined_text[:1000],  # Limit input length
+                    max_length=100,
+                    min_length=20,
+                    do_sample=False,
+                    truncation=True
+                )
+                return summary[0]['summary_text']
+            except Exception as e:
+                logger.warning(f"AI summarization failed: {e}")
+        
+        # Fallback to basic summary
+        return ". ".join(summary_parts) + "."
         
     except Exception as e:
         logger.warning(f"Error generating summary: {e}")
-        return "CV summary could not be generated."
-
-def estimate_experience_years(text):
-    """Estimate years of experience from CV text"""
-    try:
-        # Look for explicit experience mentions
-        exp_patterns = [
-            r'(\d+)\s*\+?\s*years?\s+(?:of\s+)?experience',
-            r'experience[:\s]+(\d+)\s*\+?\s*years?',
-            r'(\d+)\s*years?\s+in\s+',
-        ]
-        
-        for pattern in exp_patterns:
-            match = re.search(pattern, text, re.I)
-            if match:
-                return int(match.group(1))
-        
-        # Estimate from date ranges in experience section
-        current_year = 2025
-        dates = re.findall(r'\b(19|20)\d{2}\b', text)
-        
-        if len(dates) >= 2:
-            years = [int(date) for date in dates if 1990 <= int(date) <= current_year]
-            if years:
-                return max(years) - min(years)
-        
-        return None
-        
-    except:
-        return None
+        return "Professional CV profile available for review."
 
 def analyze_cv_quality(text, personal_info, sections, skills):
     """Analyze CV quality and provide recommendations"""
