@@ -92,86 +92,157 @@ def extract_personal_info_basic(text):
     }
 
 def extract_name_with_context(text):
-    """Extract name using advanced NLP with context analysis"""
-    doc = nlp(text[:2000])  # Analyze first 2000 characters
-    
-    # Enhanced blacklist
-    blacklist = {
-        "css frameworks", "c++", "nosql database", "api", "http", "rest", "aws",
-        "docker", "kubernetes", "machine learning", "ai", "tensorflow", "pytorch",
-        "git", "linux", "javascript", "typescript", "react", "nodejs", "database",
-        "backend", "frontend", "full stack", "devops", "agile", "scrum", "software",
-        "engineering", "development", "programming", "coding", "computer science",
-        "bachelor", "master", "degree", "university", "college", "school"
-    }
-    
+    """Extract name using multiple methods with context analysis"""
     candidates = []
     
-    # Method 1: Named entities
-    for ent in doc.ents:
-        if ent.label_ == "PERSON":
-            candidate_text = ent.text.lower()
-            
-            # Skip blacklisted terms
-            if any(term in candidate_text for term in blacklist):
-                continue
+    if nlp:
+        doc = nlp(text[:2000])  # Analyze first 2000 characters
+        
+        # Enhanced blacklist
+        blacklist = {
+            "css frameworks", "c++", "nosql database", "api", "http", "rest", "aws",
+            "docker", "kubernetes", "machine learning", "ai", "tensorflow", "pytorch",
+            "git", "linux", "javascript", "typescript", "react", "nodejs", "database",
+            "backend", "frontend", "full stack", "devops", "agile", "scrum", "software",
+            "engineering", "development", "programming", "coding", "computer science",
+            "bachelor", "master", "degree", "university", "college", "school", "student",
+            "curriculum vitae", "resume", "contact", "phone", "email", "address"
+        }
+        
+        # Method 1: Named entities
+        for ent in doc.ents:
+            if ent.label_ == "PERSON":
+                candidate_text = ent.text.lower()
                 
-            # Require multi-word names
-            if ' ' not in ent.text:
-                continue
+                # Skip blacklisted terms
+                if any(term in candidate_text for term in blacklist):
+                    continue
+                    
+                # Require multi-word names
+                if ' ' not in ent.text:
+                    continue
+                    
+                # Skip tech acronyms
+                if re.search(r'\b[A-Z]{2,}\b', ent.text):
+                    continue
+                    
+                # Calculate position-based score
+                score = 2.0 - (ent.start_char / 1000)  # Higher score for earlier appearance
                 
-            # Skip tech acronyms
-            if re.search(r'\b[A-Z]{2,}\b', ent.text):
-                continue
+                # Context analysis
+                context = text[max(0, ent.start_char-150):ent.end_char+150].lower()
+                if any(keyword in context for keyword in ["resume", "cv", "curriculum vitae"]):
+                    score += 1.0
+                if any(keyword in context for keyword in ["contact", "personal", "about"]):
+                    score += 0.5
                 
-            # Calculate position-based score
-            score = 2.0 - (ent.start_char / 1000)  # Higher score for earlier appearance
-            
-            # Context analysis
-            context = text[max(0, ent.start_char-150):ent.end_char+150].lower()
-            if any(keyword in context for keyword in ["resume", "cv", "curriculum vitae"]):
-                score += 1.0
-            if any(keyword in context for keyword in ["contact", "personal", "about"]):
-                score += 0.5
-            
-            candidates.append((ent.text, score))
+                candidates.append((ent.text, score))
     
     # Method 2: First line analysis (often contains name)
-    first_lines = text.split('\n')[:3]
-    for line in first_lines:
+    first_lines = text.split('\n')[:5]  # Check first 5 lines
+    for i, line in enumerate(first_lines):
         line = line.strip()
-        if re.match(r'^[A-Z][a-z]+ [A-Z][a-z]+( [A-Z][a-z]+)?( [A-Z][a-z]+)?$', line):
-            # Check if it's not a title or section header
-            if not any(keyword in line.lower() for keyword in ["curriculum", "resume", "cv", "contact", "about"]):
-                candidates.append((line, 3.0))  # High score for first line names
+        
+        # Skip empty lines or lines with contact info
+        if not line or '@' in line or re.search(r'\d{3}[-\s]?\d{3}[-\s]?\d{4}', line):
+            continue
+            
+        # Look for name patterns
+        name_patterns = [
+            r'^([A-Z][a-z]+ [A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)$',  # First Last or First Middle Last
+            r'^([A-Z][a-z]+\s+[A-Z]\.\s+[A-Z][a-z]+)$',  # First M. Last
+            r'^([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)(?:\s|$)',  # Name at start of line
+        ]
+        
+        for pattern in name_patterns:
+            match = re.search(pattern, line)
+            if match:
+                potential_name = match.group(1).strip()
+                
+                # Validate it's not a title or section header
+                if not any(keyword in potential_name.lower() for keyword in 
+                         ["curriculum", "resume", "cv", "contact", "about", "education", "experience", "skills"]):
+                    
+                    # Higher score for earlier lines
+                    score = 4.0 - (i * 0.5)
+                    candidates.append((potential_name, score))
+    
+    # Method 3: Look for name after common prefixes
+    name_prefix_patterns = [
+        r'(?:name|full name|candidate)[:\s]+([A-Z][a-z]+ [A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)',
+        r'(?:resume of|cv of|profile of)[:\s]+([A-Z][a-z]+ [A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)',
+    ]
+    
+    for pattern in name_prefix_patterns:
+        matches = re.finditer(pattern, text, re.I)
+        for match in matches:
+            candidates.append((match.group(1), 3.0))
     
     # Select best candidate
     if candidates:
-        candidates.sort(key=lambda x: x[1], reverse=True)
-        best_candidate = candidates[0][0]
+        # Remove duplicates and sort by score
+        unique_candidates = {}
+        for name, score in candidates:
+            clean_name = name.strip()
+            if clean_name in unique_candidates:
+                unique_candidates[clean_name] = max(unique_candidates[clean_name], score)
+            else:
+                unique_candidates[clean_name] = score
+        
+        sorted_candidates = sorted(unique_candidates.items(), key=lambda x: x[1], reverse=True)
+        best_candidate = sorted_candidates[0][0]
         
         # Final validation
-        if len(best_candidate.split()) >= 2 and len(best_candidate) < 50:
+        if (len(best_candidate.split()) >= 2 and 
+            len(best_candidate) < 50 and 
+            not re.search(r'\d', best_candidate)):  # No numbers in names
             return best_candidate
     
     return None
 
 def extract_sections(text):
-    """Improved section extraction with better boundary detection and AI summarization"""
+    """Improved section extraction with multiple detection methods"""
     # Clean text for better pattern matching
     text_clean = re.sub(r'\s+', ' ', text)
+    lines = text.split('\n')
     
-    section_headers = {
-        "education": r"(?i)\b(education|academic\s+background|qualifications|academics|educational\s+background|degrees?)\b",
-        "experience": r"(?i)\b(experience|work\s+history|employment|professional\s+background|work\s+experience|career|professional\s+experience|employment\s+history)\b",
-        "skills": r"(?i)\b(skills|technical\s+skills|competencies|proficiencies|technologies|expertise|abilities|programming\s+languages)\b",
-        "projects": r"(?i)\b(projects|personal\s+projects|key\s+projects|project\s+experience|portfolio|notable\s+projects)\b",
-        "certificates": r"(?i)\b(certificates?|certifications?|licenses?|awards?|achievements?|honors?)\b"
+    # Multiple section header patterns (more flexible)
+    section_patterns = {
+        "education": [
+            r"(?i)\b(education|academic\s+background|qualifications|academics|educational\s+background|degrees?)\b",
+            r"(?i)\b(bachelor|master|phd|doctorate|university|college)\b",
+            r"(?i)\beducation\b"
+        ],
+        "experience": [
+            r"(?i)\b(experience|work\s+history|employment|professional\s+background|work\s+experience|career|professional\s+experience|employment\s+history)\b",
+            r"(?i)\b(worked|employment|professional|career)\b",
+            r"(?i)\bexperience\b"
+        ],
+        "skills": [
+            r"(?i)\b(skills|technical\s+skills|competencies|proficiencies|technologies|expertise|abilities|programming\s+languages)\b",
+            r"(?i)\b(technical|programming|languages)\b",
+            r"(?i)\bskills\b"
+        ],
+        "projects": [
+            r"(?i)\b(projects|personal\s+projects|key\s+projects|project\s+experience|portfolio|notable\s+projects)\b",
+            r"(?i)\bprojects?\b"
+        ]
     }
     
-    # Find section boundaries more accurately
     sections = {}
-    lines = text.split('\n')
+    
+    # Method 1: Look for explicit section headers
+    sections.update(extract_sections_by_headers(lines, section_patterns))
+    
+    # Method 2: Fallback - extract sections by content analysis
+    if not sections or len(sections) < 2:
+        sections.update(extract_sections_by_content(text))
+    
+    return sections
+
+def extract_sections_by_headers(lines, section_patterns):
+    """Extract sections by looking for header patterns"""
+    sections = {}
     current_section = None
     current_content = []
     
@@ -182,18 +253,21 @@ def extract_sections(text):
             
         # Check if this line is a section header
         found_section = None
-        for section_name, pattern in section_headers.items():
-            if re.search(pattern, line_clean) and len(line_clean) < 100:
-                # Additional validation - should not be in middle of sentence
-                if not re.search(r'[.,:;]\s*$', line_clean):
-                    found_section = section_name
-                    break
+        for section_name, patterns in section_patterns.items():
+            for pattern in patterns:
+                if re.search(pattern, line_clean) and len(line_clean) < 150:
+                    # Additional validation - likely a header if short and not part of sentence
+                    if not re.search(r'\w+[.,:;]\s+\w+', line_clean):
+                        found_section = section_name
+                        break
+            if found_section:
+                break
         
         if found_section:
             # Save previous section
             if current_section and current_content:
                 content = '\n'.join(current_content).strip()
-                if content:
+                if content and len(content) > 10:
                     sections[current_section] = clean_section_content(content, current_section)
             
             # Start new section
@@ -206,8 +280,65 @@ def extract_sections(text):
     # Save last section
     if current_section and current_content:
         content = '\n'.join(current_content).strip()
-        if content:
+        if content and len(content) > 10:
             sections[current_section] = clean_section_content(content, current_section)
+    
+    return sections
+
+def extract_sections_by_content(text):
+    """Fallback method: extract sections by analyzing content patterns"""
+    sections = {}
+    
+    # Look for education indicators
+    education_patterns = [
+        r'(bachelor|master|phd|doctorate|degree|university|college|school|graduated|studied|diploma|certificate).*?(?=\n|\.|$)',
+        r'(b\.?[as]\.?|m\.?[as]\.?|ph\.?d\.?|mba).*?(?=\n|\.|$)',
+        r'(19|20)\d{2}[-–](19|20)\d{2}.*?(university|college|school)',
+    ]
+    
+    education_content = []
+    for pattern in education_patterns:
+        matches = re.finditer(pattern, text, re.IGNORECASE | re.DOTALL)
+        for match in matches:
+            education_content.append(match.group(0).strip())
+    
+    if education_content:
+        sections['education'] = '. '.join(education_content[:3])  # Top 3 education items
+    
+    # Look for experience indicators
+    experience_patterns = [
+        r'(worked|employed|position|role|job|company|organization|firm|experience).*?(?=\n|\.|$)',
+        r'(developed|managed|led|created|implemented|designed|built|responsible).*?(?=\n|\.|$)',
+        r'(19|20)\d{2}[-–](19|20)\d{2}.*?(company|organization|firm|corp)',
+    ]
+    
+    experience_content = []
+    for pattern in experience_patterns:
+        matches = re.finditer(pattern, text, re.IGNORECASE | re.DOTALL)
+        for match in matches:
+            content = match.group(0).strip()
+            if len(content) > 20:  # Filter out short matches
+                experience_content.append(content)
+    
+    if experience_content:
+        sections['experience'] = '. '.join(experience_content[:5])  # Top 5 experience items
+    
+    # Look for project indicators
+    project_patterns = [
+        r'(project|built|developed|created|designed).*?(?=\n|\.|$)',
+        r'(application|website|system|platform|tool).*?(?=\n|\.|$)',
+    ]
+    
+    project_content = []
+    for pattern in project_patterns:
+        matches = re.finditer(pattern, text, re.IGNORECASE | re.DOTALL)
+        for match in matches:
+            content = match.group(0).strip()
+            if len(content) > 30:  # Filter out short matches
+                project_content.append(content)
+    
+    if project_content:
+        sections['projects'] = '. '.join(project_content[:3])  # Top 3 project items
     
     return sections
 
@@ -345,60 +476,86 @@ def extract_known_technologies(text):
         'languages': [
             'python', 'java', 'javascript', 'typescript', 'c++', 'c#', 'csharp', 'c',
             'php', 'ruby', 'go', 'rust', 'kotlin', 'swift', 'scala', 'r', 'matlab',
-            'perl', 'lua', 'dart', 'objective-c', 'visual basic', 'fortran', 'cobol'
+            'perl', 'lua', 'dart', 'objective-c', 'visual basic', 'fortran', 'cobol',
+            'assembly', 'bash', 'powershell', 'sql', 'plsql', 'tsql'
         ],
         
         # Web Technologies
         'web': [
             'html', 'css', 'react', 'angular', 'vue', 'vue.js', 'node.js', 'nodejs',
             'express', 'django', 'flask', 'spring', 'laravel', 'rails', 'asp.net',
-            'jquery', 'bootstrap', 'tailwind', 'sass', 'less', 'webpack', 'babel'
+            'jquery', 'bootstrap', 'tailwind', 'sass', 'less', 'webpack', 'babel',
+            'next.js', 'nuxt.js', 'svelte', 'ember', 'backbone', 'redux', 'graphql'
         ],
         
         # Databases
         'databases': [
             'mysql', 'postgresql', 'mongodb', 'redis', 'cassandra', 'oracle',
-            'sql server', 'sqlite', 'dynamodb', 'elasticsearch', 'neo4j', 'couchdb'
+            'sql server', 'sqlite', 'dynamodb', 'elasticsearch', 'neo4j', 'couchdb',
+            'mariadb', 'firebase', 'supabase', 'planetscale', 'cockroachdb'
         ],
         
         # Cloud & DevOps
         'cloud': [
             'aws', 'azure', 'gcp', 'google cloud', 'docker', 'kubernetes', 'terraform',
-            'jenkins', 'git', 'github', 'gitlab', 'bitbucket', 'ci/cd', 'ansible'
+            'jenkins', 'git', 'github', 'gitlab', 'bitbucket', 'ci/cd', 'ansible',
+            'puppet', 'chef', 'vagrant', 'helm', 'istio', 'prometheus', 'grafana'
         ],
         
         # Data Science & AI
         'data_ai': [
             'tensorflow', 'pytorch', 'scikit-learn', 'pandas', 'numpy', 'matplotlib',
-            'seaborn', 'jupyter', 'anaconda', 'spark', 'hadoop', 'tableau', 'power bi'
+            'seaborn', 'jupyter', 'anaconda', 'spark', 'hadoop', 'tableau', 'power bi',
+            'plotly', 'keras', 'opencv', 'nltk', 'spacy', 'huggingface'
         ],
         
         # Mobile Development
         'mobile': [
-            'android', 'ios', 'react native', 'flutter', 'xamarin', 'ionic'
+            'android', 'ios', 'react native', 'flutter', 'xamarin', 'ionic',
+            'cordova', 'phonegap', 'swift ui', 'kotlin multiplatform'
+        ],
+        
+        # Tools & IDEs
+        'tools': [
+            'vscode', 'intellij', 'eclipse', 'xcode', 'android studio', 'sublime',
+            'vim', 'emacs', 'atom', 'pycharm', 'webstorm', 'postman', 'figma',
+            'sketch', 'photoshop', 'illustrator', 'jira', 'confluence', 'slack'
+        ],
+        
+        # Testing & Quality
+        'testing': [
+            'jest', 'mocha', 'cypress', 'selenium', 'pytest', 'junit', 'testng',
+            'cucumber', 'jasmine', 'karma', 'enzyme', 'react testing library'
         ]
     }
     
-    # Create combined pattern for all technologies
+    # Create combined list for pattern matching
     all_techs = []
     for category in technologies.values():
         all_techs.extend(category)
     
+    # Sort by length (longest first) to match longer terms first
+    all_techs.sort(key=len, reverse=True)
+    
     # Create regex pattern that matches whole words
     for tech in all_techs:
         # Escape special regex characters and create word boundary pattern
-        escaped_tech = re.escape(tech)
+        escaped_tech = re.escape(tech).replace(r'\.', r'\.?')  # Make dots optional
         pattern = rf'\b{escaped_tech}\b'
         
         matches = re.finditer(pattern, text, re.IGNORECASE)
         for match in matches:
             # Validate context - shouldn't be part of email, URL, or sentence
-            context_start = max(0, match.start() - 20)
-            context_end = min(len(text), match.end() + 20)
+            context_start = max(0, match.start() - 30)
+            context_end = min(len(text), match.end() + 30)
             context = text[context_start:context_end]
             
             # Skip if it's part of an email or URL
-            if '@' in context or 'http' in context.lower():
+            if '@' in context or 'http' in context.lower() or 'www.' in context.lower():
+                continue
+            
+            # Skip if it's part of a file path
+            if any(ext in context.lower() for ext in ['.com', '.org', '.net', '.edu', '.gov']):
                 continue
                 
             skills.add(tech.lower())
