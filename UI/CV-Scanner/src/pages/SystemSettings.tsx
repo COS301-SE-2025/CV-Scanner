@@ -88,22 +88,29 @@ useEffect(() => {
 
 const handleSaveConfig = async () => {
   try {
+    const payload = {
+      config: JSON.parse(configContent) // make sure it’s a JS object
+    };
+
     const res = await fetch(`${CONFIG_BASE}/auth/config/categories`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: configContent, // backend expects JSON
+      body: JSON.stringify(payload),
     });
+
     if (res.ok) {
       alert("Config saved successfully!");
       setEditing(false);
     } else {
-      alert("Failed to save config");
+      const errText = await res.text();
+      alert("Failed to save config: " + errText);
     }
   } catch (err) {
     console.error(err);
-    alert("Error saving config");
+    alert("Error saving config: " + err.message);
   }
 };
+
   // Local state for blacklist and whitelist
   const [blacklist, setBlacklist] = useState<string[]>([]);
   const [whitelist, setWhitelist] = useState<string[]>([]);
