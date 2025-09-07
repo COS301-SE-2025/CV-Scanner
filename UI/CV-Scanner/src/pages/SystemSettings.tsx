@@ -30,6 +30,8 @@ export default function SystemSettingsPage() {
   const [configContent, setConfigContent] = useState("");
 const [editing, setEditing] = useState(false);
 
+const CONFIG_BASE = "http://localhost:8081";
+
   // For dev fallback user
   const devUser = {
     email: "dev@example.com",
@@ -58,11 +60,20 @@ const [editing, setEditing] = useState(false);
     }
   }, [user, navigate]);
 
-  useEffect(() => {
-  fetch("http://localhost:8081/get_config")
+useEffect(() => {
+  fetch(`${CONFIG_BASE}/get_config`)
     .then((res) => res.json())
-    .then((data) => setConfigContent(data.config || ""))
-    .catch(() => setConfigContent("// Failed to fetch config"));
+    .then((data) => {
+      if (data && data.config) {
+        setConfigContent(data.config);
+      } else {
+        setConfigContent("// No config returned");
+      }
+    })
+    .catch((err) => {
+      console.error("Error fetching config:", err);
+      setConfigContent("// Failed to fetch config");
+    });
 }, []);
 
 const handleSaveConfig = async () => {
