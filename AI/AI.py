@@ -757,12 +757,14 @@ def parse_resume(file_path):
     """Main function to parse resume/CV with improved AI analysis"""
     try:
         text = extract_text(file_path)
-        text = re.sub(r'\s+', ' ', text).strip()  # Normalize whitespace
+        original_text = text  # Keep original for name extraction
+        text = re.sub(r'\s+', ' ', text).strip()  # Normalize whitespace for other processing
         
         logger.info(f"Extracted text length: {len(text)} characters")
+        logger.info(f"First 100 chars: {repr(text[:100])}")
         
-        # Extract basic information with debugging
-        personal_info = extract_personal_info(text)
+        # Extract basic information using original text for names (preserve line breaks)
+        personal_info = extract_personal_info(original_text)
         logger.info(f"Personal info extracted: {personal_info}")
         
         sections = extract_sections(text)
@@ -851,8 +853,13 @@ def generate_cv_summary(text, personal_info, sections, skills):
             if project_summary:
                 summary_components.append(f"Notable projects involve {project_summary}")
         
-        # Combine into a natural summary
-        base_summary = ". ".join(summary_components) + "."
+        # Combine into a natural summary with proper spacing
+        base_summary = ". ".join(summary_components)
+        # Fix any double periods
+        base_summary = re.sub(r'\.+', '.', base_summary)
+        # Ensure it ends with a period
+        if not base_summary.endswith('.'):
+            base_summary += '.'
         
         # Use AI to refine and enhance the summary if available
         if summarizer and len(base_summary) > 50:
