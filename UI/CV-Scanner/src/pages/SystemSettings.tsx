@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css";
 import {
   Box,
   AppBar,
@@ -394,42 +392,53 @@ const handleSaveConfig = async () => {
                 </Button>
               </Box>
             </Box>
-            {/* CV Extraction Editor */}
-            <Box sx={{ mt: 5, bgcolor: "#DEDDEE", p: 3, borderRadius: 2 }}>
-              <Typography variant="h6" sx={{ mb: 2, color: "#000", fontWeight: "bold" }}>
-                CV Extraction Config Editor
-              </Typography>
 
-              <ReactQuill
-                theme="snow"
-                value={configContent}
-                onChange={setConfigContent}
-                readOnly={!editing}
-                style={{ background: "#fff", color: "#000", borderRadius: "8px" }}
-              />
-
-              <Box sx={{ mt: 2, display: "flex", gap: 2 }}>
-                {editing ? (
-                  <>
-                    <Button variant="contained" color="success" onClick={handleSaveConfig}>
-                      Save
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      color="inherit"
-                      onClick={() => setEditing(false)}
-                    >
-                      Cancel
-                    </Button>
-                  </>
-                ) : (
-                  <Button variant="contained" onClick={() => setEditing(true)}>
-                    Edit Config
-                  </Button>
-                )}
-              </Box>
-            </Box>
           </Box>
+                      {/* CV Extraction Config Editor */}
+<Box sx={{ mt: 5, bgcolor: "#DEDDEE", p: 3, borderRadius: 2 }}>
+  <Typography variant="h6" sx={{ mb: 2, color: "#000", fontWeight: "bold" }}>
+    CV Extraction Config Editor
+  </Typography>
+
+  <textarea
+    value={configContent}
+    onChange={(e) => setConfigContent(e.target.value)}
+    readOnly={!editing}
+    style={{
+      width: "100%",
+      minHeight: "300px",
+      padding: "10px",
+      fontFamily: "monospace",
+      fontSize: "14px",
+      background: editing ? "#fff" : "#f4f4f4",
+      border: "1px solid #ccc",
+      borderRadius: "8px",
+      resize: "vertical",
+    }}
+  />
+
+  <Box sx={{ mt: 2, display: "flex", gap: 2 }}>
+    {editing ? (
+      <>
+        <Button variant="contained" color="success" onClick={handleSaveConfig}>
+          Save
+        </Button>
+        <Button
+          variant="outlined"
+          color="inherit"
+          onClick={() => setEditing(false)}
+        >
+          Cancel
+        </Button>
+      </>
+    ) : (
+      <Button variant="contained" onClick={() => setEditing(true)}>
+        Edit Config
+      </Button>
+    )}
+  </Box>
+</Box>
+
         </Box>
       </Box>
     </Box>
