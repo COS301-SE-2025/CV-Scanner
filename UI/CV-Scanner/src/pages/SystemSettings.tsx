@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 import {
   Box,
   AppBar,
@@ -27,6 +29,8 @@ export default function SystemSettingsPage() {
   const location = useLocation();
   const [user, setUser] = useState<any>(null);
   const [collapsed, setCollapsed] = useState(false);
+  const [configContent, setConfigContent] = useState("");
+const [editing, setEditing] = useState(false);
 
   // For dev fallback user
   const devUser = {
@@ -55,6 +59,28 @@ export default function SystemSettingsPage() {
       navigate("/dashboard");
     }
   }, [user, navigate]);
+
+  useEffect(() => {
+  fetch("http://localhost:8081/get_config")
+    .then((res) => res.json())
+    .then((data) => setConfigContent(data.config || ""))
+    .catch(() => setConfigContent("// Failed to fetch config"));
+}, []);
+
+const handleSaveConfig = async () => {
+  const res = await fetch("http://localhost:8081/save_config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ config: configContent }),
+  });
+
+  if (res.ok) {
+    alert("Config saved successfully!");
+    setEditing(false);
+  } else {
+    alert("Failed to save config.");
+  }
+};
 
   // Local state for blacklist and whitelist
   const [blacklist, setBlacklist] = useState<string[]>([]);
@@ -366,6 +392,41 @@ export default function SystemSettingsPage() {
                 >
                   Add
                 </Button>
+              </Box>
+            </Box>
+            {/* CV Extraction Editor */}
+            <Box sx={{ mt: 5, bgcolor: "#DEDDEE", p: 3, borderRadius: 2 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: "#000", fontWeight: "bold" }}>
+                CV Extraction Config Editor
+              </Typography>
+
+              <ReactQuill
+                theme="snow"
+                value={configContent}
+                onChange={setConfigContent}
+                readOnly={!editing}
+                style={{ background: "#fff", color: "#000", borderRadius: "8px" }}
+              />
+
+              <Box sx={{ mt: 2, display: "flex", gap: 2 }}>
+                {editing ? (
+                  <>
+                    <Button variant="contained" color="success" onClick={handleSaveConfig}>
+                      Save
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="inherit"
+                      onClick={() => setEditing(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <Button variant="contained" onClick={() => setEditing(true)}>
+                    Edit Config
+                  </Button>
+                )}
               </Box>
             </Box>
           </Box>
