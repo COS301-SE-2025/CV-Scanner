@@ -800,8 +800,7 @@ def parse_resume(file_path):
             "personal_info": personal_info,
             "sections": summarized_sections,
             "skills": skills,
-            "summary": summary,
-            "analysis": analyze_cv_quality(text, personal_info, summarized_sections, skills)
+            "summary": summary
         }
         
     except Exception as e:
@@ -1048,57 +1047,6 @@ def create_fallback_summary(personal_info, skills, sections):
         summary_parts.append("and practical work experience")
     
     return ". ".join(summary_parts) + "."
-
-def analyze_cv_quality(text, personal_info, sections, skills):
-    """Analyze CV quality and provide recommendations"""
-    analysis = {
-        "completeness_score": 0,
-        "recommendations": [],
-        "strengths": [],
-        "missing_sections": []
-    }
-    
-    # Check completeness
-    score = 0
-    
-    if personal_info.get('name'):
-        score += 20
-        analysis["strengths"].append("Name clearly identified")
-    else:
-        analysis["recommendations"].append("Add a clear name at the top of the CV")
-    
-    if personal_info.get('email'):
-        score += 15
-        analysis["strengths"].append("Contact email provided")
-    else:
-        analysis["recommendations"].append("Include a professional email address")
-    
-    if personal_info.get('phone'):
-        score += 10
-        analysis["strengths"].append("Phone number provided")
-    
-    if sections.get('experience'):
-        score += 25
-        analysis["strengths"].append("Work experience section present")
-    else:
-        analysis["missing_sections"].append("experience")
-        analysis["recommendations"].append("Add detailed work experience section")
-    
-    if sections.get('education'):
-        score += 15
-        analysis["strengths"].append("Education section present")
-    else:
-        analysis["missing_sections"].append("education")
-    
-    if len(skills) > 5:
-        score += 15
-        analysis["strengths"].append(f"Good variety of skills ({len(skills)} identified)")
-    else:
-        analysis["recommendations"].append("Include more technical skills and competencies")
-    
-    analysis["completeness_score"] = min(score, 100)
-    
-    return analysis
 
 @app.post("/upload/")
 async def upload_file(file: UploadFile = File(...)):
