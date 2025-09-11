@@ -582,11 +582,13 @@ const handleAutoSummarize = () => {
               ))}
             </Box>
           </Paper>
-              <Paper elevation={6} sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}>
+       {/* LINKS & ATTACHMENTS (hard-coded AI summary) */}
+<Paper elevation={6} sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}>
   <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
     Resume & Links
   </Typography>
-  Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", mb: 2 }}>
+
+  <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", mb: 2 }}>
     <Button
       variant="outlined"
       onClick={() => window.open(candidate.links.cv, "_blank")}
@@ -594,7 +596,6 @@ const handleAutoSummarize = () => {
     >
       View CV (PDF)
     </Button>
-
     <Button
       variant="outlined"
       onClick={() => window.open(candidate.links.github, "_blank")}
@@ -618,15 +619,16 @@ const handleAutoSummarize = () => {
     </Button>
   </Stack>
 
-<Box
+  {/* Attach actual summary (your own write-up) + hard-coded AI summary */}
+  <Box
     sx={{
       display: "grid",
       gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
       gap: 2,
       alignItems: "start",
     }}
-
-  >{/* Attach actual summary (your own write-up) */}
+  >
+    {/* Attach actual summary (your own write-up) */}
     <Box sx={{ p: 2, bgcolor: "#fff", borderRadius: 2 }}>
       <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
         Attach Recruiter Summary
@@ -640,7 +642,7 @@ const handleAutoSummarize = () => {
           "&:hover": { bgcolor: "#487DA6" },
         }}
       >
-         Choose File
+        Choose File
         <input type="file" hidden onChange={handleAttachSummary} />
       </Button>
       {summaryFileName && (
@@ -654,7 +656,41 @@ const handleAutoSummarize = () => {
       </Typography>
     </Box>
 
-    
+    {/* Hard-coded AI summary (read-only) + link to full CV */}
+    <Box sx={{ p: 2, bgcolor: "#fff", borderRadius: 2 }}>
+      <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
+        AI Summary
+      </Typography>
+
+      <TextField
+        value={
+          `Strong .NET/Azure engineer (5y) with proven backend impact: 
+- Led .NET 8 upgrade and microservice hardening, p95 latency ↓ ~30%.
+- Built Azure CI/CD and observability; deployment time ↓, incidents triaged faster.
+- Mentors juniors and drives code review quality. 
+Best fit: backend/microservices roles with cloud exposure.`
+        }
+        multiline
+        minRows={6}
+        fullWidth
+        InputProps={{ readOnly: true }}
+        sx={{ "& .MuiOutlinedInput-root": { bgcolor: "#F9FAFB" } }}
+      />
+
+      <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+        <Button
+          variant="outlined"
+          onClick={() => window.open(candidate.links.cv, "_blank")}
+          sx={{ textTransform: "none" }}
+        >
+          View Full CV
+        </Button>
+      </Stack>
+    </Box>
+  </Box>
+</Paper>
+
+
       </Box>
 
 
