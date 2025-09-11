@@ -618,6 +618,30 @@ const handleAutoSummarize = () => {
     </Button>
   </Stack>
 
+<Box
+    sx={{
+      display: "grid",
+      gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+      gap: 2,
+      alignItems: "start",
+    }}
+
+  >{/* Attach actual summary (your own write-up) */}
+    <Box sx={{ p: 2, bgcolor: "#fff", borderRadius: 2 }}>
+      <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
+        Attach Recruiter Summary
+      </Typography>
+      <Button
+        variant="contained"
+        component="label"
+        sx={{
+          bgcolor: "#5a88ad",
+          textTransform: "none",
+          "&:hover": { bgcolor: "#487DA6" },
+        }}
+      >
+        
+      </Box>
 
 
         </Box>
