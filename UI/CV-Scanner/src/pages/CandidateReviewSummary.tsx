@@ -112,20 +112,20 @@ const [summaryFileName, setSummaryFileName] = useState<string>("");
 //const [aiSummary, setAiSummary] = useState<string>("");
 const [snack, setSnack] = useState({ open: false, msg: "" });
 
-/*const handleAttachSummary = (e: React.ChangeEvent<HTMLInputElement>) => {
+const handleAttachSummary = (e: React.ChangeEvent<HTMLInputElement>) => {
   const file = e.target.files?.[0];
   if (file) {
     setSummaryFileName(file.name);
     setSnack({ open: true, msg: "Summary attached." });
   }
-};*/
+};
 
-const handleAutoSummarize = () => {
+/*const handleAutoSummarize = () => {
   // Stub: replace with your backend/AI call
   const text = `Summary for ${candidate.name}: Strong .NET/Azure engineer (${candidate.yoe}y) with proven impact on performance and reliability. Led projects, mentored juniors, and improved deployment velocity. Best fit for backend/microservices roles with cloud exposure.`;
   setAiSummary(text);
   setSnack({ open: true, msg: "AI summary generated." });
-};
+};*/
 
 
   // Tutorial logic (copied from UserManagementPage)
@@ -592,7 +592,7 @@ const handleAutoSummarize = () => {
               ))}
             </Box>
           </Paper>
-       {/* LINKS & ATTACHMENTS (hard-coded AI summary) */}
+              {/* LINKS & ATTACHMENTS (hard-coded AI summary) */}
 <Paper elevation={6} sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}>
   <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
     Resume & Links
@@ -674,7 +674,7 @@ const handleAutoSummarize = () => {
 
       <TextField
         value={
-          `Strong .NET/Azure engineer (5y) with proven backend impact: 
+`Strong .NET/Azure engineer (5y) with proven backend impact: 
 - Led .NET 8 upgrade and microservice hardening, p95 latency ↓ ~30%.
 - Built Azure CI/CD and observability; deployment time ↓, incidents triaged faster.
 - Mentors juniors and drives code review quality. 
@@ -700,13 +700,22 @@ Best fit: backend/microservices roles with cloud exposure.`
   </Box>
 </Paper>
 
+{/* Snackbar (keep INSIDE the Candidate Details box) */}
+<Snackbar
+  open={snack.open}
+  autoHideDuration={2500}
+  onClose={() => setSnack({ open: false, msg: "" })}
+  anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+>
+  <Alert severity="success" variant="filled" sx={{ bgcolor: "#08726a" }}>
+    {snack.msg}
+  </Alert>
+</Snackbar>
 
-      </Box>
+</Box>  
+</Box>  
+</Box>   
 
-
-        </Box>
-      </Box>
-    </Box>
   );
 }
 
