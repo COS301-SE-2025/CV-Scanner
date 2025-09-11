@@ -640,7 +640,21 @@ const handleAutoSummarize = () => {
           "&:hover": { bgcolor: "#487DA6" },
         }}
       >
-        
+         Choose File
+        <input type="file" hidden onChange={handleAttachSummary} />
+      </Button>
+      {summaryFileName && (
+        <Chip
+          label={summaryFileName}
+          sx={{ ml: 1, mt: { xs: 1, md: 0 }, bgcolor: "#08726aff", color: "#fff" }}
+        />
+      )}
+      <Typography variant="caption" sx={{ display: "block", mt: 1, color: "#6b7280" }}>
+        Upload your written summary; it will be stored with the candidate.
+      </Typography>
+    </Box>
+
+    
       </Box>
 
 
