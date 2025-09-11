@@ -621,31 +621,7 @@ const handleAttachSummary = (e: React.ChangeEvent<HTMLInputElement>) => {
       alignItems: "start",
     }}
   >
-    {/* Attach actual summary (your own write-up) */}
-    <Box sx={{ p: 2, bgcolor: "#fff", borderRadius: 2 }}>
-      <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
-        Attach Recruiter Summary
-      </Typography>
-      <Button
-        variant="contained"
-      sx={reviewButtonStyle}
-        component="label"
-      
-      >
-        Choose File
-        <input type="file" hidden onChange={handleAttachSummary} />
-      </Button>
-      {summaryFileName && (
-        <Chip
-          label={summaryFileName}
-          sx={{ ml: 1, mt: { xs: 1, md: 0 }, bgcolor: "#08726aff", color: "#fff" }}
-        />
-      )}
-      <Typography variant="caption" sx={{ display: "block", mt: 1, color: "#6b7280" }}>
-        Upload your written summary; it will be stored with the candidate.
-      </Typography>
-    </Box>
-
+    
     {/* Hard-coded AI summary (read-only) + link to full CV */}
     <Box sx={{ p: 2, bgcolor: "#fff", borderRadius: 2 }}>
       <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
