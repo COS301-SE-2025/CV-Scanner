@@ -1,7 +1,30 @@
 venv/
+.venv/
+env/
+ENV/
 __pycache__/
 *.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+.python-version
+
+# Env
+.env
+.env.*
+
+# Downloads / models / data
+models/
+checkpoints/
+downloads/
+.cache/
+data/
+artifacts/
+outputs/
+runs/
+
+# OS/IDE
 .DS_Store
+Thumbs.db
 .idea/
 .vscode/
-.venv/
