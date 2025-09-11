@@ -68,6 +68,7 @@ const [candidate, setCandidate] = useState({
   availability: "Employed",
   workAuth: "SA Citizen",
   salaryBand: "R600k–R720k",
+  qualifications: "BSc Computer Science",
   lastUpdated: "2025-08-28",
   email: "jane.smith@example.com",
   phone: "+27 82 123 4567",
@@ -437,9 +438,10 @@ const handleAttachSummary = (e: React.ChangeEvent<HTMLInputElement>) => {
   {/* Quick facts grid */}
   <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2 }}>
     <Fact label="Availability" value={candidate.availability} />
+    <Fact label="Qualifications" value={candidate.qualifications} />
     <Fact label="Work Auth" value={candidate.workAuth} />
     <Fact label="Salary Band" value={candidate.salaryBand} />
-    <Fact label="Last Updated" value={candidate.lastUpdated} />
+   
   </Box>
 </Paper>
 
