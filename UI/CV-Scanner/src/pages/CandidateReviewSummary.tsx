@@ -65,7 +65,7 @@ const [candidate, setCandidate] = useState({
   title: "Senior Software Engineer",
   yoe: 5,
   location: "Pretoria (Hybrid)",
-  availability: "2 weeks notice",
+  availability: "Employed",
   workAuth: "SA Citizen",
   salaryBand: "R600k–R720k",
   lastUpdated: "2025-08-28",
@@ -376,9 +376,7 @@ const handleAttachSummary = (e: React.ChangeEvent<HTMLInputElement>) => {
           <Typography variant="h4" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 2 }}>
             Jane Smith
           </Typography>
-          <Typography variant="subtitle1" sx={{ mb: 4 }}>
-            Senior Software Engineer | 5 years experience
-          </Typography>
+          
 
            
 
@@ -415,36 +413,24 @@ const handleAttachSummary = (e: React.ChangeEvent<HTMLInputElement>) => {
       {candidate.name.split(" ").map(n => n[0]).join("").slice(0,2)}
     </Avatar>
     <Box sx={{ flex: 1 }}>
-      <Typography variant="h5" sx={{ fontWeight: "bold" }}>
-        {candidate.name}
-      </Typography>
+
       <Typography variant="body2" sx={{ color: "#555" }}>
         {candidate.title} • {candidate.yoe} years • {candidate.location}
       </Typography>
     </Box>
 
     {/* Ready-to-act toolbar (quick actions) */}
-    <Stack direction="row" spacing={1}>
+    <Stack direction="row" spacing={3}>
       <Button
         size="small"
-        variant="outlined"
+         variant="contained"
+      sx={reviewButtonStyle}
         onClick={openContact}
-        sx={{ color: "#0073c1", borderColor: "#0073c1", textTransform: "none" }}
+       
       >
         Contact Details
       </Button>
-      <Button
-        size="small"
-        variant="contained"
-        sx={{
-          bgcolor: "#5a88ad",
-          textTransform: "none",
-          "&:hover": { bgcolor: "#487DA6" },
-        }}
-        onClick={() => setSnack({ open: true, msg: "Candidate put up to client." })}
-      >
-        Put Up
-      </Button>
+      
     </Stack>
   </Box>
 
@@ -576,7 +562,7 @@ const handleAttachSummary = (e: React.ChangeEvent<HTMLInputElement>) => {
           {/* Key Technologies Section */}
           <Paper
             elevation={6}
-            sx={{ p: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
+            sx={{ p: 3,mb:3, borderRadius: 3, bgcolor: "#DEDDEE" }}
             ref={techRef}
           >
             <Typography variant="h6" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 2 }}>
@@ -600,33 +586,30 @@ const handleAttachSummary = (e: React.ChangeEvent<HTMLInputElement>) => {
 
   <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", mb: 2 }}>
     <Button
-      variant="outlined"
+       variant="contained"
+      sx={reviewButtonStyle}
       onClick={() => window.open(candidate.links.cv, "_blank")}
-      sx={{ textTransform: "none" }}
+     
     >
       View CV (PDF)
     </Button>
     <Button
-      variant="outlined"
+      variant="contained"
+      sx={reviewButtonStyle}
       onClick={() => window.open(candidate.links.github, "_blank")}
-      sx={{ textTransform: "none" }}
+      
     >
       GitHub
     </Button>
     <Button
-      variant="outlined"
+       variant="contained"
+      sx={reviewButtonStyle}
       onClick={() => window.open(candidate.links.linkedin, "_blank")}
-      sx={{ textTransform: "none" }}
+    
     >
       LinkedIn
     </Button>
-    <Button
-      variant="outlined"
-      onClick={() => window.open(candidate.links.portfolio, "_blank")}
-      sx={{ textTransform: "none" }}
-    >
-      Portfolio
-    </Button>
+   
   </Stack>
 
   {/* Attach actual summary (your own write-up) + hard-coded AI summary */}
@@ -645,12 +628,9 @@ const handleAttachSummary = (e: React.ChangeEvent<HTMLInputElement>) => {
       </Typography>
       <Button
         variant="contained"
+      sx={reviewButtonStyle}
         component="label"
-        sx={{
-          bgcolor: "#5a88ad",
-          textTransform: "none",
-          "&:hover": { bgcolor: "#487DA6" },
-        }}
+      
       >
         Choose File
         <input type="file" hidden onChange={handleAttachSummary} />
@@ -689,9 +669,10 @@ Best fit: backend/microservices roles with cloud exposure.`
 
       <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
         <Button
-          variant="outlined"
+           variant="contained"
+      sx={reviewButtonStyle}
           onClick={() => window.open(candidate.links.cv, "_blank")}
-          sx={{ textTransform: "none" }}
+       
         >
           View Full CV
         </Button>
@@ -741,5 +722,33 @@ const navButtonStyle = {
       backgroundColor: "black",
       borderRadius: "0 4px 4px 0",
     },
+  },
+};
+
+const reviewButtonStyle = {
+  background: "#232A3B",
+  color: "DEDDEE",
+  fontWeight: "bold",
+  padding: "8px 20px",
+  borderRadius: "4px",
+  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+  "&:hover": {
+    background:
+      "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
+    transform: "translateY(-1px)",
+  },
+  textTransform: "none",
+  transition: "all 0.3s ease",
+  position: "relative",
+  overflow: "hidden",
+  "&::after": {
+    content: '""',
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    background:
+      "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
   },
 };
