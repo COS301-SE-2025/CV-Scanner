@@ -59,6 +59,75 @@ export default function CandidateReviewSummary() {
       .catch(() => setUser(null));
   }, []);
 
+  // Candidate meta (replace with real data from your API later)
+const [candidate, setCandidate] = useState({
+  name: "Jane Smith",
+  title: "Senior Software Engineer",
+  yoe: 5,
+  location: "Pretoria (Hybrid)",
+  availability: "2 weeks notice",
+  workAuth: "SA Citizen",
+  salaryBand: "R600k–R720k",
+  lastUpdated: "2025-08-28",
+  email: "jane.smith@example.com",
+  phone: "+27 82 123 4567",
+  links: {
+    cv: "/files/jane-smith-cv.pdf",
+    github: "https://github.com/jane-smith",
+    linkedin: "https://www.linkedin.com/in/jane-smith",
+    portfolio: "https://janesmith.dev",
+  },
+  experience: [
+    {
+      company: "Entelect",
+      title: "Senior Software Engineer",
+      dates: "2023-01 → Present",
+      impact:
+        "Owned payment microservice (.NET 8, Azure Service Bus); chargebacks ↓ 18%.",
+    },
+    {
+      company: "Quantum Stack",
+      title: "Software Engineer",
+      dates: "2021-01 → 2022-12",
+      impact:
+        "Built parsing pipeline; throughput ↑ 2.3× via SQL tuning + caching.",
+    },
+    {
+      company: "Acme Tech",
+      title: "Junior Developer",
+      dates: "2019-01 → 2020-12",
+      impact: "Maintained monolith APIs; added integration tests; outages ↓.",
+    },
+  ],
+});
+
+// Contact popover
+const [contactAnchor, setContactAnchor] = useState<HTMLElement | null>(null);
+const openContact = (e: React.MouseEvent<HTMLElement>) =>
+  setContactAnchor(e.currentTarget);
+const closeContact = () => setContactAnchor(null);
+
+// Summary attach + AI summary
+const [summaryFileName, setSummaryFileName] = useState<string>("");
+const [aiSummary, setAiSummary] = useState<string>("");
+const [snack, setSnack] = useState({ open: false, msg: "" });
+
+const handleAttachSummary = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (file) {
+    setSummaryFileName(file.name);
+    setSnack({ open: true, msg: "Summary attached." });
+  }
+};
+
+const handleAutoSummarize = () => {
+  // Stub: replace with your backend/AI call
+  const text = `Summary for ${candidate.name}: Strong .NET/Azure engineer (${candidate.yoe}y) with proven impact on performance and reliability. Led projects, mentored juniors, and improved deployment velocity. Best fit for backend/microservices roles with cloud exposure.`;
+  setAiSummary(text);
+  setSnack({ open: true, msg: "AI summary generated." });
+};
+
+
   // Tutorial logic (copied from UserManagementPage)
   const [tutorialStep, setTutorialStep] = useState(-1); // -1 means not showing
   const [fadeIn, setFadeIn] = useState(true);
