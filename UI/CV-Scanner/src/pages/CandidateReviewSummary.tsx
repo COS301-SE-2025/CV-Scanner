@@ -585,14 +585,7 @@ const handleAttachSummary = (e: React.ChangeEvent<HTMLInputElement>) => {
   </Typography>
 
   <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", mb: 2 }}>
-    <Button
-       variant="contained"
-      sx={reviewButtonStyle}
-      onClick={() => window.open(candidate.links.cv, "_blank")}
-     
-    >
-      View CV (PDF)
-    </Button>
+ 
     <Button
       variant="contained"
       sx={reviewButtonStyle}
@@ -623,9 +616,9 @@ const handleAttachSummary = (e: React.ChangeEvent<HTMLInputElement>) => {
   >
     
     {/* Hard-coded AI summary (read-only) + link to full CV */}
-    <Box sx={{ p: 2, bgcolor: "#fff", borderRadius: 2 }}>
+    <Box sx={{ p: 2, bgcolor: "DEDEDE", borderRadius: 2 }}>
       <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
-        AI Summary
+       CV Summary
       </Typography>
 
       <TextField
@@ -640,7 +633,7 @@ Best fit: backend/microservices roles with cloud exposure.`
         minRows={6}
         fullWidth
         InputProps={{ readOnly: true }}
-        sx={{ "& .MuiOutlinedInput-root": { bgcolor: "#F9FAFB" } }}
+        sx={{ "& .MuiOutlinedInput-root": { bgcolor: "#edededff" } }}
       />
 
       <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
