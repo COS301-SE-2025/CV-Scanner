@@ -441,7 +441,12 @@ const handleAttachSummary = (e: React.ChangeEvent<HTMLInputElement>) => {
     <Fact label="Qualifications" value={candidate.qualifications} />
     <Fact label="Work Auth" value={candidate.workAuth} />
     <Fact label="Salary Band" value={candidate.salaryBand} />
-   
+   <Typography
+      variant="caption"
+      sx={{ color: "#6b7280", fontStyle: "italic", mt: 0.5, display: "block" }}
+    >
+      Last updated: {candidate.lastUpdated}
+    </Typography>
   </Box>
 </Paper>
 
