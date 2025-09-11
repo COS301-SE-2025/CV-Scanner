@@ -586,7 +586,15 @@ const handleAutoSummarize = () => {
   <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
     Resume & Links
   </Typography>
-  
+  Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", mb: 2 }}>
+    <Button
+      variant="outlined"
+      onClick={() => window.open(candidate.links.cv, "_blank")}
+      sx={{ textTransform: "none" }}
+    >
+      View CV (PDF)
+    </Button>
+
 
 
         </Box>
