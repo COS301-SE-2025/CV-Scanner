@@ -582,6 +582,13 @@ const handleAutoSummarize = () => {
               ))}
             </Box>
           </Paper>
+              <Paper elevation={6} sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}>
+  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
+    Resume & Links
+  </Typography>
+  
+
+
         </Box>
       </Box>
     </Box>
