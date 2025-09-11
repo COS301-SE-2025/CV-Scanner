@@ -429,7 +429,12 @@ const handleAutoSummarize = () => {
   transformOrigin={{ vertical: "top", horizontal: "right" }}
   PaperProps={{ sx: { p: 2, borderRadius: 2 } }}
 >
- 
+  <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
+    Contact Details
+  </Typography>
+  <Typography variant="body2">Email: <Link href={`mailto:${candidate.email}`}>{candidate.email}</Link></Typography>
+  <Typography variant="body2">Phone: <Link href={`tel:${candidate.phone}`}>{candidate.phone}</Link></Typography>
+</Popover>
 
 
           {/* Tabs Section */}
