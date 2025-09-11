@@ -109,16 +109,16 @@ const closeContact = () => setContactAnchor(null);
 
 // Summary attach + AI summary
 const [summaryFileName, setSummaryFileName] = useState<string>("");
-const [aiSummary, setAiSummary] = useState<string>("");
+//const [aiSummary, setAiSummary] = useState<string>("");
 const [snack, setSnack] = useState({ open: false, msg: "" });
 
-const handleAttachSummary = (e: React.ChangeEvent<HTMLInputElement>) => {
+/*const handleAttachSummary = (e: React.ChangeEvent<HTMLInputElement>) => {
   const file = e.target.files?.[0];
   if (file) {
     setSummaryFileName(file.name);
     setSnack({ open: true, msg: "Summary attached." });
   }
-};
+};*/
 
 const handleAutoSummarize = () => {
   // Stub: replace with your backend/AI call
