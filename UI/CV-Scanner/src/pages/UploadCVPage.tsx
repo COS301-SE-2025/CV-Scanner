@@ -92,7 +92,6 @@ export default function UploadCVPage() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     const email = localStorage.getItem("userEmail") || "admin@email.com";
