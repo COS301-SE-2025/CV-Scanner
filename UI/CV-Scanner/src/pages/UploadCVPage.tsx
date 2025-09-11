@@ -45,8 +45,10 @@ export default function UploadCVPage() {
   const [candidateName, setCandidateName] = useState("");
   const [candidateSurname, setCandidateSurname] = useState("");
   const [candidateEmail, setCandidateEmail] = useState("");
+
   const candidateDetailsRef = useRef<HTMLDivElement>(null);
   const cvTableRef = useRef<HTMLDivElement>(null);
+
 
   // Config editor state
   const [configJson, setConfigJson] = useState<string>("");
@@ -94,6 +96,9 @@ export default function UploadCVPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const navigate = useNavigate();
+  const location = useLocation();
+
   useEffect(() => {
     const email = localStorage.getItem("userEmail") || "admin@email.com";
     fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
@@ -128,6 +133,71 @@ export default function UploadCVPage() {
     else setAnchorEl(null);
   }, [tutorialStep, file, user]);
 
+  // Load config from Spring when admin and a file is selected (reveals the box)
+  useEffect(() => {
+    if (file && user?.role === "Admin") {
+      loadConfig();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file, user?.role]);
+
+  const loadConfig = async () => {
+    try {
+      const res = await fetch(`${CONFIG_BASE}/auth/config/categories`);
+      if (!res.ok) {
+        let msg = `Failed to load configuration (${res.status})`;
+        try {
+          const j = await res.json();
+          msg = j?.detail || msg;
+        } catch {}
+        setErrorPopup({ open: true, message: msg });
+        return;
+      }
+      const json = await res.json();
+      const pretty = JSON.stringify(json, null, 2);
+      setConfigJson(pretty);
+      setOriginalConfig(pretty);
+      setIsEditingConfig(false);
+    } catch (e) {
+      setErrorPopup({ open: true, message: "Could not load configuration." });
+    }
+  };
+
+  const saveConfig = async () => {
+    let parsed: any;
+    try {
+      parsed = JSON.parse(configJson);
+    } catch {
+      setErrorPopup({
+        open: true,
+        message: "Invalid JSON. Please fix before saving.",
+      });
+      return;
+    }
+
+    try {
+      const res = await fetch(`${CONFIG_BASE}/auth/config/categories`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsed),
+      });
+      if (!res.ok) {
+        let msg = `Failed to save configuration (${res.status})`;
+        try {
+          const j = await res.json();
+          msg = j?.detail || msg;
+        } catch {}
+        setErrorPopup({ open: true, message: msg });
+        return;
+      }
+      setOriginalConfig(configJson);
+      setIsEditingConfig(false);
+      setConfigSavedPopup(true);
+    } catch (e) {
+      setErrorPopup({ open: true, message: "Could not save configuration." });
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (selected) {
@@ -139,10 +209,12 @@ export default function UploadCVPage() {
   const handleRemove = () => {
     setFile(null);
     setProcessedData(null);
+
     if (pdfUrl) {
       URL.revokeObjectURL(pdfUrl);
       setPdfUrl(null);
     }
+
     const fileInput = document.getElementById(
       "file-upload"
     ) as HTMLInputElement;
@@ -244,6 +316,7 @@ export default function UploadCVPage() {
           setSidebarAnimating(true);
           setTimeout(() => setSidebarAnimating(false), 300); // match sidebar animation duration
         }}
+
       />
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
         <AppBar
@@ -538,6 +611,7 @@ export default function UploadCVPage() {
                 </Button>
               )}
             </Box>
+
 
             <Typography
               variant="body2"
