@@ -380,7 +380,34 @@ const handleAttachSummary = (e: React.ChangeEvent<HTMLInputElement>) => {
             Senior Software Engineer | 5 years experience
           </Typography>
 
-            {/* HEADER STRIP */}
+           
+
+          {/* Tabs Section */}
+          <Box sx={{ display: "flex", gap: 3, mb: 4 }}>
+            {["Summary", "Skills", "Experience", "Recruiters Notes"].map(
+              (tab, idx) => (
+                <Typography
+                  key={idx}
+                  variant="body1"
+                  sx={{
+                    cursor: "pointer",
+                    color: idx === 0 ? "#0073c1" : "#b0b8c1", // Highlight the active tab
+                    fontWeight: idx === 0 ? "bold" : "normal",
+                  }}
+                  onClick={() => {
+                    if (tab === "Summary") navigate("/candidate-review");
+                    if (tab === "Skills") navigate("/candidate-skills");
+                    if (tab === "Experience") navigate("/candidate-experience");
+                    if (tab === "Recruiters Notes")
+                      navigate("/candidate-notes");
+                  }}
+                >
+                  {tab}
+                </Typography>
+              )
+            )}
+          </Box>
+ {/* HEADER STRIP */}
 <Paper elevation={6} sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}>
   {/* Top row: avatar + title + quick actions */}
   <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
@@ -445,33 +472,6 @@ const handleAttachSummary = (e: React.ChangeEvent<HTMLInputElement>) => {
   <Typography variant="body2">Email: <Link href={`mailto:${candidate.email}`}>{candidate.email}</Link></Typography>
   <Typography variant="body2">Phone: <Link href={`tel:${candidate.phone}`}>{candidate.phone}</Link></Typography>
 </Popover>
-
-
-          {/* Tabs Section */}
-          <Box sx={{ display: "flex", gap: 3, mb: 4 }}>
-            {["Summary", "Skills", "Experience", "Recruiters Notes"].map(
-              (tab, idx) => (
-                <Typography
-                  key={idx}
-                  variant="body1"
-                  sx={{
-                    cursor: "pointer",
-                    color: idx === 0 ? "#0073c1" : "#b0b8c1", // Highlight the active tab
-                    fontWeight: idx === 0 ? "bold" : "normal",
-                  }}
-                  onClick={() => {
-                    if (tab === "Summary") navigate("/candidate-review");
-                    if (tab === "Skills") navigate("/candidate-skills");
-                    if (tab === "Experience") navigate("/candidate-experience");
-                    if (tab === "Recruiters Notes")
-                      navigate("/candidate-notes");
-                  }}
-                >
-                  {tab}
-                </Typography>
-              )
-            )}
-          </Box>
 
           {/* Project Fit Section */}
           <Paper
