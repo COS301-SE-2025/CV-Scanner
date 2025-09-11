@@ -595,6 +595,29 @@ const handleAutoSummarize = () => {
       View CV (PDF)
     </Button>
 
+    <Button
+      variant="outlined"
+      onClick={() => window.open(candidate.links.github, "_blank")}
+      sx={{ textTransform: "none" }}
+    >
+      GitHub
+    </Button>
+    <Button
+      variant="outlined"
+      onClick={() => window.open(candidate.links.linkedin, "_blank")}
+      sx={{ textTransform: "none" }}
+    >
+      LinkedIn
+    </Button>
+    <Button
+      variant="outlined"
+      onClick={() => window.open(candidate.links.portfolio, "_blank")}
+      sx={{ textTransform: "none" }}
+    >
+      Portfolio
+    </Button>
+  </Stack>
+
 
 
         </Box>
