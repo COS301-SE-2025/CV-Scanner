@@ -370,6 +370,68 @@ const handleAutoSummarize = () => {
             Senior Software Engineer | 5 years experience
           </Typography>
 
+            {/* HEADER STRIP */}
+<Paper elevation={6} sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}>
+  {/* Top row: avatar + title + quick actions */}
+  <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+    <Avatar sx={{ width: 56, height: 56, bgcolor: "#08726a" }}>
+      {candidate.name.split(" ").map(n => n[0]).join("").slice(0,2)}
+    </Avatar>
+    <Box sx={{ flex: 1 }}>
+      <Typography variant="h5" sx={{ fontWeight: "bold" }}>
+        {candidate.name}
+      </Typography>
+      <Typography variant="body2" sx={{ color: "#555" }}>
+        {candidate.title} • {candidate.yoe} years • {candidate.location}
+      </Typography>
+    </Box>
+
+    {/* Ready-to-act toolbar (quick actions) */}
+    <Stack direction="row" spacing={1}>
+      <Button
+        size="small"
+        variant="outlined"
+        onClick={openContact}
+        sx={{ color: "#0073c1", borderColor: "#0073c1", textTransform: "none" }}
+      >
+        Contact Details
+      </Button>
+      <Button
+        size="small"
+        variant="contained"
+        sx={{
+          bgcolor: "#5a88ad",
+          textTransform: "none",
+          "&:hover": { bgcolor: "#487DA6" },
+        }}
+        onClick={() => setSnack({ open: true, msg: "Candidate put up to client." })}
+      >
+        Put Up
+      </Button>
+    </Stack>
+  </Box>
+
+  {/* Quick facts grid */}
+  <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2 }}>
+    <Fact label="Availability" value={candidate.availability} />
+    <Fact label="Work Auth" value={candidate.workAuth} />
+    <Fact label="Salary Band" value={candidate.salaryBand} />
+    <Fact label="Last Updated" value={candidate.lastUpdated} />
+  </Box>
+</Paper>
+
+{/* Contact popover */}
+<Popover
+  open={Boolean(contactAnchor)}
+  anchorEl={contactAnchor}
+  onClose={closeContact}
+  anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+  transformOrigin={{ vertical: "top", horizontal: "right" }}
+  PaperProps={{ sx: { p: 2, borderRadius: 2 } }}
+>
+ 
+
+
           {/* Tabs Section */}
           <Box sx={{ display: "flex", gap: 3, mb: 4 }}>
             {["Summary", "Skills", "Experience", "Recruiters Notes"].map(
