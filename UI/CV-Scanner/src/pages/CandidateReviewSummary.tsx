@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
-  Avator,
+  Avatar,
   Stack,
   Divider,
   Link,
@@ -158,6 +158,16 @@ const handleAutoSummarize = () => {
     }, 250);
   };
   const handleCloseTutorial = () => setTutorialStep(-1);
+
+  function Fact({ label, value }: { label: string; value: string }) {
+  return (
+    <Box sx={{ p: 2, bgcolor: "#fff", borderRadius: 2 }}>
+      <Typography variant="caption" sx={{ color: "#6b7280" }}>{label}</Typography>
+      <Typography variant="body1" sx={{ fontWeight: "bold" }}>{value}</Typography>
+    </Box>
+  );
+}
+
 
   return (
     <Box
