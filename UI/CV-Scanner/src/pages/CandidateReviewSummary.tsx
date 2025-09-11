@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
+  Avatar,
+  Stack,
+  Divider,
+  Link,
+  TextField,
+  Snackbar,
+  Alert,
   Box,
   Typography,
   Paper,
@@ -52,6 +59,76 @@ export default function CandidateReviewSummary() {
       .catch(() => setUser(null));
   }, []);
 
+  // Candidate meta (replace with real data from your API later)
+const [candidate, setCandidate] = useState({
+  name: "Jane Smith",
+  title: "Senior Software Engineer",
+  yoe: 5,
+  location: "Pretoria (Hybrid)",
+  availability: "Employed",
+  workAuth: "SA Citizen",
+  salaryBand: "R600k–R720k",
+  qualifications: "BSc Computer Science",
+  lastUpdated: "2025-08-28",
+  email: "jane.smith@example.com",
+  phone: "+27 82 123 4567",
+  links: {
+    cv: "/files/jane-smith-cv.pdf",
+    github: "https://github.com/jane-smith",
+    linkedin: "https://www.linkedin.com/in/jane-smith",
+    portfolio: "https://janesmith.dev",
+  },
+  experience: [
+    {
+      company: "Entelect",
+      title: "Senior Software Engineer",
+      dates: "2023-01 → Present",
+      impact:
+        "Owned payment microservice (.NET 8, Azure Service Bus); chargebacks ↓ 18%.",
+    },
+    {
+      company: "Quantum Stack",
+      title: "Software Engineer",
+      dates: "2021-01 → 2022-12",
+      impact:
+        "Built parsing pipeline; throughput ↑ 2.3× via SQL tuning + caching.",
+    },
+    {
+      company: "Acme Tech",
+      title: "Junior Developer",
+      dates: "2019-01 → 2020-12",
+      impact: "Maintained monolith APIs; added integration tests; outages ↓.",
+    },
+  ],
+});
+
+// Contact popover
+const [contactAnchor, setContactAnchor] = useState<HTMLElement | null>(null);
+const openContact = (e: React.MouseEvent<HTMLElement>) =>
+  setContactAnchor(e.currentTarget);
+const closeContact = () => setContactAnchor(null);
+
+// Summary attach + AI summary
+const [summaryFileName, setSummaryFileName] = useState<string>("");
+//const [aiSummary, setAiSummary] = useState<string>("");
+const [snack, setSnack] = useState({ open: false, msg: "" });
+
+const handleAttachSummary = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (file) {
+    setSummaryFileName(file.name);
+    setSnack({ open: true, msg: "Summary attached." });
+  }
+};
+
+/*const handleAutoSummarize = () => {
+  // Stub: replace with your backend/AI call
+  const text = `Summary for ${candidate.name}: Strong .NET/Azure engineer (${candidate.yoe}y) with proven impact on performance and reliability. Led projects, mentored juniors, and improved deployment velocity. Best fit for backend/microservices roles with cloud exposure.`;
+  setAiSummary(text);
+  setSnack({ open: true, msg: "AI summary generated." });
+};*/
+
+
   // Tutorial logic (copied from UserManagementPage)
   const [tutorialStep, setTutorialStep] = useState(-1); // -1 means not showing
   const [fadeIn, setFadeIn] = useState(true);
@@ -82,6 +159,16 @@ export default function CandidateReviewSummary() {
     }, 250);
   };
   const handleCloseTutorial = () => setTutorialStep(-1);
+
+  function Fact({ label, value }: { label: string; value: string }) {
+  return (
+    <Box sx={{ p: 2, bgcolor: "#fff", borderRadius: 2 }}>
+      <Typography variant="caption" sx={{ color: "#6b7280" }}>{label}</Typography>
+      <Typography variant="body1" sx={{ fontWeight: "bold" }}>{value}</Typography>
+    </Box>
+  );
+}
+
 
   return (
     <Box
@@ -290,9 +377,9 @@ export default function CandidateReviewSummary() {
           <Typography variant="h4" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 2 }}>
             Jane Smith
           </Typography>
-          <Typography variant="subtitle1" sx={{ mb: 4 }}>
-            Senior Software Engineer | 5 years experience
-          </Typography>
+          
+
+           
 
           {/* Tabs Section */}
           <Box sx={{ display: "flex", gap: 3, mb: 4 }}>
@@ -319,6 +406,65 @@ export default function CandidateReviewSummary() {
               )
             )}
           </Box>
+ {/* HEADER STRIP */}
+<Paper elevation={6} sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}>
+  {/* Top row: avatar + title + quick actions */}
+  <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+    <Avatar sx={{ width: 56, height: 56, bgcolor: "#08726a" }}>
+      {candidate.name.split(" ").map(n => n[0]).join("").slice(0,2)}
+    </Avatar>
+    <Box sx={{ flex: 1 }}>
+
+      <Typography variant="body2" sx={{ color: "#555" }}>
+        {candidate.title} • {candidate.yoe} years • {candidate.location}
+      </Typography>
+    </Box>
+
+    {/* Ready-to-act toolbar (quick actions) */}
+    <Stack direction="row" spacing={3}>
+      <Button
+        size="small"
+         variant="contained"
+      sx={reviewButtonStyle}
+        onClick={openContact}
+       
+      >
+        Contact Details
+      </Button>
+      
+    </Stack>
+  </Box>
+
+  {/* Quick facts grid */}
+  <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2 }}>
+    <Fact label="Availability" value={candidate.availability} />
+    <Fact label="Qualifications" value={candidate.qualifications} />
+    <Fact label="Work Auth" value={candidate.workAuth} />
+    <Fact label="Salary Band" value={candidate.salaryBand} />
+   <Typography
+      variant="caption"
+      sx={{ color: "#6b7280", fontStyle: "italic", mt: 0.5, display: "block" }}
+    >
+      Last updated: {candidate.lastUpdated}
+    </Typography>
+  </Box>
+</Paper>
+
+{/* Contact popover */}
+<Popover
+  open={Boolean(contactAnchor)}
+  anchorEl={contactAnchor}
+  onClose={closeContact}
+  anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+  transformOrigin={{ vertical: "top", horizontal: "right" }}
+  PaperProps={{ sx: { p: 2, borderRadius: 2 } }}
+>
+  <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
+    Contact Details
+  </Typography>
+  <Typography variant="body2">Email: <Link href={`mailto:${candidate.email}`}>{candidate.email}</Link></Typography>
+  <Typography variant="body2">Phone: <Link href={`tel:${candidate.phone}`}>{candidate.phone}</Link></Typography>
+</Popover>
 
           {/* Project Fit Section */}
           <Paper
@@ -423,7 +569,7 @@ export default function CandidateReviewSummary() {
           {/* Key Technologies Section */}
           <Paper
             elevation={6}
-            sx={{ p: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
+            sx={{ p: 3,mb:3, borderRadius: 3, bgcolor: "#DEDDEE" }}
             ref={techRef}
           >
             <Typography variant="h6" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 2 }}>
@@ -439,9 +585,94 @@ export default function CandidateReviewSummary() {
               ))}
             </Box>
           </Paper>
-        </Box>
-      </Box>
+              {/* LINKS & ATTACHMENTS (hard-coded AI summary) */}
+<Paper elevation={6} sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}>
+  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
+    Resume & Links
+  </Typography>
+
+  <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", mb: 2 }}>
+ 
+    <Button
+      variant="contained"
+      sx={reviewButtonStyle}
+      onClick={() => window.open(candidate.links.github, "_blank")}
+      
+    >
+      GitHub
+    </Button>
+    <Button
+       variant="contained"
+      sx={reviewButtonStyle}
+      onClick={() => window.open(candidate.links.linkedin, "_blank")}
+    
+    >
+      LinkedIn
+    </Button>
+   
+  </Stack>
+
+  {/* Attach actual summary (your own write-up) + hard-coded AI summary */}
+  <Box
+    sx={{
+      display: "grid",
+      gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+      gap: 2,
+      alignItems: "start",
+    }}
+  >
+    
+    {/* Hard-coded AI summary (read-only) + link to full CV */}
+    <Box sx={{ p: 2, bgcolor: "DEDEDE", borderRadius: 2 }}>
+      <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
+       CV Summary
+      </Typography>
+
+      <TextField
+        value={
+`Strong .NET/Azure engineer (5y) with proven backend impact: 
+- Led .NET 8 upgrade and microservice hardening, p95 latency ↓ ~30%.
+- Built Azure CI/CD and observability; deployment time ↓, incidents triaged faster.
+- Mentors juniors and drives code review quality. 
+Best fit: backend/microservices roles with cloud exposure.`
+        }
+        multiline
+        minRows={6}
+        fullWidth
+        InputProps={{ readOnly: true }}
+        sx={{ "& .MuiOutlinedInput-root": { bgcolor: "#edededff" } }}
+      />
+
+      <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+        <Button
+           variant="contained"
+      sx={reviewButtonStyle}
+          onClick={() => window.open(candidate.links.cv, "_blank")}
+       
+        >
+          View Full CV
+        </Button>
+      </Stack>
     </Box>
+  </Box>
+</Paper>
+
+{/* Snackbar (keep INSIDE the Candidate Details box) */}
+<Snackbar
+  open={snack.open}
+  autoHideDuration={2500}
+  onClose={() => setSnack({ open: false, msg: "" })}
+  anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+>
+  <Alert severity="success" variant="filled" sx={{ bgcolor: "#08726a" }}>
+    {snack.msg}
+  </Alert>
+</Snackbar>
+
+</Box>  
+</Box>  
+</Box>   
+
   );
 }
 
@@ -467,5 +698,33 @@ const navButtonStyle = {
       backgroundColor: "black",
       borderRadius: "0 4px 4px 0",
     },
+  },
+};
+
+const reviewButtonStyle = {
+  background: "#232A3B",
+  color: "DEDDEE",
+  fontWeight: "bold",
+  padding: "8px 20px",
+  borderRadius: "4px",
+  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+  "&:hover": {
+    background:
+      "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
+    transform: "translateY(-1px)",
+  },
+  textTransform: "none",
+  transition: "all 0.3s ease",
+  position: "relative",
+  overflow: "hidden",
+  "&::after": {
+    content: '""',
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    background:
+      "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
   },
 };

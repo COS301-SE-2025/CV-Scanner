@@ -28,3 +28,5 @@ runs/
 Thumbs.db
 .idea/
 .vscode/
+.venv/
+
