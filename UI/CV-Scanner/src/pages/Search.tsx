@@ -41,9 +41,9 @@ export default function Search() {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const [searchText, setSearchText] = useState("");
-  const [selectedSkills, setSelectedSkills] = useState([]);
-  const [selectedFits, setSelectedFits] = useState([]);
-  const [selectedDetails, setSelectedDetails] = useState([]);
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [selectedFits, setSelectedFits] = useState<string[]>([]);
+  const [selectedDetails, setSelectedDetails] = useState<string[]>([]);
   const [user, setUser] = useState<{
     first_name?: string;
     last_name?: string;
@@ -51,56 +51,55 @@ export default function Search() {
     role?: string;
     email?: string;
   } | null>(null);
-  const [tutorialStep, setTutorialStep] = useState(-1); // -1 means not showing
+  const [tutorialStep, setTutorialStep] = useState(-1);
   const [fadeIn, setFadeIn] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+const [processingCandidates, setProcessingCandidates] = useState<string[]>([]); // use email as ID
 
-  const location = useLocation();
+  // Replace hard-coded candidates with data from API
+  type ApiCandidate = {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    project?: string;
+    skills: string[];
+    receivedAt?: string;
+    match?: string;
+  };
+  type CandidateCard = {
+    name: string;
+    skills: string[];
+    project: string;
+    uploaded: string;
+    match: string;
+    initials: string;
+    details: string[];
+    fit?: string;
+  };
+  const [candidates, setCandidates] = useState<CandidateCard[]>([]);
 
-  const devUser = {
-      email: "dev@example.com",
-      password: "Password123",
-      first_name: "John",
-      last_name: "Doe",
-      role: "Admin",
-    };
+  // Toggle helper for checkbox filters
+  function toggle(list: string[], value: string) {
+    return list.includes(value)
+      ? list.filter((v) => v !== value)
+      : [...list, value];
+  }
 
-  const candidates = [
-    {
-      name: "Jane Smith",
-      skills: [".NET", "Azure", "SQL"],
-      project: ".NET Aam S2L CD",
-      uploaded: "2 days ago",
-      match: "99% technical",
-      initials: "JS",
-      details: ["My Uploads"],
-      fit: "Technical",
-    },
-    {
-      name: "Mike Johnson",
-      skills: ["React", "Node.js", "JavaScript"],
-      project: "Sarah Khabad (Amberly)",
-      uploaded: "1 week ago",
-      match: "95% collaborative",
-      initials: "MJ",
-      details: ["Last 7 Days"],
-      fit: "Collaborative",
-    },
-    {
-      name: "Sarah Lee",
-      skills: ["Java", "Spring Boot", "SQL"],
-      project: "BizFin Project X",
-      uploaded: "3 days ago",
-      match: "93% business",
-      initials: "SL",
-      details: ["My Uploads", "Last 7 Days"],
-      fit: "Business",
-    },
-  ];
+  // Handler for checkbox groups
+  function handleCheckboxChange(
+    kind: "skill" | "fit" | "detail",
+    value: string
+  ) {
+    if (kind === "skill") setSelectedSkills((s) => toggle(s, value));
+    else if (kind === "fit") setSelectedFits((s) => toggle(s, value));
+    else setSelectedDetails((s) => toggle(s, value));
+  }
 
+  // Derived list used by render
   const filteredCandidates = useMemo(() => {
+    const text = searchText.toLowerCase();
     return candidates.filter((c) => {
-      const text = searchText.toLowerCase();
       const matchesText =
         c.name.toLowerCase().includes(text) ||
         c.project.toLowerCase().includes(text) ||
@@ -108,48 +107,84 @@ export default function Search() {
 
       const matchesSkills =
         selectedSkills.length === 0 ||
-        selectedSkills.some((skill) => c.skills.includes(skill));
+        selectedSkills.some((skill) =>
+          c.skills.map((s) => s.toLowerCase()).includes(skill.toLowerCase())
+        );
+
       const matchesFit =
-        selectedFits.length === 0 || selectedFits.includes(c.fit);
+        selectedFits.length === 0 ||
+        (c.fit ? selectedFits.includes(c.fit) : true);
+
       const matchesDetails =
         selectedDetails.length === 0 ||
         selectedDetails.some((d) => c.details.includes(d));
 
       return matchesText && matchesSkills && matchesFit && matchesDetails;
     });
-  }, [searchText, selectedSkills, selectedFits, selectedDetails]);
+  }, [searchText, selectedSkills, selectedFits, selectedDetails, candidates]);
 
-  const handleCheckboxChange = (type, value) => {
-    const setFunc = {
-      skill: setSelectedSkills,
-      fit: setSelectedFits,
-      detail: setSelectedDetails,
-    }[type];
-
-    const currentValues = {
-      skill: selectedSkills,
-      fit: selectedFits,
-      detail: selectedDetails,
-    }[type];
-
-    if (currentValues.includes(value)) {
-      setFunc(currentValues.filter((v) => v !== value));
-    } else {
-      setFunc([...currentValues, value]);
-    }
-  };
+  function initialsOf(first?: string, last?: string) {
+    const a = (first || "").trim();
+    const b = (last || "").trim();
+    const init = (a[0] || "") + (b[0] || "");
+    return init.toUpperCase() || "NA";
+  }
+  function relativeFrom(iso?: string) {
+    if (!iso) return "Unknown";
+    const then = new Date(iso).getTime();
+    const now = Date.now();
+    const diff = Math.max(0, now - then);
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${mins} min ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs} hour${hrs === 1 ? "" : "s"} ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days} day${days === 1 ? "" : "s"} ago`;
+  }
+  function withinLast7Days(iso?: string) {
+    if (!iso) return false;
+    const then = new Date(iso).getTime();
+    return Date.now() - then <= 7 * 24 * 60 * 60 * 1000;
+  }
 
   useEffect(() => {
-
+    // Load current user (unchanged)
     document.title = "Search Candidates";
     const email = localStorage.getItem("userEmail") || "admin@email.com";
     fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
       .then((res) => res.json())
-      .then((data) => {
-        console.log("Fetched user:", data);
-        setUser(data);
-      })
+      .then((data) => setUser(data))
       .catch(() => setUser(null));
+
+    // Fetch candidates from API
+    fetch("http://localhost:8081/cv/candidates")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list: ApiCandidate[]) => {
+        const mapped: CandidateCard[] = list.map((c) => {
+          const name =
+            `${c.firstName || ""} ${c.lastName || ""}`.trim() ||
+            c.email ||
+            "Unknown";
+          const project = c.project || "CV";
+          const uploaded = relativeFrom(c.receivedAt);
+          const initials = initialsOf(c.firstName, c.lastName);
+          const details: string[] = withinLast7Days(c.receivedAt)
+            ? ["Last 7 Days"]
+            : [];
+          return {
+            name,
+            skills: Array.isArray(c.skills) ? c.skills : [],
+            project,
+            uploaded,
+            match: c.match || "N/A",
+            initials,
+            details,
+            fit: undefined,
+          };
+        });
+        setCandidates(mapped);
+      })
+      .catch(() => setCandidates([]));
   }, []);
 
   const searchBarRef = useRef<HTMLInputElement>(null);
@@ -174,6 +209,37 @@ export default function Search() {
     }, 250);
   };
   const handleCloseTutorial = () => setTutorialStep(-1);
+  const reExtractCandidate = async (candidate: CandidateCard) => {
+  const email = candidate.email;
+  if (!email) return;
+  
+  const CONFIG_BASE = "http://localhost:8081"; // Ensure this is defined
+
+  setProcessingCandidates((prev) => [...prev, email]);
+
+  try {
+    const res = await fetch(`${CONFIG_BASE}/cv/process`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      alert({ open: true, message: j.detail || `Failed to process CV (${res.status})` });
+      return;
+    }
+
+    const processedCV = await res.json();
+    navigate("/parsed-cv", { state: { cv: processedCV, candidate } });
+
+  } catch (e) {
+    alert({ open: true, message: "Error processing CV." });
+  } finally {
+    setProcessingCandidates((prev) => prev.filter((e) => e !== email));
+  }
+};
+
   return (
     <Box
       sx={{
@@ -183,127 +249,147 @@ export default function Search() {
         color: "#fff",
       }}
     >
-            {/* Sidebar */}
-      <Sidebar 
-  userRole={user?.role || devUser.role} 
-  collapsed={collapsed} 
-  setCollapsed={setCollapsed} 
-/>
+      {/* Sidebar */}
+      <Sidebar
+        userRole={user?.role ?? "User"}
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
+      />
 
       {/* Main Content */}
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
         {/* Top Bar */}
-          <AppBar
-                   position="static"
-                   sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
-                 >
-                   <Toolbar sx={{ justifyContent: "flex-end" }}>
-           {/* Tutorial icon */}
-           <Tooltip title="Run Tutorial" arrow>
-             <IconButton
-               onClick={() => {
-                 setTutorialStep(0);
-                 setFadeIn(true);
-               }}
-               sx={{ml: 1, color: '#FFEB3B'}}
-             >
-               <LightbulbRoundedIcon />
-             </IconButton>
-           </Tooltip>
-         
-           {/* Help / FAQ icon */}
-           <Tooltip title="Go to Help Page" arrow>
-             <IconButton
-               color="inherit"
-               onClick={() => navigate("/help")}
-               sx={{ ml: 1, color: '#90ee90' }}
-             >
-               <HelpOutlineIcon />
-             </IconButton>
-           </Tooltip>
-         
-           {/* User Info */}
-           <Box
-             sx={{
-               display: "flex",
-               alignItems: "center",
-               ml: 2,
-               cursor: "pointer",
-               "&:hover": { opacity: 0.8 },
-             }}
-             onClick={() => navigate("/settings")}
-           >
-             <AccountCircleIcon sx={{ mr: 1 }} />
-             <Typography variant="subtitle1">
-               {user
-                 ? user.first_name
-                   ? `${user.first_name} ${user.last_name || ""} (${user.role || "User"})`
-                   : (user.username || user.email) +
-                     (user.role ? ` (${user.role})` : "")
-                 : "User"}
-             </Typography>
-           </Box>
-         
-           {/* Logout */}
-           <IconButton
-             color="inherit"
-             onClick={() => navigate("/login")}
-             sx={{ ml: 1 }}
-           >
-             <ExitToAppIcon />
-           </IconButton>
-         </Toolbar>
-                   
-                 </AppBar>
+        <AppBar
+          position="static"
+          sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
+        >
+          <Toolbar sx={{ justifyContent: "flex-end" }}>
+            {/* Tutorial icon */}
+            <Tooltip title="Run Tutorial" arrow>
+              <IconButton
+                onClick={() => {
+                  setTutorialStep(0);
+                  setFadeIn(true);
+                }}
+                sx={{ ml: 1, color: "#FFEB3B" }}
+              >
+                <LightbulbRoundedIcon />
+              </IconButton>
+            </Tooltip>
 
-        {/* Page Content */}
-        <Box sx={{ p: 3 }}>
-          <Typography
-              variant="h5"
-              sx={{ fontWeight: "bold", mb: 3,fontFamily: "Helvetica, sans-serif", color: "#fff" }}
-            >
-              Search Candidates
-            </Typography>
-            {/* Search Bar */}
+            {/* Help / FAQ icon */}
+            <Tooltip title="Go to Help Page" arrow>
+              <IconButton
+                color="inherit"
+                onClick={() => navigate("/help")}
+                sx={{ ml: 1, color: "#90ee90" }}
+              >
+                <HelpOutlineIcon />
+              </IconButton>
+            </Tooltip>
+
+            {/* User Info */}
             <Box
               sx={{
                 display: "flex",
                 alignItems: "center",
-                mb: 4,
-                bgcolor: "#DEDDEE",
-                borderRadius: 1,
-                px: 2,
-                py: 1,
-                fontFamily: "Helvetica, sans-serif",
+                ml: 2,
+                cursor: "pointer",
+                "&:hover": { opacity: 0.8 },
               }}
-              ref={searchBarRef}
+              onClick={() => navigate("/settings")}
             >
-              <SearchIcon color="action" />
-              <InputBase
-                placeholder="Search by name, skills, or project type..."
-                sx={{ ml: 1, flex: 1, fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
-                fullWidth
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-              />
+              <AccountCircleIcon sx={{ mr: 1 }} />
+              <Typography variant="subtitle1">
+                {user
+                  ? user.first_name
+                    ? `${user.first_name} ${user.last_name || ""} (${
+                        user.role || "User"
+                      })`
+                    : (user.username || user.email) +
+                      (user.role ? ` (${user.role})` : "")
+                  : "User"}
+              </Typography>
             </Box>
+
+            {/* Logout */}
+            <IconButton
+              color="inherit"
+              onClick={() => navigate("/login")}
+              sx={{ ml: 1 }}
+            >
+              <ExitToAppIcon />
+            </IconButton>
+          </Toolbar>
+        </AppBar>
+
+        {/* Page Content */}
+        <Box sx={{ p: 3 }}>
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: "bold",
+              mb: 3,
+              fontFamily: "Helvetica, sans-serif",
+              color: "#fff",
+            }}
+          >
+            Search Candidates
+          </Typography>
+          {/* Search Bar */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              mb: 4,
+              bgcolor: "#DEDDEE",
+              borderRadius: 1,
+              px: 2,
+              py: 1,
+              fontFamily: "Helvetica, sans-serif",
+            }}
+            ref={searchBarRef}
+          >
+            <SearchIcon color="action" />
+            <InputBase
+              placeholder="Search by name, skills, or project type..."
+              sx={{
+                ml: 1,
+                flex: 1,
+                fontFamily: "Helvetica, sans-serif",
+                fontSize: "1rem",
+              }}
+              fullWidth
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+            />
+          </Box>
           <Paper
             elevation={6}
-            sx={{ p: 3, borderRadius: 3, backgroundColor: "#DEDDEE", fontFamily: "Helvetica, sans-serif", color: "#fff" }}
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              backgroundColor: "#DEDDEE",
+              fontFamily: "Helvetica, sans-serif",
+              color: "#fff",
+            }}
           >
-
-            
-              
             {/* Filters */}
             <Box sx={{ display: "flex", gap: 6, mb: 4 }} ref={checkboxesRef}>
               <Box>
                 <Typography
                   variant="subtitle1"
-                  sx={{ color:"#000000ff", fontWeight: "bold", mb: 2, fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
+                  sx={{
+                    color: "#000000ff",
+                    fontWeight: "bold",
+                    mb: 2,
+                    fontFamily: "Helvetica, sans-serif",
+                    fontSize: "1rem",
+                  }}
                 >
                   Primary Skills
                 </Typography>
-                <FormGroup sx={{color: "#000000ff"}}>
+                <FormGroup sx={{ color: "#000000ff" }}>
                   {[".NET", "Java", "React", "Azure"].map((skill) => (
                     <FormControlLabel
                       key={skill}
@@ -313,12 +399,17 @@ export default function Search() {
                           onChange={() => handleCheckboxChange("skill", skill)}
                           sx={{
                             color: "#204E20", // green
-                            "&.Mui-checked": { color: "#204E20" },//green
+                            "&.Mui-checked": { color: "#204E20" }, //green
                           }}
                         />
                       }
                       label={
-                        <Typography sx={{ fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}>
+                        <Typography
+                          sx={{
+                            fontFamily: "Helvetica, sans-serif",
+                            fontSize: "1rem",
+                          }}
+                        >
                           {skill}
                         </Typography>
                       }
@@ -329,11 +420,17 @@ export default function Search() {
               <Box>
                 <Typography
                   variant="subtitle1"
-                  sx={{ color:"#000000ff", fontWeight: "bold", mb: 2 ,fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
+                  sx={{
+                    color: "#000000ff",
+                    fontWeight: "bold",
+                    mb: 2,
+                    fontFamily: "Helvetica, sans-serif",
+                    fontSize: "1rem",
+                  }}
                 >
                   Project Fit
                 </Typography>
-                <FormGroup sx={{color: "#000000ff"}}>
+                <FormGroup sx={{ color: "#000000ff" }}>
                   {["Technical", "Collaborative", "Business"].map((fit) => (
                     <FormControlLabel
                       key={fit}
@@ -348,7 +445,12 @@ export default function Search() {
                         />
                       }
                       label={
-                        <Typography sx={{ fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}>
+                        <Typography
+                          sx={{
+                            fontFamily: "Helvetica, sans-serif",
+                            fontSize: "1rem",
+                          }}
+                        >
                           {fit}
                         </Typography>
                       }
@@ -359,11 +461,17 @@ export default function Search() {
               <Box>
                 <Typography
                   variant="subtitle1"
-                  sx={{ color: "#000000ff",fontWeight: "bold", mb: 2, fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
+                  sx={{
+                    color: "#000000ff",
+                    fontWeight: "bold",
+                    mb: 2,
+                    fontFamily: "Helvetica, sans-serif",
+                    fontSize: "1rem",
+                  }}
                 >
                   Upload Details
                 </Typography>
-                <FormGroup sx={{color: "#000000ff"}}>
+                <FormGroup sx={{ color: "#000000ff" }}>
                   {["My Uploads", "Last 7 Days"].map((detail) => (
                     <FormControlLabel
                       key={detail}
@@ -375,12 +483,17 @@ export default function Search() {
                           }
                           sx={{
                             color: "#204E20", //green
-                            "&.Mui-checked": { color: "#204E20" },//green
+                            "&.Mui-checked": { color: "#204E20" }, //green
                           }}
                         />
                       }
                       label={
-                        <Typography sx={{ fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}>
+                        <Typography
+                          sx={{
+                            fontFamily: "Helvetica, sans-serif",
+                            fontSize: "1rem",
+                          }}
+                        >
                           {detail}
                         </Typography>
                       }
@@ -393,7 +506,16 @@ export default function Search() {
             <Divider sx={{ my: 3 }} />
 
             {/* Results Count */}
-            <Typography variant="subtitle1" sx={{ color: "#000000ff",mb: 3, fontWeight: "bold", fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}>
+            <Typography
+              variant="subtitle1"
+              sx={{
+                color: "#000000ff",
+                mb: 3,
+                fontWeight: "bold",
+                fontFamily: "Helvetica, sans-serif",
+                fontSize: "1rem",
+              }}
+            >
               Showing {filteredCandidates.length} of {candidates.length}{" "}
               candidates
             </Typography>
@@ -417,7 +539,6 @@ export default function Search() {
                         transform: "translateY(-2px)",
                       },
                       transition: "all 0.2s ease",
-                      
                     }}
                     onClick={() => navigate("/candidate-review")} // Correct placement
                   >
@@ -439,16 +560,33 @@ export default function Search() {
                       <Box sx={{ flexGrow: 1 }}>
                         <Typography
                           variant="h6"
-                          sx={{ fontWeight: "bold", mb: 0.5, fontFamily: "Helvetica, sans-serif", fontSize: "1.2rem" }}
+                          sx={{
+                            fontWeight: "bold",
+                            mb: 0.5,
+                            fontFamily: "Helvetica, sans-serif",
+                            fontSize: "1.2rem",
+                          }}
                         >
                           {candidate.name}
                         </Typography>
-                        <Typography variant="body1" sx={{ mb: 1,fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}>
+                        <Typography
+                          variant="body1"
+                          sx={{
+                            mb: 1,
+                            fontFamily: "Helvetica, sans-serif",
+                            fontSize: "1rem",
+                          }}
+                        >
                           {candidate.project}
                         </Typography>
                         <Typography
                           variant="body2"
-                          sx={{ mb: 1.5, color: "#black", fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
+                          sx={{
+                            mb: 1.5,
+                            color: "#black",
+                            fontFamily: "Helvetica, sans-serif",
+                            fontSize: "1rem",
+                          }}
                         >
                           Uploaded: {candidate.uploaded}
                         </Typography>
@@ -458,7 +596,6 @@ export default function Search() {
                             gap: 1,
                             flexWrap: "wrap",
                             mb: 1.5,
-                            
                           }}
                         >
                           {candidate.skills.map((skill, i) => (
@@ -466,16 +603,79 @@ export default function Search() {
                               key={i}
                               label={skill}
                               size="small"
-                              sx={{ backgroundColor: "#93AFF7",fontFamily: "Helvetica, sans-serif", fontSize: "1rem",fontWeight: "bold" ,color: "#204E20" }}
+                              sx={{
+                                backgroundColor: "#93AFF7",
+                                fontFamily: "Helvetica, sans-serif",
+                                fontSize: "1rem",
+                                fontWeight: "bold",
+                                color: "#204E20",
+                              }}
                             />
                           ))}
                         </Box>
                         <Typography
                           variant="body2"
-                          sx={{ color: "#204E20", fontWeight: "bold", fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
+                          sx={{
+                            color: "#204E20",
+                            fontWeight: "bold",
+                            fontFamily: "Helvetica, sans-serif",
+                            fontSize: "1rem",
+                          }}
                         >
                           Match: {candidate.match}
                         </Typography>
+                      </Box>
+                      <Box sx={{ mt: 1 }}>
+<Button
+  variant="contained"
+  size="small"
+  onClick={async (e) => {
+    e.stopPropagation(); // Prevents triggering the Paper onClick
+
+    // Show loading state if needed
+    if (processingCandidates.includes(candidate.email)) return;
+
+    // Add candidate to processing list
+    setProcessingCandidates((prev) => [...prev, candidate.email]);
+
+    try {
+      // Fetch processed data from your backend
+      const response = await fetch(`http://localhost:5000/upload_cv_for_candidate?email=${encodeURIComponent(candidate.email)}&top_k=3`);
+      const data = await response.json();
+
+      // Prepare payload (mimic UploadCVPage)
+      const payload = data?.data ?? data;
+
+      // Navigate to Parsed CV page
+navigate("/parsed-cv", {
+  state: {
+    processedData: payload,
+    fileUrl: candidate.cvFileUrl, // must exist
+    fileType: candidate.cvFileType, // must exist
+    candidate: {
+      firstName: candidate.name.split(" ")[0],
+      lastName: candidate.name.split(" ")[1] || "",
+      email: candidate.email,
+    },
+  },
+});
+
+    } catch (error) {
+      console.error("Failed to re-extract candidate:", error);
+    } finally {
+      // Remove candidate from processing list
+      setProcessingCandidates((prev) =>
+        prev.filter((email) => email !== candidate.email)
+      );
+    }
+  }}
+  disabled={processingCandidates.includes(candidate.email)}
+  sx={{ textTransform: "none" }}
+>
+  {processingCandidates.includes(candidate.email) ? "Processing..." : "Re-Extract"}
+</Button>
+
+
                       </Box>
                     </Box>
                   </Paper>
@@ -483,15 +683,21 @@ export default function Search() {
               ) : (
                 <Typography
                   variant="body1"
-                  sx={{ mt: 2, fontStyle: "italic", color: "#555", fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
+                  sx={{
+                    mt: 2,
+                    fontStyle: "italic",
+                    color: "#555",
+                    fontFamily: "Helvetica, sans-serif",
+                    fontSize: "1rem",
+                  }}
                 >
                   No results found. Try adjusting your search or filters.
                 </Typography>
               )}
+              
             </div>
 
             {/* Pagination ... */}
-
           </Paper>
         </Box>
       </Box>

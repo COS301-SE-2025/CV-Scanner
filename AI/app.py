@@ -1,15 +1,15 @@
 import os
 import time
 import tempfile
-from typing import Dict, List
+from typing import List
 
 import torch
-from fastapi import FastAPI, UploadFile, File, HTTPException, Body, Query
+from fastapi import FastAPI, UploadFile, File, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from transformers import pipeline
 
-from cv_parser import parse_resume, parse_resume_from_bytes, extract_text  # reuse robust extraction
+from cv_parser import parse_resume_from_bytes, extract_text  # reuse robust extraction
 
 # ---------- FastAPI ----------
 app = FastAPI(title="CV API (Parse & Probabilities)")
@@ -27,7 +27,7 @@ try:
         model="facebook/bart-large-mnli",
         device=0 if torch.cuda.is_available() else -1
     )
-except Exception as e:
+except Exception:
     zsc = None
 
 def classify_text_probabilities(text: str, candidate_labels: List[str]):
@@ -41,12 +41,11 @@ def classify_text_probabilities(text: str, candidate_labels: List[str]):
 # ---------- Routes ----------
 @app.get("/", response_class=PlainTextResponse)
 async def root():
-    return "OK. Use POST /parse_cv (summary) and POST /upload/ (probabilities)."
+    return "OK. Use POST /parse_cv (summary) and POST /upload_cv (probabilities)."
 
 @app.get("/health")
 async def health():
     return {"status": "ok", "ts": time.time()}
-
 
 @app.post("/parse_cv")
 async def parse_cv(file: UploadFile = File(...)):
@@ -131,7 +130,6 @@ async def upload_file(
             pass
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
 
-# ---------- Local dev entry ----------
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", "5000"))

@@ -1,24 +1,14 @@
 {
-  "Skills": [
-    "Writer",
-    "Coder",
-    "Backend",
-    "Manager",
-    "HR Supervisor"
-  ],
-  "Education": [
-    "Matric",
-    "Diploma",
-    "Bachelor",
-    "Honours",
-    "Masters",
-    "PhD"
-  ],
-  "Experience": [
-    "Intern",
-    "Junior",
-    "Mid",
-    "Senior",
-    "Lead"
-  ]
+  "Skills" : [ "Writer", "Coder", "Backend", "DevOps" ],
+  "Education" : [ "Matric", "Diploma", "Bachelor", "Masters", "PhD" ],
+  "Experience" : [ "Intern", "Junior", "Mid", "Senior", "Lead" ],
+  "Certifications" : [ "AWS Certified Cloud Practitioner", "PMP", "Scrum Master" ],
+  "Tools" : [ "Git", "Jira", "Postman", "Figma" ],
+  "ProgrammingLanguages" : [ "Python", "Java", "C#", "JavaScript" ],
+  "Frameworks" : [ "React", "Angular", "Spring Boot", ".NET" ],
+  "Databases" : [ "PostgreSQL", "MySQL", "MongoDB", "Redis" ],
+  "CloudProviders" : [ "AWS", "Azure", "GCP" ],
+  "SoftSkills" : [ "Communication", "Leadership", "Problem Solving", "Teamwork" ],
+  "Methodologies" : [ "Agile", "Scrum", "Kanban", "Waterfall" ],
+  "Industries" : [ "Finance", "Healthcare", "Retail", "Telecom" ]
 }
