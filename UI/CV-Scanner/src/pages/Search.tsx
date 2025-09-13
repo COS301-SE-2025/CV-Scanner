@@ -54,6 +54,7 @@ export default function Search() {
   const [tutorialStep, setTutorialStep] = useState(-1);
   const [fadeIn, setFadeIn] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+const [processingCandidates, setProcessingCandidates] = useState<string[]>([]); // use email as ID
 
   // Replace hard-coded candidates with data from API
   type ApiCandidate = {
@@ -208,6 +209,37 @@ export default function Search() {
     }, 250);
   };
   const handleCloseTutorial = () => setTutorialStep(-1);
+  const reExtractCandidate = async (candidate: CandidateCard) => {
+  const email = candidate.email;
+  if (!email) return;
+  
+  const CONFIG_BASE = "http://localhost:8081"; // Ensure this is defined
+
+  setProcessingCandidates((prev) => [...prev, email]);
+
+  try {
+    const res = await fetch(`${CONFIG_BASE}/cv/process`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      alert({ open: true, message: j.detail || `Failed to process CV (${res.status})` });
+      return;
+    }
+
+    const processedCV = await res.json();
+    navigate("/parsed-cv", { state: { cv: processedCV, candidate } });
+
+  } catch (e) {
+    alert({ open: true, message: "Error processing CV." });
+  } finally {
+    setProcessingCandidates((prev) => prev.filter((e) => e !== email));
+  }
+};
+
   return (
     <Box
       sx={{
@@ -593,6 +625,58 @@ export default function Search() {
                           Match: {candidate.match}
                         </Typography>
                       </Box>
+                      <Box sx={{ mt: 1 }}>
+<Button
+  variant="contained"
+  size="small"
+  onClick={async (e) => {
+    e.stopPropagation(); // Prevents triggering the Paper onClick
+
+    // Show loading state if needed
+    if (processingCandidates.includes(candidate.email)) return;
+
+    // Add candidate to processing list
+    setProcessingCandidates((prev) => [...prev, candidate.email]);
+
+    try {
+      // Fetch processed data from your backend
+      const response = await fetch(`http://localhost:5000/upload_cv_for_candidate?email=${encodeURIComponent(candidate.email)}&top_k=3`);
+      const data = await response.json();
+
+      // Prepare payload (mimic UploadCVPage)
+      const payload = data?.data ?? data;
+
+      // Navigate to Parsed CV page
+navigate("/parsed-cv", {
+  state: {
+    processedData: payload,
+    fileUrl: candidate.cvFileUrl, // must exist
+    fileType: candidate.cvFileType, // must exist
+    candidate: {
+      firstName: candidate.name.split(" ")[0],
+      lastName: candidate.name.split(" ")[1] || "",
+      email: candidate.email,
+    },
+  },
+});
+
+    } catch (error) {
+      console.error("Failed to re-extract candidate:", error);
+    } finally {
+      // Remove candidate from processing list
+      setProcessingCandidates((prev) =>
+        prev.filter((email) => email !== candidate.email)
+      );
+    }
+  }}
+  disabled={processingCandidates.includes(candidate.email)}
+  sx={{ textTransform: "none" }}
+>
+  {processingCandidates.includes(candidate.email) ? "Processing..." : "Re-Extract"}
+</Button>
+
+
+                      </Box>
                     </Box>
                   </Paper>
                 ))
@@ -610,6 +694,7 @@ export default function Search() {
                   No results found. Try adjusting your search or filters.
                 </Typography>
               )}
+              
             </div>
 
             {/* Pagination ... */}

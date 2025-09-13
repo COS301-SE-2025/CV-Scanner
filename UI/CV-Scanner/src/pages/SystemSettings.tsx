@@ -27,6 +27,10 @@ export default function SystemSettingsPage() {
   const location = useLocation();
   const [user, setUser] = useState<any>(null);
   const [collapsed, setCollapsed] = useState(false);
+  const [configContent, setConfigContent] = useState("");
+const [editing, setEditing] = useState(false);
+
+const CONFIG_BASE = "http://localhost:8081";
 
   // For dev fallback user
   const devUser = {
@@ -55,6 +59,67 @@ export default function SystemSettingsPage() {
       navigate("/dashboard");
     }
   }, [user, navigate]);
+
+const loadConfig = async () => {
+  try {
+    const res = await fetch(`${CONFIG_BASE}/auth/config/categories`);
+    if (!res.ok) {
+      let msg = `Failed to load configuration (${res.status})`;
+      try {
+        const j = await res.json();
+        msg = j?.detail || msg;
+      } catch {}
+      alert(msg);
+      return;
+    }
+    const json = await res.json();
+    const pretty = JSON.stringify(json, null, 2);
+    setConfigContent(pretty); // your local state
+    setEditing(false); // reset editing state
+  } catch (e) {
+    alert("Could not load configuration.");
+    console.error(e);
+  }
+};
+
+useEffect(() => {
+  loadConfig();
+}, []);
+
+const handleSaveConfig = async () => {
+  let parsed: any;
+  try {
+    parsed = JSON.parse(configContent);
+  } catch {
+    alert("Invalid JSON. Please fix before saving.");
+    return;
+  }
+
+  try {
+    const res = await fetch(`${CONFIG_BASE}/auth/config/categories`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(parsed),
+    });
+
+    if (!res.ok) {
+      let msg = `Failed to save configuration (${res.status})`;
+      try {
+        const j = await res.json();
+        msg = j?.detail || msg;
+      } catch {}
+      alert(msg);
+      return;
+    }
+
+    alert("Config saved successfully!");
+    setEditing(false);
+  } catch (err) {
+    console.error("Save error:", err);
+    alert("Could not save configuration: " + err.message);
+  }
+};
+
 
   // Local state for blacklist and whitelist
   const [blacklist, setBlacklist] = useState<string[]>([]);
@@ -368,7 +433,64 @@ export default function SystemSettingsPage() {
                 </Button>
               </Box>
             </Box>
+
           </Box>
+                      {/* CV Extraction Config Editor */}
+<Box sx={{ mt: 5, bgcolor: "#DEDDEE", p: 3, borderRadius: 2 }}>
+  <Typography variant="h6" sx={{ mb: 2, color: "#000", fontWeight: "bold" }}>
+    CV Extraction Config Editor
+  </Typography>
+
+  <textarea
+    value={configContent}
+    onChange={(e) => setConfigContent(e.target.value)}
+    readOnly={!editing}
+    style={{
+      width: "100%",
+      minHeight: "300px",
+      padding: "10px",
+      fontFamily: "monospace",
+      fontSize: "14px",
+      background: editing ? "#fff" : "#f4f4f4",
+      border: "1px solid #ccc",
+      borderRadius: "8px",
+      resize: "vertical",
+    }}
+  />
+
+  <Box sx={{ mt: 2, display: "flex", gap: 2 }}>
+    {editing ? (
+      <>
+        <Button
+          variant="contained"
+          color="success"
+          onClick={async () => {
+            await handleSaveConfig();
+            loadConfig(); // refresh config after saving
+          }}
+        >
+          Save
+        </Button>
+        <Button
+          variant="outlined"
+          color="inherit"
+          onClick={() => {
+            loadConfig(); // reload original config on cancel
+            setEditing(false);
+          }}
+        >
+          Cancel
+        </Button>
+      </>
+    ) : (
+      <Button variant="contained" onClick={() => setEditing(true)}>
+        Edit Config
+      </Button>
+    )}
+  </Box>
+</Box>
+
+
         </Box>
       </Box>
     </Box>

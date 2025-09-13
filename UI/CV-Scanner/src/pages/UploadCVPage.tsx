@@ -32,6 +32,7 @@ import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import Sidebar from "./Sidebar";
 
 const CONFIG_BASE = "http://localhost:8081"; // Spring Boot base (AuthController)
@@ -44,6 +45,10 @@ export default function UploadCVPage() {
   const [candidateName, setCandidateName] = useState("");
   const [candidateSurname, setCandidateSurname] = useState("");
   const [candidateEmail, setCandidateEmail] = useState("");
+
+  const candidateDetailsRef = useRef<HTMLDivElement>(null);
+  const cvTableRef = useRef<HTMLDivElement>(null);
+
 
   // Config editor state
   const [configJson, setConfigJson] = useState<string>("");
@@ -78,10 +83,15 @@ export default function UploadCVPage() {
   const [fadeIn, setFadeIn] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [sidebarAnimating, setSidebarAnimating] = useState(false);
 
   const uploadBoxRef = useRef<HTMLDivElement>(null);
   const additionalInfoRef = useRef<HTMLInputElement>(null);
   const processBtnRef = useRef<HTMLButtonElement>(null);
+  const configBoxRef = useRef<HTMLDivElement>(null);
+
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -97,12 +107,28 @@ export default function UploadCVPage() {
   useEffect(() => {
     if (tutorialStep === 0 && uploadBoxRef.current)
       setAnchorEl(uploadBoxRef.current);
-    else if (tutorialStep === 1 && additionalInfoRef.current)
-      setAnchorEl(additionalInfoRef.current);
-    else if (tutorialStep === 2 && processBtnRef.current)
+    else if (tutorialStep === 1 && candidateDetailsRef.current)
+      setAnchorEl(candidateDetailsRef.current);
+    else if (tutorialStep === 2 && file && cvTableRef.current)
+      setAnchorEl(cvTableRef.current);
+    else if (
+      tutorialStep === 3 &&
+      file &&
+      user?.role === "Admin" &&
+      configBoxRef.current
+    )
+      setAnchorEl(configBoxRef.current);
+    else if (
+      tutorialStep === 3 &&
+      file &&
+      user?.role !== "Admin" &&
+      processBtnRef.current
+    )
+      setAnchorEl(processBtnRef.current);
+    else if (tutorialStep === 4 && processBtnRef.current)
       setAnchorEl(processBtnRef.current);
     else setAnchorEl(null);
-  }, [tutorialStep]);
+  }, [tutorialStep, file, user]);
 
   // Load config from Spring when admin and a file is selected (reveals the box)
   useEffect(() => {
@@ -171,12 +197,21 @@ export default function UploadCVPage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
-    if (selected) setFile(selected);
+    if (selected) {
+      setFile(selected);
+      setPdfUrl(URL.createObjectURL(selected));
+    }
   };
 
   const handleRemove = () => {
     setFile(null);
     setProcessedData(null);
+
+    if (pdfUrl) {
+      URL.revokeObjectURL(pdfUrl);
+      setPdfUrl(null);
+    }
+
     const fileInput = document.getElementById(
       "file-upload"
     ) as HTMLInputElement;
@@ -273,7 +308,12 @@ export default function UploadCVPage() {
       <Sidebar
         userRole={user?.role || devUser.role}
         collapsed={collapsed}
-        setCollapsed={setCollapsed}
+        setCollapsed={(val) => {
+          setCollapsed(val);
+          setSidebarAnimating(true);
+          setTimeout(() => setSidebarAnimating(false), 300); // match sidebar animation duration
+        }}
+
       />
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
         <AppBar
@@ -399,206 +439,161 @@ export default function UploadCVPage() {
               </Box>
             </Box>
 
-            <TextField
-              label="Candidate Name"
-              fullWidth
-              required
-              variant="outlined"
-              value={candidateName}
-              onChange={(e) => setCandidateName(e.target.value)}
-              sx={{
-                fontFamily: "Helvetica, sans-serif",
-                mb: 3,
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": { borderColor: "#000000ff" },
+            {/* Candidate Details Section */}
+            <Box
+              ref={candidateDetailsRef}
+              sx={
+                {
+                  // No highlight/focus styles
+                }
+              }
+            >
+              <TextField
+                label="Candidate Name"
+                fullWidth
+                required
+                variant="outlined"
+                value={candidateName}
+                onChange={(e) => setCandidateName(e.target.value)}
+                sx={{
                   fontFamily: "Helvetica, sans-serif",
-                  fontSize: "1rem",
-                  color: "#000000ff",
-                },
-              }}
-              InputLabelProps={{
-                sx: {
-                  color: "#000000ff",
-                  "&.Mui-focused": { borderColor: "#204E20", color: "#204E20" },
-                  fontFamily: "Helvetica, sans-serif",
-                  fontWeight: "bold",
-                },
-              }}
-            />
-
-            <TextField
-              label="Candidate Surname"
-              fullWidth
-              required
-              variant="outlined"
-              value={candidateSurname}
-              onChange={(e) => setCandidateSurname(e.target.value)}
-              sx={{
-                mb: 3,
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": { borderColor: "#000000ff" },
-                  fontFamily: "Helvetica, sans-serif",
-                  fontSize: "1rem",
-                  color: "#000000ff",
-                },
-              }}
-              InputLabelProps={{
-                sx: {
-                  "&.Mui-focused": { color: "#204E20" },
-                  fontFamily: "Helvetica, sans-serif",
-                  fontWeight: "bold",
-                  color: "#000000ff",
-                },
-              }}
-            />
-
-            <TextField
-              label="Candidate Email"
-              fullWidth
-              required
-              type="email"
-              variant="outlined"
-              value={candidateEmail}
-              onChange={(e) => setCandidateEmail(e.target.value)}
-              sx={{
-                mb: 3,
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": { borderColor: "#000000ff" },
-                  fontFamily: "Helvetica, sans-serif",
-                  fontSize: "1rem",
-                  color: "#000000ff",
-                },
-              }}
-              InputLabelProps={{
-                sx: {
-                  "&.Mui-focused": { color: "#204E20" },
-                  fontFamily: "Helvetica, sans-serif",
-                  fontWeight: "bold",
-                  color: "#000000ff",
-                },
-              }}
-            />
-
-            {file && (
-              <TableContainer sx={{ mb: 3 }}>
-                <Table
-                  sx={{
-                    "& td, & th": {
-                      color: "#000000ff",
-                      fontFamily: "Helvetica, sans-serif",
-                      fontSize: "1rem",
+                  mb: 3,
+                  "& .MuiOutlinedInput-root": {
+                    "& fieldset": { borderColor: "#000000ff" },
+                    fontFamily: "Helvetica, sans-serif",
+                    fontSize: "1rem",
+                    color: "#000000ff",
+                  },
+                }}
+                InputLabelProps={{
+                  sx: {
+                    color: "#000000ff",
+                    "&.Mui-focused": {
+                      borderColor: "#204E20",
+                      color: "#204E20",
                     },
-                  }}
-                >
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: "bold" }}>
-                        File Name
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: "bold" }}>Size</TableCell>
-                      <TableCell sx={{ fontWeight: "bold" }}>Action</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell>{file.name}</TableCell>
-                      <TableCell>
-                        {(file.size / 1024 / 1024).toFixed(2)} MB
-                      </TableCell>
-                      <TableCell>
-                        <IconButton color="error" onClick={handleRemove}>
-                          <DeleteIcon />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
+                    fontFamily: "Helvetica, sans-serif",
+                    fontWeight: "bold",
+                  },
+                }}
+              />
 
-            {/* Admin-only config editor, visible only if a file is uploaded */}
-            {file && user?.role === "Admin" && (
-              <Paper sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: "#f5f5f5" }}>
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
-                  CV Extraction Configuration
-                </Typography>
+              <TextField
+                label="Candidate Surname"
+                fullWidth
+                required
+                variant="outlined"
+                value={candidateSurname}
+                onChange={(e) => setCandidateSurname(e.target.value)}
+                sx={{
+                  mb: 3,
+                  "& .MuiOutlinedInput-root": {
+                    "& fieldset": { borderColor: "#000000ff" },
+                    fontFamily: "Helvetica, sans-serif",
+                    fontSize: "1rem",
+                    color: "#000000ff",
+                  },
+                }}
+                InputLabelProps={{
+                  sx: {
+                    "&.Mui-focused": { color: "#204E20" },
+                    fontFamily: "Helvetica, sans-serif",
+                    fontWeight: "bold",
+                    color: "#000000ff",
+                  },
+                }}
+              />
 
-                {!isEditingConfig ? (
-                  <>
-                    <Box
-                      sx={{
-                        fontFamily: "monospace",
-                        bgcolor: "#e0e0e0",
-                        p: 2,
-                        borderRadius: 1,
-                        whiteSpace: "pre-wrap",
-                        mb: 2,
-                        maxHeight: 300,
-                        overflowY: "auto",
-                      }}
-                    >
-                      {configJson || "No configuration loaded."}
-                    </Box>
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                      <Button
-                        variant="outlined"
-                        onClick={loadConfig}
-                        sx={{ borderColor: "#232A3B", color: "#232A3B" }}
-                      >
-                        Reload
-                      </Button>
-                      <Button
-                        variant="contained"
-                        sx={{
-                          bgcolor: "#232A3B",
-                          "&:hover": { bgcolor: "#3a4b66" },
-                        }}
-                        onClick={() => setIsEditingConfig(true)}
-                      >
-                        Edit
-                      </Button>
-                    </Box>
-                  </>
-                ) : (
-                  <>
-                    <TextField
-                      fullWidth
-                      multiline
-                      minRows={10}
-                      value={configJson}
-                      onChange={(e) => setConfigJson(e.target.value)}
-                      sx={{ fontFamily: "monospace", mb: 2 }}
-                    />
-                    <Box
-                      sx={{
-                        display: "flex",
-                        gap: 2,
-                        justifyContent: "flex-end",
-                      }}
-                    >
-                      <Button
-                        variant="outlined"
-                        onClick={() => {
-                          setConfigJson(originalConfig);
-                          setIsEditingConfig(false);
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        variant="contained"
-                        sx={{
-                          bgcolor: "#232A3B",
-                          "&:hover": { bgcolor: "#3a4b66" },
-                        }}
-                        onClick={saveConfig}
-                      >
-                        Save
-                      </Button>
-                    </Box>
-                  </>
-                )}
-              </Paper>
+              <TextField
+                label="Candidate Email"
+                fullWidth
+                required
+                type="email"
+                variant="outlined"
+                value={candidateEmail}
+                onChange={(e) => setCandidateEmail(e.target.value)}
+                sx={{
+                  mb: 3,
+                  "& .MuiOutlinedInput-root": {
+                    "& fieldset": { borderColor: "#000000ff" },
+                    fontFamily: "Helvetica, sans-serif",
+                    fontSize: "1rem",
+                    color: "#000000ff",
+                  },
+                }}
+                InputLabelProps={{
+                  sx: {
+                    "&.Mui-focused": { color: "#204E20" },
+                    fontFamily: "Helvetica, sans-serif",
+                    fontWeight: "bold",
+                    color: "#000000ff",
+                  },
+                }}
+              />
+            </Box>
+
+            {/* CV Table Section */}
+            {file && (
+              <Box
+                ref={cvTableRef}
+                sx={
+                  {
+                    // No highlight/focus styles
+                  }
+                }
+              >
+                <TableContainer sx={{ mb: 3 }}>
+                  <Table
+                    sx={{
+                      "& td, & th": {
+                        color: "#000000ff",
+                        fontFamily: "Helvetica, sans-serif",
+                        fontSize: "1rem",
+                      },
+                    }}
+                  >
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: "bold" }}>
+                          File Name
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: "bold" }}>Size</TableCell>
+                        <TableCell sx={{ fontWeight: "bold" }}>
+                          Action
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              cursor: "pointer",
+                              color: "#003cbdff",
+                              textDecoration: "underline",
+                              "&:hover": { color: "#204E20" },
+                            }}
+                            onClick={() => setPdfPreviewOpen(true)}
+                          >
+                            <PictureAsPdfIcon sx={{ mr: 1 }} />
+                            {file.name}
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </TableCell>
+                        <TableCell>
+                          <IconButton color="error" onClick={handleRemove}>
+                            <DeleteIcon />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
             )}
 
             <Box sx={{ textAlign: "center", mb: 2 }}>
@@ -613,6 +608,7 @@ export default function UploadCVPage() {
                 </Button>
               )}
             </Box>
+
 
             <Typography
               variant="body2"
@@ -798,11 +794,34 @@ export default function UploadCVPage() {
         </DialogActions>
       </Dialog>
 
+      <Dialog
+        open={pdfPreviewOpen}
+        onClose={() => setPdfPreviewOpen(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>Preview: {file?.name}</DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          {pdfUrl && (
+            <iframe
+              src={pdfUrl}
+              title="PDF Preview"
+              width="100%"
+              height="600px"
+              style={{ border: "none" }}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPdfPreviewOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
       <Popover
         open={
           showTutorial &&
           tutorialStep >= 0 &&
-          tutorialStep <= 2 &&
+          tutorialStep <= 4 &&
           Boolean(anchorEl)
         }
         anchorEl={anchorEl}
@@ -823,7 +842,7 @@ export default function UploadCVPage() {
             borderRadius: 2,
             boxShadow: 6,
             minWidth: 280,
-            zIndex: 1500,
+            zIndex: 1502, // higher than overlay and focused box
             textAlign: "center",
           },
         }}
@@ -844,17 +863,51 @@ export default function UploadCVPage() {
             {tutorialStep === 1 && (
               <>
                 <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-                  Step 2: Additional Information
+                  Step 2: Candidate Details
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
-                  Fill in any extra details about the candidate or the CV here.
+                  Enter the candidate's name, surname, and email address in
+                  these fields.
                 </Typography>
               </>
             )}
             {tutorialStep === 2 && (
               <>
                 <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-                  Step 3: Process the CV
+                  Step 3: CV Table
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  Here you can see the uploaded CV file. You can remove it if
+                  needed before processing.
+                </Typography>
+              </>
+            )}
+            {tutorialStep === 3 && user?.role === "Admin" && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Step 4: CV Extraction Configuration (Admin Only)
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  As an admin, you can view and edit the CV extraction
+                  configuration here.
+                </Typography>
+              </>
+            )}
+            {tutorialStep === 3 && user?.role !== "Admin" && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Step 4: Process the CV
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  When you're ready, click <b>Process CV</b> to extract skills
+                  and information from the uploaded file.
+                </Typography>
+              </>
+            )}
+            {tutorialStep === 4 && (
+              <>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Step 5: Process the CV
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
                   When you're ready, click <b>Process CV</b> to extract skills
@@ -901,7 +954,7 @@ export default function UploadCVPage() {
                     Previous
                   </Button>
                 )}
-                {tutorialStep < 2 ? (
+                {tutorialStep < 4 ? (
                   <Button
                     variant="contained"
                     onClick={() => handleStepChange(tutorialStep + 1)}
