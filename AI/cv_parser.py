@@ -5,8 +5,18 @@ import tempfile
 
 import torch
 import spacy
-import docx
-from pdfminer.high_level import extract_text as extract_pdf_text
+try:
+    import docx
+    _HAS_PYDOCX = True
+except Exception:
+    docx = None
+    _HAS_PYDOCX = False
+try:
+    from pdfminer.high_level import extract_text as extract_pdf_text
+    _HAS_PDFMINER = True
+except Exception:
+    extract_pdf_text = None
+    _HAS_PDFMINER = False
 from transformers import pipeline
 
 # ---------- Logging ----------
@@ -34,9 +44,13 @@ except Exception as e:
 
 # ---------- File text extractors ----------
 def extract_text_from_pdf(pdf_path: str) -> str:
+    if not _HAS_PDFMINER:
+        raise RuntimeError("pdfminer.six is not installed. Install with: pip install pdfminer.six")
     return extract_pdf_text(pdf_path)
 
 def extract_text_from_docx(docx_path: str) -> str:
+    if not _HAS_PYDOCX:
+        raise RuntimeError("python-docx is not installed. Install with: pip install python-docx")
     d = docx.Document(docx_path)
     return "\n".join(p.text for p in d.paragraphs)
 
