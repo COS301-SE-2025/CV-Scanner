@@ -386,34 +386,52 @@ const ParsedCVData: React.FC = () => {
                 },
               }}
             >
-              {Object.entries(fields).map(([key, value]) => {
-                if (key === "probabilities" && value) {
-                  const probs = String(value).split("\n");
+{Object.entries(fields).map(([key, value]) => {
+  if (key === "probabilities" && value) {
+    const probs = String(value).split("\n");
 
-                  return (
-                    <Box
-                      key={key}
-                      sx={{
-                        gridColumn: "1 / -1",
-                        display: "flex",
-                        flexWrap: "wrap",
-                        justifyContent: "center",
-                        gap: 3,
-                      }}
-                    >
-                      {probs.map((p, i) => {
-                        const [label, percent] = p.split(":");
-                        return (
-                          <CircularProgressBar
-                            key={i}
-                            label={label.trim()}
-                            value={parseFloat(percent)}
-                          />
-                        );
-                      })}
-                    </Box>
-                  );
-                }
+    return (
+      <Box
+        key={key}
+        sx={{
+          gridColumn: "1 / -1",
+          display: "flex",
+          flexDirection: "column", // stack heading + progress bars
+          alignItems: "center",
+          gap: 2,
+        }}
+      >
+        {/* Heading */}
+        <Typography
+          variant="h6"
+          sx={{ fontWeight: "bold", textAlign: "center" }}
+        >
+          Skill Value
+        </Typography>
+
+        {/* Progress bars */}
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            gap: 3,
+          }}
+        >
+          {probs.map((p, i) => {
+            const [label, percent] = p.split(":");
+            return (
+              <CircularProgressBar
+                key={i}
+                label={label.trim()}
+                value={parseFloat(percent)}
+              />
+            );
+          })}
+        </Box>
+      </Box>
+    );
+  }
 
                 return (
                   key !== "other" && (

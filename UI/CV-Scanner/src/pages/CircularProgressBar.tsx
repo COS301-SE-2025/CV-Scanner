@@ -11,8 +11,8 @@ interface CircularProgressBarProps {
 const CircularProgressBar: React.FC<CircularProgressBarProps> = ({
   value,
   label,
-  colorStart = "#ffa600ff",
-  colorEnd = "#0099ffff",
+  colorStart = "#ff0000ff",
+  colorEnd = "#0400ffff",
 }) => {
   const radius = 70;
   const stroke = 9;
