@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import React, { Suspense, lazy } from "react";
+import { GlobalLoaderProvider, useGlobalLoader } from "./hooks/useGlobalLoader";
 import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
 import ResetPassword from './pages/ResetPassword';
@@ -17,6 +19,7 @@ import LandingPage from './pages/LandingPage';
 import Help from './pages/Help';
 import SystemSettingsPage from './pages/SystemSettings';
 import ParsedCVData from './pages/ParsedCVData';
+import LoadingOverlay from "./components/LoadingOverlay";
 
 function App() {
   return (
