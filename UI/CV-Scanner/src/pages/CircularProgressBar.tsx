@@ -2,32 +2,64 @@ import React from "react";
 import { Box, Typography } from "@mui/material";
 
 interface CircularProgressBarProps {
-  value: number; // percentage 0-100
+  value: number; // 0-100
   label: string;
+  colorStart?: string;
+  colorEnd?: string;
 }
 
-const CircularProgressBar: React.FC<{ value: number; label: string }> = ({
+const CircularProgressBar: React.FC<CircularProgressBarProps> = ({
   value,
   label,
+  colorStart = "#ffa600ff",
+  colorEnd = "#0099ffff",
 }) => {
-  const radius = 40;
-  const stroke = 8;
+  const radius = 70;
+  const stroke = 9;
   const normalizedRadius = radius - stroke * 2;
   const circumference = normalizedRadius * 2 * Math.PI;
   const strokeDashoffset =
     circumference - (value / 100) * circumference;
 
+  // Calculate color interpolation between start and end
+  const interpolateColor = (start: string, end: string, factor: number) => {
+    const hex = (c: string) =>
+      c.length === 4
+        ? c
+            .slice(1)
+            .split("")
+            .map((x) => x + x)
+            .join("")
+        : c.slice(1);
+    const s = hex(start);
+    const e = hex(end);
+    const r = Math.round(
+      parseInt(s.substring(0, 2), 16) * (1 - factor) +
+        parseInt(e.substring(0, 2), 16) * factor
+    );
+    const g = Math.round(
+      parseInt(s.substring(2, 4), 16) * (1 - factor) +
+        parseInt(e.substring(2, 4), 16) * factor
+    );
+    const b = Math.round(
+      parseInt(s.substring(4, 6), 16) * (1 - factor) +
+        parseInt(e.substring(4, 6), 16) * factor
+    );
+    return `rgb(${r},${g},${b})`;
+  };
+
+  const strokeColor = interpolateColor(colorStart, colorEnd, value / 100);
+
   return (
     <Box
       sx={{
         display: "flex",
-        flexDirection: "column", // stack circle + label
+        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
         m: 1,
       }}
     >
-      {/* Circle with percentage inside */}
       <svg height={radius * 2} width={radius * 2}>
         <circle
           stroke="#e0e0e0"
@@ -38,7 +70,7 @@ const CircularProgressBar: React.FC<{ value: number; label: string }> = ({
           cy={radius}
         />
         <circle
-          stroke="url(#grad1)"
+          stroke={strokeColor} // dynamically interpolated
           fill="transparent"
           strokeWidth={stroke}
           strokeLinecap="round"
@@ -47,30 +79,22 @@ const CircularProgressBar: React.FC<{ value: number; label: string }> = ({
           r={normalizedRadius}
           cx={radius}
           cy={radius}
-          style={{ transition: "stroke-dashoffset 1s ease" }}
+          style={{ transition: "stroke-dashoffset 1s ease, stroke 1s ease" }}
         />
-        <defs>
-          <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" style={{ stopColor: "#e91e63" }} />
-            <stop offset="100%" style={{ stopColor: "#9c27b0" }} />
-          </linearGradient>
-        </defs>
         <text
           x="50%"
           y="50%"
           textAnchor="middle"
           dominantBaseline="middle"
-          fontSize="14"
+          fontSize="20"
           fontWeight="bold"
           fill="#000"
         >
-          {`${value}%`}
+          {`${value.toFixed(0)}%`}
         </text>
       </svg>
-
-      {/* Label BELOW circle */}
       <Typography
-        variant="subtitle2"
+        variant="subtitle1"
         sx={{ mt: 1, textAlign: "center", fontWeight: "medium" }}
       >
         {label}
