@@ -28,6 +28,8 @@ export interface ParsedCVFields {
   contact?: string;
   languages?: string;
   other?: string;
+  labels?: string;
+  probabilities?: string;
 }
 
 // Helper to TitleCase keys for data.applied/classification (e.g., "Education")
@@ -46,6 +48,7 @@ const RAW_WRITE_MAP: Record<keyof ParsedCVFields, string[]> = {
   contact: ["contact", "contact_info", "contacts"],
   languages: ["languages"],
   other: ["raw"],
+  
 };
 
 function applyFieldToRaw(
@@ -120,7 +123,19 @@ function normalizeToParsedFields(input: any): ParsedCVFields {
       toLines(data.raw) ??
       (Object.keys(data).length ? toLines(data) : undefined),
   };
+    // 🔹 Add mapping for labels
+  if (data.labels) {
+    fields.labels = toLines(data.labels);
+  }
 
+  // 🔹 Add mapping for probabilities
+  if (data.probabilities) {
+    fields.probabilities = toLines(
+      data.probabilities.map(
+        (p: any) => `${p.label}: ${(p.score * 100).toFixed(2)}%`
+      )
+    );
+  }
   // Add all keys from applied that aren't already present
   Object.keys(applied).forEach((key) => {
     if (!(key.toLowerCase() in fields)) {
