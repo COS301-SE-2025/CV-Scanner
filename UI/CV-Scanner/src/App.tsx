@@ -4,7 +4,7 @@ import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
 import ResetPassword from './pages/ResetPassword';
 import CandidatesDashboard  from './pages/CandidatesDashboard';
-import UploadCVPage  from './pages/UploadCVPage';
+//import UploadCVPage  from './pages/UploadCVPage';
 import CandidatesPage from './pages/CandidatesPage';
 import Search from './pages/Search';
 import CandidateReviewSummary from './pages/CandidateReviewSummary';
@@ -20,6 +20,9 @@ import SystemSettingsPage from './pages/SystemSettings';
 import ParsedCVData from './pages/ParsedCVData';
 import BrandLoading from "./components/BrandLoading";
 import { BrandLoaderProvider, useBrandLoader } from "./hooks/brandLoader";
+
+
+const UploadCVPage       = lazy(() => import("./pages/UploadCVPage"));
 
 function BrandLoaderOverlay() {
   const loader = useBrandLoader();
