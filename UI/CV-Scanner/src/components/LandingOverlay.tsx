@@ -89,5 +89,17 @@ p: 2,
 )}
 </Box>
 
-
+<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+<Typography variant="caption" color="text.secondary">
+{percent === null ? "This may take a moment…" : `${Math.round(percent)}%`}
+</Typography>
+<Typography variant="caption" color="text.secondary">
+{tips[tipIndex]}
+</Typography>
+</Box>
+</Paper>
+</Box>
+</Fade>
+);
+}
 
