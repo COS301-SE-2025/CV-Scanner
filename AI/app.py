@@ -1,18 +1,24 @@
-import os
-import time
-import tempfile
-from typing import List
-
-import torch
-from fastapi import FastAPI, UploadFile, File, HTTPException, Query
+import os, io, time
+from typing import Dict, List, Any
+from fastapi import FastAPI, UploadFile, File, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, PlainTextResponse
-from transformers import pipeline
+from fastapi.responses import JSONResponse, StreamingResponse, PlainTextResponse
 
-from cv_parser import parse_resume_from_bytes, extract_text  # reuse robust extraction
+from config_store import load_categories, save_categories
+from bart_model import classify_text_by_categories
 
-# ---------- FastAPI ----------
-app = FastAPI(title="CV API (Parse & Probabilities)")
+# Import CV parser functions
+from cv_parser import parse_resume_from_bytes
+
+# OPTIONAL: simple extractors; replace with your PDF/DOCX code if you like
+def extract_text_auto(file_bytes: bytes, filename: str) -> str:
+    name = (filename or "").lower()
+    if name.endswith(".txt"):
+        return file_bytes.decode("utf-8", errors="ignore")
+    # fallback: treat everything as text (front-end can pre-extract)
+    return file_bytes.decode("utf-8", errors="ignore")
+
+app = FastAPI(title="Dynamic ZSC Classifier (Admin-editable categories)")
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,117 +26,106 @@ app.add_middleware(
     allow_methods=["*"], allow_headers=["*"]
 )
 
-# ---------- Zero-shot classifier (probabilities) ----------
-try:
-    zsc = pipeline(
-        "zero-shot-classification",
-        model="facebook/bart-large-mnli",
-        device=0 if torch.cuda.is_available() else -1
-    )
-except Exception:
-    zsc = None
-
-def classify_text_probabilities(text: str, candidate_labels: List[str]):
-    if not zsc:
-        raise RuntimeError("Zero-shot classifier not available")
-    if not candidate_labels:
-        raise ValueError("No candidate labels provided")
-    res = zsc(text, candidate_labels=candidate_labels, multi_label=True)
-    return [{"label": lbl, "score": float(scr)} for lbl, scr in zip(res["labels"], res["scores"])]
-
-# ---------- Routes ----------
 @app.get("/", response_class=PlainTextResponse)
 async def root():
-    return "OK. Use POST /parse_cv (summary) and POST /upload_cv (probabilities)."
+    return "OK. Endpoints: GET/POST /admin/categories, POST /classify, GET /health, POST /upload_cv, POST /parse_resume"
 
 @app.get("/health")
 async def health():
     return {"status": "ok", "ts": time.time()}
 
-@app.post("/parse_cv")
-async def parse_cv(file: UploadFile = File(...)):
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="No file uploaded")
-    ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in ['.pdf', '.docx', '.txt']:
-        raise HTTPException(status_code=400, detail="File must be PDF, DOCX, or TXT")
+# -------- ADMIN: manage categories (no hardcoding) --------
+@app.get("/admin/categories")
+async def get_categories():
+    return load_categories()
 
+@app.post("/admin/categories")
+async def set_categories(payload: Dict[str, List[str]] = Body(...)):
     try:
+        save_categories(payload)
+        return {"status": "saved", "categories": load_categories()}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+# -------- CLASSIFY: feed dynamic labels to BART and pick Top-3 --------
+@app.post("/classify")
+async def classify(
+    text: str = Body(None),
+    file: UploadFile = File(None),
+    top_k: int = Body(3)
+):
+    if file is None and (text is None or not text.strip()):
+        raise HTTPException(400, "Provide `text` or upload `file`.")
+    if file is not None:
         data = await file.read()
         if not data:
-            raise HTTPException(status_code=400, detail="Empty file.")
-        parsed = parse_resume_from_bytes(data, file.filename)
+            raise HTTPException(400, "Empty file.")
+        text = extract_text_auto(data, file.filename or "upload.txt")
 
-        return JSONResponse(content={
-            "status": "success",
-            "filename": file.filename,
-            "summary": parsed.get("summary"),
-            "personal_info": parsed.get("personal_info"),
-            "sections": parsed.get("sections"),
-            "skills": parsed.get("skills"),
-        })
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+    cats = load_categories()
+    if not cats:
+        raise HTTPException(409, "No categories configured. Use POST /admin/categories first.")
 
+    result = classify_text_by_categories(text, cats, top_k=top_k)
+    # Also return a compact "applied" mapping: category -> topK labels
+    applied = {cat: [x["label"] for x in info["top_k"]] for cat, info in result.items()}
+    return JSONResponse({
+        "status": "success",
+        "top_k": top_k,
+        "applied": applied,
+        "raw": result
+    })
 
 @app.post("/upload_cv")
-async def upload_file(
-    file: UploadFile = File(...),
-    labels: str = Query(
-        default="Software Engineering,Data Science,DevOps,Frontend,Backend",
-        description="Comma-separated labels"
-    )
-):
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="No file uploaded")
+async def upload_cv(file: UploadFile = File(...), top_k: int = 3):
+    """
+    Upload a CV file and get classification results.
+    """
+    data = await file.read()
+    if not data:
+        raise HTTPException(400, "Empty file.")
+    text = extract_text_auto(data, file.filename or "upload.txt")
 
-    ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in ['.pdf', '.docx', '.txt']:
-        raise HTTPException(status_code=400, detail="File must be PDF, DOCX, or TXT")
+    cats = load_categories()
+    if not cats:
+        raise HTTPException(409, "No categories configured. Use POST /admin/categories first.")
 
+    result = classify_text_by_categories(text, cats, top_k=top_k)
+    applied = {cat: [x["label"] for x in info["top_k"]] for cat, info in result.items()}
+    return JSONResponse({
+        "status": "success",
+        "top_k": top_k,
+        "applied": applied,
+        "raw": result
+    })
+
+# -------- NEW: CV/Resume Parsing Endpoint --------
+@app.post("/parse_resume")
+async def parse_resume_endpoint(file: UploadFile = File(...)):
+    """
+    Upload a resume/CV file and get comprehensive parsing results.
+    Uses the complete cv_parser module functionality.
+    """
     try:
-        # Write to temp file so we can reuse cv_parser.extract_text
-        temp = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
-        content = await file.read()
-        if not content:
-            raise HTTPException(status_code=400, detail="Empty file.")
-        temp.write(content)
-        temp.close()
-
-        try:
-            raw_text = extract_text(temp.name)
-        finally:
-            try:
-                os.unlink(temp.name)
-            except Exception:
-                pass
-
-        candidate_labels = [s.strip() for s in labels.split(",") if s.strip()]
-        if not candidate_labels:
-            raise HTTPException(status_code=400, detail="No valid labels provided")
-
-        probs = classify_text_probabilities(raw_text, candidate_labels)
-
-        return JSONResponse(content={
+        # Read the uploaded file
+        data = await file.read()
+        if not data:
+            raise HTTPException(400, "Empty file uploaded.")
+        
+        # Parse the resume using the complete cv_parser functionality
+        result = parse_resume_from_bytes(data, file.filename)
+        
+        return JSONResponse({
             "status": "success",
             "filename": file.filename,
-            "labels": candidate_labels,
-            "probabilities": probs
+            "result": result
         })
-    except HTTPException:
-        raise
+    
     except Exception as e:
-        # best effort cleanup
-        try:
-            if 'temp' in locals() and os.path.exists(temp.name):
-                os.unlink(temp.name)
-        except Exception:
-            pass
-        raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+        raise HTTPException(500, f"Error parsing resume: {str(e)}")
+
 
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", "5000"))
-    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)
+    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=False)
