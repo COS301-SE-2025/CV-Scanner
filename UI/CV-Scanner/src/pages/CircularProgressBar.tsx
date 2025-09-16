@@ -6,18 +6,31 @@ interface CircularProgressBarProps {
   label: string;
 }
 
-const CircularProgressBar: React.FC<CircularProgressBarProps> = ({ value, label }) => {
-  const radius = 50;
+const CircularProgressBar: React.FC<{ value: number; label: string }> = ({
+  value,
+  label,
+}) => {
+  const radius = 40;
   const stroke = 8;
   const normalizedRadius = radius - stroke * 2;
   const circumference = normalizedRadius * 2 * Math.PI;
-  const strokeDashoffset = circumference - (value / 100) * circumference;
+  const strokeDashoffset =
+    circumference - (value / 100) * circumference;
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", m: 2 }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column", // stack circle + label
+        alignItems: "center",
+        justifyContent: "center",
+        m: 1,
+      }}
+    >
+      {/* Circle with percentage inside */}
       <svg height={radius * 2} width={radius * 2}>
         <circle
-          stroke="#eee"
+          stroke="#e0e0e0"
           fill="transparent"
           strokeWidth={stroke}
           r={normalizedRadius}
@@ -25,28 +38,41 @@ const CircularProgressBar: React.FC<CircularProgressBarProps> = ({ value, label 
           cy={radius}
         />
         <circle
-          stroke="url(#grad)"
+          stroke="url(#grad1)"
           fill="transparent"
           strokeWidth={stroke}
-          strokeDasharray={circumference + " " + circumference}
-          style={{ strokeDashoffset, transition: "stroke-dashoffset 1s ease" }}
           strokeLinecap="round"
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDashoffset={strokeDashoffset}
           r={normalizedRadius}
           cx={radius}
           cy={radius}
+          style={{ transition: "stroke-dashoffset 1s ease" }}
         />
-        {/* Gradient */}
         <defs>
-          <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#ff0055" />
-            <stop offset="100%" stopColor="#9900ff" />
+          <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style={{ stopColor: "#e91e63" }} />
+            <stop offset="100%" style={{ stopColor: "#9c27b0" }} />
           </linearGradient>
         </defs>
+        <text
+          x="50%"
+          y="50%"
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize="14"
+          fontWeight="bold"
+          fill="#000"
+        >
+          {`${value}%`}
+        </text>
       </svg>
-      <Typography sx={{ fontWeight: "bold", mt: -6, position: "absolute" }}>
-        {value}%
-      </Typography>
-      <Typography variant="body2" sx={{ mt: 6, fontWeight: "600" }}>
+
+      {/* Label BELOW circle */}
+      <Typography
+        variant="subtitle2"
+        sx={{ mt: 1, textAlign: "center", fontWeight: "medium" }}
+      >
         {label}
       </Typography>
     </Box>

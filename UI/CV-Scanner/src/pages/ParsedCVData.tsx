@@ -17,6 +17,8 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import logoNavbar from "../assets/logoNavbar.png";
+import CircularProgressBar from "./CircularProgressBar";
+
 
 export interface ParsedCVFields {
   profile?: string;
@@ -31,54 +33,6 @@ export interface ParsedCVFields {
   labels?: string;
   probabilities?: string;
 }
-
-// 🔹 Circular progress component
-const CircularProgressBar: React.FC<{ label: string; value: number }> = ({
-  label,
-  value,
-}) => {
-  const radius = 50;
-  const stroke = 8;
-  const normalizedRadius = radius - stroke * 2;
-  const circumference = normalizedRadius * 2 * Math.PI;
-  const strokeDashoffset =
-    circumference - (value / 100) * circumference;
-
-  return (
-    <Box sx={{ textAlign: "center" }}>
-      <svg height={radius * 2} width={radius * 2}>
-        <circle
-          stroke="#eee"
-          fill="transparent"
-          strokeWidth={stroke}
-          r={normalizedRadius}
-          cx={radius}
-          cy={radius}
-        />
-        <circle
-          stroke="url(#grad1)"
-          fill="transparent"
-          strokeWidth={stroke}
-          strokeDasharray={circumference + " " + circumference}
-          style={{ strokeDashoffset, transition: "stroke-dashoffset 0.5s" }}
-          r={normalizedRadius}
-          cx={radius}
-          cy={radius}
-        />
-        <defs>
-          <linearGradient id="grad1">
-            <stop offset="0%" stopColor="#ff0057" />
-            <stop offset="100%" stopColor="#8a2be2" />
-          </linearGradient>
-        </defs>
-      </svg>
-      <Typography variant="body2" sx={{ mt: -7, fontWeight: "bold" }}>
-        {value.toFixed(0)}%
-      </Typography>
-      <Typography variant="subtitle2">{label}</Typography>
-    </Box>
-  );
-};
 
 // Helper to TitleCase keys for data.applied/classification
 function titleCase(s: string) {
