@@ -65,5 +65,29 @@ p: 2,
 }}
 >
 
-    
+    <Paper elevation={8} sx={{ p: 4, borderRadius: 4, maxWidth: 520, width: "92%" }}>
+<Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+{logoSrc ? (
+<Box component="img" src={logoSrc} alt="logo" sx={{ width: 40, height: 40, borderRadius: 2 }} />
+) : (
+<CircularProgress size={40} thickness={4} />
+)}
+<Box>
+<Typography variant="h6" sx={{ fontWeight: 700 }}>{message}</Typography>
+{!!detail && (
+<Typography variant="body2" color="text.secondary">{detail}</Typography>
+)}
+</Box>
+</Box>
+
+
+<Box sx={{ mb: 1 }}>
+{percent === null ? (
+<LinearProgress />
+) : (
+<LinearProgress variant="determinate" value={percent} />
+)}
+</Box>
+
+
 
