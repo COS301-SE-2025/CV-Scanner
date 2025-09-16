@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import React, { Suspense, lazy } from "react";
 import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
 import ResetPassword from './pages/ResetPassword';
@@ -17,10 +18,24 @@ import LandingPage from './pages/LandingPage';
 import Help from './pages/Help';
 import SystemSettingsPage from './pages/SystemSettings';
 import ParsedCVData from './pages/ParsedCVData';
+import BrandLoading from "./components/BrandLoading";
+import { BrandLoaderProvider, useBrandLoader } from "./hooks/brandLoader";
+
+
+//const UploadCVPage       = lazy(() => import("./pages/UploadCVPage"));
+
+function BrandLoaderOverlay() {
+  const loader = useBrandLoader();
+  return loader.open ? <BrandLoading /> : null;
+}
+
 
 function App() {
   return (
+    <BrandLoaderProvider>
+      <BrandLoaderOverlay />
     <BrowserRouter>
+     <Suspense fallback={<BrandLoading />}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -42,7 +57,9 @@ function App() {
         <Route path="/parsed-cv" element={<ParsedCVData />} />
         <Route path="*" element={<LandingPage />} />
       </Routes>
+       </Suspense>
     </BrowserRouter>
+     </BrandLoaderProvider>
   );
 }
 
