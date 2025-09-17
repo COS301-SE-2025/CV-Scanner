@@ -104,16 +104,16 @@ function normalizeToParsedFields(input: any): ParsedCVFields {
       toLines(applied?.Education) ||
       toLines(data.studies) ||
       toLines(data.qualifications),
-    skills:
-      toLines(data.skills) ||
-      toLines(applied?.Skills) ||
-      toLines(data.technologies) ||
-      toLines(data.tech_stack),
     experience:
       toLines(data.experience) ||
       toLines(applied?.Experience) ||
       toLines(data.work_history),
     projects: toLines(data.projects) || toLines(data.project_experience),
+        skills:
+      toLines(data.skills) ||
+      toLines(applied?.Skills) ||
+      toLines(data.technologies) ||
+      toLines(data.tech_stack),
     achievements: toLines(data.achievements) || toLines(data.awards),
     contact:
       toLines(data.contact) ||
