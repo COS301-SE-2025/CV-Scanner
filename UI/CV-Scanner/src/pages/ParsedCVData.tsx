@@ -125,14 +125,14 @@ function normalizeToParsedFields(input: any): ParsedCVFields {
       // (Object.keys(data).length ? toLines(data) : undefined),
   };
 
-  // ✅ Unpack personal_info into separate fields
+  // Unpack personal_info into separate fields
   if (data.personal_info) {
     if (data.personal_info.name) fields.name = toLines(data.personal_info.name);
     if (data.personal_info.email) fields.email = toLines(data.personal_info.email);
     if (data.personal_info.phone) fields.phone = toLines(data.personal_info.phone);
   }
 
-  // ✅ Unpack sections into Education / Experience / Projects
+  // Unpack sections into Education / Experience / Projects
   if (data.sections) {
     if (data.sections.education) {
       fields.education = toLines(data.sections.education);
@@ -157,7 +157,7 @@ function normalizeToParsedFields(input: any): ParsedCVFields {
     );
   }
 
-  // ✅ Keep applied classification if new
+  // Keep applied classification if new
   Object.keys(applied).forEach((key) => {
     if (!(key.toLowerCase() in fields)) {
       fields[key] = toLines(applied[key]);
