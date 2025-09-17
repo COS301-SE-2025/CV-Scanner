@@ -17,6 +17,8 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import logoNavbar from "../assets/logoNavbar.png";
+import CircularProgressBar from "./CircularProgressBar";
+
 
 export interface ParsedCVFields {
   profile?: string;
@@ -28,14 +30,15 @@ export interface ParsedCVFields {
   contact?: string;
   languages?: string;
   other?: string;
+  labels?: string;
+  probabilities?: string;
 }
 
-// Helper to TitleCase keys for data.applied/classification (e.g., "Education")
+// Helper to TitleCase keys for data.applied/classification
 function titleCase(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
-// Map normalized field keys to possible raw keys
 const RAW_WRITE_MAP: Record<keyof ParsedCVFields, string[]> = {
   profile: ["profile", "summary", "objective"],
   education: ["education", "studies", "qualifications"],
@@ -46,6 +49,8 @@ const RAW_WRITE_MAP: Record<keyof ParsedCVFields, string[]> = {
   contact: ["contact", "contact_info", "contacts"],
   languages: ["languages"],
   other: ["raw"],
+  labels: ["labels"],
+  probabilities: ["probabilities"],
 };
 
 function applyFieldToRaw(
@@ -54,7 +59,6 @@ function applyFieldToRaw(
   value: string
 ) {
   const clone = JSON.parse(JSON.stringify(prevRaw ?? {}));
-  // If multiline, store as array for readability; else keep as string
   const val: any =
     typeof value === "string" && value.indexOf("\n") !== -1
       ? value.split(/\r?\n/).filter(Boolean)
@@ -67,7 +71,6 @@ function applyFieldToRaw(
     : null;
   const candidates = RAW_WRITE_MAP[key] || [key];
 
-  // Update applied/classification if present
   if (appliedKey) {
     clone[appliedKey] = clone[appliedKey] || {};
     for (const k of candidates) {
@@ -75,23 +78,19 @@ function applyFieldToRaw(
     }
   }
 
-  // Update existing top-level keys if they exist
   for (const k of candidates) {
     if (k in clone) clone[k] = val;
   }
-  // Always set the canonical normalized key on top-level for visibility
   clone[key] = val;
 
   return clone;
 }
 
-// Try to map common AI response shapes into ParsedCVFields
 function normalizeToParsedFields(input: any): ParsedCVFields {
   if (!input) return {};
   const data = input.data ?? input.result ?? input.payload ?? input;
   const applied = data.applied || data.classification || {};
 
-  // Start with the default fields
   const fields: ParsedCVFields = {
     profile:
       toLines(data.profile) || toLines(data.summary) || toLines(data.objective),
@@ -121,14 +120,24 @@ function normalizeToParsedFields(input: any): ParsedCVFields {
       (Object.keys(data).length ? toLines(data) : undefined),
   };
 
-  // Add all keys from applied that aren't already present
+  if (data.labels) {
+    fields.labels = toLines(data.labels);
+  }
+
+  if (data.probabilities) {
+    fields.probabilities = toLines(
+      data.probabilities.map(
+        (p: any) => `${p.label}: ${(p.score * 100).toFixed(2)}`
+      )
+    );
+  }
+
   Object.keys(applied).forEach((key) => {
     if (!(key.toLowerCase() in fields)) {
       fields[key] = toLines(applied[key]);
     }
   });
 
-  // Drop empty keys
   Object.keys(fields).forEach((k) => {
     const key = k as keyof ParsedCVFields;
     if (!fields[key] || !String(fields[key]).trim()) delete fields[key];
@@ -137,26 +146,16 @@ function normalizeToParsedFields(input: any): ParsedCVFields {
   return fields;
 }
 
-// Convert various shapes (string | string[] | object) into a displayable string
 function toLines(value: any): string | undefined {
   if (value == null) return undefined;
-  if (typeof value === "string") {
-    const s = value.trim();
-    return s.length ? s : undefined;
-  }
-  if (Array.isArray(value)) {
-    const s = value
+  if (typeof value === "string") return value.trim() || undefined;
+  if (Array.isArray(value))
+    return value
       .map((v) => (typeof v === "string" ? v : JSON.stringify(v)))
       .join("\n")
       .trim();
-    return s.length ? s : undefined;
-  }
-  if (typeof value === "object") {
-    const s = JSON.stringify(value, null, 2);
-    return s.length ? s : undefined;
-  }
-  const s = String(value).trim();
-  return s.length ? s : undefined;
+  if (typeof value === "object") return JSON.stringify(value, null, 2);
+  return String(value).trim();
 }
 
 const ParsedCVData: React.FC = () => {
@@ -164,37 +163,31 @@ const ParsedCVData: React.FC = () => {
   const navigate = useNavigate();
   const { processedData, fileUrl, candidate } = location.state || {};
 
-  // Add missing state
   const [user, setUser] = useState<any>(null);
   const [pdfSticky, setPdfSticky] = useState(false);
   const [showRaw, setShowRaw] = useState(false);
 
-  // Prefill from Upload page
   const [firstName, setFirstName] = useState<string>(
     candidate?.firstName ?? ""
   );
   const [lastName, setLastName] = useState<string>(candidate?.lastName ?? "");
   const [email, setEmail] = useState<string>(candidate?.email ?? "");
 
-  // Derive normalized fields from the AI response
   const fieldsInitial = useMemo(
     () => normalizeToParsedFields(processedData),
     [processedData]
   );
   const [fields, setFields] = useState<ParsedCVFields>(fieldsInitial);
 
-  // Keep a live raw object to display and mutate as edits happen
   const [rawData, setRawData] = useState<any>(
     () => processedData?.data ?? processedData
   );
 
-  // Keep local states in sync if a new response arrives
   useEffect(() => {
     setFields(fieldsInitial);
     setRawData(processedData?.data ?? processedData);
   }, [fieldsInitial, processedData]);
 
-  // If email not provided, try to extract from raw once
   useEffect(() => {
     if (email) return;
     const text = [fields?.contact, JSON.stringify(rawData ?? {}, null, 2)]
@@ -202,10 +195,8 @@ const ParsedCVData: React.FC = () => {
       .join("\n");
     const match = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
     if (match) setEmail(match[0]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rawData, fields]);
+  }, [rawData, fields, email]);
 
-  // Optional: load current user (safe no-op if endpoint not available)
   useEffect(() => {
     const ue = localStorage.getItem("userEmail");
     if (!ue) return;
@@ -231,7 +222,6 @@ const ParsedCVData: React.FC = () => {
   const handleUpdate = (key: keyof ParsedCVFields, value: string) => {
     const updated = { ...fields, [key]: value };
     setFields(updated);
-    // Also reflect the change into the raw JSON view
     setRawData((prev: any) => applyFieldToRaw(prev, key, value));
   };
 
@@ -274,7 +264,6 @@ const ParsedCVData: React.FC = () => {
       {/* Top App Bar */}
       <AppBar position="static" sx={{ bgcolor: "#232A3B", boxShadow: "none" }}>
         <Toolbar sx={{ justifyContent: "space-between" }}>
-          {/* Left: Logo + Page title */}
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <Box
               component="img"
@@ -294,7 +283,6 @@ const ParsedCVData: React.FC = () => {
             </Typography>
           </Box>
 
-          {/* Right: Help / User / Logout */}
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <IconButton
               color="inherit"
@@ -329,9 +317,7 @@ const ParsedCVData: React.FC = () => {
         </Toolbar>
       </AppBar>
 
-      {/* Page Content */}
       <Box sx={{ p: 3 }}>
-        {/* Back Button */}
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate("/upload")}
@@ -348,9 +334,8 @@ const ParsedCVData: React.FC = () => {
           Back to Upload CV Page
         </Button>
 
-        {/* Two-column layout */}
         <Box sx={{ display: "flex", gap: 3 }}>
-          {/* Left: Editable parsed CV */}
+          {/* Left Panel */}
           <Paper
             elevation={4}
             sx={{
@@ -401,8 +386,54 @@ const ParsedCVData: React.FC = () => {
                 },
               }}
             >
-              {Object.entries(fields).map(
-                ([key, value]) =>
+{Object.entries(fields).map(([key, value]) => {
+  if (key === "probabilities" && value) {
+    const probs = String(value).split("\n");
+
+    return (
+      <Box
+        key={key}
+        sx={{
+          gridColumn: "1 / -1",
+          display: "flex",
+          flexDirection: "column", // stack heading + progress bars
+          alignItems: "center",
+          gap: 2,
+        }}
+      >
+        {/* Heading */}
+        <Typography
+          variant="h6"
+          sx={{ fontWeight: "bold", textAlign: "center" }}
+        >
+          Skill Value
+        </Typography>
+
+        {/* Progress bars */}
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            gap: 3,
+          }}
+        >
+          {probs.map((p, i) => {
+            const [label, percent] = p.split(":");
+            return (
+              <CircularProgressBar
+                key={i}
+                label={label.trim()}
+                value={parseFloat(percent)}
+              />
+            );
+          })}
+        </Box>
+      </Box>
+    );
+  }
+
+                return (
                   key !== "other" && (
                     <EditableField
                       key={key}
@@ -413,10 +444,10 @@ const ParsedCVData: React.FC = () => {
                       }
                     />
                   )
-              )}
+                );
+              })}
             </Box>
 
-            {/* Other / Raw */}
             <Collapse in={showRaw} unmountOnExit>
               <Box
                 sx={{
@@ -463,7 +494,7 @@ const ParsedCVData: React.FC = () => {
             </Box>
           </Paper>
 
-          {/* Right: CV file preview */}
+          {/* Right Panel */}
           <Paper
             elevation={4}
             sx={{
@@ -531,12 +562,7 @@ const ParsedCVData: React.FC = () => {
                 />
               </Box>
             ) : (
-              <Typography variant="body2">
-                File preview not available.{" "}
-                <a href={fileUrl} target="_blank" rel="noopener noreferrer">
-                  Download CV
-                </a>
-              </Typography>
+              <Typography>No PDF available</Typography>
             )}
           </Paper>
         </Box>
