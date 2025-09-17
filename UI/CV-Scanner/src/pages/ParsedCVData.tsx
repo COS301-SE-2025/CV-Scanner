@@ -31,6 +31,9 @@ export interface ParsedCVFields {
   other?: string;
   labels?: string;
   probabilities?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
 }
 
 // Helper to TitleCase keys for data.applied/classification
@@ -50,6 +53,9 @@ const RAW_WRITE_MAP: Record<keyof ParsedCVFields, string[]> = {
   other: ["raw"],
   labels: ["labels"],
   probabilities: ["probabilities"],
+  name: ["name"],
+  email: ["email"],
+  phone: ["phone"],
 };
 
 function applyFieldToRaw(
@@ -114,10 +120,30 @@ function normalizeToParsedFields(input: any): ParsedCVFields {
       toLines(data.contact_info) ||
       toLines(data.contacts),
     languages: toLines(data.languages),
-    other:
-      toLines(data.raw) ??
-      (Object.keys(data).length ? toLines(data) : undefined),
+      //   other:
+      // toLines(data.raw) ??
+      // (Object.keys(data).length ? toLines(data) : undefined),
   };
+
+  // ✅ Unpack personal_info into separate fields
+  if (data.personal_info) {
+    if (data.personal_info.name) fields.name = toLines(data.personal_info.name);
+    if (data.personal_info.email) fields.email = toLines(data.personal_info.email);
+    if (data.personal_info.phone) fields.phone = toLines(data.personal_info.phone);
+  }
+
+  // ✅ Unpack sections into Education / Experience / Projects
+  if (data.sections) {
+    if (data.sections.education) {
+      fields.education = toLines(data.sections.education);
+    }
+    if (data.sections.experience) {
+      fields.experience = toLines(data.sections.experience);
+    }
+    if (data.sections.projects) {
+      fields.projects = toLines(data.sections.projects);
+    }
+  }
 
   if (data.labels) {
     fields.labels = toLines(data.labels);
@@ -131,12 +157,14 @@ function normalizeToParsedFields(input: any): ParsedCVFields {
     );
   }
 
+  // ✅ Keep applied classification if new
   Object.keys(applied).forEach((key) => {
     if (!(key.toLowerCase() in fields)) {
       fields[key] = toLines(applied[key]);
     }
   });
 
+  // Cleanup empty fields
   Object.keys(fields).forEach((k) => {
     const key = k as keyof ParsedCVFields;
     if (!fields[key] || !String(fields[key]).trim()) delete fields[key];
@@ -144,6 +172,65 @@ function normalizeToParsedFields(input: any): ParsedCVFields {
 
   return fields;
 }
+
+const renderNormalizedFields = (fields: ParsedCVFields) => {
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+      }}
+    >
+      {Object.entries(fields).map(([key, value]) => {
+        if (!value) return null;
+
+        // Skills → keep compact grid
+        if (key === "skills") {
+          return (
+            <Box
+              key={key}
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, 1fr)",
+                gap: 2,
+                p: 1,
+                borderRadius: 1,
+                backgroundColor: "#adb6beff",
+              }}
+            >
+              <EditableField
+                label={key.charAt(0).toUpperCase() + key.slice(1)}
+                value={value}
+                onSave={() => {}}
+              />
+            </Box>
+          );
+        }
+
+        // Everything else → full width
+        return (
+          <Box
+            key={key}
+            sx={{
+              p: 1,
+              borderRadius: 1,
+              backgroundColor: "#adb6beff",
+            }}
+          >
+            <EditableField
+              label={key.charAt(0).toUpperCase() + key.slice(1)}
+              value={value}
+              onSave={() => {}}
+              fullWidth
+            />
+          </Box>
+        );
+      })}
+    </Box>
+  );
+};
+
 
 function toLines(value: any): string | undefined {
   if (value == null) return undefined;
@@ -498,61 +585,39 @@ const ParsedCVData: React.FC = () => {
               </Box>
             </Collapse>
 
-            {/* If parse_resume data was provided, render it below the raw response */}
-            {parseResumeData && (
-              <Box sx={{ mt: 2, p: 1.5 }}>
-                <Typography
-                  variant="subtitle2"
-                  sx={{ mb: 1, fontWeight: "bold" }}
-                >
-                  Parsed Resume (parse_resume)
-                </Typography>
-                <Paper sx={{ p: 1, backgroundColor: "#fbfbfb" }}>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      whiteSpace: "pre-wrap",
-                      fontFamily:
-                        "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-                    }}
-                  >
-                    {JSON.stringify(parseResumeData, null, 2)}
-                  </Typography>
-                </Paper>
+{/* If parse_resume data was provided, render it below the raw response */}
+{parseResumeData && (
+  <Box sx={{ mt: 2, p: 1.5 }}>
+    <Typography
+      variant="subtitle2"
+      sx={{ mb: 1, fontWeight: "bold" }}
+    >
+      Parsed Resume (parse_resume)
+    </Typography>
 
-                {/* Also show normalized fields derived from parse_resume if different from processedData */}
-                {(() => {
-                  try {
-                    const normalized = normalizeToParsedFields(parseResumeData);
-                    const hasAny = Object.keys(normalized || {}).length > 0;
-                    if (!hasAny) return null;
-                    return (
-                      <Box sx={{ mt: 2 }}>
-                        <Typography
-                          variant="subtitle2"
-                          sx={{ mb: 1, fontWeight: "bold" }}
-                        >
-                          Normalized Fields (from parse_resume)
-                        </Typography>
-                        <Box
-                          sx={{
-                            backgroundColor: "#eef2f5",
-                            p: 1,
-                            borderRadius: 1,
-                          }}
-                        >
-                          <pre style={{ margin: 0 }}>
-                            {JSON.stringify(normalized, null, 2)}
-                          </pre>
-                        </Box>
-                      </Box>
-                    );
-                  } catch (e) {
-                    return null;
-                  }
-                })()}
-              </Box>
-            )}
+    {(() => {
+      try {
+        const parsedFields = normalizeToParsedFields(parseResumeData);
+        const hasAny = Object.keys(parsedFields || {}).length > 0;
+        if (!hasAny) {
+          return (
+            <Typography variant="body2" sx={{ fontStyle: "italic" }}>
+              No parsed fields available.
+            </Typography>
+          );
+        }
+        return renderNormalizedFields(parsedFields);
+      } catch (e) {
+        return (
+          <Typography variant="body2" color="error">
+            Failed to render parsed resume
+          </Typography>
+        );
+      }
+    })()}
+  </Box>
+)}
+
 
             <Box sx={{ mt: 3, textAlign: "center" }}>
               <Button
