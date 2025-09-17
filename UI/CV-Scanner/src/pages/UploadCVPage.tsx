@@ -49,7 +49,6 @@ export default function UploadCVPage() {
   const candidateDetailsRef = useRef<HTMLDivElement>(null);
   const cvTableRef = useRef<HTMLDivElement>(null);
 
-
   // Config editor state
   const [configJson, setConfigJson] = useState<string>("");
   const [originalConfig, setOriginalConfig] = useState<string>("");
@@ -231,37 +230,75 @@ export default function UploadCVPage() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append("file", file);
+    const formForUpload = new FormData();
+    formForUpload.append("file", file);
+
+    const formForParse = new FormData();
+    formForParse.append("file", file);
 
     try {
-      const response = await fetch("http://localhost:5000/upload_cv?top_k=3", {
+      // Call both AI endpoints in parallel
+      const uploadPromise = fetch("http://localhost:5000/upload_cv?top_k=3", {
         method: "POST",
-        body: formData,
+        body: formForUpload,
       });
 
-      let data: any = null;
-      try {
-        data = await response.json();
-      } catch {
-        // ignore non-JSON
-      }
+      const parsePromise = fetch("http://localhost:5000/parse_resume", {
+        method: "POST",
+        body: formForParse,
+      });
 
-      if (!response.ok) {
-        const message =
-          data?.detail ||
-          data?.message ||
-          `Failed to process CV. (${response.status})`;
-        setErrorPopup({ open: true, message });
+      const [uploadResp, parseResp] = await Promise.all([
+        uploadPromise,
+        parsePromise,
+      ]);
+
+      // Try to parse JSON responses (fallback to text)
+      const uploadResult = await (async () => {
+        try {
+          return await uploadResp.json();
+        } catch {
+          try {
+            return await uploadResp.text();
+          } catch {
+            return null;
+          }
+        }
+      })();
+
+      const parseResult = await (async () => {
+        try {
+          return await parseResp.json();
+        } catch {
+          try {
+            return await parseResp.text();
+          } catch {
+            return null;
+          }
+        }
+      })();
+
+      // If both calls failed, show an error
+      if ((!uploadResp || !uploadResp.ok) && (!parseResp || !parseResp.ok)) {
+        const uploadMsg =
+          uploadResult?.detail ||
+          uploadResult?.message ||
+          `upload_cv failed (${uploadResp?.status})`;
+        const parseMsg =
+          parseResult?.detail ||
+          parseResult?.message ||
+          `parse_resume failed (${parseResp?.status})`;
+        setErrorPopup({ open: true, message: `${uploadMsg}; ${parseMsg}` });
         return;
       }
 
       const fileUrl = URL.createObjectURL(file);
-      const payload = data?.data ?? data;
 
+      // Navigate to parsed page with both AI results
       navigate("/parsed-cv", {
         state: {
-          processedData: payload,
+          aiUpload: uploadResult,
+          aiParse: parseResult,
           fileUrl,
           fileType: file.type,
           candidate: {
@@ -272,6 +309,7 @@ export default function UploadCVPage() {
         },
       });
     } catch (error) {
+      console.error(error);
       setErrorPopup({
         open: true,
         message: "An error occurred while processing the CV.",
@@ -313,7 +351,6 @@ export default function UploadCVPage() {
           setSidebarAnimating(true);
           setTimeout(() => setSidebarAnimating(false), 300); // match sidebar animation duration
         }}
-
       />
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
         <AppBar
@@ -608,7 +645,6 @@ export default function UploadCVPage() {
                 </Button>
               )}
             </Box>
-
 
             <Typography
               variant="body2"

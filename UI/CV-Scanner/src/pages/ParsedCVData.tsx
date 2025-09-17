@@ -19,7 +19,6 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import logoNavbar from "../assets/logoNavbar.png";
 import CircularProgressBar from "./CircularProgressBar";
 
-
 export interface ParsedCVFields {
   profile?: string;
   education?: string;
@@ -161,7 +160,10 @@ function toLines(value: any): string | undefined {
 const ParsedCVData: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { processedData, fileUrl, candidate } = location.state || {};
+  // processedData is the existing response (upload_cv).
+  // aiParse / parsedResume are from the parse_resume endpoint (new) and should be shown as well.
+  const { processedData, fileUrl, candidate, aiUpload, aiParse, parsedResume } =
+    location.state || {};
 
   const [user, setUser] = useState<any>(null);
   const [pdfSticky, setPdfSticky] = useState(false);
@@ -172,21 +174,38 @@ const ParsedCVData: React.FC = () => {
   );
   const [lastName, setLastName] = useState<string>(candidate?.lastName ?? "");
   const [email, setEmail] = useState<string>(candidate?.email ?? "");
+  // parseResumeData holds the raw response from the /parse_resume endpoint if present
+  const parseResumeData = useMemo(
+    () => aiParse ?? parsedResume ?? null,
+    [aiParse, parsedResume]
+  );
+
+  // prefer processedData (old name) or aiUpload (new name) as the primary upload_cv response
+  const primaryUpload = processedData ?? aiUpload ?? null;
 
   const fieldsInitial = useMemo(
-    () => normalizeToParsedFields(processedData),
-    [processedData]
+    () => normalizeToParsedFields(primaryUpload ?? parseResumeData),
+    [primaryUpload, parseResumeData]
   );
   const [fields, setFields] = useState<ParsedCVFields>(fieldsInitial);
 
   const [rawData, setRawData] = useState<any>(
-    () => processedData?.data ?? processedData
+    () =>
+      primaryUpload?.data ??
+      primaryUpload ??
+      parseResumeData?.data ??
+      parseResumeData
   );
 
   useEffect(() => {
     setFields(fieldsInitial);
-    setRawData(processedData?.data ?? processedData);
-  }, [fieldsInitial, processedData]);
+    setRawData(
+      primaryUpload?.data ??
+        primaryUpload ??
+        parseResumeData?.data ??
+        parseResumeData
+    );
+  }, [fieldsInitial, processedData, parseResumeData]);
 
   useEffect(() => {
     if (email) return;
@@ -230,7 +249,8 @@ const ParsedCVData: React.FC = () => {
       candidate: { firstName, lastName, email },
       fileUrl,
       normalized: fields,
-      aiResult: processedData,
+      // prefer processedData / aiUpload (upload_cv) but fall back to parse_resume output
+      aiResult: primaryUpload ?? parseResumeData,
       raw: rawData,
       receivedAt: new Date().toISOString(),
     };
@@ -244,7 +264,8 @@ const ParsedCVData: React.FC = () => {
     alert("CV saved successfully!");
   };
 
-  if (!processedData || !fileUrl) {
+  // Show page when either upload_cv (primaryUpload) or parse_resume (parseResumeData) is present.
+  if (!primaryUpload && !parseResumeData) {
     return (
       <Typography variant="h6" sx={{ p: 3 }}>
         No CV data available. Please upload and process a CV first.
@@ -386,52 +407,52 @@ const ParsedCVData: React.FC = () => {
                 },
               }}
             >
-{Object.entries(fields).map(([key, value]) => {
-  if (key === "probabilities" && value) {
-    const probs = String(value).split("\n");
+              {Object.entries(fields).map(([key, value]) => {
+                if (key === "probabilities" && value) {
+                  const probs = String(value).split("\n");
 
-    return (
-      <Box
-        key={key}
-        sx={{
-          gridColumn: "1 / -1",
-          display: "flex",
-          flexDirection: "column", // stack heading + progress bars
-          alignItems: "center",
-          gap: 2,
-        }}
-      >
-        {/* Heading */}
-        <Typography
-          variant="h6"
-          sx={{ fontWeight: "bold", textAlign: "center" }}
-        >
-          Skill Value
-        </Typography>
+                  return (
+                    <Box
+                      key={key}
+                      sx={{
+                        gridColumn: "1 / -1",
+                        display: "flex",
+                        flexDirection: "column", // stack heading + progress bars
+                        alignItems: "center",
+                        gap: 2,
+                      }}
+                    >
+                      {/* Heading */}
+                      <Typography
+                        variant="h6"
+                        sx={{ fontWeight: "bold", textAlign: "center" }}
+                      >
+                        Skill Value
+                      </Typography>
 
-        {/* Progress bars */}
-        <Box
-          sx={{
-            display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "center",
-            gap: 3,
-          }}
-        >
-          {probs.map((p, i) => {
-            const [label, percent] = p.split(":");
-            return (
-              <CircularProgressBar
-                key={i}
-                label={label.trim()}
-                value={parseFloat(percent)}
-              />
-            );
-          })}
-        </Box>
-      </Box>
-    );
-  }
+                      {/* Progress bars */}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          justifyContent: "center",
+                          gap: 3,
+                        }}
+                      >
+                        {probs.map((p, i) => {
+                          const [label, percent] = p.split(":");
+                          return (
+                            <CircularProgressBar
+                              key={i}
+                              label={label.trim()}
+                              value={parseFloat(percent)}
+                            />
+                          );
+                        })}
+                      </Box>
+                    </Box>
+                  );
+                }
 
                 return (
                   key !== "other" && (
@@ -476,6 +497,62 @@ const ParsedCVData: React.FC = () => {
                 </pre>
               </Box>
             </Collapse>
+
+            {/* If parse_resume data was provided, render it below the raw response */}
+            {parseResumeData && (
+              <Box sx={{ mt: 2, p: 1.5 }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{ mb: 1, fontWeight: "bold" }}
+                >
+                  Parsed Resume (parse_resume)
+                </Typography>
+                <Paper sx={{ p: 1, backgroundColor: "#fbfbfb" }}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      whiteSpace: "pre-wrap",
+                      fontFamily:
+                        "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                    }}
+                  >
+                    {JSON.stringify(parseResumeData, null, 2)}
+                  </Typography>
+                </Paper>
+
+                {/* Also show normalized fields derived from parse_resume if different from processedData */}
+                {(() => {
+                  try {
+                    const normalized = normalizeToParsedFields(parseResumeData);
+                    const hasAny = Object.keys(normalized || {}).length > 0;
+                    if (!hasAny) return null;
+                    return (
+                      <Box sx={{ mt: 2 }}>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{ mb: 1, fontWeight: "bold" }}
+                        >
+                          Normalized Fields (from parse_resume)
+                        </Typography>
+                        <Box
+                          sx={{
+                            backgroundColor: "#eef2f5",
+                            p: 1,
+                            borderRadius: 1,
+                          }}
+                        >
+                          <pre style={{ margin: 0 }}>
+                            {JSON.stringify(normalized, null, 2)}
+                          </pre>
+                        </Box>
+                      </Box>
+                    );
+                  } catch (e) {
+                    return null;
+                  }
+                })()}
+              </Box>
+            )}
 
             <Box sx={{ mt: 3, textAlign: "center" }}>
               <Button
