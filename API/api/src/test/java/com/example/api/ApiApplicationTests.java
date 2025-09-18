@@ -883,12 +883,45 @@ public class ApiApplicationTests {
     }
 
     @Test
-    void cv_recent_db_error_returnsServerError() throws Exception {
-        when(jdbcTemplate.query(anyString(), any(RowMapper.class)))
-            .thenThrow(new RuntimeException("DB fail"));
+    @DisplayName("cv/recent - success extracts top skills from ResumeResult JSON")
+    @SuppressWarnings("unchecked")
+    void cv_recent_success_extracts_skills_from_resume() throws Exception {
+        // Make the 2-arg overload match: query(String sql, RowMapper<T> rm)
+        doAnswer(invocation -> {
+            RowMapper<CVController.RecentRow> rm =
+                (RowMapper<CVController.RecentRow>) invocation.getArgument(1);
 
-        mockMvc.perform(get("/cv/recent"))
-            .andExpect(status().is5xxServerError());
+            java.sql.ResultSet rs = mock(java.sql.ResultSet.class);
+            when(rs.getLong("Id")).thenReturn(18L);
+            when(rs.getString("FirstName")).thenReturn("Talhah");
+            when(rs.getString("LastName")).thenReturn("Karodia");
+            when(rs.getString("Email")).thenReturn("t@example.com");
+            when(rs.getString("ResumeResult"))
+                .thenReturn("{\"skills\":[\"JavaScript\",\"Python\",\"C#\",\"SQL\"]}");
+            when(rs.getString("AiResult")).thenReturn("{}");
+            when(rs.getString("Normalized")).thenReturn(null);
+            when(rs.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.now()));
+
+            return java.util.List.of(rm.mapRow(rs, 0));
+        }).when(jdbcTemplate).query(anyString(), any(RowMapper.class));
+
+        mockMvc.perform(get("/cv/recent").param("limit", "3"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(18))
+                .andExpect(jsonPath("$[0].name").value("Talhah Karodia"))
+                .andExpect(jsonPath("$[0].skills", Matchers.containsString("JavaScript")))
+                .andExpect(jsonPath("$[0].skills", Matchers.containsString("Python")))
+                .andExpect(jsonPath("$[0].skills", Matchers.containsString("C#")));
+    }
+
+    @Test
+    @DisplayName("cv/recent - DB error -> 500")
+    void cv_recent_db_error_returns_500() throws Exception {
+        org.mockito.Mockito.when(jdbcTemplate.query(anyString(), any(RowMapper.class)))
+                .thenThrow(new RuntimeException("Simulated DB failure"));
+
+        mockMvc.perform(get("/cv/recent").param("limit", "5"))
+                .andExpect(status().is5xxServerError());
     }
 
     // --------- CVController: /cv/stats tests ---------
