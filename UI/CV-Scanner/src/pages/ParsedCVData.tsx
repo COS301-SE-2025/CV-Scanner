@@ -255,6 +255,8 @@ const ParsedCVData: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [pdfSticky, setPdfSticky] = useState(false);
   const [showRaw, setShowRaw] = useState(false);
+  const [showResumeRaw, setShowResumeRaw] = useState(false);
+
 
   const [firstName, setFirstName] = useState<string>(
     candidate?.firstName ?? ""
@@ -615,6 +617,49 @@ const ParsedCVData: React.FC = () => {
         );
       }
     })()}
+        {/* ✅ Toggle Resume AI Raw JSON */}
+    <Button
+      variant="text"
+      size="small"
+      onClick={() => setShowResumeRaw((s) => !s)}
+      sx={{
+        mt: 2,
+        textTransform: "none",
+        fontWeight: "bold",
+        color: "#232A3B",
+      }}
+    >
+      {showResumeRaw ? "Hide Resume JSON" : "Show Resume JSON"}
+    </Button>
+
+    <Collapse in={showResumeRaw} unmountOnExit>
+      <Box
+        sx={{
+          mt: 2,
+          p: 1.5,
+          borderRadius: 1,
+          border: "1px dashed #888",
+          backgroundColor: "#eef2f5",
+          color: "#111",
+          fontFamily:
+            "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+          maxHeight: 360,
+          overflow: "auto",
+        }}
+      >
+        <Typography
+          variant="subtitle2"
+          sx={{ mb: 1, fontWeight: "bold" }}
+        >
+          Resume Raw Response
+        </Typography>
+        <pre style={{ margin: 0 }}>
+          {JSON.stringify(parseResumeData, null, 2)}
+        </pre>
+      </Box>
+    </Collapse>
   </Box>
 )}
 
