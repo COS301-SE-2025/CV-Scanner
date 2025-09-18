@@ -229,47 +229,34 @@ public class CVController {
             long candidateId = upsertCandidate(body.candidate);
             Instant when = parseInstantOrNow(body.receivedAt);
 
-            // ---- Ensure ai/raw/normalized are stored as JSON strings when possible ----
-            String aiResultJson = toJsonStringIfNeeded(body.aiResult, "{}");
-            String rawJson = toJsonStringIfNeeded(body.raw, null);
-            String normalizedJson = toJsonStringIfNeeded(body.normalized, null);
+            // Serialize JSON blobs
+            String aiResultJson = toJson(body.aiResult);
+            String rawJson = toJson(body.raw);
+            String normalizedJson = toJson(body.normalized);
+            String resumeJson = toJson(body.resume); // NEW
 
-            // ---- Normalize parsed payload (support top-level or nested under "result") ----
-            Map<String, Object> parsed = coerceToMap(body.result);
-            // if parsed contains another "result" object, flatten one level
-            if (parsed != null && parsed.get("result") != null) {
-                Map<String, Object> nested = coerceToMap(parsed.get("result"));
-                if (nested != null) parsed = nested;
-            }
-
-            // pick values: prefer top-level fields, then parsed map keys (many possible key names)
-            String filename = firstNonEmpty(body.filename, pickString(parsed, "filename", "fileName", "name"));
-            String summary = firstNonEmpty(body.summary, pickString(parsed, "summary", "profile", "profile_text"));
-            Map<String,Object> personalInfoMap = body.personalInfo != null ? body.personalInfo : pickMap(parsed, "personal_info", "personalInfo", "personal");
-            Map<String,Object> sectionsMap = body.sections != null ? body.sections : pickMap(parsed, "sections", "section", "parsed_sections");
-            java.util.List<String> skillsList = body.skills != null ? body.skills : pickList(parsed, "skills", "skillz");
-
-            String personalInfoJson = personalInfoMap != null ? json.writeValueAsString(personalInfoMap) : null;
-            String sectionsJson = sectionsMap != null ? json.writeValueAsString(sectionsMap) : null;
-            String skillsJson = skillsList != null ? json.writeValueAsString(skillsList) : null;
+            String personalInfoJson = body.personalInfo != null ? json.writeValueAsString(body.personalInfo) : null;
+            String sectionsJson = body.sections != null ? json.writeValueAsString(body.sections) : null;
+            String skillsJson = body.skills != null ? json.writeValueAsString(body.skills) : null;
 
             final String sql = "INSERT INTO dbo.CandidateParsedCv " +
-                    "(CandidateId, FileUrl, Filename, Status, Summary, PersonalInfo, Sections, Skills, AiResult, RawResult, Normalized, ReceivedAt) " +
-                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
+                    "(CandidateId, FileUrl, Filename, Status, Summary, PersonalInfo, Sections, Skills, AiResult, RawResult, Normalized, ResumeResult, ReceivedAt) " +
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
             jdbc.update(sql,
-                    candidateId,
-                    body.fileUrl,
-                    filename != null ? filename : "",
-                    body.status != null ? body.status : "",
-                    summary != null ? summary : "",
-                    personalInfoJson,
-                    sectionsJson,
-                    skillsJson,
-                    aiResultJson,
-                    rawJson,
-                    normalizedJson,
-                    Timestamp.from(when)
+                candidateId,
+                body.fileUrl,
+                body.filename,
+                nvl(body.status),
+                body.summary,
+                personalInfoJson,
+                sectionsJson,
+                skillsJson,
+                aiResultJson,
+                rawJson,
+                normalizedJson,
+                resumeJson,            // NEW
+                Timestamp.from(when)
             );
 
             return ResponseEntity.ok().build();
@@ -322,6 +309,11 @@ public class CVController {
         } catch (Exception e) {
             return defaultIfNull;
         }
+    }
+
+    // Simple convenience wrapper used by save(...) to convert objects to JSON strings (or null)
+    private String toJson(Object o) {
+        return toJsonStringIfNeeded(o, null);
     }
 
     @SuppressWarnings("unchecked")
@@ -491,21 +483,21 @@ public class CVController {
     public static class CvSaveRequest {
         public Candidate candidate;
         public String fileUrl;
+        public Object normalized;
         public Object aiResult;
         public Object raw;
-        public Object normalized;
         public String receivedAt;
 
-        // parsed fields (frontend may send top-level)
+        // Parsed resume full JSON (from /parse_resume)
+        public Object resume; // NEW
+        // Optional parsed fields (if you also send them separately)
         public String filename;
         public String summary;
         public Map<String, Object> personalInfo;
         public Map<String, Object> sections;
         public java.util.List<String> skills;
         public String status;
-
-        // some frontends send parsed output under "result" (object or JSON string)
-        public Object result;
+        public Object result; // some UIs wrap parsed output under "result"
     }
 
     @GetMapping("/candidates")
