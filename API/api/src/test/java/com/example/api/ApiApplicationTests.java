@@ -3,7 +3,9 @@ package com.example.api;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.stubbing.Answer;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -63,7 +65,6 @@ public class ApiApplicationTests {
     @MockBean
     private JdbcTemplate jdbcTemplate;
 
-    // Provide encoder bean for AuthController used by MockMvc tests
     @MockBean
     private BCryptPasswordEncoder passwordEncoder;
 
@@ -909,5 +910,123 @@ public class ApiApplicationTests {
 
         mockMvc.perform(get("/cv/stats"))
             .andExpect(status().is5xxServerError());
+    }
+
+    @Test
+    @DisplayName("cv/save - success persists parsed resume fields")
+    void cv_save_success_insertsParsedFields() throws Exception {
+        // Candidate not found -> insert with KeyHolder
+        when(jdbcTemplate.query(anyString(), any(Object[].class), any(RowMapper.class)))
+                .thenReturn(java.util.Collections.emptyList());
+
+        // Simulate INSERT into Candidates returning new Id = 18
+        doAnswer(invocation -> {
+            org.springframework.jdbc.support.KeyHolder kh = (org.springframework.jdbc.support.KeyHolder) invocation.getArgument(1);
+            // Provide a generated key
+            var map = new java.util.HashMap<String, Object>();
+            map.put("GENERATED_KEY", 18L);
+            kh.getKeyList().add(map);
+            return 1;
+        }).when(jdbcTemplate).update(any(), any(org.springframework.jdbc.support.KeyHolder.class));
+
+        // Intercept final INSERT into dbo.CandidateParsedCv and assert parameters
+        doAnswer((Answer<Integer>) invocation -> {
+            String sql = invocation.getArgument(0, String.class);
+            Object[] args = invocation.getArgument(1, Object[].class); // varargs captured as array
+
+            // Ensure we hit the right INSERT
+            org.junit.jupiter.api.Assertions.assertTrue(sql.contains("INSERT INTO dbo.CandidateParsedCv"));
+
+            // Column order:
+            // 0: CandidateId, 1: FileUrl, 2: Filename, 3: Status, 4: Summary,
+            // 5: PersonalInfo, 6: Sections, 7: Skills,
+            // 8: AiResult, 9: RawResult, 10: Normalized, 11: ResumeResult, 12: ReceivedAt
+            org.junit.jupiter.api.Assertions.assertEquals(18L, args[0]);
+            org.junit.jupiter.api.Assertions.assertEquals("blob:test", args[1]);
+            org.junit.jupiter.api.Assertions.assertEquals("CV.pdf", args[2]);
+            org.junit.jupiter.api.Assertions.assertEquals("parsed", args[3]);
+            org.junit.jupiter.api.Assertions.assertEquals("summary text", args[4]);
+
+            String personalInfoJson = (String) args[5];
+            org.junit.jupiter.api.Assertions.assertTrue(personalInfoJson.contains("\"name\":\"Talhah\""));
+            org.junit.jupiter.api.Assertions.assertTrue(personalInfoJson.contains("\"email\":\"t@example.com\""));
+
+            String sectionsJson = (String) args[6];
+            org.junit.jupiter.api.Assertions.assertTrue(sectionsJson.contains("\"education\":\"Bachelor\""));
+            org.junit.jupiter.api.Assertions.assertTrue(sectionsJson.contains("\"experience\":\"Intern\""));
+
+            String skillsJson = (String) args[7];
+            org.junit.jupiter.api.Assertions.assertTrue(skillsJson.contains("JavaScript"));
+            org.junit.jupiter.api.Assertions.assertTrue(skillsJson.contains("Python"));
+
+            String aiJson = (String) args[8];
+            org.junit.jupiter.api.Assertions.assertTrue(aiJson.contains("\"status\":\"success\""));
+
+            String rawJson = (String) args[9];
+            org.junit.jupiter.api.Assertions.assertTrue(rawJson.contains("\"foo\":\"bar\""));
+
+            String normalizedJson = (String) args[10];
+            org.junit.jupiter.api.Assertions.assertTrue(normalizedJson.contains("\"skills\""));
+
+            String resumeJson = (String) args[11];
+            org.junit.jupiter.api.Assertions.assertTrue(resumeJson.contains("\"personal_info\""));
+            org.junit.jupiter.api.Assertions.assertTrue(resumeJson.contains("\"sections\""));
+
+            org.junit.jupiter.api.Assertions.assertTrue(args[12] instanceof Timestamp);
+
+            return 1;
+        }).when(jdbcTemplate).update(anyString(), (Object[]) any());
+
+        // Build request payload
+        Map<String, Object> candidate = new HashMap<>();
+        candidate.put("firstName", "Talhah");
+        candidate.put("lastName", "Karodia");
+        candidate.put("email", "t@example.com");
+
+        Map<String, Object> personalInfo = new HashMap<>();
+        personalInfo.put("name", "Talhah");
+        personalInfo.put("email", "t@example.com");
+        personalInfo.put("phone", "123");
+
+        Map<String, Object> sections = new HashMap<>();
+        sections.put("education", "Bachelor");
+        sections.put("experience", "Intern");
+        sections.put("projects", List.of(Map.of("name", "Project A", "url", "http://example.com")));
+
+        Map<String, Object> skills = new HashMap<>();
+        skills.put("programming_languages", List.of("JavaScript", "Python"));
+        skills.put("frameworks", List.of("React", "Node.js"));
+
+        Map<String, Object> aiResult = new HashMap<>();
+        aiResult.put("status", "success");
+        aiResult.put("top_k", 3);
+        aiResult.put("applied", Map.of("Skills", List.of("JavaScript", "Python")));
+
+        Map<String, Object> raw = new HashMap<>();
+        raw.put("foo", "bar");
+
+        Map<String, Object> normalized = new HashMap<>();
+        normalized.put("skills", List.of("JavaScript", "Python"));
+
+        Map<String, Object> resumeResult = new HashMap<>();
+        resumeResult.put("personal_info", personalInfo);
+        resumeResult.put("sections", sections);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("candidate", candidate);
+        payload.put("fileUrl", "blob:test");
+        payload.put("aiResult", aiResult);
+        payload.put("receivedAt", Instant.now().toString());
+        payload.put("result", Map.of("summary", "summary text", "skills", List.of("JavaScript", "Python")));
+        payload.put("raw", raw);
+        payload.put("normalized", normalized);
+        payload.put("resumeResult", resumeResult);
+
+        String json = objectMapper.writeValueAsString(payload);
+
+        mockMvc.perform(post("/cv/save")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+            .andExpect(status().isOk());
     }
 }
