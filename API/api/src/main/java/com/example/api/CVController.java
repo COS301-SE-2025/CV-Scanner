@@ -505,15 +505,15 @@ public class CVController {
         try {
             String sql = """
                 WITH latest AS (
-                  SELECT cs.CandidateId, cs.FileUrl, cs.AiResult, cs.Normalized, cs.ReceivedAt
-                  FROM dbo.CvScans cs
+                  SELECT cpc.CandidateId, cpc.FileUrl, cpc.ResumeResult, cpc.AiResult, cpc.Normalized, cpc.ReceivedAt
+                  FROM dbo.CandidateParsedCv cpc
                   JOIN (
                     SELECT CandidateId, MAX(ReceivedAt) AS MaxReceivedAt
-                    FROM dbo.CvScans
+                    FROM dbo.CandidateParsedCv
                     GROUP BY CandidateId
-                  ) m ON m.CandidateId = cs.CandidateId AND m.MaxReceivedAt = cs.ReceivedAt
+                  ) m ON m.CandidateId = cpc.CandidateId AND m.MaxReceivedAt = cpc.ReceivedAt
                 )
-                SELECT c.Id, c.FirstName, c.LastName, c.Email, l.FileUrl, l.AiResult, l.Normalized, l.ReceivedAt
+                SELECT c.Id, c.FirstName, c.LastName, c.Email, l.FileUrl, l.ResumeResult, l.AiResult, l.Normalized, l.ReceivedAt
                 FROM dbo.Candidates c
                 LEFT JOIN latest l ON l.CandidateId = c.Id
                 ORDER BY c.Id DESC
@@ -525,11 +525,17 @@ public class CVController {
                 String last = rs.getString("LastName");
                 String email = rs.getString("Email");
                 String fileUrl = rs.getString("FileUrl");
-                Timestamp ts = rs.getTimestamp("ReceivedAt");
+                String resumeJson = rs.getString("ResumeResult");
                 String normalized = rs.getString("Normalized");
                 String aiResult = rs.getString("AiResult");
+                Timestamp ts = rs.getTimestamp("ReceivedAt");
 
-                List<String> skills = extractSkills(normalized, aiResult);
+                // Prefer ResumeResult.skills, fallback to Normalized/AiResult
+                List<String> skills = extractSkillsFromResume(resumeJson);
+                if (skills.isEmpty()) {
+                    skills = extractSkills(normalized, aiResult);
+                }
+
                 String project = fileUrl != null ? lastSegment(fileUrl) : "CV";
                 String receivedAt = ts != null ? ts.toInstant().toString() : null;
 
