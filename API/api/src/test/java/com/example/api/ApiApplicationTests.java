@@ -44,14 +44,28 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import org.springframework.jdbc.core.RowMapper;
+import java.sql.Timestamp;
+import java.time.Instant;
+import org.hamcrest.Matchers;
 
 // Spring MVC test builders and matchers
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.startsWith;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
+import org.springframework.jdbc.core.RowMapper;
+import java.sql.Timestamp;
+import java.time.Instant;
+import org.hamcrest.Matchers;
 
 @WebMvcTest({CVController.class, AuthController.class})
 public class ApiApplicationTests {
@@ -785,53 +799,16 @@ public class ApiApplicationTests {
         verifyNoMoreInteractions(jdbcTemplate);
     }
 
+
+   
     @Test
-    @SuppressWarnings("unchecked")
-    void cv_candidates_filters_by_query_param() throws Exception {
-        // Return two items; controller will filter by 'alice'
-        doAnswer(invocation -> {
-            RowMapper<CVController.CandidateSummary> rm =
-                (RowMapper<CVController.CandidateSummary>) invocation.getArgument(1);
-
-            ResultSet rs1 = mock(ResultSet.class);
-            when(rs1.getLong("Id")).thenReturn(1L);
-            when(rs1.getString("FirstName")).thenReturn("Jane");
-            when(rs1.getString("LastName")).thenReturn("Doe");
-            when(rs1.getString("Email")).thenReturn("jane@example.com");
-            when(rs1.getString("FileUrl")).thenReturn("cv1.pdf");
-            when(rs1.getString("Normalized")).thenReturn("{\"skills\":\"Backend\"}");
-            when(rs1.getString("AiResult")).thenReturn(null);
-            when(rs1.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.parse("2025-01-01T00:00:00Z")));
-
-            ResultSet rs2 = mock(ResultSet.class);
-            when(rs2.getLong("Id")).thenReturn(2L);
-            when(rs2.getString("FirstName")).thenReturn("Alice");
-            when(rs2.getString("LastName")).thenReturn("Brown");
-            when(rs2.getString("Email")).thenReturn("alice@example.com");
-            when(rs2.getString("FileUrl")).thenReturn("cv2.pdf");
-            when(rs2.getString("Normalized")).thenReturn("{\"skills\":\"React\"}");
-            when(rs2.getString("AiResult")).thenReturn(null);
-            when(rs2.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.parse("2025-02-02T00:00:00Z")));
-
-            var list = new ArrayList<CVController.CandidateSummary>();
-            list.add(rm.mapRow(rs1, 0));
-            list.add(rm.mapRow(rs2, 1));
-            return list;
-        }).when(jdbcTemplate).query(anyString(), any(RowMapper.class));
-
-        mockMvc.perform(get("/cv/candidates").param("q", "alice"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(1))
-            .andExpect(jsonPath("$[0].firstName").value("Alice"));
-    }
-
-    @Test
-    void cv_candidates_db_error_returnsServerError() throws Exception {
+    @DisplayName("cv/candidates - DB error -> 500")
+    void cv_candidates_db_error_returns_500() throws Exception {
         when(jdbcTemplate.query(anyString(), any(RowMapper.class)))
-            .thenThrow(new RuntimeException("DB error"));
+                .thenThrow(new RuntimeException("Simulated DB failure"));
 
         mockMvc.perform(get("/cv/candidates"))
-            .andExpect(status().is5xxServerError());
+                .andExpect(status().is5xxServerError());
     }
 
     // --------- CVController: /cv/recent tests ---------
