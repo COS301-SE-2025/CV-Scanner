@@ -6,7 +6,10 @@ import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -219,37 +222,59 @@ public class CVController {
     @PostMapping("/save")
     public ResponseEntity<?> save(@RequestBody CvSaveRequest body) {
         try {
-            if (body == null || body.candidate == null || CVController.isBlank(body.candidate.email)) {
+            if (body == null || body.candidate == null || isBlank(body.candidate.email)) {
                 return ResponseEntity.badRequest().body(createErrorResponse("Missing candidate/email"));
             }
 
             long candidateId = upsertCandidate(body.candidate);
             Instant when = parseInstantOrNow(body.receivedAt);
 
-            String aiResult;
-            String raw;
-            String norm;
-            try {
-                aiResult = body.aiResult != null ? json.writeValueAsString(body.aiResult) : "{}";
-                raw      = body.raw != null ? json.writeValueAsString(body.raw) : null;
-                norm     = body.normalized != null ? json.writeValueAsString(body.normalized) : null;
-            } catch (Exception ex) {
-                return ResponseEntity.badRequest().body(createErrorResponse("Invalid JSON payload"));
+            // ---- Ensure ai/raw/normalized are stored as JSON strings when possible ----
+            String aiResultJson = toJsonStringIfNeeded(body.aiResult, "{}");
+            String rawJson = toJsonStringIfNeeded(body.raw, null);
+            String normalizedJson = toJsonStringIfNeeded(body.normalized, null);
+
+            // ---- Normalize parsed payload (support top-level or nested under "result") ----
+            Map<String, Object> parsed = coerceToMap(body.result);
+            // if parsed contains another "result" object, flatten one level
+            if (parsed != null && parsed.get("result") != null) {
+                Map<String, Object> nested = coerceToMap(parsed.get("result"));
+                if (nested != null) parsed = nested;
             }
 
-            jdbc.update(
-                "INSERT INTO dbo.CvScans (CandidateId, FileUrl, AiResult, Raw, Normalized, ReceivedAt) VALUES (?,?,?,?,?,?)",
-                candidateId,
-                body.fileUrl,
-                aiResult,
-                raw,
-                norm,
-                Timestamp.from(when)
+            // pick values: prefer top-level fields, then parsed map keys (many possible key names)
+            String filename = firstNonEmpty(body.filename, pickString(parsed, "filename", "fileName", "name"));
+            String summary = firstNonEmpty(body.summary, pickString(parsed, "summary", "profile", "profile_text"));
+            Map<String,Object> personalInfoMap = body.personalInfo != null ? body.personalInfo : pickMap(parsed, "personal_info", "personalInfo", "personal");
+            Map<String,Object> sectionsMap = body.sections != null ? body.sections : pickMap(parsed, "sections", "section", "parsed_sections");
+            java.util.List<String> skillsList = body.skills != null ? body.skills : pickList(parsed, "skills", "skillz");
+
+            String personalInfoJson = personalInfoMap != null ? json.writeValueAsString(personalInfoMap) : null;
+            String sectionsJson = sectionsMap != null ? json.writeValueAsString(sectionsMap) : null;
+            String skillsJson = skillsList != null ? json.writeValueAsString(skillsList) : null;
+
+            final String sql = "INSERT INTO dbo.CandidateParsedCv " +
+                    "(CandidateId, FileUrl, Filename, Status, Summary, PersonalInfo, Sections, Skills, AiResult, RawResult, Normalized, ReceivedAt) " +
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
+
+            jdbc.update(sql,
+                    candidateId,
+                    body.fileUrl,
+                    filename != null ? filename : "",
+                    body.status != null ? body.status : "",
+                    summary != null ? summary : "",
+                    personalInfoJson,
+                    sectionsJson,
+                    skillsJson,
+                    aiResultJson,
+                    rawJson,
+                    normalizedJson,
+                    Timestamp.from(when)
             );
 
             return ResponseEntity.ok().build();
         } catch (Exception ex) {
-            return ResponseEntity.status(500).body(createErrorResponse("Failed to save CV: " + ex.getMessage()));
+            return ResponseEntity.status(500).body(createErrorResponse("Failed to save parsed CV: " + ex.getMessage()));
         }
     }
 
@@ -281,6 +306,81 @@ public class CVController {
             Number key = keyHolder.getKey();
             return key != null ? key.longValue() : -1;
         }
+    }
+
+    // ----------------- helpers -----------------
+    private String toJsonStringIfNeeded(Object o, String defaultIfNull) {
+        if (o == null) return defaultIfNull;
+        if (o instanceof String) {
+            String s = ((String) o).trim();
+            // if already a JSON string, return as-is
+            if ((s.startsWith("{") && s.endsWith("}")) || (s.startsWith("[") && s.endsWith("]"))) return s;
+            return s;
+        }
+        try {
+            return json.writeValueAsString(o);
+        } catch (Exception e) {
+            return defaultIfNull;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> coerceToMap(Object o) {
+        if (o == null) return null;
+        if (o instanceof Map) return (Map<String, Object>) o;
+        if (o instanceof String) {
+            String s = ((String) o).trim();
+            if (s.isEmpty()) return null;
+            try {
+                return json.readValue(s, Map.class);
+            } catch (Exception ignored) { }
+        }
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private java.util.List<String> coerceToList(Object o) {
+        if (o == null) return null;
+        if (o instanceof java.util.List) return (java.util.List<String>) o;
+        if (o instanceof String) {
+            String s = (String) o;
+            if (s.contains("\n")) return java.util.Arrays.asList(s.split("\\r?\\n"));
+            if (s.contains(",")) return java.util.Arrays.asList(s.split("\\s*,\\s*"));
+            if (!s.trim().isEmpty()) return java.util.List.of(s.trim());
+        }
+        return null;
+    }
+
+    private String pickString(Map<String,Object> m, String... keys) {
+        if (m == null) return null;
+        for (String k : keys) {
+            Object v = m.get(k);
+            if (v != null) return String.valueOf(v);
+        }
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String,Object> pickMap(Map<String,Object> m, String... keys) {
+        if (m == null) return null;
+        for (String k : keys) {
+            Object v = m.get(k);
+            if (v instanceof Map) return (Map<String,Object>) v;
+            if (v instanceof String) {
+                try { return json.readValue((String)v, Map.class); } catch (Exception ignored) {}
+            }
+        }
+        return null;
+    }
+
+    private java.util.List<String> pickList(Map<String,Object> m, String... keys) {
+        if (m == null) return null;
+        for (String k : keys) {
+            Object v = m.get(k);
+            java.util.List<String> list = coerceToList(v);
+            if (list != null) return list;
+        }
+        return null;
     }
 
     // ---- Helpers (add inside CVController) ----
@@ -391,10 +491,21 @@ public class CVController {
     public static class CvSaveRequest {
         public Candidate candidate;
         public String fileUrl;
-        public Map<String, Object> normalized;
-        public Map<String, Object> aiResult;
-        public Map<String, Object> raw;
-        public String receivedAt; // ISO-8601 string
+        public Object aiResult;
+        public Object raw;
+        public Object normalized;
+        public String receivedAt;
+
+        // parsed fields (frontend may send top-level)
+        public String filename;
+        public String summary;
+        public Map<String, Object> personalInfo;
+        public Map<String, Object> sections;
+        public java.util.List<String> skills;
+        public String status;
+
+        // some frontends send parsed output under "result" (object or JSON string)
+        public Object result;
     }
 
     @GetMapping("/candidates")
@@ -507,5 +618,9 @@ public class CVController {
     private String buildName(String first, String last, String email) {
         String full = ((first != null ? first.trim() : "") + " " + (last != null ? last.trim() : "")).trim();
         return !full.isEmpty() ? full : (email != null ? email : "Unknown");
+    }
+
+    private String firstNonEmpty(String a, String b) {
+        return (a != null && !a.isEmpty()) ? a : b;
     }
 }
