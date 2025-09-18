@@ -468,18 +468,36 @@ const ParsedCVData: React.FC = () => {
               <Typography variant="h6" sx={{ fontWeight: "bold" }}>
                 Extracted Fields
               </Typography>
-              <Button
-                variant="text"
-                size="small"
-                onClick={() => setShowRaw((s) => !s)}
-                sx={{
-                  textTransform: "none",
-                  fontWeight: "bold",
-                  color: "#232A3B",
-                }}
-              >
-                {showRaw ? "Hide Raw JSON" : "Show Raw JSON"}
-              </Button>
+<Box sx={{ display: "flex", gap: 1 }}>
+  <Button
+    variant="text"
+    size="small"
+    onClick={() => setShowRaw((s) => !s)}
+    sx={{
+      textTransform: "none",
+      fontWeight: "bold",
+      color: "#232A3B",
+    }}
+  >
+    {showRaw ? "Hide Raw JSON" : "Show Raw JSON"}
+  </Button>
+
+  {parseResumeData && (
+    <Button
+      variant="text"
+      size="small"
+      onClick={() => setShowResumeRaw((s) => !s)}
+      sx={{
+        textTransform: "none",
+        fontWeight: "bold",
+        color: "#232A3B",
+      }}
+    >
+      {showResumeRaw ? "Hide Resume JSON" : "Show Resume JSON"}
+    </Button>
+  )}
+</Box>
+
             </Box>
             <Divider sx={{ mb: 2 }} />
 
@@ -586,6 +604,34 @@ const ParsedCVData: React.FC = () => {
                 </pre>
               </Box>
             </Collapse>
+                <Collapse in={showResumeRaw} unmountOnExit>
+      <Box
+        sx={{
+          mt: 2,
+          p: 1.5,
+          borderRadius: 1,
+          border: "1px dashed #888",
+          backgroundColor: "#eef2f5",
+          color: "#111",
+          fontFamily:
+            "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+          maxHeight: 360,
+          overflow: "auto",
+        }}
+      >
+        <Typography
+          variant="subtitle2"
+          sx={{ mb: 1, fontWeight: "bold" }}
+        >
+          Resume Raw Response
+        </Typography>
+        <pre style={{ margin: 0 }}>
+          {JSON.stringify(parseResumeData, null, 2)}
+        </pre>
+      </Box>
+    </Collapse>
 
 {/* If parse_resume data was provided, render it below the raw response */}
 {parseResumeData && (
@@ -617,49 +663,6 @@ const ParsedCVData: React.FC = () => {
         );
       }
     })()}
-        {/* Toggle Resume AI Raw JSON */}
-    <Button
-      variant="text"
-      size="small"
-      onClick={() => setShowResumeRaw((s) => !s)}
-      sx={{
-        mt: 2,
-        textTransform: "none",
-        fontWeight: "bold",
-        color: "#232A3B",
-      }}
-    >
-      {showResumeRaw ? "Hide Resume JSON" : "Show Resume JSON"}
-    </Button>
-
-    <Collapse in={showResumeRaw} unmountOnExit>
-      <Box
-        sx={{
-          mt: 2,
-          p: 1.5,
-          borderRadius: 1,
-          border: "1px dashed #888",
-          backgroundColor: "#eef2f5",
-          color: "#111",
-          fontFamily:
-            "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
-          maxHeight: 360,
-          overflow: "auto",
-        }}
-      >
-        <Typography
-          variant="subtitle2"
-          sx={{ mb: 1, fontWeight: "bold" }}
-        >
-          Resume Raw Response
-        </Typography>
-        <pre style={{ margin: 0 }}>
-          {JSON.stringify(parseResumeData, null, 2)}
-        </pre>
-      </Box>
-    </Collapse>
   </Box>
 )}
 
