@@ -617,7 +617,7 @@ const ParsedCVData: React.FC = () => {
         );
       }
     })()}
-        {/* ✅ Toggle Resume AI Raw JSON */}
+        {/* Toggle Resume AI Raw JSON */}
     <Button
       variant="text"
       size="small"
