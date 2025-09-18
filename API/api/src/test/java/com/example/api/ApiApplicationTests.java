@@ -51,15 +51,19 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest({AuthController.class, CVController.class})
+@WebMvcTest({CVController.class, AuthController.class})
 public class ApiApplicationTests {
 
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @MockBean
     private JdbcTemplate jdbcTemplate;
 
+    // Provide encoder bean for AuthController used by MockMvc tests
     @MockBean
     private BCryptPasswordEncoder passwordEncoder;
 
@@ -72,6 +76,12 @@ public class ApiApplicationTests {
         authController = new AuthController();
         authController.setJdbcTemplate(jdbcTemplate);
         authController.setPasswordEncoder(new BCryptPasswordEncoder());
+
+        // Default stubs for MockMvc-auth paths that call encoder
+        org.mockito.Mockito.when(passwordEncoder.encode(anyString()))
+                .thenReturn("$2a$10$dummyhash");
+        org.mockito.Mockito.when(passwordEncoder.matches(anyString(), anyString()))
+                .thenReturn(true);
     }
 
     @Test
@@ -642,29 +652,36 @@ public class ApiApplicationTests {
 
     @Test
     void cv_save_db_error_returnsServerError() throws Exception {
-        // Candidate exists
-        when(jdbcTemplate.queryForObject(anyString(), org.mockito.ArgumentMatchers.eq(Long.class), any()))
-            .thenReturn(101L);
+        // Make "candidate exists" path to avoid insert-with-KeyHolder complexity
+        when(jdbcTemplate.query(anyString(), any(Object[].class), any(RowMapper.class)))
+                .thenReturn(java.util.List.of(123L));
+        // Force any update to fail (candidate update or parsed CV insert)
+        org.mockito.Mockito.doThrow(new RuntimeException("Simulated DB failure"))
+                .when(jdbcTemplate).update(anyString(), any(Object[].class));
 
-        // Fail on insert CV scan
-        when(jdbcTemplate.update(anyString(), any(), any(), any(), any(), any(), any()))
-            .thenThrow(new RuntimeException("DB insert failed"));
+        Map<String, Object> payload = new HashMap<>();
+        Map<String, Object> candidate = new HashMap<>();
+        candidate.put("firstName", "Test");
+        candidate.put("lastName", "User");
+        candidate.put("email", "test@example.com");
+        payload.put("candidate", candidate);
+        payload.put("fileUrl", "blob:test");
+        payload.put("aiResult", Map.of("status", "success"));
+        payload.put("receivedAt", Instant.now().toString());
+        // minimal parsed fields (top-level or under "result" both supported)
+        payload.put("result", Map.of(
+                "summary", "Hello",
+                "personal_info", Map.of("name", "X"),
+                "sections", Map.of("education", "Y"),
+                "skills", java.util.List.of("A", "B")
+        ));
 
-        String json = """
-        {
-          "candidate": { "firstName": "John", "lastName": "Smith", "email": "john.smith@example.com" },
-          "fileUrl": "https://example.com/file.pdf",
-          "normalized": { "skills": "DevOps" },
-          "aiResult": { "status": "success" },
-          "raw": { "Skills": { "labels": ["DevOps"] } },
-          "receivedAt": "2025-08-18T21:00:00Z"
-        }
-        """;
+        String json = objectMapper.writeValueAsString(payload);
 
         mockMvc.perform(post("/cv/save")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
-            .andExpect(status().is5xxServerError());
+                .andExpect(status().is5xxServerError());
     }
 
     // Optional: insert-path success (mock generated key)
