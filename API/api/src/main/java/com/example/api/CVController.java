@@ -559,12 +559,12 @@ public class CVController {
             int top = Math.max(1, Math.min(limit, 100));
             String sql = """
                 WITH latest AS (
-                  SELECT cs.*, ROW_NUMBER() OVER (PARTITION BY cs.CandidateId ORDER BY cs.ReceivedAt DESC) rn
-                  FROM dbo.CvScans cs
+                  SELECT cpc.*, ROW_NUMBER() OVER (PARTITION BY cpc.CandidateId ORDER BY cpc.ReceivedAt DESC) rn
+                  FROM dbo.CandidateParsedCv cpc
                 )
                 SELECT TOP %d
                        c.Id, c.FirstName, c.LastName, c.Email,
-                       l.Normalized, l.AiResult, l.ReceivedAt
+                       l.ResumeResult, l.AiResult, l.Normalized, l.ReceivedAt
                 FROM dbo.Candidates c
                 JOIN latest l ON l.CandidateId = c.Id AND l.rn = 1
                 ORDER BY l.ReceivedAt DESC
@@ -575,10 +575,16 @@ public class CVController {
                 String first = rs.getString("FirstName");
                 String last = rs.getString("LastName");
                 String email = rs.getString("Email");
-                String normalized = rs.getString("Normalized");
+                String resumeJson = rs.getString("ResumeResult");
                 String aiResult = rs.getString("AiResult");
+                String normalized = rs.getString("Normalized");
+                Timestamp ts = rs.getTimestamp("ReceivedAt");
 
-                List<String> skills = extractSkills(normalized, aiResult);
+                // Prefer skills from ResumeResult; fallback to normalized/aiResult if empty
+                List<String> skills = extractSkillsFromResume(resumeJson);
+                if (skills.isEmpty()) {
+                    skills = extractSkills(normalized, aiResult);
+                }
                 String topSkills = String.join(", ", skills.stream().limit(3).toList());
 
                 RecentRow r = new RecentRow();
@@ -614,5 +620,22 @@ public class CVController {
 
     private String firstNonEmpty(String a, String b) {
         return (a != null && !a.isEmpty()) ? a : b;
+    }
+
+    // Extract skills from ResumeResult JSON (supports both { skills: [...] } and { result: { skills: [...] } })
+    @SuppressWarnings("unchecked")
+    private List<String> extractSkillsFromResume(String resumeJson) {
+        if (isBlank(resumeJson)) return Collections.emptyList();
+        try {
+            Map<String, Object> root = json.readValue(resumeJson, Map.class);
+            Object skillsNode = root.get("skills");
+            if (skillsNode == null && root.get("result") instanceof Map<?, ?> res) {
+                skillsNode = ((Map<?, ?>) res).get("skills");
+            }
+            List<String> out = coerceToStringList(skillsNode);
+            return out != null ? out : Collections.emptyList();
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
     }
 }
