@@ -1039,4 +1039,183 @@ public class ApiApplicationTests {
                 .content(json))
             .andExpect(status().isOk());
     }
+
+    // --------- CVController: /cv/summaries & /cv/{id}/summary tests ---------
+
+    @Test
+    @DisplayName("cv/summaries - success returns list with extracted summary from resume.result.summary")
+    @SuppressWarnings("unchecked")
+    void cv_summaries_success_returns_list() throws Exception {
+        // Mock the query(String, RowMapper) overload used in listCandidateSummaries
+        doAnswer(invocation -> {
+            RowMapper<CVController.CandidateResumeSummary> rm =
+                (RowMapper<CVController.CandidateResumeSummary>) invocation.getArgument(1);
+
+            // Row 1: resume.result.summary present
+            ResultSet rs1 = mock(ResultSet.class);
+            when(rs1.getLong("Id")).thenReturn(14L);
+            when(rs1.getString("FirstName")).thenReturn("Talhah");
+            when(rs1.getString("LastName")).thenReturn("Karodia");
+            when(rs1.getString("Email")).thenReturn("talhah@example.com");
+            when(rs1.getString("ResumeResult")).thenReturn("""
+                {"status":"success","result":{"summary":"Talhah summary text","skills":["java","sql"]}}
+                """);
+            when(rs1.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.parse("2025-03-01T10:00:00Z")));
+
+            // Row 2: no summary in resume JSON -> summary null
+            ResultSet rs2 = mock(ResultSet.class);
+            when(rs2.getLong("Id")).thenReturn(15L);
+            when(rs2.getString("FirstName")).thenReturn("Alice");
+            when(rs2.getString("LastName")).thenReturn("Smith");
+            when(rs2.getString("Email")).thenReturn("alice@example.com");
+            when(rs2.getString("ResumeResult")).thenReturn("{\"status\":\"success\",\"result\":{}}");
+            when(rs2.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.parse("2025-02-01T09:00:00Z")));
+
+            return List.of(rm.mapRow(rs1, 0), rm.mapRow(rs2, 1));
+        }).when(jdbcTemplate).query(anyString(), any(RowMapper.class));
+
+        mockMvc.perform(get("/cv/summaries").param("limit", "20"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id").value(14))
+            .andExpect(jsonPath("$[0].summary").value("Talhah summary text"))
+            .andExpect(jsonPath("$[1].id").value(15))
+            .andExpect(jsonPath("$[1].summary").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("cv/summaries - q filter narrows results")
+    @SuppressWarnings("unchecked")
+    void cv_summaries_filter_q() throws Exception {
+        doAnswer(invocation -> {
+            RowMapper<CVController.CandidateResumeSummary> rm =
+                (RowMapper<CVController.CandidateResumeSummary>) invocation.getArgument(1);
+
+            ResultSet rs1 = mock(ResultSet.class);
+            when(rs1.getLong("Id")).thenReturn(1L);
+            when(rs1.getString("FirstName")).thenReturn("Jane");
+            when(rs1.getString("LastName")).thenReturn("Doe");
+            when(rs1.getString("Email")).thenReturn("jane@example.com");
+            when(rs1.getString("ResumeResult")).thenReturn("""
+              {"result":{"summary":"Expert React developer"}}
+              """);
+            when(rs1.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.now()));
+
+            ResultSet rs2 = mock(ResultSet.class);
+            when(rs2.getLong("Id")).thenReturn(2L);
+            when(rs2.getString("FirstName")).thenReturn("Bob");
+            when(rs2.getString("LastName")).thenReturn("Jones");
+            when(rs2.getString("Email")).thenReturn("bob@example.com");
+            when(rs2.getString("ResumeResult")).thenReturn("""
+              {"result":{"summary":"Skilled Java backend engineer"}}
+              """);
+            when(rs2.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.now()));
+
+            return List.of(rm.mapRow(rs1, 0), rm.mapRow(rs2, 1));
+        }).when(jdbcTemplate).query(anyString(), any(RowMapper.class));
+
+        // Filter by 'react' -> only Jane
+        mockMvc.perform(get("/cv/summaries").param("q", "react"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$", Matchers.hasSize(1)))
+            .andExpect(jsonPath("$[0].id").value(1));
+
+        // Filter by 'java' -> only Bob
+        mockMvc.perform(get("/cv/summaries").param("q", "java"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$", Matchers.hasSize(1)))
+            .andExpect(jsonPath("$[0].id").value(2));
+    }
+
+    @Test
+    @DisplayName("cv/summaries - DB error -> 500")
+    void cv_summaries_db_error() throws Exception {
+        when(jdbcTemplate.query(anyString(), any(RowMapper.class)))
+            .thenThrow(new RuntimeException("DB fail"));
+
+        mockMvc.perform(get("/cv/summaries"))
+            .andExpect(status().is5xxServerError())
+            .andExpect(jsonPath("$.message", Matchers.containsString("Failed to load summaries")));
+    }
+
+    @Test
+    @DisplayName("cv/{id}/summary - success extracts summary from nested resume.result")
+    @SuppressWarnings("unchecked")
+    void cv_single_summary_success() throws Exception {
+        // Mock overload query(String, Object[], RowMapper)
+        doAnswer(invocation -> {
+            RowMapper<CVController.CandidateResumeSummary> rm =
+                (RowMapper<CVController.CandidateResumeSummary>) invocation.getArgument(2);
+
+            ResultSet rs = mock(ResultSet.class);
+            when(rs.getLong("Id")).thenReturn(42L);
+            when(rs.getString("FirstName")).thenReturn("Sarah");
+            when(rs.getString("LastName")).thenReturn("Lee");
+            when(rs.getString("Email")).thenReturn("sarah.lee@example.com");
+            when(rs.getString("ResumeResult")).thenReturn("""
+              {"status":"success","result":{"summary":"Seasoned data analyst with BI focus"}}
+              """);
+            when(rs.getString("Normalized")).thenReturn(null);
+            when(rs.getString("AiResult")).thenReturn(null);
+            when(rs.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.parse("2025-04-01T08:00:00Z")));
+
+            return List.of(rm.mapRow(rs, 0));
+        }).when(jdbcTemplate).query(anyString(), any(Object[].class), any(RowMapper.class));
+
+        mockMvc.perform(get("/cv/42/summary"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(42))
+            .andExpect(jsonPath("$.summary").value("Seasoned data analyst with BI focus"))
+            .andExpect(jsonPath("$.email").value("sarah.lee@example.com"));
+    }
+
+    @Test
+    @DisplayName("cv/{id}/summaries alias path works")
+    @SuppressWarnings("unchecked")
+    void cv_single_summaries_alias_success() throws Exception {
+        doAnswer(invocation -> {
+            RowMapper<CVController.CandidateResumeSummary> rm =
+                (RowMapper<CVController.CandidateResumeSummary>) invocation.getArgument(2);
+
+            ResultSet rs = mock(ResultSet.class);
+            when(rs.getLong("Id")).thenReturn(50L);
+            when(rs.getString("FirstName")).thenReturn("Mark");
+            when(rs.getString("LastName")).thenReturn("Twin");
+            when(rs.getString("Email")).thenReturn("mark.twin@example.com");
+            when(rs.getString("ResumeResult")).thenReturn("""
+              {"result":{"summary":"Creative technical writer"}}
+              """);
+            when(rs.getString("Normalized")).thenReturn(null);
+            when(rs.getString("AiResult")).thenReturn(null);
+            when(rs.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.now()));
+
+            return List.of(rm.mapRow(rs, 0));
+        }).when(jdbcTemplate).query(anyString(), any(Object[].class), any(RowMapper.class));
+
+        mockMvc.perform(get("/cv/50/summaries"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(50))
+            .andExpect(jsonPath("$.summary").value("Creative technical writer"));
+    }
+
+    @Test
+    @DisplayName("cv/{id}/summary - not found -> 404")
+    void cv_single_summary_not_found() throws Exception {
+        when(jdbcTemplate.query(anyString(), any(Object[].class), any(RowMapper.class)))
+            .thenReturn(List.of());
+
+        mockMvc.perform(get("/cv/9999/summary"))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Candidate not found"));
+    }
+
+    @Test
+    @DisplayName("cv/{id}/summary - DB error -> 500")
+    void cv_single_summary_db_error() throws Exception {
+        when(jdbcTemplate.query(anyString(), any(Object[].class), any(RowMapper.class)))
+            .thenThrow(new RuntimeException("DB explode"));
+
+        mockMvc.perform(get("/cv/10/summary"))
+            .andExpect(status().is5xxServerError())
+            .andExpect(jsonPath("$.message", Matchers.containsString("Failed to load summary")));
+    }
 }
