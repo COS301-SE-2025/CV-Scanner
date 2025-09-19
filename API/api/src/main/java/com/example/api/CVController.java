@@ -31,6 +31,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -45,7 +46,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RestController
 @RequestMapping("/cv")
-@CrossOrigin(origins = "*") // Enable CORS for frontend access
+@CrossOrigin(origins = "*")
 public class CVController {
     
     // New: DB + JSON helpers
@@ -544,13 +545,13 @@ public class CVController {
 
             if (q != null && !q.isBlank()) {
                 final String needle = q.toLowerCase();
-                items = items.stream().filter(c ->
+                items = items.stream().filter((CandidateSummary c) ->
                         (c.firstName != null && c.firstName.toLowerCase().contains(needle)) ||
                         (c.lastName != null && c.lastName.toLowerCase().contains(needle)) ||
                         (c.email != null && c.email.toLowerCase().contains(needle)) ||
                         (c.project != null && c.project.toLowerCase().contains(needle)) ||
-                        c.skills.stream().anyMatch(s -> s.toLowerCase().contains(needle))
-                ).toList();
+                        (c.skills != null && c.skills.stream().anyMatch(s -> s.toLowerCase().contains(needle)))
+                ).collect(java.util.stream.Collectors.toList());
             }
 
             return ResponseEntity.ok(items);
@@ -644,4 +645,289 @@ public class CVController {
             return Collections.emptyList();
         }
     }
+
+    // DTO for summary view
+    public static class CandidateResumeSummary {
+        public long id;
+        public String firstName;
+        public String lastName;
+        public String email;
+        public String summary;
+        public String receivedAt;
+        public CandidateResumeSummary(long id, String firstName, String lastName,
+                                      String email, String summary, String receivedAt) {
+            this.id = id;
+            this.firstName = firstName;
+            this.lastName = lastName;
+            this.email = email;
+            this.summary = summary;
+            this.receivedAt = receivedAt;
+        }
+    }
+
+    // --- NEW: list all candidate summaries (latest parsed row per candidate) ---
+    @GetMapping("/summaries")
+    public ResponseEntity<?> listCandidateSummaries(
+            @RequestParam(value = "q", required = false) String q,
+            @RequestParam(value = "limit", required = false, defaultValue = "100") int limit) {
+        try {
+            int top = Math.max(1, Math.min(limit, 500));
+            String sql = """
+                WITH latest AS (
+                  SELECT cpc.CandidateId, cpc.ResumeResult, cpc.ReceivedAt
+                  FROM dbo.CandidateParsedCv cpc
+                  JOIN (
+                    SELECT CandidateId, MAX(ReceivedAt) AS MaxReceivedAt
+                    FROM dbo.CandidateParsedCv
+                    GROUP BY CandidateId
+                  ) m ON m.CandidateId = cpc.CandidateId AND m.MaxReceivedAt = cpc.ReceivedAt
+                )
+                SELECT TOP %d
+                       c.Id, c.FirstName, c.LastName, c.Email,
+                       l.ResumeResult, l.ReceivedAt
+                FROM dbo.Candidates c
+                LEFT JOIN latest l ON l.CandidateId = c.Id
+                ORDER BY
+                  CASE WHEN l.ReceivedAt IS NULL THEN 1 ELSE 0 END,  -- push NULLs last
+                  l.ReceivedAt DESC,
+                  c.Id DESC
+            """.formatted(top);
+
+            List<CandidateResumeSummary> list = jdbc.query(sql, (rs, i) -> {
+                long id = rs.getLong("Id");
+                String first = rs.getString("FirstName");
+                String last = rs.getString("LastName");
+                String email = rs.getString("Email");
+                String resumeJson = rs.getString("ResumeResult");
+                Timestamp ts = rs.getTimestamp("ReceivedAt");
+                String summary = extractResumeSummary(resumeJson, null, null, null);
+
+                return new CandidateResumeSummary(
+                        id, first, last, email,
+                        summary,
+                        ts != null ? ts.toInstant().toString() : null
+                );
+            });
+
+            if (q != null && !q.isBlank()) {
+                String needle = q.toLowerCase();
+                list = list.stream().filter(c ->
+                        (c.firstName != null && c.firstName.toLowerCase().contains(needle)) ||
+                        (c.lastName != null && c.lastName.toLowerCase().contains(needle)) ||
+                        (c.email != null && c.email.toLowerCase().contains(needle)) ||
+                        (c.summary != null && c.summary.toLowerCase().contains(needle))
+                ).toList();
+            }
+
+            return ResponseEntity.ok(list);
+        } catch (Exception ex) {
+            return ResponseEntity.status(500)
+                    .body(createErrorResponse("Failed to load summaries: " + ex.getMessage()));
+        }
+    }
+
+    // --- NEW: single candidate summary by id ---
+    @GetMapping({"/{id}/summary", "/{id}/summaries"})
+    public ResponseEntity<?> getCandidateSummary(@PathVariable("id") long id) {
+        try {
+            String sql = """
+                SELECT TOP 1 c.Id, c.FirstName, c.LastName, c.Email,
+                             cpc.ResumeResult, cpc.Normalized, cpc.AiResult, cpc.ReceivedAt
+                FROM dbo.Candidates c
+                LEFT JOIN dbo.CandidateParsedCv cpc ON cpc.CandidateId = c.Id
+                WHERE c.Id = ?
+                ORDER BY cpc.ReceivedAt DESC
+            """;
+
+            List<CandidateResumeSummary> rows = jdbc.query(sql, new Object[]{id}, (rs, i) -> {
+                String resumeJson = rs.getString("ResumeResult");
+                String normalized = rs.getString("Normalized");
+                String aiResult = rs.getString("AiResult");
+                Timestamp ts = rs.getTimestamp("ReceivedAt");
+                String summary = extractResumeSummary(resumeJson, normalized, aiResult, null);
+                return new CandidateResumeSummary(
+                        rs.getLong("Id"),
+                        rs.getString("FirstName"),
+                        rs.getString("LastName"),
+                        rs.getString("Email"),
+                        summary,
+                        ts != null ? ts.toInstant().toString() : null
+                );
+            });
+
+            if (rows.isEmpty()) return ResponseEntity.status(404).body(Map.of("message","Candidate not found"));
+            return ResponseEntity.ok(rows.get(0));
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body(Map.of("message","Failed to load summary: "+ex.getMessage()));
+        }
+    }
+
+    // --- Replace old simple extractResumeSummary(String) with robust variant ---
+    // Remove/rename the previous extractResumeSummary(String) before adding this one.
+    @SuppressWarnings("unchecked")
+    private String extractResumeSummary(String resumeJson,
+                                        String normalizedJson,
+                                        String aiResultJson,
+                                        String storedSummary) {
+        // 0. Stored summary column (if present)
+        if (!isBlank(storedSummary)) return truncateSummary(storedSummary);
+
+        Map<String,Object> root = parseJsonToMap(resumeJson);
+        if (root != null) {
+            // 1. Direct keys at root
+            String direct = findSummaryInMap(root);
+            if (!isBlank(direct)) return truncateSummary(direct);
+
+            // 2. Wrapped in "result"
+            Object resultNode = root.get("result");
+            if (resultNode instanceof Map<?,?> rm) {
+                String inResult = findSummaryInMap((Map<String,Object>) rm);
+                if (!isBlank(inResult)) return truncateSummary(inResult);
+
+                // 3. Sections inside result
+                Object sections = ((Map<?,?>) rm).get("sections");
+                if (sections instanceof Map<?,?> secMap) {
+                    String secSummary = findSummaryInSections((Map<String,Object>) secMap);
+                    if (!isBlank(secSummary)) return truncateSummary(secSummary);
+                }
+            }
+
+            // 4. Sections at root (rare)
+            Object rootSections = root.get("sections");
+            if (rootSections instanceof Map<?,?> secMap) {
+                String secSummary = findSummaryInSections((Map<String,Object>) secMap);
+                if (!isBlank(secSummary)) return truncateSummary(secSummary);
+            }
+        }
+
+        // 5. Normalized JSON fallback
+        Map<String,Object> norm = parseJsonToMap(normalizedJson);
+        if (norm != null) {
+            Object normSummary = firstNonNull(norm.get("summary"), norm.get("profile"), norm.get("objective"));
+            if (normSummary instanceof String s && !isBlank(s)) return truncateSummary(s);
+        }
+
+        // 6. AI result applied? (less common for summary)
+        Map<String,Object> ai = parseJsonToMap(aiResultJson);
+        if (ai != null) {
+            Object applied = ai.get("applied");
+            if (applied instanceof Map<?,?> ap) {
+                Object aiSum = ((Map<?,?>) ap).get("Summary");
+                if (aiSum instanceof String s && !isBlank(s)) return truncateSummary(s);
+            }
+        }
+
+        return null;
+    }
+
+    private Map<String,Object> parseJsonToMap(String jsonStr) {
+        if (isBlank(jsonStr)) return null;
+        try { return json.readValue(jsonStr, Map.class); } catch (Exception ignored) { return null; }
+    }
+
+    private Object firstNonNull(Object... arr) {
+        if (arr == null) return null;
+        for (Object o : arr) if (o != null) return o;
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private String findSummaryInMap(Map<String,Object> map) {
+        if (map == null) return null;
+        String[] keys = {
+            "summary","profile","objective","professional_summary","professionalSummary",
+            "headline","about","about_me","aboutMe","overview"
+        };
+        for (String k : keys) {
+            Object v = map.get(k);
+            String s = coerceSummaryText(v);
+            if (!isBlank(s)) return s;
+        }
+        // personal_info nested
+        Object pi = firstNonNull(map.get("personal_info"), map.get("personalInfo"));
+        if (pi instanceof Map<?,?> pim) {
+            for (String k : keys) {
+                Object v = ((Map<?,?>) pim).get(k);
+                String s = coerceSummaryText(v);
+                if (!isBlank(s)) return s;
+            }
+        }
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private String findSummaryInSections(Map<String,Object> sections) {
+        if (sections == null) return null;
+        // Direct summary-like keys
+        String s = findSummaryInMap(sections);
+        if (!isBlank(s)) return s;
+
+        // Heuristic: take first 1–2 sentences from education or experience text blobs
+        Object edu = sections.get("education");
+        String eduText = coerceSummaryText(edu);
+        if (!isBlank(eduText)) {
+            String fs = firstSentences(eduText, 2);
+            if (!isBlank(fs)) return fs;
+        }
+        Object exp = sections.get("experience");
+        String expText = coerceSummaryText(exp);
+        if (!isBlank(expText)) {
+            String fs = firstSentences(expText, 2);
+            if (!isBlank(fs)) return fs;
+        }
+        return null;
+    }
+
+    private String coerceSummaryText(Object v) {
+        if (v == null) return null;
+        if (v instanceof String s) return normalizeSpaces(s);
+        if (v instanceof List<?> list && !list.isEmpty()) {
+            StringBuilder sb = new StringBuilder();
+            for (Object o : list) {
+                if (o == null) continue;
+                String line = o.toString().trim();
+                if (line.isEmpty()) continue;
+                if (sb.length() > 0) sb.append(" ");
+                sb.append(line);
+                if (sb.length() > 600) break;
+            }
+            return sb.length() == 0 ? null : normalizeSpaces(sb.toString());
+        }
+        return normalizeSpaces(String.valueOf(v));
+    }
+
+    private String firstSentences(String text, int maxSentences) {
+        if (isBlank(text)) return null;
+        String[] parts = text.split("(?<=[.!?])\\s+");
+        StringBuilder sb = new StringBuilder();
+        int count = 0;
+        for (String p : parts) {
+            String t = p.trim();
+            if (t.isEmpty()) continue;
+            if (sb.length() > 0) sb.append(" ");
+            sb.append(t);
+            if (++count >= maxSentences) break;
+            if (sb.length() > 500) break;
+        }
+        return sb.length() == 0 ? null : sb.toString();
+    }
+
+private String normalizeSpaces(String s) {
+    return s == null ? null : s.replaceAll("\\s+", " ").trim();
 }
+
+// Helper to truncate long summaries safely
+private String truncateSummary(String s) {
+    if (s == null) return null;
+    String norm = normalizeSpaces(s);
+    int max = 600;
+    if (norm.length() > max) {
+        return norm.substring(0, max).trim() + "...";
+    }
+    return norm;
+}
+
+// Close class CVController
+}
+
+// (Removed outdated inline usage examples)
