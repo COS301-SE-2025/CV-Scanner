@@ -682,44 +682,7 @@ export default function CandidateReviewSummary() {
                 </Typography>
               </Box>
 
-              {/* Ready-to-act toolbar (quick actions) */}
-              <Stack direction="row" spacing={3}>
-                <Button
-                  size="small"
-                  variant="contained"
-                  sx={reviewButtonStyle}
-                  onClick={openContact}
-                >
-                  Contact Details
-                </Button>
-              </Stack>
-            </Box>
-
-            {/* Quick facts grid */}
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
-                gap: 2,
-              }}
-            >
-              <Fact label="Availability" value={candidate.availability} />
-              <Fact label="Qualifications" value={candidate.qualifications} />
-              <Fact label="Work Auth" value={candidate.workAuth} />
-              <Fact label="Salary Band" value={candidate.salaryBand} />
-              <Typography
-                variant="caption"
-                sx={{
-                  color: "#6b7280",
-                  fontStyle: "italic",
-                  mt: 0.5,
-                  display: "block",
-                }}
-              >
-                Last updated: {candidate.lastUpdated}
-              </Typography>
-            </Box>
-          </Paper>
+        
 
           {/* Contact popover */}
           <Popover
