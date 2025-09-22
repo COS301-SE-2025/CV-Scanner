@@ -1,15 +1,19 @@
-import { Box, Typography, Chip, Paper } from "@mui/material";
+import { Box, Typography, Chip, Paper, Button } from "@mui/material";
 import { useEffect, useState } from "react";
 
 export default function ConfigViewer() {
   const [config, setConfig] = useState<Record<string, string[]>>({});
 
-  useEffect(() => {
+  const fetchConfig = () => {
     const CONFIG_BASE = "http://localhost:8081"; // your base URL
     fetch(`${CONFIG_BASE}/auth/config/categories`)
       .then((res) => res.json())
       .then((data) => setConfig(data))
       .catch(() => setConfig({}));
+  };
+
+  useEffect(() => {
+    fetchConfig();
   }, []);
 
   return (
@@ -18,14 +22,24 @@ export default function ConfigViewer() {
       sx={{
         p: 3,
         borderRadius: 3,
-        backgroundColor: "#deddee6e",
+        backgroundColor: "#DEDDEE",
         color: "#000",
         fontFamily: "Helvetica, sans-serif",
       }}
     >
-      <Typography variant="h5" sx={{ fontWeight: "bold", mb: 3 }}>
-        System Search Config
-      </Typography>
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
+        <Typography variant="h5" sx={{ fontWeight: "bold" }}>
+          System Search Config
+        </Typography>
+        <Button
+          variant="contained"
+          size="small"
+          onClick={fetchConfig}
+          sx={{ textTransform: "none", bgcolor: "#5a88ad", "&:hover": { bgcolor: "#487DA6" } }}
+        >
+          Refresh
+        </Button>
+      </Box>
 
       <Box
         sx={{
@@ -58,7 +72,7 @@ export default function ConfigViewer() {
                   disabled
                   sx={{
                     backgroundColor: "#7A7A7A", // dark grey
-                    color: "#fff", // white text for contrast
+                    color: "#fff", // white text
                   }}
                 />
               ))}
