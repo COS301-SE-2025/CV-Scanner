@@ -71,7 +71,10 @@ export default function Search() {
     cvFileUrl?: string;
     cvFileType?: string;
   };
+
+  // Add filename + id to card
   type CandidateCard = {
+    id: number;
     name: string;
     email: string;
     skills: string[];
@@ -83,7 +86,9 @@ export default function Search() {
     fit?: string;
     cvFileUrl?: string;
     cvFileType?: string;
+    filename?: string | null;
   };
+
   const [candidates, setCandidates] = useState<CandidateCard[]>([]);
 
   // Toggle helper for checkbox filters
@@ -162,14 +167,30 @@ export default function Search() {
       .then((data) => setUser(data))
       .catch(() => setUser(null));
 
-    // LOAD candidates from API
-    fetch("http://localhost:8081/cv/candidates")
-      .then((r) => {
+    // Load candidates & filenames concurrently
+    Promise.all([
+      fetch("http://localhost:8081/cv/candidates").then((r) => {
         if (!r.ok) throw new Error("Failed candidates");
         return r.json();
-      })
-      .then((list: ApiCandidate[]) => {
-        const mapped: CandidateCard[] = list.map((c) => {
+      }),
+      fetch("http://localhost:8081/cv/filenames")
+        .then((r) => {
+          if (!r.ok) throw new Error("Failed filenames");
+          return r.json();
+        })
+        .catch(() => []), // tolerate filename endpoint failure
+    ])
+      .then(([list, filenames]) => {
+        const filenameMap = new Map<number, any>();
+        if (Array.isArray(filenames)) {
+          for (const f of filenames) {
+            if (f && typeof f.id === "number") {
+              filenameMap.set(f.id, f);
+            }
+          }
+        }
+
+        const mapped: CandidateCard[] = (list as ApiCandidate[]).map((c) => {
           const name =
             `${c.firstName || ""} ${c.lastName || ""}`.trim() ||
             c.email ||
@@ -180,7 +201,15 @@ export default function Search() {
           const details: string[] = withinLast7Days(c.receivedAt)
             ? ["Last 7 Days"]
             : [];
+          const fnRow = filenameMap.get(c.id);
+          let filename: string | null =
+            fnRow?.filename ||
+            (c.cvFileUrl
+              ? c.cvFileUrl.split("/").pop()?.split("?")[0] || null
+              : null);
+
           return {
+            id: c.id,
             name,
             email: c.email,
             skills: Array.isArray(c.skills) ? c.skills : [],
@@ -192,6 +221,7 @@ export default function Search() {
             fit: undefined,
             cvFileUrl: c.cvFileUrl,
             cvFileType: c.cvFileType,
+            filename,
           };
         });
         setCandidates(mapped);
@@ -555,16 +585,9 @@ export default function Search() {
                       transition: "all 0.2s ease",
                     }}
                     onClick={() =>
-                      navigate(
-                        `/candidate/${
-                          candidate.email
-                            ? encodeURIComponent(candidate.email)
-                            : idx
-                        }/summary`,
-                        {
-                          state: { candidate }, // pass along data for faster detail page render
-                        }
-                      )
+                      navigate(`/candidate/${candidate.id}/summary`, {
+                        state: { candidate },
+                      })
                     }
                   >
                     <Box
@@ -614,6 +637,18 @@ export default function Search() {
                           }}
                         >
                           Uploaded: {candidate.uploaded}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            mb: 1.0,
+                            color: "#204E20",
+                            fontFamily: "Helvetica, sans-serif",
+                            fontSize: "0.95rem",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          File: {candidate.filename || "N/A"}
                         </Typography>
                         <Box
                           sx={{
