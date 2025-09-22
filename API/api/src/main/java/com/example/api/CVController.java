@@ -1111,6 +1111,269 @@ private String truncateSummary(String s) {
         }
     }
 
+    // --- DTO: Candidate Experience ---
+    public static class CandidateExperience {
+        public long id;
+        public String firstName;
+        public String lastName;
+        public String email;
+        public java.util.List<String> experience; // normalized list entries
+        public String receivedAt;
+        public CandidateExperience(long id, String firstName, String lastName,
+                                   String email, java.util.List<String> experience, String receivedAt) {
+            this.id = id;
+            this.firstName = firstName;
+            this.lastName = lastName;
+            this.email = email;
+            this.experience = experience;
+            this.receivedAt = receivedAt;
+        }
+    }
+
+    // --- List all candidate experience (latest parsed row per candidate) ---
+    @GetMapping("/experience")
+    public ResponseEntity<?> listCandidateExperience(
+            @RequestParam(value = "q", required = false) String q,
+            @RequestParam(value = "limit", required = false, defaultValue = "100") int limit) {
+        try {
+            int top = Math.max(1, Math.min(limit, 500));
+            String sql = """
+                WITH latest AS (
+                  SELECT cpc.CandidateId, cpc.ResumeResult, cpc.Normalized, cpc.AiResult, cpc.ReceivedAt
+                  FROM dbo.CandidateParsedCv cpc
+                  JOIN (
+                    SELECT CandidateId, MAX(ReceivedAt) AS MaxReceivedAt
+                    FROM dbo.CandidateParsedCv
+                    GROUP BY CandidateId
+                  ) m ON m.CandidateId = cpc.CandidateId AND m.MaxReceivedAt = cpc.ReceivedAt
+                )
+                SELECT TOP %d
+                       c.Id, c.FirstName, c.LastName, c.Email,
+                       l.ResumeResult, l.Normalized, l.AiResult, l.ReceivedAt
+                FROM dbo.Candidates c
+                LEFT JOIN latest l ON l.CandidateId = c.Id
+                ORDER BY
+                  CASE WHEN l.ReceivedAt IS NULL THEN 1 ELSE 0 END,
+                  l.ReceivedAt DESC,
+                  c.Id DESC
+            """.formatted(top);
+
+            var list = jdbc.query(sql, (rs, i) -> {
+                long id = rs.getLong("Id");
+                String first = rs.getString("FirstName");
+                String last = rs.getString("LastName");
+                String email = rs.getString("Email");
+                String resumeJson = rs.getString("ResumeResult");
+                String normalized = rs.getString("Normalized");
+                String aiResult = rs.getString("AiResult");
+                Timestamp ts = rs.getTimestamp("ReceivedAt");
+
+                java.util.List<String> experience = extractExperienceFromResume(resumeJson);
+                if (experience.isEmpty()) {
+                    experience = extractExperienceFallback(normalized, aiResult);
+                }
+
+                return new CandidateExperience(
+                        id, first, last, email,
+                        experience,
+                        ts != null ? ts.toInstant().toString() : null
+                );
+            });
+
+            if (q != null && !q.isBlank()) {
+                String needle = q.toLowerCase();
+                list = list.stream().filter(c ->
+                        (c.firstName != null && c.firstName.toLowerCase().contains(needle)) ||
+                        (c.lastName != null && c.lastName.toLowerCase().contains(needle)) ||
+                        (c.email != null && c.email.toLowerCase().contains(needle)) ||
+                        (c.experience != null && c.experience.stream().anyMatch(e -> e.toLowerCase().contains(needle)))
+                ).toList();
+            }
+
+            return ResponseEntity.ok(list);
+        } catch (Exception ex) {
+            return ResponseEntity.status(500)
+                    .body(createErrorResponse("Failed to load experience: " + ex.getMessage()));
+        }
+    }
+
+    // --- Single candidate experience (id or email) ---
+    @GetMapping("/{identifier}/experience")
+    public ResponseEntity<?> getCandidateExperience(@PathVariable("identifier") String identifier) {
+        try {
+            Long candidateId = null; String email = null;
+            try { candidateId = Long.parseLong(identifier); } catch (NumberFormatException ignored) { email = identifier; }
+
+            String sql;
+            Object[] params;
+            if (candidateId != null) {
+                sql = """
+                    SELECT TOP 1 c.Id, c.FirstName, c.LastName, c.Email,
+                                 cpc.ResumeResult, cpc.Normalized, cpc.AiResult, cpc.ReceivedAt
+                    FROM dbo.Candidates c
+                    LEFT JOIN dbo.CandidateParsedCv cpc ON cpc.CandidateId = c.Id
+                    WHERE c.Id = ?
+                    ORDER BY cpc.ReceivedAt DESC
+                """;
+                params = new Object[]{candidateId};
+            } else {
+                sql = """
+                    SELECT TOP 1 c.Id, c.FirstName, c.LastName, c.Email,
+                                 cpc.ResumeResult, cpc.Normalized, cpc.AiResult, cpc.ReceivedAt
+                    FROM dbo.Candidates c
+                    LEFT JOIN dbo.CandidateParsedCv cpc ON cpc.CandidateId = c.Id
+                    WHERE c.Email = ?
+                    ORDER BY cpc.ReceivedAt DESC
+                """;
+                params = new Object[]{email};
+            }
+
+            var rows = jdbc.query(sql, params, (rs,i) -> {
+                String resumeJson = rs.getString("ResumeResult");
+                String normalized = rs.getString("Normalized");
+                String aiResult = rs.getString("AiResult");
+                Timestamp ts = rs.getTimestamp("ReceivedAt");
+
+                var experience = extractExperienceFromResume(resumeJson);
+                if (experience.isEmpty()) experience = extractExperienceFallback(normalized, aiResult);
+
+                return new CandidateExperience(
+                        rs.getLong("Id"),
+                        rs.getString("FirstName"),
+                        rs.getString("LastName"),
+                        rs.getString("Email"),
+                        experience,
+                        ts != null ? ts.toInstant().toString() : null
+                );
+            });
+
+            if (rows.isEmpty()) {
+                return ResponseEntity.status(404).body(Map.of("message","Candidate not found"));
+            }
+            return ResponseEntity.ok(rows.get(0));
+        } catch (Exception ex) {
+            return ResponseEntity.status(500)
+                    .body(Map.of("message","Failed to load candidate experience: "+ex.getMessage()));
+        }
+    }
+
+    // --- Experience extraction helpers ---
+
+    @SuppressWarnings("unchecked")
+    private java.util.List<String> extractExperienceFromResume(String resumeJson) {
+        if (isBlank(resumeJson)) return java.util.Collections.emptyList();
+        try {
+            Map<String,Object> root = json.readValue(resumeJson, Map.class);
+
+            Object sections = root.get("sections");
+            if (sections == null && root.get("result") instanceof Map<?,?> r) {
+                sections = ((Map<?,?>) r).get("sections");
+            }
+
+            // Direct experience field
+            Object expNode = null;
+            if (sections instanceof Map<?,?> secMap) {
+                expNode = ((Map<?,?>) secMap).get("experience");
+            } else {
+                // fallback: maybe root has "experience"
+                expNode = root.get("experience");
+            }
+
+            java.util.List<String> expList = coerceExperienceList(expNode);
+            if (!expList.isEmpty()) return expList;
+
+            // If still empty and sections is a big text blob
+            if (expNode instanceof String s) {
+                return splitExperienceBlob(s);
+            }
+
+            return java.util.Collections.emptyList();
+        } catch (Exception ignored) {}
+        return java.util.Collections.emptyList();
+    }
+
+    private java.util.List<String> extractExperienceFallback(String normalizedJson, String aiResultJson) {
+        // Try normalized
+        if (!isBlank(normalizedJson)) {
+            try {
+                Map<String,Object> norm = json.readValue(normalizedJson, Map.class);
+                Object exp = firstNonNull(norm.get("experience"), norm.get("work_experience"), norm.get("workExperience"));
+                java.util.List<String> list = coerceExperienceList(exp);
+                if (!list.isEmpty()) return list;
+                if (exp instanceof String s) return splitExperienceBlob(s);
+            } catch (Exception ignored) {}
+        }
+        // Try AI result
+        if (!isBlank(aiResultJson)) {
+            try {
+                Map<String,Object> ai = json.readValue(aiResultJson, Map.class);
+                Object applied = ai.get("applied");
+                if (applied instanceof Map<?,?> a) {
+                    Object exp = ((Map<?, ?>) a).get("Experience");
+                    java.util.List<String> list = coerceExperienceList(exp);
+                    if (!list.isEmpty()) return list;
+                    if (exp instanceof String s) return splitExperienceBlob(s);
+                }
+            } catch (Exception ignored) {}
+        }
+        return java.util.Collections.emptyList();
+    }
+
+    private java.util.List<String> coerceExperienceList(Object node) {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        if (node == null) return out;
+        if (node instanceof java.util.List<?> list) {
+            for (Object o : list) {
+                if (o == null) continue;
+                String s = normalizeSpaces(String.valueOf(o));
+                if (s.isEmpty()) continue;
+                out.add(s);
+                if (out.size() >= 40) break;
+            }
+            return out;
+        }
+        if (node instanceof String s) {
+            // If multiline treat each non-empty line as item if >1 lines
+            if (s.contains("\n")) {
+                for (String line : s.split("\\r?\\n")) {
+                    String t = normalizeSpaces(line);
+                    if (t.length() > 2) out.add(t);
+                    if (out.size() >= 40) break;
+                }
+                if (!out.isEmpty()) return out;
+            }
+            // Fallback to sentence split
+            return splitExperienceBlob(s);
+        }
+        // Unknown type
+        String single = normalizeSpaces(String.valueOf(node));
+        if (!single.isEmpty()) out.add(single);
+        return out;
+    }
+
+    private java.util.List<String> splitExperienceBlob(String text) {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        if (isBlank(text)) return out;
+        // Prefer sentence boundary
+        String[] sentences = text.split("(?<=[.!?])\\s+");
+        for (String sen : sentences) {
+            String t = normalizeSpaces(sen);
+            if (t.length() < 4) continue;
+            out.add(t);
+            if (out.size() >= 40) break;
+        }
+        if (!out.isEmpty()) return out;
+
+        // Fallback: split by periods anyway
+        for (String part : text.split("\\.")) {
+            String t = normalizeSpaces(part);
+            if (t.length() < 4) continue;
+            out.add(t);
+            if (out.size() >= 40) break;
+        }
+        return out;
+    }
+
 }
 
 
