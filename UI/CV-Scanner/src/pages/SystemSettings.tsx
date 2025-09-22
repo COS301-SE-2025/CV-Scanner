@@ -35,6 +35,7 @@ const [configObj, setConfigObj] = useState<any>({});
 const [editing, setEditing] = useState<string | null>(null); // which category is being edited
 const [tempCategoryName, setTempCategoryName] = useState<string | null>(null);
 const [tempItems, setTempItems] = useState<string[]>([]);
+const [categoryOrder, setCategoryOrder] = useState<string[]>([]);
 const [categoryKeys, setCategoryKeys] = useState<Record<string, string>>({});
 
 
@@ -73,7 +74,26 @@ const loadConfig = async () => {
     const res = await fetch(`${CONFIG_BASE}/auth/config/categories`);
     if (!res.ok) throw new Error(`Failed (${res.status})`);
     const json = await res.json();
-    setConfigObj(json);
+
+    let reordered: Record<string, any> = {};
+
+    if (categoryOrder.length > 0) {
+      // Respect existing order (for edits)
+      categoryOrder.forEach((key) => {
+        if (json[key] !== undefined) reordered[key] = json[key];
+      });
+      // Add any new keys not in categoryOrder
+      Object.keys(json).forEach((key) => {
+        if (!reordered[key]) reordered[key] = json[key];
+      });
+    } else {
+      // First load, just use JSON as is
+      reordered = { ...json };
+      // Initialize categoryOrder
+      setCategoryOrder(Object.keys(json));
+    }
+
+    setConfigObj(reordered);
     setEditing(false);
   } catch (e) {
     alert("Could not load configuration.");
@@ -81,34 +101,32 @@ const loadConfig = async () => {
   }
 };
 
+
 useEffect(() => {
   loadConfig();
 }, []);
 // This runs whenever configObj changes
 useEffect(() => {
   const keys: Record<string, string> = {};
-  Object.keys(configObj).forEach((cat) => {
-    // Reuse existing key if it exists, otherwise generate a new one
+  categoryOrder.forEach((cat) => {
     keys[cat] = categoryKeys[cat] || `cat-${Date.now()}-${Math.random()}`;
   });
   setCategoryKeys(keys);
-}, [configObj]);
+}, [configObj, categoryOrder]);
 
 
 const handleSaveConfig = async () => {
-  // let parsed: any;
-  // try {
-  //   parsed = JSON.parse(configContent);
-  // } catch {
-  //   alert("Invalid JSON. Please fix before saving.");
-  //   return;
-  // }
-
   try {
+    // Reorder configObj to match categoryOrder
+    const orderedObj: Record<string, any> = {};
+    categoryOrder.forEach((key) => {
+      if (configObj[key] !== undefined) orderedObj[key] = configObj[key];
+    });
+
     const res = await fetch(`${CONFIG_BASE}/auth/config/categories`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(configObj),
+      body: JSON.stringify(orderedObj),
     });
 
     if (!res.ok) {
@@ -123,104 +141,66 @@ const handleSaveConfig = async () => {
 
     alert("Config saved successfully!");
     setEditing(false);
+
+    // Keep local state in sync
+    setConfigObj(orderedObj);
   } catch (err) {
     console.error("Save error:", err);
     alert("Could not save configuration: " + err.message);
   }
 };
+const handleAddCategory = () => {
+  let newKey = "NewCategory";
+  let counter = 1;
+  const updated = { ...configObj };
+  while (updated[newKey]) {
+    newKey = `NewCategory${counter++}`;
+  }
+  updated[newKey] = [];
+  setConfigObj(updated);
 
+  // Prepend to categoryOrder
+  setCategoryOrder((prev) => [newKey, ...prev]);
+};
 
-  // Local state for blacklist and whitelist
-  const [blacklist, setBlacklist] = useState<string[]>([]);
-  const [whitelist, setWhitelist] = useState<string[]>([]);
-  const [blackInput, setBlackInput] = useState("");
-  const [whiteInput, setWhiteInput] = useState("");
-  const [blackSearch, setBlackSearch] = useState("");
-  const [whiteSearch, setWhiteSearch] = useState("");
-
-  // Placeholder: fetch lists from API when implemented
-  useEffect(() => {
-    // Example: fetch("/api/blacklist").then(...)
-    // For now, use localStorage for demo
-    const bl = JSON.parse(localStorage.getItem("blacklist") || "[]");
-    const wl = JSON.parse(localStorage.getItem("whitelist") || "[]");
-    setBlacklist(bl);
-    setWhitelist(wl);
-  }, []);
-
-  // Add to blacklist
-  const handleAddBlacklist = () => {
-    if (blackInput.trim() && !blacklist.includes(blackInput.trim())) {
-      const updated = [...blacklist, blackInput.trim()];
-      setBlacklist(updated);
-      localStorage.setItem("blacklist", JSON.stringify(updated)); // Replace with API call
-      setBlackInput("");
-    }
-  };
-
-  // Add to whitelist
-  const handleAddWhitelist = () => {
-    if (whiteInput.trim() && !whitelist.includes(whiteInput.trim())) {
-      const updated = [...whitelist, whiteInput.trim()];
-      setWhitelist(updated);
-      localStorage.setItem("whitelist", JSON.stringify(updated)); // Replace with API call
-      setWhiteInput("");
-    }
-  };
-
-  // Remove from blacklist
-  const handleRemoveBlacklist = (item: string) => {
-    const updated = blacklist.filter((i) => i !== item);
-    setBlacklist(updated);
-    localStorage.setItem("blacklist", JSON.stringify(updated)); // Replace with API call
-  };
-
-  // Remove from whitelist
-  const handleRemoveWhitelist = (item: string) => {
-    const updated = whitelist.filter((i) => i !== item);
-    setWhitelist(updated);
-    localStorage.setItem("whitelist", JSON.stringify(updated)); // Replace with API call
-  };
 // --- helpers for rename / remove (place above return)
 const handleRenameCategory = (oldKey: string, newKeyRaw: string) => {
   const newKey = (newKeyRaw || "").trim();
-  if (newKey === oldKey) return; // nothing to do
-  if (!newKey) {
-    alert("Category name cannot be empty.");
-    return;
-  }
-  if (configObj[newKey]) {
-    alert("A category with that name already exists.");
-    return;
-  }
+  if (newKey === oldKey) return;
+  if (!newKey) return alert("Category name cannot be empty.");
+  if (configObj[newKey]) return alert("Category name already exists.");
 
-  // Update configObj
-  setConfigObj((prev: any) => {
+  // Update config object
+  setConfigObj((prev) => {
     const updated: any = { ...prev };
     updated[newKey] = updated[oldKey];
     delete updated[oldKey];
     return updated;
   });
 
-  // Keep the same React key
+  // Keep the same position in order
+  setCategoryOrder((prev) => prev.map((k) => (k === oldKey ? newKey : k)));
+
+  // Keep React keys consistent
   setCategoryKeys((prev) => {
     const updated: any = { ...prev };
     updated[newKey] = prev[oldKey];
     delete updated[oldKey];
     return updated;
   });
-
-  // Update order array
-  setCategoryOrder((prev) => prev.map((k) => (k === oldKey ? newKey : k)));
 };
+
 
 const handleRemoveCategory = (key: string) => {
   if (!window.confirm(`Remove category "${key}" and all its items?`)) return;
-  setConfigObj((prev: any) => {
+
+  setConfigObj((prev) => {
     const updated: any = { ...prev };
     delete updated[key];
     return updated;
   });
+
+  setCategoryOrder((prev) => prev.filter((k) => k !== key));
 };
 
 // --- small inner component for editing a category header
@@ -377,130 +357,131 @@ function CategoryHeaderEditor({
 
   {/* Edit / Save / Cancel buttons */}
   <Box sx={{ mt: 2 }}>
-  <Stack direction="row" spacing={2} alignItems="center">
-    {editing ? (
-      <>
+    <Stack direction="row" spacing={2} alignItems="center">
+      {editing ? (
+        <>
+          <Button
+            variant="contained"
+            color="success"
+            onClick={async () => {
+              await handleSaveConfig();
+              loadConfig();
+            }}
+            sx={{ minWidth: 100 }}
+          >
+            Save
+          </Button>
+
+          <Button
+            variant="outlined"
+            color="inherit"
+            onClick={() => {
+              loadConfig();
+              setEditing(false);
+            }}
+            sx={{ minWidth: 100 }}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={() => {
+              let newKey = "NewCategory";
+              let counter = 1;
+              const updated = { ...configObj };
+              while (updated[newKey]) {
+                newKey = `NewCategory${counter++}`;
+              }
+              updated[newKey] = [];
+              setConfigObj(updated);
+
+              // Prepend the new category in order
+              setCategoryOrder((prev) => [newKey, ...prev]);
+            }}
+          >
+            Add Category
+          </Button>
+        </>
+      ) : (
         <Button
           variant="contained"
-          color="success"
-          onClick={async () => {
-            await handleSaveConfig();
-            loadConfig();
-          }}
-          sx={{ minWidth: 100 }}
+          onClick={() => setEditing(true)}
+          sx={{ minWidth: 120 }}
         >
-          Save
+          Edit Config
         </Button>
-
-        <Button
-          variant="outlined"
-          color="inherit"
-          onClick={() => {
-            loadConfig();
-            setEditing(false);
-          }}
-          sx={{ minWidth: 100 }}
-        >
-          Cancel
-        </Button>
-
-<Button
-  variant="contained"
-  color="secondary"
-  onClick={() => {
-    setConfigObj((prev: any) => {
-      let newKey = "NewCategory";
-      let counter = 1;
-      while (prev[newKey]) {
-        newKey = `NewCategory${counter++}`;
-      }
-      // Prepend the new category
-      return { [newKey]: [], ...prev };
-    });
-  }}
->
-  Add Category
-</Button>
-      </>
-    ) : (
-      <Button
-        variant="contained"
-        onClick={() => setEditing(true)}
-        sx={{ minWidth: 120 }}
-      >
-        Edit Config
-      </Button>
-    )}
-  </Stack>
-</Box>
+      )}
+    </Stack>
+  </Box>
 
   {/* Categories */}
-  {Object.entries(configObj).map(([category, items]) => (
+  {categoryOrder.map((category) => (
     <Box key={categoryKeys[category]} sx={{ mb: 4, border: "1px solid #ddd", borderRadius: 2, p: 2 }}>
       {/* Parent Heading */}
       {editing && <Typography sx={{ fontWeight: "bold", mb: 1 }}>Parent</Typography>}
 
       {/* Category Name */}
-<Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-  {editing ? (
-    <input
-      type="text"
-      value={category}
-      onChange={(e) => handleRenameCategory(category, e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Backspace" && (e.target as HTMLInputElement).value === "") {
-          e.stopPropagation();
-        }
-      }}
-      style={{
-        flex: 1,
-        padding: "8px",
-        borderRadius: "4px",
-        border: "1px solid #ccc",
-        fontFamily: "Helvetica, sans-serif",
-        fontSize: "1rem",
-      }}
-    />
-  ) : (
-    <Typography
-      sx={{
-        flex: 1,
-        fontWeight: "bold",
-        fontSize: "1.1rem",
-        color: "#000",
-      }}
-    >
-      {category}
-    </Typography>
-  )}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+        {editing ? (
+          <input
+            type="text"
+            value={category}
+            onChange={(e) => handleRenameCategory(category, e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Backspace" && (e.target as HTMLInputElement).value === "") {
+                e.stopPropagation();
+              }
+            }}
+            style={{
+              flex: 1,
+              padding: "8px",
+              borderRadius: "4px",
+              border: "1px solid #ccc",
+              fontFamily: "Helvetica, sans-serif",
+              fontSize: "1rem",
+            }}
+          />
+        ) : (
+          <Typography
+            sx={{
+              flex: 1,
+              fontWeight: "bold",
+              fontSize: "1.1rem",
+              color: "#000",
+            }}
+          >
+            {category}
+          </Typography>
+        )}
 
-  {editing && (
-    <Button
-      variant="outlined"
-      color="error"
-      onClick={() => handleRemoveCategory(category)}
-    >
-      Remove
-    </Button>
-  )}
-</Box>
+        {editing && (
+          <Button
+            variant="outlined"
+            color="error"
+            onClick={() => handleRemoveCategory(category)}
+          >
+            Remove
+          </Button>
+        )}
+      </Box>
 
       {/* Children Heading */}
       {editing && <Typography sx={{ fontWeight: "bold", mb: 1 }}>Children Items</Typography>}
 
       {/* Items */}
       <Box sx={{ mt: 1 }}>
-        {items.map((item: string, idx: number) => (
+        {configObj[category].map((item: string, idx: number) => (
           <Box key={idx} sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
             <input
               type="text"
               value={item}
               disabled={!editing}
               onChange={(e) => {
-                if (!editing) return;
-                const updated = [...items];
+                const updated = [...configObj[category]];
                 updated[idx] = e.target.value;
-                setConfigObj((prev: any) => ({ ...prev, [category]: updated }));
+                setConfigObj((prev) => ({ ...prev, [category]: updated }));
               }}
               style={{
                 flex: 1,
@@ -516,8 +497,8 @@ function CategoryHeaderEditor({
                 variant="outlined"
                 color="error"
                 onClick={() => {
-                  const updated = items.filter((_, i) => i !== idx);
-                  setConfigObj((prev: any) => ({ ...prev, [category]: updated }));
+                  const updated = configObj[category].filter((_, i) => i !== idx);
+                  setConfigObj((prev) => ({ ...prev, [category]: updated }));
                 }}
               >
                 Remove
@@ -532,7 +513,7 @@ function CategoryHeaderEditor({
             variant="contained"
             size="small"
             onClick={() =>
-              setConfigObj((prev: any) => ({ ...prev, [category]: [...items, ""] }))
+              setConfigObj((prev) => ({ ...prev, [category]: [...prev[category], ""] }))
             }
           >
             Add Item
@@ -541,29 +522,8 @@ function CategoryHeaderEditor({
       </Box>
     </Box>
   ))}
-
-  {/* Add New Category */}
-  {editing && (
-    <Box sx={{ mt: 2 }}>
-      <Button
-        variant="contained"
-        color="secondary"
-        onClick={() => {
-          let newKey = "NewCategory";
-          let counter = 1;
-          const updated = { ...configObj };
-          while (updated[newKey]) {
-            newKey = `NewCategory${counter++}`;
-          }
-          updated[newKey] = [];
-          setConfigObj(updated);
-        }}
-      >
-        Add Category
-      </Button>
-    </Box>
-  )}
 </Box>
+
 
 
 
