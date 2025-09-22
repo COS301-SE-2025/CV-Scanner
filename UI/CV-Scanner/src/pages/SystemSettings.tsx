@@ -8,6 +8,8 @@ import {
   IconButton,
   Tooltip,
   Button,
+  TextField,
+  Stack
 } from "@mui/material";
 import Sidebar from "./Sidebar";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
@@ -28,8 +30,12 @@ export default function SystemSettingsPage() {
   const [user, setUser] = useState<any>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [configContent, setConfigContent] = useState("");
-const [editing, setEditing] = useState(false);
+//const [editing, setEditing] = useState(false);
 const [configObj, setConfigObj] = useState<any>({});
+const [editing, setEditing] = useState<string | null>(null); // which category is being edited
+const [tempCategoryName, setTempCategoryName] = useState<string | null>(null);
+const [tempItems, setTempItems] = useState<string[]>([]);
+const [categoryKeys, setCategoryKeys] = useState<Record<string, string>>({});
 
 
 const CONFIG_BASE = "http://localhost:8081";
@@ -75,19 +81,28 @@ const loadConfig = async () => {
   }
 };
 
-
 useEffect(() => {
   loadConfig();
 }, []);
+// This runs whenever configObj changes
+useEffect(() => {
+  const keys: Record<string, string> = {};
+  Object.keys(configObj).forEach((cat) => {
+    // Reuse existing key if it exists, otherwise generate a new one
+    keys[cat] = categoryKeys[cat] || `cat-${Date.now()}-${Math.random()}`;
+  });
+  setCategoryKeys(keys);
+}, [configObj]);
+
 
 const handleSaveConfig = async () => {
-  let parsed: any;
-  try {
-    parsed = JSON.parse(configContent);
-  } catch {
-    alert("Invalid JSON. Please fix before saving.");
-    return;
-  }
+  // let parsed: any;
+  // try {
+  //   parsed = JSON.parse(configContent);
+  // } catch {
+  //   alert("Invalid JSON. Please fix before saving.");
+  //   return;
+  // }
 
   try {
     const res = await fetch(`${CONFIG_BASE}/auth/config/categories`, {
@@ -174,17 +189,29 @@ const handleRenameCategory = (oldKey: string, newKeyRaw: string) => {
     alert("Category name cannot be empty.");
     return;
   }
+  if (configObj[newKey]) {
+    alert("A category with that name already exists.");
+    return;
+  }
 
+  // Update configObj
   setConfigObj((prev: any) => {
-    if (prev[newKey]) {
-      alert("A category with that name already exists.");
-      return prev;
-    }
     const updated: any = { ...prev };
     updated[newKey] = updated[oldKey];
     delete updated[oldKey];
     return updated;
   });
+
+  // Keep the same React key
+  setCategoryKeys((prev) => {
+    const updated: any = { ...prev };
+    updated[newKey] = prev[oldKey];
+    delete updated[oldKey];
+    return updated;
+  });
+
+  // Update order array
+  setCategoryOrder((prev) => prev.map((k) => (k === oldKey ? newKey : k)));
 };
 
 const handleRemoveCategory = (key: string) => {
@@ -341,339 +368,201 @@ function CategoryHeaderEditor({
           <Typography variant="h5" sx={{ fontWeight: "bold", mb: 3 ,fontFamily: "Helvetica, sans-serif", color: "#fff"}}>
             System Settings
           </Typography>
-
-          {/* Search bars OUTSIDE the blacklist/whitelist boxes */}
-          <Box sx={{ display: "flex", gap: 4, mb: 2 }}>
-            <Box sx={{ flex: 1, fontFamily: "Helvetica, sans-serif" }}>
-              <input
-                type="text"
-                value={blackSearch}
-                onChange={(e) => setBlackSearch(e.target.value)}
-                placeholder="Search blacklist"
-                style={{
-                  width: "98%",
-                  padding: "8px",
-                  borderRadius: "4px",
-                  border: "1px solid #444",
-                  background: "#d1dbe5ff",
-                  color: "#fff",
-                  marginBottom: "8px",
-                  fontFamily: "Helvetica, sans-serif",
-                  fontSize: "1rem",
-                }}
-              />
-            </Box>
-            <Box sx={{ flex: 1 }}>
-              <input
-                type="text"
-                value={whiteSearch}
-                onChange={(e) => setWhiteSearch(e.target.value)}
-                placeholder="Search whitelist"
-                style={{
-                  width: "98%",
-                  padding: "8px",
-                  borderRadius: "4px",
-                  border: "1px solid #444",
-                  background: "#d1dbe5ff",
-                  color: "#fff",
-                  marginBottom: "8px",
-                  fontFamily: "Helvetica, sans-serif",
-                  fontSize: "1rem",
-                }}
-              />
-            </Box>
-          </Box>
-
-          {/* Blacklist and Whitelist Section */}
-          <Box sx={{ display: "flex", gap: 4, mt: 2 }}>
-            {/* Blacklist */}
-            <Box sx={{ flex: 1, bgcolor: "#DEDDEE", p: 2, borderRadius: 2 }}>
-              <Typography variant="h6" sx={{ mb: 2, color: "#000000ff" , fontFamily: "Helvetica, sans-serif", fontWeight: "bold"}}>
-                Blacklist
-              </Typography>
-              <Box sx={{ mb: 2, fontFamily: "Helvetica, sans-serif" }}>
-                {blacklist.filter((item) =>
-                  item.toLowerCase().includes(blackSearch.toLowerCase())
-                ).length === 0 ? (
-                  <Typography sx={{ color: "#aaa", fontFamily: "Helvetica, sans-serif" }}>
-                    No blacklisted items.
-                  </Typography>
-                ) : (
-                  blacklist
-                    .filter((item) =>
-                      item.toLowerCase().includes(blackSearch.toLowerCase())
-                    )
-                    .map((item) => (
-                      <Box
-                        key={item}
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          mb: 1,
-                          bgcolor: "#a8bbe2ff",
-                          color: "#000000ff",
-                          p: 1,
-                          borderRadius: 1,
-                          fontFamily: "Helvetica, sans-serif",
-                          fontSize: "1rem",
-                        }}
-                      >
-                        <Typography sx={{ flex: 1, fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}>{item}</Typography>
-                        <Button
-                          size="small"
-                          color="error"
-                          onClick={() => handleRemoveBlacklist(item)}
-                          sx={{ ml: 2 }}
-                        >
-                          Remove
-                        </Button>
-                      </Box>
-                    ))
-                )}
-              </Box>
-              <Box sx={{ display: "flex", gap: 1 }}>
-                <input
-                  type="text"
-                  value={blackInput}
-                  onChange={(e) => setBlackInput(e.target.value)}
-                  placeholder="Add to blacklist"
-                  style={{
-                    flex: 1,
-                    padding: "8px",
-                    borderRadius: "4px",
-                    border: "1px solid #444",
-                    background: "#d1dbe5ff",
-                    color: "#fff",
-                    fontFamily: "Helvetica, sans-serif",
-                  fontSize: "1rem",
-                  }}
-                />
-                <Button
-                  variant="contained"
-                  color="error"
-                  onClick={handleAddBlacklist}
-                  sx={{ minWidth: 0, px: 2 }}
-                >
-                  Add
-                </Button>
-              </Box>
-            </Box>
-            {/* Whitelist */}
-            <Box sx={{ flex: 1, bgcolor: "#DEDDEE", p: 2, borderRadius: 2 }}>
-              <Typography variant="h6" sx={{ mb: 2, color: "#000000ff", fontFamily: "Helvetica, sans-serif", fontWeight: "bold" }}>
-                Whitelist
-              </Typography>
-              <Box sx={{ mb: 2, fontFamily: "Helvetica, sans-serif" }}>
-                {whitelist.filter((item) =>
-                  item.toLowerCase().includes(whiteSearch.toLowerCase())
-                ).length === 0 ? (
-                  <Typography sx={{ color: "#aaa", fontFamily: "Helvetica, sans-serif" }}>
-                    No whitelisted items.
-                  </Typography>
-                ) : (
-                  whitelist
-                    .filter((item) =>
-                      item.toLowerCase().includes(whiteSearch.toLowerCase())
-                    )
-                    .map((item) => (
-                      <Box
-                        key={item}
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          mb: 1,
-                          bgcolor: "#a8bbe2ff",
-                          color: "#000000ff",
-                          p: 1,
-                          borderRadius: 1,
-                          fontFamily: "Helvetica, sans-serif",
-                          fontSize: "1rem",
-                        }}
-                      >
-                        <Typography sx={{ flex: 1, fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}>{item}</Typography>
-                        <Button
-                          size="small"
-                          color="primary"
-                          onClick={() => handleRemoveWhitelist(item)}
-                          sx={{ ml: 2 }}
-                        >
-                          Remove
-                        </Button>
-                      </Box>
-                    ))
-                )}
-              </Box>
-              <Box sx={{ display: "flex", gap: 1 }}>
-                <input
-                  type="text"
-                  value={whiteInput}
-                  onChange={(e) => setWhiteInput(e.target.value)}
-                  placeholder="Add to whitelist"
-                  style={{
-                    flex: 1,
-                    padding: "8px",
-                    borderRadius: "4px",
-                    border: "1px solid #444",
-                    background: "#d1dbe5ff",
-                    color: "#fff",
-                    fontFamily: "Helvetica, sans-serif",
-                    fontSize: "1rem",
-                  }}
-                />
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleAddWhitelist}
-                  sx={{ minWidth: 0, px: 2 }}
-                >
-                  Add
-                </Button>
-              </Box>
-            </Box>
-
-          </Box>
-                      {/* CV Extraction Config Editor */}
+  
+{/* CV Extraction Config Editor */}
 <Box sx={{ mt: 5, bgcolor: "#DEDDEE", p: 3, borderRadius: 2 }}>
   <Typography variant="h6" sx={{ mb: 2, color: "#000", fontWeight: "bold" }}>
     CV Extraction Config Editor
   </Typography>
 
-{Object.entries(configObj).map(([category, items]) => (
-  <Box key={category} sx={{ mb: 4 }}>
-    {/* Category header (editable when editing=true) */}
-    <CategoryHeaderEditor
-      originalKey={category}
-      editing={editing}
-      onRename={handleRenameCategory}
-      onRemove={handleRemoveCategory}
-    />
-
-    {/* Items */}
-    {(items as string[]).map((item, idx) => (
-      <Box
-        key={idx}
-        sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}
-      >
-        <input
-          type="text"
-          value={item}
-          disabled={!editing}
-          onChange={(e) => {
-            // immutable update of the array
-            setConfigObj((prev: any) => {
-              const updated = { ...prev };
-              const arr = Array.isArray(updated[category])
-                ? [...updated[category]]
-                : [];
-              arr[idx] = e.target.value;
-              updated[category] = arr;
-              return updated;
-            });
+  {/* Edit / Save / Cancel buttons */}
+  <Box sx={{ mt: 2 }}>
+  <Stack direction="row" spacing={2} alignItems="center">
+    {editing ? (
+      <>
+        <Button
+          variant="contained"
+          color="success"
+          onClick={async () => {
+            await handleSaveConfig();
+            loadConfig();
           }}
-          style={{
-            flex: 1,
-            padding: "8px",
-            borderRadius: "4px",
-            border: "1px solid #ccc",
-            fontFamily: "Helvetica, sans-serif",
-            fontSize: "1rem",
-          }}
-        />
-        {editing && (
-          <Button
-            variant="outlined"
-            color="error"
-            onClick={() => {
-              setConfigObj((prev: any) => {
-                const updated = { ...prev };
-                updated[category] = (updated[category] || []).filter(
-                  (_: any, i: number) => i !== idx
-                );
-                return updated;
-              });
-            }}
-          >
-            Remove
-          </Button>
-        )}
-      </Box>
-    ))}
+          sx={{ minWidth: 100 }}
+        >
+          Save
+        </Button>
 
-    {/* Add item button */}
-    {editing && (
+        <Button
+          variant="outlined"
+          color="inherit"
+          onClick={() => {
+            loadConfig();
+            setEditing(false);
+          }}
+          sx={{ minWidth: 100 }}
+        >
+          Cancel
+        </Button>
+
+<Button
+  variant="contained"
+  color="secondary"
+  onClick={() => {
+    setConfigObj((prev: any) => {
+      let newKey = "NewCategory";
+      let counter = 1;
+      while (prev[newKey]) {
+        newKey = `NewCategory${counter++}`;
+      }
+      // Prepend the new category
+      return { [newKey]: [], ...prev };
+    });
+  }}
+>
+  Add Category
+</Button>
+      </>
+    ) : (
       <Button
         variant="contained"
-        size="small"
-        onClick={() => {
-          setConfigObj((prev: any) => {
-            const updated = { ...prev };
-            updated[category] = [...(updated[category] || []), ""];
-            return updated;
-          });
-        }}
+        onClick={() => setEditing(true)}
+        sx={{ minWidth: 120 }}
       >
-        Add {category} Item
+        Edit Config
       </Button>
     )}
-  </Box>
-))}
+  </Stack>
+</Box>
 
-{/* Add New Category */}
-{editing && (
-  <Box sx={{ mt: 2 }}>
-    <Button
-      variant="contained"
-      color="secondary"
-      onClick={() => {
-        setConfigObj((prev: any) => {
-          const updated = { ...prev };
-          let newKey = "NewCategory";
-          let counter = 1;
-          while (updated[newKey]) {
-            newKey = `NewCategory${counter++}`;
-          }
-          updated[newKey] = [];
-          return updated;
-        });
+  {/* Categories */}
+  {Object.entries(configObj).map(([category, items]) => (
+    <Box key={categoryKeys[category]} sx={{ mb: 4, border: "1px solid #ddd", borderRadius: 2, p: 2 }}>
+      {/* Parent Heading */}
+      {editing && <Typography sx={{ fontWeight: "bold", mb: 1 }}>Parent</Typography>}
+
+      {/* Category Name */}
+<Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+  {editing ? (
+    <input
+      type="text"
+      value={category}
+      onChange={(e) => handleRenameCategory(category, e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Backspace" && (e.target as HTMLInputElement).value === "") {
+          e.stopPropagation();
+        }
+      }}
+      style={{
+        flex: 1,
+        padding: "8px",
+        borderRadius: "4px",
+        border: "1px solid #ccc",
+        fontFamily: "Helvetica, sans-serif",
+        fontSize: "1rem",
+      }}
+    />
+  ) : (
+    <Typography
+      sx={{
+        flex: 1,
+        fontWeight: "bold",
+        fontSize: "1.1rem",
+        color: "#000",
       }}
     >
-      Add Category
-    </Button>
-  </Box>
-)}
+      {category}
+    </Typography>
+  )}
 
-{/* Save/Cancel */}
-<Box sx={{ mt: 2, display: "flex", gap: 2 }}>
-  {editing ? (
-    <>
-      <Button
-        variant="contained"
-        color="success"
-        onClick={async () => {
-          await handleSaveConfig();
-          loadConfig();
-        }}
-      >
-        Save
-      </Button>
-      <Button
-        variant="outlined"
-        color="inherit"
-        onClick={() => {
-          loadConfig();
-          setEditing(false);
-        }}
-      >
-        Cancel
-      </Button>
-    </>
-  ) : (
-    <Button variant="contained" onClick={() => setEditing(true)}>
-      Edit Config
+  {editing && (
+    <Button
+      variant="outlined"
+      color="error"
+      onClick={() => handleRemoveCategory(category)}
+    >
+      Remove
     </Button>
   )}
 </Box>
 
+      {/* Children Heading */}
+      {editing && <Typography sx={{ fontWeight: "bold", mb: 1 }}>Children Items</Typography>}
+
+      {/* Items */}
+      <Box sx={{ mt: 1 }}>
+        {items.map((item: string, idx: number) => (
+          <Box key={idx} sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
+            <input
+              type="text"
+              value={item}
+              disabled={!editing}
+              onChange={(e) => {
+                if (!editing) return;
+                const updated = [...items];
+                updated[idx] = e.target.value;
+                setConfigObj((prev: any) => ({ ...prev, [category]: updated }));
+              }}
+              style={{
+                flex: 1,
+                padding: "8px",
+                borderRadius: "4px",
+                border: "1px solid #ccc",
+                fontFamily: "Helvetica, sans-serif",
+                fontSize: "1rem",
+              }}
+            />
+            {editing && (
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={() => {
+                  const updated = items.filter((_, i) => i !== idx);
+                  setConfigObj((prev: any) => ({ ...prev, [category]: updated }));
+                }}
+              >
+                Remove
+              </Button>
+            )}
+          </Box>
+        ))}
+
+        {/* Add Child Item */}
+        {editing && (
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() =>
+              setConfigObj((prev: any) => ({ ...prev, [category]: [...items, ""] }))
+            }
+          >
+            Add Item
+          </Button>
+        )}
+      </Box>
+    </Box>
+  ))}
+
+  {/* Add New Category */}
+  {editing && (
+    <Box sx={{ mt: 2 }}>
+      <Button
+        variant="contained"
+        color="secondary"
+        onClick={() => {
+          let newKey = "NewCategory";
+          let counter = 1;
+          const updated = { ...configObj };
+          while (updated[newKey]) {
+            newKey = `NewCategory${counter++}`;
+          }
+          updated[newKey] = [];
+          setConfigObj(updated);
+        }}
+      >
+        Add Category
+      </Button>
+    </Box>
+  )}
 </Box>
 
 
