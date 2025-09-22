@@ -727,19 +727,44 @@ public class CVController {
     }
 
     // --- NEW: single candidate summary by id ---
-    @GetMapping({"/{id}/summary", "/{id}/summaries"})
-    public ResponseEntity<?> getCandidateSummary(@PathVariable("id") long id) {
+    @GetMapping({"/{identifier}/summary", "/{identifier}/summaries"})
+    public ResponseEntity<?> getCandidateSummary(@PathVariable("identifier") String identifier) {
         try {
-            String sql = """
-                SELECT TOP 1 c.Id, c.FirstName, c.LastName, c.Email,
-                             cpc.ResumeResult, cpc.Normalized, cpc.AiResult, cpc.ReceivedAt
-                FROM dbo.Candidates c
-                LEFT JOIN dbo.CandidateParsedCv cpc ON cpc.CandidateId = c.Id
-                WHERE c.Id = ?
-                ORDER BY cpc.ReceivedAt DESC
-            """;
+            Long candidateId = null;
+            String email = null;
 
-            List<CandidateResumeSummary> rows = jdbc.query(sql, new Object[]{id}, (rs, i) -> {
+            try {
+                candidateId = Long.parseLong(identifier);
+            } catch (NumberFormatException ex) {
+                email = identifier; // treat as email
+            }
+
+            String sql;
+            Object[] params;
+
+            if (candidateId != null) {
+                sql = """
+                    SELECT TOP 1 c.Id, c.FirstName, c.LastName, c.Email,
+                                 cpc.ResumeResult, cpc.Normalized, cpc.AiResult, cpc.ReceivedAt
+                    FROM dbo.Candidates c
+                    LEFT JOIN dbo.CandidateParsedCv cpc ON cpc.CandidateId = c.Id
+                    WHERE c.Id = ?
+                    ORDER BY cpc.ReceivedAt DESC
+                """;
+                params = new Object[]{candidateId};
+            } else {
+                sql = """
+                    SELECT TOP 1 c.Id, c.FirstName, c.LastName, c.Email,
+                                 cpc.ResumeResult, cpc.Normalized, cpc.AiResult, cpc.ReceivedAt
+                    FROM dbo.Candidates c
+                    LEFT JOIN dbo.CandidateParsedCv cpc ON cpc.CandidateId = c.Id
+                    WHERE c.Email = ?
+                    ORDER BY cpc.ReceivedAt DESC
+                """;
+                params = new Object[]{email};
+            }
+
+            var rows = jdbc.query(sql, params, (rs, i) -> {
                 String resumeJson = rs.getString("ResumeResult");
                 String normalized = rs.getString("Normalized");
                 String aiResult = rs.getString("AiResult");
@@ -755,10 +780,14 @@ public class CVController {
                 );
             });
 
-            if (rows.isEmpty()) return ResponseEntity.status(404).body(Map.of("message","Candidate not found"));
+            if (rows.isEmpty()) {
+                return ResponseEntity.status(404)
+                        .body(Map.of("message", "Candidate not found"));
+            }
             return ResponseEntity.ok(rows.get(0));
         } catch (Exception ex) {
-            return ResponseEntity.status(500).body(Map.of("message","Failed to load summary: "+ex.getMessage()));
+            return ResponseEntity.status(500)
+                    .body(Map.of("message","Failed to load summary: "+ex.getMessage()));
         }
     }
 
