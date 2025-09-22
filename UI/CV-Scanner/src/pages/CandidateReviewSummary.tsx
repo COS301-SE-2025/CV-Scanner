@@ -821,20 +821,7 @@ export default function CandidateReviewSummary() {
                   Resume & Links
                 </Typography>
 
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  sx={{ flexWrap: "wrap", mb: 2 }}
-                >
-                  <Button
-                    variant="contained"
-                    sx={reviewButtonStyle}
-                    onClick={() =>
-                      window.open(candidate.links.github, "_blank")
-                    }
-                  >
-                    GitHub
-                  </Button>
+               
                   <Button
                     variant="contained"
                     sx={reviewButtonStyle}
@@ -842,7 +829,7 @@ export default function CandidateReviewSummary() {
                       window.open(candidate.links.linkedin, "_blank")
                     }
                   >
-                    LinkedIn
+                    
                   </Button>
                 </Stack>
 
