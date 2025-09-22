@@ -101,6 +101,38 @@ const loadConfig = async () => {
   }
 };
 
+const startEditing = () => {
+  fetch(`${CONFIG_BASE}/auth/config/categories`)
+    .then(res => res.json())
+    .then((json) => {
+      // Build new configObj
+      const newConfig: Record<string, any> = {};
+      const newCategoryKeys: Record<string, string> = { ...categoryKeys };
+
+      // Put new categories first
+      Object.keys(json).forEach((key) => {
+        newConfig[key] = json[key];
+        // Keep existing React key or generate a new one
+        if (!newCategoryKeys[key]) {
+          newCategoryKeys[key] = `cat-${Date.now()}-${Math.random()}`;
+        }
+      });
+
+      // Update categoryOrder: new/external categories first, existing ones after
+      const newCategoryOrder = Object.keys(newConfig);
+
+      setConfigObj(newConfig);
+      setCategoryKeys(newCategoryKeys);
+      setCategoryOrder(newCategoryOrder);
+      setEditing(true);
+    })
+    .catch((err) => {
+      console.error(err);
+      alert("Could not load configuration.");
+    });
+};
+
+
 
 useEffect(() => {
   loadConfig();
@@ -161,7 +193,14 @@ const handleAddCategory = () => {
 
   // Prepend to categoryOrder
   setCategoryOrder((prev) => [newKey, ...prev]);
+
+  // Generate a unique React key for this category
+  setCategoryKeys((prev) => ({
+    ...prev,
+    [newKey]: `cat-${Date.now()}-${Math.random()}`,
+  }));
 };
+
 
 // --- helpers for rename / remove (place above return)
 const handleRenameCategory = (oldKey: string, newKeyRaw: string) => {
@@ -389,7 +428,9 @@ function CategoryHeaderEditor({
                 console.error(e);
               }
             }}
-            sx={{ minWidth: 100 }}
+            sx={{ minWidth: 100, 
+              color: "#727272ff", borderColor: "#727272ff"
+            }}
           >
             Cancel
           </Button>
@@ -398,19 +439,7 @@ function CategoryHeaderEditor({
           <Button
             variant="contained"
             color="secondary"
-            onClick={() => {
-              let newKey = "NewCategory";
-              let counter = 1;
-              const updated = { ...configObj };
-              while (updated[newKey]) {
-                newKey = `NewCategory${counter++}`;
-              }
-              updated[newKey] = [];
-              setConfigObj(updated);
-
-              // Prepend the new category in order
-              setCategoryOrder((prev) => [newKey, ...prev]);
-            }}
+            onClick={handleAddCategory}
           >
             Add Category
           </Button>
@@ -418,7 +447,8 @@ function CategoryHeaderEditor({
       ) : (
         <Button
           variant="contained"
-          onClick={() => setEditing(true)}
+          onClick={
+            startEditing}
           sx={{ minWidth: 120 }}
         >
           Edit Config
@@ -431,7 +461,7 @@ function CategoryHeaderEditor({
   {categoryOrder.map((category) => (
     <Box key={categoryKeys[category]} sx={{ mb: 4, border: "1px solid #ddd", borderRadius: 2, p: 2 }}>
       {/* Parent Heading */}
-      {editing && <Typography sx={{ fontWeight: "bold", mb: 1 }}>Parent</Typography>}
+      {editing && <Typography sx={{ fontWeight: "bold", mb: 1, color: "#000"}}>Category</Typography>}
 
       {/* Category Name */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
@@ -479,7 +509,7 @@ function CategoryHeaderEditor({
       </Box>
 
      {/* Children Heading */}
-{editing && <Typography sx={{ fontWeight: "bold", mb: 1 }}>Children Items</Typography>}
+{editing && <Typography sx={{ fontWeight: "bold", mb: 1, color: "#000" }}>Category Tags</Typography>}
 
 {/* Items */}
 <Box sx={{ mt: 1 }}>
