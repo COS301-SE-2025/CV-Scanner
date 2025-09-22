@@ -662,25 +662,7 @@ export default function CandidateReviewSummary() {
             ))}
           </Box>
           {/* HEADER STRIP */}
-          <Paper
-            elevation={6}
-            sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
-          >
-            {/* Top row: avatar + title + quick actions */}
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
-              <Avatar sx={{ width: 56, height: 56, bgcolor: "#08726a" }}>
-                {candidate.name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .slice(0, 2)}
-              </Avatar>
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="body2" sx={{ color: "#555" }}>
-                  {candidate.title} • {candidate.yoe} years •{" "}
-                  {candidate.location}
-                </Typography>
-              </Box>
+        
 
         
 
