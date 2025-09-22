@@ -58,6 +58,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       <Box
         sx={{
           width: 40,
+          maxWidth: 220,
           bgcolor: "#232A3B",
           display: "flex",
           justifyContent: "center",
