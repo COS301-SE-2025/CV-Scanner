@@ -29,6 +29,8 @@ export default function SystemSettingsPage() {
   const [collapsed, setCollapsed] = useState(false);
   const [configContent, setConfigContent] = useState("");
 const [editing, setEditing] = useState(false);
+const [configObj, setConfigObj] = useState<any>({});
+
 
 const CONFIG_BASE = "http://localhost:8081";
 
@@ -63,24 +65,16 @@ const CONFIG_BASE = "http://localhost:8081";
 const loadConfig = async () => {
   try {
     const res = await fetch(`${CONFIG_BASE}/auth/config/categories`);
-    if (!res.ok) {
-      let msg = `Failed to load configuration (${res.status})`;
-      try {
-        const j = await res.json();
-        msg = j?.detail || msg;
-      } catch {}
-      alert(msg);
-      return;
-    }
+    if (!res.ok) throw new Error(`Failed (${res.status})`);
     const json = await res.json();
-    const pretty = JSON.stringify(json, null, 2);
-    setConfigContent(pretty); // your local state
-    setEditing(false); // reset editing state
+    setConfigObj(json);
+    setEditing(false);
   } catch (e) {
     alert("Could not load configuration.");
     console.error(e);
   }
 };
+
 
 useEffect(() => {
   loadConfig();
@@ -99,7 +93,7 @@ const handleSaveConfig = async () => {
     const res = await fetch(`${CONFIG_BASE}/auth/config/categories`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(parsed),
+      body: JSON.stringify(configObj),
     });
 
     if (!res.ok) {
@@ -172,6 +166,109 @@ const handleSaveConfig = async () => {
     setWhitelist(updated);
     localStorage.setItem("whitelist", JSON.stringify(updated)); // Replace with API call
   };
+// --- helpers for rename / remove (place above return)
+const handleRenameCategory = (oldKey: string, newKeyRaw: string) => {
+  const newKey = (newKeyRaw || "").trim();
+  if (newKey === oldKey) return; // nothing to do
+  if (!newKey) {
+    alert("Category name cannot be empty.");
+    return;
+  }
+
+  setConfigObj((prev: any) => {
+    if (prev[newKey]) {
+      alert("A category with that name already exists.");
+      return prev;
+    }
+    const updated: any = { ...prev };
+    updated[newKey] = updated[oldKey];
+    delete updated[oldKey];
+    return updated;
+  });
+};
+
+const handleRemoveCategory = (key: string) => {
+  if (!window.confirm(`Remove category "${key}" and all its items?`)) return;
+  setConfigObj((prev: any) => {
+    const updated: any = { ...prev };
+    delete updated[key];
+    return updated;
+  });
+};
+
+// --- small inner component for editing a category header
+function CategoryHeaderEditor({
+  originalKey,
+  editing,
+  onRename,
+  onRemove,
+}: {
+  originalKey: string;
+  editing: boolean;
+  onRename: (oldKey: string, newKey: string) => void;
+  onRemove: (key: string) => void;
+}) {
+  const [localName, setLocalName] = useState(originalKey);
+
+  // Sync when parent key changes (rename committed from elsewhere)
+  useEffect(() => {
+    setLocalName(originalKey);
+  }, [originalKey]);
+
+  const commit = () => {
+    if (localName.trim() === originalKey) {
+      // no change
+      return;
+    }
+    onRename(originalKey, localName);
+  };
+
+  if (!editing)
+    return (
+      <Typography variant="h6" sx={{ color: "#000", mb: 1 }}>
+        {originalKey}
+      </Typography>
+    );
+
+  return (
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+      <input
+        // keep input key tied to originalKey so it's stable while editing
+        key={`hdr-${originalKey}`}
+        type="text"
+        value={localName}
+        onChange={(e) => setLocalName(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            // commit on Enter
+            (e.target as HTMLInputElement).blur();
+          }
+          if (e.key === "Escape") {
+            // cancel editing the name and restore
+            setLocalName(originalKey);
+            (e.target as HTMLInputElement).blur();
+          }
+        }}
+        style={{
+          flex: 1,
+          padding: "8px",
+          borderRadius: "4px",
+          border: "1px solid #ccc",
+          fontFamily: "Helvetica, sans-serif",
+          fontSize: "1rem",
+        }}
+      />
+      <Button
+        variant="outlined"
+        color="error"
+        onClick={() => onRemove(originalKey)}
+      >
+        Remove
+      </Button>
+    </Box>
+  );
+}
 
   return (
     <Box
@@ -441,54 +538,144 @@ const handleSaveConfig = async () => {
     CV Extraction Config Editor
   </Typography>
 
-  <textarea
-    value={configContent}
-    onChange={(e) => setConfigContent(e.target.value)}
-    readOnly={!editing}
-    style={{
-      width: "100%",
-      minHeight: "300px",
-      padding: "10px",
-      fontFamily: "monospace",
-      fontSize: "14px",
-      background: editing ? "#fff" : "#f4f4f4",
-      border: "1px solid #ccc",
-      borderRadius: "8px",
-      resize: "vertical",
-    }}
-  />
+{Object.entries(configObj).map(([category, items]) => (
+  <Box key={category} sx={{ mb: 4 }}>
+    {/* Category header (editable when editing=true) */}
+    <CategoryHeaderEditor
+      originalKey={category}
+      editing={editing}
+      onRename={handleRenameCategory}
+      onRemove={handleRemoveCategory}
+    />
 
-  <Box sx={{ mt: 2, display: "flex", gap: 2 }}>
-    {editing ? (
-      <>
-        <Button
-          variant="contained"
-          color="success"
-          onClick={async () => {
-            await handleSaveConfig();
-            loadConfig(); // refresh config after saving
+    {/* Items */}
+    {(items as string[]).map((item, idx) => (
+      <Box
+        key={idx}
+        sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}
+      >
+        <input
+          type="text"
+          value={item}
+          disabled={!editing}
+          onChange={(e) => {
+            // immutable update of the array
+            setConfigObj((prev: any) => {
+              const updated = { ...prev };
+              const arr = Array.isArray(updated[category])
+                ? [...updated[category]]
+                : [];
+              arr[idx] = e.target.value;
+              updated[category] = arr;
+              return updated;
+            });
           }}
-        >
-          Save
-        </Button>
-        <Button
-          variant="outlined"
-          color="inherit"
-          onClick={() => {
-            loadConfig(); // reload original config on cancel
-            setEditing(false);
+          style={{
+            flex: 1,
+            padding: "8px",
+            borderRadius: "4px",
+            border: "1px solid #ccc",
+            fontFamily: "Helvetica, sans-serif",
+            fontSize: "1rem",
           }}
-        >
-          Cancel
-        </Button>
-      </>
-    ) : (
-      <Button variant="contained" onClick={() => setEditing(true)}>
-        Edit Config
+        />
+        {editing && (
+          <Button
+            variant="outlined"
+            color="error"
+            onClick={() => {
+              setConfigObj((prev: any) => {
+                const updated = { ...prev };
+                updated[category] = (updated[category] || []).filter(
+                  (_: any, i: number) => i !== idx
+                );
+                return updated;
+              });
+            }}
+          >
+            Remove
+          </Button>
+        )}
+      </Box>
+    ))}
+
+    {/* Add item button */}
+    {editing && (
+      <Button
+        variant="contained"
+        size="small"
+        onClick={() => {
+          setConfigObj((prev: any) => {
+            const updated = { ...prev };
+            updated[category] = [...(updated[category] || []), ""];
+            return updated;
+          });
+        }}
+      >
+        Add {category} Item
       </Button>
     )}
   </Box>
+))}
+
+{/* Add New Category */}
+{editing && (
+  <Box sx={{ mt: 2 }}>
+    <Button
+      variant="contained"
+      color="secondary"
+      onClick={() => {
+        setConfigObj((prev: any) => {
+          const updated = { ...prev };
+          let newKey = "NewCategory";
+          let counter = 1;
+          while (updated[newKey]) {
+            newKey = `NewCategory${counter++}`;
+          }
+          updated[newKey] = [];
+          return updated;
+        });
+      }}
+    >
+      Add Category
+    </Button>
+  </Box>
+)}
+
+{/* Save/Cancel */}
+<Box sx={{ mt: 2, display: "flex", gap: 2 }}>
+  {editing ? (
+    <>
+      <Button
+        variant="contained"
+        color="success"
+        onClick={async () => {
+          await handleSaveConfig();
+          loadConfig();
+        }}
+      >
+        Save
+      </Button>
+      <Button
+        variant="outlined"
+        color="inherit"
+        onClick={() => {
+          loadConfig();
+          setEditing(false);
+        }}
+      >
+        Cancel
+      </Button>
+    </>
+  ) : (
+    <Button variant="contained" onClick={() => setEditing(true)}>
+      Edit Config
+    </Button>
+  )}
 </Box>
+
+</Box>
+
 
 
         </Box>
