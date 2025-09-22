@@ -1605,4 +1605,174 @@ public class ApiApplicationTests {
             .andExpect(jsonPath("$.message",
                 org.hamcrest.Matchers.containsString("Failed to load candidate experience")));
     }
+
+    // --------- CVController: /cv/filenames & /cv/{identifier}/filename tests ---------
+
+    @Test
+    @DisplayName("cv/filenames - success returns list with extracted or fallback filenames")
+    @SuppressWarnings("unchecked")
+    void cv_filenames_list_success() throws Exception {
+        doAnswer(invocation -> {
+            RowMapper<CVController.CandidateFilename> rm =
+                (RowMapper<CVController.CandidateFilename>) invocation.getArgument(1);
+
+            ResultSet rs1 = mock(ResultSet.class);
+            when(rs1.getLong("Id")).thenReturn(90L);
+            when(rs1.getString("FirstName")).thenReturn("File");
+            when(rs1.getString("LastName")).thenReturn("Json");
+            when(rs1.getString("Email")).thenReturn("file.json@example.com");
+            when(rs1.getString("FileUrl")).thenReturn("https://cdn.example.com/uploads/ignored.pdf");
+            when(rs1.getString("ResumeResult")).thenReturn("""
+               {"filename":"resume_main.pdf"}
+            """);
+            when(rs1.getTimestamp("ReceivedAt"))
+                .thenReturn(Timestamp.from(Instant.parse("2025-01-10T10:00:00Z")));
+
+            ResultSet rs2 = mock(ResultSet.class);
+            when(rs2.getLong("Id")).thenReturn(91L);
+            when(rs2.getString("FirstName")).thenReturn("Url");
+            when(rs2.getString("LastName")).thenReturn("Fallback");
+            when(rs2.getString("Email")).thenReturn("url.fallback@example.com");
+            when(rs2.getString("FileUrl")).thenReturn("https://cdn.example.com/files/raw_cv_v2.pdf");
+            when(rs2.getString("ResumeResult")).thenReturn("{}"); // no filename inside JSON
+            when(rs2.getTimestamp("ReceivedAt"))
+                .thenReturn(Timestamp.from(Instant.parse("2025-01-11T11:00:00Z")));
+
+            return java.util.List.of(rm.mapRow(rs1,0), rm.mapRow(rs2,1));
+        }).when(jdbcTemplate).query(anyString(), any(RowMapper.class));
+
+        mockMvc.perform(get("/cv/filenames"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id").value(90))
+            .andExpect(jsonPath("$[0].filename").value("resume_main.pdf"))
+            .andExpect(jsonPath("$[1].id").value(91))
+            .andExpect(jsonPath("$[1].filename").value("raw_cv_v2.pdf"));
+    }
+
+    @Test
+    @DisplayName("cv/filenames - q filter narrows by filename or email")
+    @SuppressWarnings("unchecked")
+    void cv_filenames_list_filter_q() throws Exception {
+        doAnswer(invocation -> {
+            RowMapper<CVController.CandidateFilename> rm =
+                (RowMapper<CVController.CandidateFilename>) invocation.getArgument(1);
+
+            ResultSet a = mock(ResultSet.class);
+            when(a.getLong("Id")).thenReturn(1L);
+            when(a.getString("FirstName")).thenReturn("Ann");
+            when(a.getString("LastName")).thenReturn("One");
+            when(a.getString("Email")).thenReturn("ann@example.com");
+            when(a.getString("FileUrl")).thenReturn("https://x/cv/ann_profile.pdf");
+            when(a.getString("ResumeResult")).thenReturn("{}");
+            when(a.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.now()));
+
+            ResultSet b = mock(ResultSet.class);
+            when(b.getLong("Id")).thenReturn(2L);
+            when(b.getString("FirstName")).thenReturn("Bob");
+            when(b.getString("LastName")).thenReturn("Two");
+            when(b.getString("Email")).thenReturn("bob@example.com");
+            when(b.getString("FileUrl")).thenReturn("https://x/cv/backend_engineer.docx");
+            when(b.getString("ResumeResult")).thenReturn("{\"filename\":\"custom_name.docx\"}");
+            when(b.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.now()));
+
+            return java.util.List.of(rm.mapRow(a,0), rm.mapRow(b,1));
+        }).when(jdbcTemplate).query(anyString(), any(RowMapper.class));
+
+        // Filter by custom_name
+        mockMvc.perform(get("/cv/filenames").param("q","custom_name"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id").value(2))
+            .andExpect(jsonPath("$", Matchers.hasSize(1)));
+
+        // Filter by ann email
+        mockMvc.perform(get("/cv/filenames").param("q","ann@"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id").value(1))
+            .andExpect(jsonPath("$", Matchers.hasSize(1)));
+    }
+
+    @Test
+    @DisplayName("cv/filenames - DB error -> 500")
+    void cv_filenames_list_db_error() throws Exception {
+        when(jdbcTemplate.query(anyString(), any(RowMapper.class)))
+            .thenThrow(new RuntimeException("DB fail"));
+        mockMvc.perform(get("/cv/filenames"))
+            .andExpect(status().is5xxServerError())
+            .andExpect(jsonPath("$.message", Matchers.containsString("Failed to load filenames")));
+    }
+
+    @Test
+    @DisplayName("cv/{id}/filename - success numeric id with JSON filename")
+    @SuppressWarnings("unchecked")
+    void cv_filename_single_success_id() throws Exception {
+        doAnswer(invocation -> {
+            RowMapper<CVController.CandidateFilename> rm =
+                (RowMapper<CVController.CandidateFilename>) invocation.getArgument(2);
+
+            ResultSet rs = mock(ResultSet.class);
+            when(rs.getLong("Id")).thenReturn(200L);
+            when(rs.getString("FirstName")).thenReturn("Json");
+            when(rs.getString("LastName")).thenReturn("File");
+            when(rs.getString("Email")).thenReturn("json.file@example.com");
+            when(rs.getString("FileUrl")).thenReturn("https://x/store/ignored.docx");
+            when(rs.getString("ResumeResult")).thenReturn("{\"file_name\":\"portfolio_cv.pdf\"}");
+            when(rs.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.parse("2025-02-02T12:00:00Z")));
+
+            return java.util.List.of(rm.mapRow(rs,0));
+        }).when(jdbcTemplate).query(anyString(), any(Object[].class), any(RowMapper.class));
+
+        mockMvc.perform(get("/cv/200/filename"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(200))
+            .andExpect(jsonPath("$.filename").value("portfolio_cv.pdf"));
+    }
+
+    @Test
+    @DisplayName("cv/{email}/filename - success email fallback to FileUrl segment")
+    @SuppressWarnings("unchecked")
+    void cv_filename_single_success_email() throws Exception {
+        doAnswer(invocation -> {
+            RowMapper<CVController.CandidateFilename> rm =
+                (RowMapper<CVController.CandidateFilename>) invocation.getArgument(2);
+
+            ResultSet rs = mock(ResultSet.class);
+            when(rs.getLong("Id")).thenReturn(201L);
+            when(rs.getString("FirstName")).thenReturn("Url");
+            when(rs.getString("LastName")).thenReturn("Seg");
+            when(rs.getString("Email")).thenReturn("url.seg@example.com");
+            when(rs.getString("FileUrl")).thenReturn("https://cdn.example.com/files/final_cv_v3.pdf");
+            when(rs.getString("ResumeResult")).thenReturn("{}"); // no filename inside JSON
+            when(rs.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.now()));
+
+            return java.util.List.of(rm.mapRow(rs,0));
+        }).when(jdbcTemplate).query(anyString(), any(Object[].class), any(RowMapper.class));
+
+        mockMvc.perform(get("/cv/url.seg%40example.com/filename"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(201))
+            .andExpect(jsonPath("$.filename").value("final_cv_v3.pdf"));
+    }
+
+    @Test
+    @DisplayName("cv/{id}/filename - not found -> 404")
+    void cv_filename_single_not_found() throws Exception {
+        when(jdbcTemplate.query(anyString(), any(Object[].class), any(RowMapper.class)))
+            .thenReturn(java.util.List.of());
+
+        mockMvc.perform(get("/cv/9999/filename"))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Candidate not found"));
+    }
+
+    @Test
+    @DisplayName("cv/{id}/filename - DB error -> 500")
+    void cv_filename_single_db_error() throws Exception {
+        when(jdbcTemplate.query(anyString(), any(Object[].class), any(RowMapper.class)))
+            .thenThrow(new RuntimeException("Boom"));
+
+        mockMvc.perform(get("/cv/55/filename"))
+            .andExpect(status().is5xxServerError())
+            .andExpect(jsonPath("$.message",
+                Matchers.containsString("Failed to load candidate filename")));
+    }
 }
