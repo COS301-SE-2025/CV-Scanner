@@ -635,6 +635,7 @@ export default function CandidateReviewSummary() {
             {candidate.name}
             {candidateId ? ` (ID ${candidateId})` : ""}
           </Typography>
+<Typography variant="subtitle1" sx={{ mb: 4 }}> Senior Software Engineer | 5 years experience </Typography>
 
           {/* Tabs Section */}
           <Box sx={{ display: "flex", gap: 3, mb: 4 }}>
@@ -662,64 +663,9 @@ export default function CandidateReviewSummary() {
             ))}
           </Box>
           {/* HEADER STRIP */}
-          <Paper
-            elevation={6}
-            sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
-          >
-            {/* Top row: avatar + title + quick actions */}
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
-              <Avatar sx={{ width: 56, height: 56, bgcolor: "#08726a" }}>
-                {candidate.name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .slice(0, 2)}
-              </Avatar>
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="body2" sx={{ color: "#555" }}>
-                  {candidate.title} • {candidate.yoe} years •{" "}
-                  {candidate.location}
-                </Typography>
-              </Box>
+        
 
-              {/* Ready-to-act toolbar (quick actions) */}
-              <Stack direction="row" spacing={3}>
-                <Button
-                  size="small"
-                  variant="contained"
-                  sx={reviewButtonStyle}
-                  onClick={openContact}
-                >
-                  Contact Details
-                </Button>
-              </Stack>
-            </Box>
-
-            {/* Quick facts grid */}
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
-                gap: 2,
-              }}
-            >
-              <Fact label="Availability" value={candidate.availability} />
-              <Fact label="Qualifications" value={candidate.qualifications} />
-              <Fact label="Work Auth" value={candidate.workAuth} />
-              <Fact label="Salary Band" value={candidate.salaryBand} />
-              <Typography
-                variant="caption"
-                sx={{
-                  color: "#6b7280",
-                  fontStyle: "italic",
-                  mt: 0.5,
-                  display: "block",
-                }}
-              >
-                Last updated: {candidate.lastUpdated}
-              </Typography>
-            </Box>
-          </Paper>
+        
 
           {/* Contact popover */}
           <Popover
@@ -873,34 +819,11 @@ export default function CandidateReviewSummary() {
                 sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
               >
                 <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
-                  Resume & Links
+                  Resume & Contact Details 
                 </Typography>
 
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  sx={{ flexWrap: "wrap", mb: 2 }}
-                >
-                  <Button
-                    variant="contained"
-                    sx={reviewButtonStyle}
-                    onClick={() =>
-                      window.open(candidate.links.github, "_blank")
-                    }
-                  >
-                    GitHub
-                  </Button>
-                  <Button
-                    variant="contained"
-                    sx={reviewButtonStyle}
-                    onClick={() =>
-                      window.open(candidate.links.linkedin, "_blank")
-                    }
-                  >
-                    LinkedIn
-                  </Button>
-                </Stack>
-
+               
+             
                 {/* Attach actual summary (your own write-up) + hard-coded AI summary */}
                 <Box
                   sx={{
