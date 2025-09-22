@@ -1218,4 +1218,184 @@ public class ApiApplicationTests {
             .andExpect(status().is5xxServerError())
             .andExpect(jsonPath("$.message", Matchers.containsString("Failed to load summary")));
     }
+
+    // --------- CVController: /cv/skills & /cv/{identifier}/skills tests ---------
+
+    @Test
+    @DisplayName("cv/skills - success returns list with skills extracted from ResumeResult and fallback")
+    @SuppressWarnings("unchecked")
+    void cv_skills_list_success() throws Exception {
+        doAnswer(invocation -> {
+            RowMapper<CVController.CandidateSkills> rm =
+                (RowMapper<CVController.CandidateSkills>) invocation.getArgument(1);
+
+            // Row 1: skills in ResumeResult.skills array
+            ResultSet rs1 = mock(ResultSet.class);
+            when(rs1.getLong("Id")).thenReturn(14L);
+            when(rs1.getString("FirstName")).thenReturn("Talhah");
+            when(rs1.getString("LastName")).thenReturn("Karodia");
+            when(rs1.getString("Email")).thenReturn("talhah@example.com");
+            when(rs1.getString("ResumeResult"))
+                .thenReturn("{\"skills\":[\"angular\",\"azure\",\"sql\"]}");
+            when(rs1.getString("Normalized")).thenReturn(null);
+            when(rs1.getString("AiResult")).thenReturn(null);
+            when(rs1.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.parse("2025-03-01T10:00:00Z")));
+
+            // Row 2: ResumeResult has no skills -> fallback to Normalized JSON
+            ResultSet rs2 = mock(ResultSet.class);
+            when(rs2.getLong("Id")).thenReturn(15L);
+            when(rs2.getString("FirstName")).thenReturn("Alice");
+            when(rs2.getString("LastName")).thenReturn("Smith");
+            when(rs2.getString("Email")).thenReturn("alice@example.com");
+            when(rs2.getString("ResumeResult")).thenReturn("{}");
+            when(rs2.getString("Normalized")).thenReturn("{\"skills\":\"Go\\nRust\"}");
+            when(rs2.getString("AiResult")).thenReturn(null);
+            when(rs2.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.parse("2025-02-01T09:00:00Z")));
+
+            return List.of(rm.mapRow(rs1, 0), rm.mapRow(rs2, 1));
+        }).when(jdbcTemplate).query(anyString(), any(RowMapper.class));
+
+        mockMvc.perform(get("/cv/skills"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id").value(14))
+            .andExpect(jsonPath("$[0].skills[0]").value("angular"))
+            .andExpect(jsonPath("$[0].skills[1]").value("azure"))
+            .andExpect(jsonPath("$[1].id").value(15))
+            .andExpect(jsonPath("$[1].skills[0]").value("Go"))
+            .andExpect(jsonPath("$[1].skills[1]").value("Rust"));
+    }
+
+    @Test
+    @DisplayName("cv/skills - q filter narrows results by skill or name")
+    @SuppressWarnings("unchecked")
+    void cv_skills_list_filter_q() throws Exception {
+        doAnswer(invocation -> {
+            RowMapper<CVController.CandidateSkills> rm =
+                (RowMapper<CVController.CandidateSkills>) invocation.getArgument(1);
+
+            ResultSet rs1 = mock(ResultSet.class);
+            when(rs1.getLong("Id")).thenReturn(1L);
+            when(rs1.getString("FirstName")).thenReturn("Jane");
+            when(rs1.getString("LastName")).thenReturn("Doe");
+            when(rs1.getString("Email")).thenReturn("jane@example.com");
+            when(rs1.getString("ResumeResult")).thenReturn("{\"skills\":[\"react\",\"typescript\"]}");
+            when(rs1.getString("Normalized")).thenReturn(null);
+            when(rs1.getString("AiResult")).thenReturn(null);
+            when(rs1.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.now()));
+
+            ResultSet rs2 = mock(ResultSet.class);
+            when(rs2.getLong("Id")).thenReturn(2L);
+            when(rs2.getString("FirstName")).thenReturn("Bob");
+            when(rs2.getString("LastName")).thenReturn("Jones");
+            when(rs2.getString("Email")).thenReturn("bob@example.com");
+            when(rs2.getString("ResumeResult")).thenReturn("{\"skills\":[\"java\",\"spring\"]}");
+            when(rs2.getString("Normalized")).thenReturn(null);
+            when(rs2.getString("AiResult")).thenReturn(null);
+            when(rs2.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.now()));
+
+            return List.of(rm.mapRow(rs1,0), rm.mapRow(rs2,1));
+        }).when(jdbcTemplate).query(anyString(), any(RowMapper.class));
+
+        // Filter react
+        mockMvc.perform(get("/cv/skills").param("q","react"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$", Matchers.hasSize(1)))
+            .andExpect(jsonPath("$[0].id").value(1));
+
+        // Filter java
+        mockMvc.perform(get("/cv/skills").param("q","java"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$", Matchers.hasSize(1)))
+            .andExpect(jsonPath("$[0].id").value(2));
+    }
+
+    @Test
+    @DisplayName("cv/skills - DB error -> 500")
+    void cv_skills_list_db_error() throws Exception {
+        when(jdbcTemplate.query(anyString(), any(RowMapper.class)))
+            .thenThrow(new RuntimeException("DB boom"));
+        mockMvc.perform(get("/cv/skills"))
+            .andExpect(status().is5xxServerError())
+            .andExpect(jsonPath("$.message", Matchers.containsString("Failed to load skills")));
+    }
+
+    @Test
+    @DisplayName("cv/{id}/skills - success returns single candidate skills by numeric id")
+    @SuppressWarnings("unchecked")
+    void cv_single_skills_success_id() throws Exception {
+        doAnswer(invocation -> {
+            RowMapper<CVController.CandidateSkills> rm =
+                (RowMapper<CVController.CandidateSkills>) invocation.getArgument(2);
+
+            ResultSet rs = mock(ResultSet.class);
+            when(rs.getLong("Id")).thenReturn(20L);
+            when(rs.getString("FirstName")).thenReturn("Chris");
+            when(rs.getString("LastName")).thenReturn("Pine");
+            when(rs.getString("Email")).thenReturn("chris.pine@example.com");
+            when(rs.getString("ResumeResult")).thenReturn("{\"skills\":[\"docker\",\"kubernetes\",\"aws\"]}");
+            when(rs.getString("Normalized")).thenReturn(null);
+            when(rs.getString("AiResult")).thenReturn(null);
+            when(rs.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.parse("2025-05-01T08:00:00Z")));
+
+            return List.of(rm.mapRow(rs,0));
+        }).when(jdbcTemplate).query(anyString(), any(Object[].class), any(RowMapper.class));
+
+        mockMvc.perform(get("/cv/20/skills"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(20))
+            .andExpect(jsonPath("$.skills[0]").value("docker"))
+            .andExpect(jsonPath("$.skills[1]").value("kubernetes"))
+            .andExpect(jsonPath("$.skills[2]").value("aws"));
+    }
+
+    @Test
+    @DisplayName("cv/{email}/skills - success returns skills by email identifier")
+    @SuppressWarnings("unchecked")
+    void cv_single_skills_success_email() throws Exception {
+        doAnswer(invocation -> {
+            RowMapper<CVController.CandidateSkills> rm =
+                (RowMapper<CVController.CandidateSkills>) invocation.getArgument(2);
+
+            ResultSet rs = mock(ResultSet.class);
+            when(rs.getLong("Id")).thenReturn(33L);
+            when(rs.getString("FirstName")).thenReturn("Email");
+            when(rs.getString("LastName")).thenReturn("Lookup");
+            when(rs.getString("Email")).thenReturn("lookup@example.com");
+            when(rs.getString("ResumeResult")).thenReturn("{\"skills\":[\"python\",\"fastapi\"]}");
+            when(rs.getString("Normalized")).thenReturn(null);
+            when(rs.getString("AiResult")).thenReturn(null);
+            when(rs.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.now()));
+
+            return List.of(rm.mapRow(rs,0));
+        }).when(jdbcTemplate).query(anyString(), any(Object[].class), any(RowMapper.class));
+
+        mockMvc.perform(get("/cv/lookup%40example.com/skills"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(33))
+            .andExpect(jsonPath("$.email").value("lookup@example.com"))
+            .andExpect(jsonPath("$.skills[0]").value("python"))
+            .andExpect(jsonPath("$.skills[1]").value("fastapi"));
+    }
+
+    @Test
+    @DisplayName("cv/{id}/skills - not found -> 404")
+    void cv_single_skills_not_found() throws Exception {
+        when(jdbcTemplate.query(anyString(), any(Object[].class), any(RowMapper.class)))
+            .thenReturn(List.of());
+
+        mockMvc.perform(get("/cv/9999/skills"))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Candidate not found"));
+    }
+
+    @Test
+    @DisplayName("cv/{id}/skills - DB error -> 500")
+    void cv_single_skills_db_error() throws Exception {
+        when(jdbcTemplate.query(anyString(), any(Object[].class), any(RowMapper.class)))
+            .thenThrow(new RuntimeException("DB fail"));
+
+        mockMvc.perform(get("/cv/22/skills"))
+            .andExpect(status().is5xxServerError())
+            .andExpect(jsonPath("$.message", Matchers.containsString("Failed to load candidate skills")));
+    }
 }
