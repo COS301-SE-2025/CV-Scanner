@@ -1374,6 +1374,196 @@ private String truncateSummary(String s) {
         return out;
     }
 
+    // DTO: Candidate Filename
+    public static class CandidateFilename {
+        public long id;
+        public String firstName;
+        public String lastName;
+        public String email;
+        public String fileUrl;
+        public String filename;
+        public String receivedAt;
+        public CandidateFilename(long id, String firstName, String lastName, String email,
+                                 String fileUrl, String filename, String receivedAt) {
+            this.id = id;
+            this.firstName = firstName;
+            this.lastName = lastName;
+            this.email = email;
+            this.fileUrl = fileUrl;
+            this.filename = filename;
+            this.receivedAt = receivedAt;
+        }
+    }
+
+    // List all candidate filenames (latest parsed row per candidate)
+    @GetMapping("/filenames")
+    public ResponseEntity<?> listCandidateFilenames(
+            @RequestParam(value = "q", required = false) String q,
+            @RequestParam(value = "limit", required = false, defaultValue = "100") int limit) {
+        try {
+            int top = Math.max(1, Math.min(limit, 500));
+            String sql = """
+                WITH latest AS (
+                  SELECT cpc.CandidateId, cpc.FileUrl, cpc.ResumeResult, cpc.ReceivedAt
+                  FROM dbo.CandidateParsedCv cpc
+                  JOIN (
+                    SELECT CandidateId, MAX(ReceivedAt) AS MaxReceivedAt
+                    FROM dbo.CandidateParsedCv
+                    GROUP BY CandidateId
+                  ) m ON m.CandidateId = cpc.CandidateId AND m.MaxReceivedAt = cpc.ReceivedAt
+                )
+                SELECT TOP %d
+                       c.Id, c.FirstName, c.LastName, c.Email,
+                       l.FileUrl, l.ResumeResult, l.ReceivedAt
+                FROM dbo.Candidates c
+                LEFT JOIN latest l ON l.CandidateId = c.Id
+                ORDER BY
+                  CASE WHEN l.ReceivedAt IS NULL THEN 1 ELSE 0 END,
+                  l.ReceivedAt DESC,
+                  c.Id DESC
+            """.formatted(top);
+
+            var list = jdbc.query(sql, (rs, i) -> {
+                long id = rs.getLong("Id");
+                String first = rs.getString("FirstName");
+                String last = rs.getString("LastName");
+                String email = rs.getString("Email");
+                String fileUrl = rs.getString("FileUrl");
+                String resumeJson = rs.getString("ResumeResult");
+                Timestamp ts = rs.getTimestamp("ReceivedAt");
+
+                String fn = extractFilenameFromResume(resumeJson);
+                if (isBlank(fn) && fileUrl != null) fn = lastSegment(fileUrl);
+                if (isBlank(fn)) fn = null;
+
+                return new CandidateFilename(
+                        id, first, last, email,
+                        fileUrl, fn,
+                        ts != null ? ts.toInstant().toString() : null
+                );
+            });
+
+            if (q != null && !q.isBlank()) {
+                String needle = q.toLowerCase();
+                list = list.stream().filter(c ->
+                        (c.firstName != null && c.firstName.toLowerCase().contains(needle)) ||
+                        (c.lastName != null && c.lastName.toLowerCase().contains(needle)) ||
+                        (c.email != null && c.email.toLowerCase().contains(needle)) ||
+                        (c.filename != null && c.filename.toLowerCase().contains(needle)) ||
+                        (c.fileUrl != null && c.fileUrl.toLowerCase().contains(needle))
+                ).toList();
+            }
+
+            return ResponseEntity.ok(list);
+        } catch (Exception ex) {
+            return ResponseEntity.status(500)
+                    .body(createErrorResponse("Failed to load filenames: " + ex.getMessage()));
+        }
+    }
+
+    // Single candidate filename (id or email)
+    @GetMapping("/{identifier}/filename")
+    public ResponseEntity<?> getCandidateFilename(@PathVariable("identifier") String identifier) {
+        try {
+            Long candidateId = null; String email = null;
+            try { candidateId = Long.parseLong(identifier); } catch (NumberFormatException ignored) { email = identifier; }
+
+            String sql;
+            Object[] params;
+            if (candidateId != null) {
+                sql = """
+                    SELECT TOP 1 c.Id, c.FirstName, c.LastName, c.Email,
+                                 cpc.FileUrl, cpc.ResumeResult, cpc.ReceivedAt
+                    FROM dbo.Candidates c
+                    LEFT JOIN dbo.CandidateParsedCv cpc ON cpc.CandidateId = c.Id
+                    WHERE c.Id = ?
+                    ORDER BY cpc.ReceivedAt DESC
+                """;
+                params = new Object[]{candidateId};
+            } else {
+                sql = """
+                    SELECT TOP 1 c.Id, c.FirstName, c.LastName, c.Email,
+                                 cpc.FileUrl, cpc.ResumeResult, cpc.ReceivedAt
+                    FROM dbo.Candidates c
+                    LEFT JOIN dbo.CandidateParsedCv cpc ON cpc.CandidateId = c.Id
+                    WHERE c.Email = ?
+                    ORDER BY cpc.ReceivedAt DESC
+                """;
+                params = new Object[]{email};
+            }
+
+            var rows = jdbc.query(sql, params, (rs,i) -> {
+                String resumeJson = rs.getString("ResumeResult");
+                String fileUrl = rs.getString("FileUrl");
+                Timestamp ts = rs.getTimestamp("ReceivedAt");
+                String fn = extractFilenameFromResume(resumeJson);
+                if (isBlank(fn) && fileUrl != null) fn = lastSegment(fileUrl);
+                if (isBlank(fn)) fn = null;
+                return new CandidateFilename(
+                        rs.getLong("Id"),
+                        rs.getString("FirstName"),
+                        rs.getString("LastName"),
+                        rs.getString("Email"),
+                        fileUrl,
+                        fn,
+                        ts != null ? ts.toInstant().toString() : null
+                );
+            });
+
+            if (rows.isEmpty()) {
+                return ResponseEntity.status(404).body(Map.of("message","Candidate not found"));
+            }
+            return ResponseEntity.ok(rows.get(0));
+        } catch (Exception ex) {
+            return ResponseEntity.status(500)
+                    .body(Map.of("message","Failed to load candidate filename: "+ex.getMessage()));
+        }
+    }
+
+    // Helper to extract filename from ResumeResult JSON
+    @SuppressWarnings("unchecked")
+    private String extractFilenameFromResume(String resumeJson) {
+        if (isBlank(resumeJson)) return null;
+        try {
+            Map<String,Object> root = json.readValue(resumeJson, Map.class);
+
+            // Common keys
+            String[] keys = {"filename","file_name","file","originalFilename","original_name"};
+            for (String k : keys) {
+                Object v = root.get(k);
+                if (v instanceof String s && !isBlank(s)) return s.trim();
+            }
+
+            // Nested meta
+            Object meta = root.get("meta");
+            if (meta instanceof Map<?,?> m) {
+                for (String k : keys) {
+                    Object v = ((Map<?,?>) m).get(k);
+                    if (v instanceof String s && !isBlank(s)) return s.trim();
+                }
+            }
+
+            // Wrapped result
+            Object result = root.get("result");
+            if (result instanceof Map<?,?> r) {
+                for (String k : keys) {
+                    Object v = ((Map<?,?>) r).get(k);
+                    if (v instanceof String s && !isBlank(s)) return s.trim();
+                }
+                Object rMeta = ((Map<?,?>) r).get("meta");
+                if (rMeta instanceof Map<?,?> rm) {
+                    for (String k : keys) {
+                        Object v = ((Map<?,?>) rm).get(k);
+                        if (v instanceof String s && !isBlank(s)) return s.trim();
+                    }
+                }
+            }
+
+            return null;
+        } catch (Exception ignored) { }
+        return null;
+    }
+
 }
 
 
