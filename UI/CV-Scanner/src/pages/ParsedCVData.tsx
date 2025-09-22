@@ -109,7 +109,7 @@ function normalizeToParsedFields(input: any): ParsedCVFields {
       toLines(applied?.Experience) ||
       toLines(data.work_history),
     projects: toLines(data.projects) || toLines(data.project_experience),
-        skills:
+    skills:
       toLines(data.skills) ||
       toLines(applied?.Skills) ||
       toLines(data.technologies) ||
@@ -120,16 +120,18 @@ function normalizeToParsedFields(input: any): ParsedCVFields {
       toLines(data.contact_info) ||
       toLines(data.contacts),
     languages: toLines(data.languages),
-      //   other:
-      // toLines(data.raw) ??
-      // (Object.keys(data).length ? toLines(data) : undefined),
+    //   other:
+    // toLines(data.raw) ??
+    // (Object.keys(data).length ? toLines(data) : undefined),
   };
 
   // Unpack personal_info into separate fields
   if (data.personal_info) {
     if (data.personal_info.name) fields.name = toLines(data.personal_info.name);
-    if (data.personal_info.email) fields.email = toLines(data.personal_info.email);
-    if (data.personal_info.phone) fields.phone = toLines(data.personal_info.phone);
+    if (data.personal_info.email)
+      fields.email = toLines(data.personal_info.email);
+    if (data.personal_info.phone)
+      fields.phone = toLines(data.personal_info.phone);
   }
 
   // Unpack sections into Education / Experience / Projects
@@ -231,7 +233,6 @@ const renderNormalizedFields = (fields: ParsedCVFields) => {
   );
 };
 
-
 function toLines(value: any): string | undefined {
   if (value == null) return undefined;
   if (typeof value === "string") return value.trim() || undefined;
@@ -256,7 +257,6 @@ const ParsedCVData: React.FC = () => {
   const [pdfSticky, setPdfSticky] = useState(false);
   const [showRaw, setShowRaw] = useState(false);
   const [showResumeRaw, setShowResumeRaw] = useState(false);
-
 
   const [firstName, setFirstName] = useState<string>(
     candidate?.firstName ?? ""
@@ -338,9 +338,9 @@ const ParsedCVData: React.FC = () => {
       candidate: { firstName, lastName, email },
       fileUrl,
       normalized: fields,
-      // prefer processedData / aiUpload (upload_cv) but fall back to parse_resume output
       aiResult: primaryUpload ?? parseResumeData,
       raw: rawData,
+      resume: parseResumeData ?? null, // NEW: send resume JSON
       receivedAt: new Date().toISOString(),
     };
     const res = await fetch("http://localhost:8081/cv/save", {
@@ -468,36 +468,35 @@ const ParsedCVData: React.FC = () => {
               <Typography variant="h6" sx={{ fontWeight: "bold" }}>
                 Extracted Fields
               </Typography>
-<Box sx={{ display: "flex", gap: 1 }}>
-  <Button
-    variant="text"
-    size="small"
-    onClick={() => setShowRaw((s) => !s)}
-    sx={{
-      textTransform: "none",
-      fontWeight: "bold",
-      color: "#232A3B",
-    }}
-  >
-    {showRaw ? "Hide Raw JSON" : "Show Raw JSON"}
-  </Button>
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={() => setShowRaw((s) => !s)}
+                  sx={{
+                    textTransform: "none",
+                    fontWeight: "bold",
+                    color: "#232A3B",
+                  }}
+                >
+                  {showRaw ? "Hide Raw JSON" : "Show Raw JSON"}
+                </Button>
 
-  {parseResumeData && (
-    <Button
-      variant="text"
-      size="small"
-      onClick={() => setShowResumeRaw((s) => !s)}
-      sx={{
-        textTransform: "none",
-        fontWeight: "bold",
-        color: "#232A3B",
-      }}
-    >
-      {showResumeRaw ? "Hide Resume JSON" : "Show Resume JSON"}
-    </Button>
-  )}
-</Box>
-
+                {parseResumeData && (
+                  <Button
+                    variant="text"
+                    size="small"
+                    onClick={() => setShowResumeRaw((s) => !s)}
+                    sx={{
+                      textTransform: "none",
+                      fontWeight: "bold",
+                      color: "#232A3B",
+                    }}
+                  >
+                    {showResumeRaw ? "Hide Resume JSON" : "Show Resume JSON"}
+                  </Button>
+                )}
+              </Box>
             </Box>
             <Divider sx={{ mb: 2 }} />
 
@@ -604,68 +603,71 @@ const ParsedCVData: React.FC = () => {
                 </pre>
               </Box>
             </Collapse>
-                <Collapse in={showResumeRaw} unmountOnExit>
-      <Box
-        sx={{
-          mt: 2,
-          p: 1.5,
-          borderRadius: 1,
-          border: "1px dashed #888",
-          backgroundColor: "#eef2f5",
-          color: "#111",
-          fontFamily:
-            "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
-          maxHeight: 360,
-          overflow: "auto",
-        }}
-      >
-        <Typography
-          variant="subtitle2"
-          sx={{ mb: 1, fontWeight: "bold" }}
-        >
-          Resume Raw Response
-        </Typography>
-        <pre style={{ margin: 0 }}>
-          {JSON.stringify(parseResumeData, null, 2)}
-        </pre>
-      </Box>
-    </Collapse>
+            <Collapse in={showResumeRaw} unmountOnExit>
+              <Box
+                sx={{
+                  mt: 2,
+                  p: 1.5,
+                  borderRadius: 1,
+                  border: "1px dashed #888",
+                  backgroundColor: "#eef2f5",
+                  color: "#111",
+                  fontFamily:
+                    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  maxHeight: 360,
+                  overflow: "auto",
+                }}
+              >
+                <Typography
+                  variant="subtitle2"
+                  sx={{ mb: 1, fontWeight: "bold" }}
+                >
+                  Resume Raw Response
+                </Typography>
+                <pre style={{ margin: 0 }}>
+                  {JSON.stringify(parseResumeData, null, 2)}
+                </pre>
+              </Box>
+            </Collapse>
 
-{/* If parse_resume data was provided, render it below the raw response */}
-{parseResumeData && (
-  <Box sx={{ mt: 2, p: 1.5 }}>
-    <Typography
-      variant="subtitle2"
-      sx={{ mb: 1, fontWeight: "bold" }}
-    >
-      Parsed Resume (parse_resume)
-    </Typography>
+            {/* If parse_resume data was provided, render it below the raw response */}
+            {parseResumeData && (
+              <Box sx={{ mt: 2, p: 1.5 }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{ mb: 1, fontWeight: "bold" }}
+                >
+                  Parsed Resume (parse_resume)
+                </Typography>
 
-    {(() => {
-      try {
-        const parsedFields = normalizeToParsedFields(parseResumeData);
-        const hasAny = Object.keys(parsedFields || {}).length > 0;
-        if (!hasAny) {
-          return (
-            <Typography variant="body2" sx={{ fontStyle: "italic" }}>
-              No parsed fields available.
-            </Typography>
-          );
-        }
-        return renderNormalizedFields(parsedFields);
-      } catch (e) {
-        return (
-          <Typography variant="body2" color="error">
-            Failed to render parsed resume
-          </Typography>
-        );
-      }
-    })()}
-  </Box>
-)}
-
+                {(() => {
+                  try {
+                    const parsedFields =
+                      normalizeToParsedFields(parseResumeData);
+                    const hasAny = Object.keys(parsedFields || {}).length > 0;
+                    if (!hasAny) {
+                      return (
+                        <Typography
+                          variant="body2"
+                          sx={{ fontStyle: "italic" }}
+                        >
+                          No parsed fields available.
+                        </Typography>
+                      );
+                    }
+                    return renderNormalizedFields(parsedFields);
+                  } catch (e) {
+                    return (
+                      <Typography variant="body2" color="error">
+                        Failed to render parsed resume
+                      </Typography>
+                    );
+                  }
+                })()}
+              </Box>
+            )}
 
             <Box sx={{ mt: 3, textAlign: "center" }}>
               <Button
