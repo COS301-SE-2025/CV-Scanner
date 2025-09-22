@@ -818,21 +818,11 @@ export default function CandidateReviewSummary() {
                 sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
               >
                 <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
-                  Resume & Links
+                  Resume  Links
                 </Typography>
 
                
-                  <Button
-                    variant="contained"
-                    sx={reviewButtonStyle}
-                    onClick={() =>
-                      window.open(candidate.links.linkedin, "_blank")
-                    }
-                  >
-                    
-                  </Button>
-                </Stack>
-
+             
                 {/* Attach actual summary (your own write-up) + hard-coded AI summary */}
                 <Box
                   sx={{
