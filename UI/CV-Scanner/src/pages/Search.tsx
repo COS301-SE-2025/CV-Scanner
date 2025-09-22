@@ -622,16 +622,6 @@ export default function Search() {
                           {candidate.name}
                         </Typography>
                         <Typography
-                          variant="body1"
-                          sx={{
-                            mb: 1,
-                            fontFamily: "Helvetica, sans-serif",
-                            fontSize: "1rem",
-                          }}
-                        >
-                          {candidate.project}
-                        </Typography>
-                        <Typography
                           variant="body2"
                           sx={{
                             mb: 1.5,
