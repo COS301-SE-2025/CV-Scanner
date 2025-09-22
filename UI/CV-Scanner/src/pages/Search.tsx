@@ -201,12 +201,16 @@ export default function Search() {
           const details: string[] = withinLast7Days(c.receivedAt)
             ? ["Last 7 Days"]
             : [];
+
           const fnRow = filenameMap.get(c.id);
-          let filename: string | null =
-            fnRow?.filename ||
-            (c.cvFileUrl
-              ? c.cvFileUrl.split("/").pop()?.split("?")[0] || null
-              : null);
+          let filename: string | null = normalizeFilename(fnRow?.filename);
+          if (!filename) filename = basenameFromUrl(fnRow?.fileUrl);
+          if (!filename) filename = basenameFromUrl(c.cvFileUrl);
+          if (filename && /https?:\/\//i.test(filename))
+            filename = basenameFromUrl(filename);
+
+          // Transform ugly GUID / no-extension names into friendly form
+          filename = makeFriendlyFilename(name, filename);
 
           return {
             id: c.id,
@@ -938,3 +942,55 @@ const navButtonStyle = {
     },
   },
 };
+
+function basenameFromUrl(url?: string | null) {
+  if (!url) return null;
+  try {
+    // Strip query/hash then take last segment
+    const clean = url.split("#")[0].split("?")[0];
+    const seg = clean.split("/").pop();
+    if (!seg) return null;
+    return seg.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeFilename(raw?: string | null) {
+  if (!raw) return null;
+  // If it accidentally contains a full URL, reduce it
+  if (/https?:\/\//i.test(raw)) {
+    return basenameFromUrl(raw);
+  }
+  return raw.trim() || null;
+}
+
+function isUuid(str?: string | null) {
+  if (!str) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    str.trim()
+  );
+}
+
+function hasExtension(name?: string | null) {
+  if (!name) return false;
+  return /\.[A-Za-z0-9]{2,6}$/.test(name);
+}
+
+function makeFriendlyFilename(candidateName: string, original?: string | null) {
+  const safeBase =
+    candidateName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 3)
+      .join("_")
+      .replace(/[^A-Za-z0-9_]/g, "") || "Candidate";
+  if (!original) return `${safeBase}_CV.pdf`;
+  if (isUuid(original) || !hasExtension(original)) {
+    // Try to extract extension from any hidden pattern, else default .pdf
+    let extMatch = original.match(/\.([A-Za-z0-9]{2,6})$/);
+    const ext = extMatch ? `.${extMatch[1]}` : ".pdf";
+    return `${safeBase}_CV${ext}`;
+  }
+  return original;
+}
