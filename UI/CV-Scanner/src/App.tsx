@@ -47,15 +47,7 @@ function App() {
               element={<CandidateReviewSummary />}
             />
             <Route
-              path="/candidate/:id/skills"
-              element={<CandidateReviewSummary />}
-            />
-            <Route
-              path="/candidate/:id/experience"
-              element={<CandidateReviewSummary />}
-            />
-            <Route
-              path="/candidate/:id/notes"
+              path="/candidate/:id/:section"
               element={<CandidateReviewSummary />}
             />
             <Route path="/user-management" element={<UserManagementPage />} />

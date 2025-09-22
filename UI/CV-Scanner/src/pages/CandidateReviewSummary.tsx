@@ -42,11 +42,12 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import logo2 from "../assets/logo2.png";
 import logoNavbar from "../assets/logoNavbar.png";
 import logo from "../assets/logo.png";
+import CircularProgress from "@mui/material/CircularProgress";
 
 export default function CandidateReviewSummary() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { id: routeId } = useParams();
+  const { id: routeId, section } = useParams();
   const [searchParams] = useSearchParams();
 
   const passedCandidate = (location.state as any)?.candidate;
@@ -60,6 +61,9 @@ export default function CandidateReviewSummary() {
     (passedCandidate?.id ? String(passedCandidate.id) : undefined) ||
     queryId ||
     storedId;
+
+  // Determine active section early (needed by effects below)
+  const activeSection = (section || "summary").toLowerCase();
 
   // Persist resolved id (once) for refresh support
   useEffect(() => {
@@ -139,6 +143,7 @@ export default function CandidateReviewSummary() {
 
   // Fetch dynamic summary
   useEffect(() => {
+    if (activeSection !== "summary") return;
     // Auto-recover: if no id but we have a stored one, redirect
     if (!candidateId) {
       const last = localStorage.getItem("lastCandidateId");
@@ -194,7 +199,73 @@ export default function CandidateReviewSummary() {
       aborted = true;
       ctrl.abort();
     };
-  }, [candidateId, navigate]);
+  }, [candidateId, navigate, activeSection]);
+
+  // --- skills fetch state ---
+  const [skillsData, setSkillsData] = useState<string[]>([]);
+  const [skillsLoading, setSkillsLoading] = useState<boolean>(true);
+  const [skillsError, setSkillsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (activeSection !== "skills") return;
+    if (!candidateId) {
+      setSkillsLoading(false);
+      setSkillsError("No candidate id.");
+      return;
+    }
+    let aborted = false;
+    const load = async () => {
+      setSkillsLoading(true);
+      setSkillsError(null);
+      try {
+        const res = await fetch(
+          `http://localhost:8081/cv/${candidateId}/skills`,
+          {
+            headers: { Accept: "application/json" },
+          }
+        );
+        if (!res.ok)
+          throw new Error((await res.text()) || `HTTP ${res.status}`);
+        const json = await res.json();
+
+        // Support both single object and accidental array fallback
+        let skills: any;
+        if (Array.isArray(json)) {
+          let match: any = null;
+          for (const c of json as any[]) {
+            if (String((c as any).id) === String(candidateId)) {
+              match = c;
+              break;
+            }
+          }
+          skills = match?.skills;
+        } else {
+          skills = json.skills;
+        }
+
+        if (!Array.isArray(skills)) skills = [];
+        // Clean & dedupe
+        const unique: string[] = [];
+        for (const raw of skills) {
+          const v = raw == null ? "" : String(raw).trim();
+          if (v && unique.indexOf(v) === -1) {
+            unique.push(v);
+            if (unique.length >= 100) break;
+          }
+        }
+
+        if (!aborted) setSkillsData(unique);
+      } catch (e: any) {
+        if (!aborted) setSkillsError(e.message || "Failed to load skills");
+      } finally {
+        if (!aborted) setSkillsLoading(false);
+      }
+    };
+    load();
+    return () => {
+      aborted = true;
+    };
+  }, [candidateId, activeSection]);
 
   // Contact popover
   const [contactAnchor, setContactAnchor] = useState<HTMLElement | null>(null);
@@ -268,6 +339,7 @@ export default function CandidateReviewSummary() {
     );
   }
 
+  // ---------- Main render ----------
   return (
     <Box
       sx={{
@@ -506,32 +578,28 @@ export default function CandidateReviewSummary() {
 
           {/* Tabs Section */}
           <Box sx={{ display: "flex", gap: 3, mb: 4 }}>
-            {["Summary", "Skills", "Experience", "Recruiters Notes"].map(
-              (tab, idx) => (
-                <Typography
-                  key={idx}
-                  variant="body1"
-                  sx={{
-                    cursor: "pointer",
-                    color: idx === 0 ? "#0073c1" : "#b0b8c1", // Highlight the active tab
-                    fontWeight: idx === 0 ? "bold" : "normal",
-                  }}
-                  onClick={() => {
-                    if (!candidateId) return;
-                    if (tab === "Summary")
-                      navigate(`/candidate/${candidateId}/summary`);
-                    if (tab === "Skills")
-                      navigate(`/candidate/${candidateId}/skills`);
-                    if (tab === "Experience")
-                      navigate(`/candidate/${candidateId}/experience`);
-                    if (tab === "Recruiters Notes")
-                      navigate(`/candidate/${candidateId}/notes`);
-                  }}
-                >
-                  {tab}
-                </Typography>
-              )
-            )}
+            {[
+              { label: "Summary", key: "summary" },
+              { label: "Skills", key: "skills" },
+              { label: "Experience", key: "experience" },
+              { label: "Recruiters Notes", key: "notes" },
+            ].map((t) => (
+              <Typography
+                key={t.key}
+                variant="body1"
+                sx={{
+                  cursor: "pointer",
+                  color: activeSection === t.key ? "#0073c1" : "#b0b8c1",
+                  fontWeight: activeSection === t.key ? "bold" : "normal",
+                }}
+                onClick={() => {
+                  if (!candidateId) return;
+                  navigate(`/candidate/${candidateId}/${t.key}`);
+                }}
+              >
+                {t.label}
+              </Typography>
+            ))}
           </Box>
           {/* HEADER STRIP */}
           <Paper
@@ -615,226 +683,330 @@ export default function CandidateReviewSummary() {
             </Typography>
           </Popover>
 
-          {/* Project Fit Section */}
-          <Paper
-            elevation={6}
-            sx={{ p: 3, mb: 4, borderRadius: 3, bgcolor: "#DEDDEE" }}
-            ref={projectFitRef}
-          >
-            <Typography
-              variant="h6"
-              sx={{
-                fontFamily: "Helvetica, sans-serif",
-                fontWeight: "bold",
-                mb: 2,
-              }}
-            >
-              Project Fit
-            </Typography>
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2, 1fr)",
-                gap: 3,
-              }}
-            >
-              {/* Technical Projects */}
-              <Box>
+          {/* Project Fit & Summary-only sections */}
+          {activeSection === "summary" && (
+            <>
+              {/* Project Fit Section (unchanged) */}
+              <Paper
+                elevation={6}
+                sx={{ p: 3, mb: 4, borderRadius: 3, bgcolor: "#DEDDEE" }}
+                ref={projectFitRef}
+              >
                 <Typography
-                  variant="body1"
+                  variant="h6"
                   sx={{
                     fontFamily: "Helvetica, sans-serif",
                     fontWeight: "bold",
-                    mb: 1,
+                    mb: 2,
                   }}
                 >
-                  Technical Projects
-                </Typography>
-                <Typography variant="body2" sx={{ color: "#555", mb: 1 }}>
-                  High proficiency in complex technical environments
+                  Project Fit
                 </Typography>
                 <Box
                   sx={{
-                    position: "relative",
-                    height: 20,
-                    bgcolor: "#ccc",
-                    borderRadius: 10,
-                    overflow: "hidden",
+                    display: "grid",
+                    gridTemplateColumns: "repeat(2, 1fr)",
+                    gap: 3,
                   }}
                 >
-                  <Box
-                    sx={{
-                      width: "80%", // Adjust percentage here
-                      bgcolor: "#19a056ff",
-                      height: "100%",
-                      borderRadius: 10,
-                    }}
-                  />
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      position: "absolute",
-                      top: "50%",
-                      left: "50%",
-                      transform: "translate(-50%, -50%)",
-                      color: "#fff",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    80%
-                  </Typography>
+                  {/* Technical Projects */}
+                  <Box>
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        fontFamily: "Helvetica, sans-serif",
+                        fontWeight: "bold",
+                        mb: 1,
+                      }}
+                    >
+                      Technical Projects
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: "#555", mb: 1 }}>
+                      High proficiency in complex technical environments
+                    </Typography>
+                    <Box
+                      sx={{
+                        position: "relative",
+                        height: 20,
+                        bgcolor: "#ccc",
+                        borderRadius: 10,
+                        overflow: "hidden",
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: "80%", // Adjust percentage here
+                          bgcolor: "#19a056ff",
+                          height: "100%",
+                          borderRadius: 10,
+                        }}
+                      />
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          position: "absolute",
+                          top: "50%",
+                          left: "50%",
+                          transform: "translate(-50%, -50%)",
+                          color: "#fff",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        80%
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Collaborative Projects */}
+                  <Box>
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        fontFamily: "Helvetica, sans-serif",
+                        fontWeight: "bold",
+                        mb: 1,
+                      }}
+                    >
+                      Collaborative Projects
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: "#555", mb: 1 }}>
+                      Works well in team settings
+                    </Typography>
+                    <Box
+                      sx={{
+                        position: "relative",
+                        height: 20,
+                        bgcolor: "#ccc",
+                        borderRadius: 10,
+                        overflow: "hidden",
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: "60%", // Adjust percentage here
+                          bgcolor: "#19a056ff",
+                          height: "100%",
+                          borderRadius: 10,
+                        }}
+                      />
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          position: "absolute",
+                          top: "50%",
+                          left: "50%",
+                          transform: "translate(-50%, -50%)",
+                          color: "#fff",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        60%
+                      </Typography>
+                    </Box>
+                  </Box>
                 </Box>
-              </Box>
+              </Paper>
 
-              {/* Collaborative Projects */}
-              <Box>
-                <Typography
-                  variant="body1"
-                  sx={{
-                    fontFamily: "Helvetica, sans-serif",
-                    fontWeight: "bold",
-                    mb: 1,
-                  }}
-                >
-                  Collaborative Projects
-                </Typography>
-                <Typography variant="body2" sx={{ color: "#555", mb: 1 }}>
-                  Works well in team settings
-                </Typography>
-                <Box
-                  sx={{
-                    position: "relative",
-                    height: 20,
-                    bgcolor: "#ccc",
-                    borderRadius: 10,
-                    overflow: "hidden",
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: "60%", // Adjust percentage here
-                      bgcolor: "#19a056ff",
-                      height: "100%",
-                      borderRadius: 10,
-                    }}
-                  />
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      position: "absolute",
-                      top: "50%",
-                      left: "50%",
-                      transform: "translate(-50%, -50%)",
-                      color: "#fff",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    60%
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-          </Paper>
-
-          {/* Key Technologies Section */}
-          <Paper
-            elevation={6}
-            sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
-            ref={techRef}
-          >
-            <Typography
-              variant="h6"
-              sx={{
-                fontFamily: "Helvetica, sans-serif",
-                fontWeight: "bold",
-                mb: 2,
-              }}
-            >
-              Key Technologies
-            </Typography>
-            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-              {[".NET", "Azure", "SQL", "C#"].map((tech, idx) => (
-                <Chip
-                  key={idx}
-                  label={tech}
-                  sx={{ bgcolor: "#08726aff", color: "#fff" }}
-                />
-              ))}
-            </Box>
-          </Paper>
-          {/* LINKS & ATTACHMENTS (hard-coded AI summary) */}
-          <Paper
-            elevation={6}
-            sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
-          >
-            <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
-              Resume & Links
-            </Typography>
-
-            <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", mb: 2 }}>
-              <Button
-                variant="contained"
-                sx={reviewButtonStyle}
-                onClick={() => window.open(candidate.links.github, "_blank")}
+              {/* Resume & Links / CV Summary Section */}
+              <Paper
+                elevation={6}
+                sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
               >
-                GitHub
-              </Button>
-              <Button
-                variant="contained"
-                sx={reviewButtonStyle}
-                onClick={() => window.open(candidate.links.linkedin, "_blank")}
-              >
-                LinkedIn
-              </Button>
-            </Stack>
-
-            {/* Attach actual summary (your own write-up) + hard-coded AI summary */}
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-                gap: 2,
-                alignItems: "start",
-              }}
-            >
-              {/* Hard-coded AI summary (read-only) + link to full CV */}
-              <Box sx={{ p: 2, bgcolor: "DEDEDE", borderRadius: 2 }}>
-                <Typography
-                  variant="subtitle2"
-                  sx={{ fontWeight: "bold", mb: 1 }}
-                >
-                  CV Summary
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
+                  Resume & Links
                 </Typography>
 
-                <TextField
-                  value={
-                    summaryLoading
-                      ? "Loading summary..."
-                      : summaryError
-                      ? `Error: ${summaryError}`
-                      : summaryData?.summary
-                      ? summaryData.summary
-                      : "No summary available."
-                  }
-                  multiline
-                  minRows={6}
-                  fullWidth
-                  InputProps={{ readOnly: true }}
-                  sx={{ "& .MuiOutlinedInput-root": { bgcolor: "#edededff" } }}
-                />
-
-                <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ flexWrap: "wrap", mb: 2 }}
+                >
                   <Button
                     variant="contained"
                     sx={reviewButtonStyle}
-                    onClick={() => window.open(candidate.links.cv, "_blank")}
+                    onClick={() =>
+                      window.open(candidate.links.github, "_blank")
+                    }
                   >
-                    View Full CV
+                    GitHub
+                  </Button>
+                  <Button
+                    variant="contained"
+                    sx={reviewButtonStyle}
+                    onClick={() =>
+                      window.open(candidate.links.linkedin, "_blank")
+                    }
+                  >
+                    LinkedIn
                   </Button>
                 </Stack>
+
+                {/* Attach actual summary (your own write-up) + hard-coded AI summary */}
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                    gap: 2,
+                    alignItems: "start",
+                  }}
+                >
+                  {/* Hard-coded AI summary (read-only) + link to full CV */}
+                  <Box sx={{ p: 2, bgcolor: "DEDEDE", borderRadius: 2 }}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{ fontWeight: "bold", mb: 1 }}
+                    >
+                      CV Summary
+                    </Typography>
+
+                    <TextField
+                      value={
+                        summaryLoading
+                          ? "Loading summary..."
+                          : summaryError
+                          ? `Error: ${summaryError}`
+                          : summaryData?.summary
+                          ? summaryData.summary
+                          : "No summary available."
+                      }
+                      multiline
+                      minRows={6}
+                      fullWidth
+                      InputProps={{ readOnly: true }}
+                      sx={{
+                        "& .MuiOutlinedInput-root": { bgcolor: "#edededff" },
+                      }}
+                    />
+
+                    <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                      <Button
+                        variant="contained"
+                        sx={reviewButtonStyle}
+                        onClick={() =>
+                          window.open(candidate.links.cv, "_blank")
+                        }
+                      >
+                        View Full CV
+                      </Button>
+                    </Stack>
+                  </Box>
+                </Box>
+              </Paper>
+            </>
+          )}
+
+          {/* Skills Tab Section */}
+          {activeSection === "skills" && (
+            <Paper
+              elevation={6}
+              sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
+              ref={techRef}
+            >
+              <Typography
+                variant="h6"
+                sx={{
+                  fontFamily: "Helvetica, sans-serif",
+                  fontWeight: "bold",
+                  mb: 2,
+                }}
+              >
+                Key Technologies
+              </Typography>
+
+              {skillsLoading && (
+                <Box
+                  sx={{ display: "flex", alignItems: "center", gap: 1, pb: 1 }}
+                >
+                  <CircularProgress size={20} />
+                  <Typography variant="body2" sx={{ color: "#555" }}>
+                    Loading skills...
+                  </Typography>
+                </Box>
+              )}
+
+              {!skillsLoading && skillsError && (
+                <Box sx={{ mb: 1 }}>
+                  <Typography variant="body2" sx={{ color: "#b00020", mb: 1 }}>
+                    Error: {skillsError}
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => {
+                      setSkillsLoading(true);
+                      setSkillsError(null);
+                      (async () => {
+                        try {
+                          const res = await fetch(
+                            `http://localhost:8081/cv/${candidateId}/skills`,
+                            { headers: { Accept: "application/json" } }
+                          );
+                          if (!res.ok)
+                            throw new Error(
+                              (await res.text()) || `HTTP ${res.status}`
+                            );
+                          const json = await res.json();
+                          let skills: any;
+                          if (Array.isArray(json)) {
+                            let match: any = null;
+                            for (const c of json as any[]) {
+                              if (
+                                String((c as any).id) === String(candidateId)
+                              ) {
+                                match = c;
+                                break;
+                              }
+                            }
+                            skills = match?.skills;
+                          } else {
+                            skills = json.skills;
+                          }
+                          if (!Array.isArray(skills)) skills = [];
+                          const unique: string[] = [];
+                          for (const raw of skills) {
+                            const v = raw == null ? "" : String(raw).trim();
+                            if (v && unique.indexOf(v) === -1) {
+                              unique.push(v);
+                              if (unique.length >= 100) break;
+                            }
+                          }
+                          setSkillsData(unique);
+                        } catch (e: any) {
+                          setSkillsError(e.message || "Failed to load skills");
+                        } finally {
+                          setSkillsLoading(false);
+                        }
+                      })();
+                    }}
+                    sx={{ textTransform: "none" }}
+                  >
+                    Retry
+                  </Button>
+                </Box>
+              )}
+
+              {!skillsLoading && !skillsError && skillsData.length === 0 && (
+                <Typography variant="body2" sx={{ color: "#555" }}>
+                  No skills found.
+                </Typography>
+              )}
+
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                {skillsData.map((tech, idx) => (
+                  <Chip
+                    key={idx}
+                    label={tech}
+                    size="small"
+                    sx={{
+                      bgcolor: "#08726aff",
+                      color: "#fff",
+                      fontWeight: "bold",
+                    }}
+                  />
+                ))}
               </Box>
-            </Box>
-          </Paper>
+            </Paper>
+          )}
 
           {/* Snackbar (keep INSIDE the Candidate Details box) */}
           <Snackbar
