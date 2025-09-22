@@ -230,37 +230,48 @@ public class CVController {
             long candidateId = upsertCandidate(body.candidate);
             Instant when = parseInstantOrNow(body.receivedAt);
 
-            // Serialize JSON blobs
+            // Serialize JSON blobs still kept
             String aiResultJson = toJson(body.aiResult);
             String rawJson = toJson(body.raw);
             String normalizedJson = toJson(body.normalized);
-            String resumeJson = toJson(body.resume); // NEW
 
-            String personalInfoJson = body.personalInfo != null ? json.writeValueAsString(body.personalInfo) : null;
-            String sectionsJson = body.sections != null ? json.writeValueAsString(body.sections) : null;
-            String skillsJson = body.skills != null ? json.writeValueAsString(body.skills) : null;
+            // Build ResumeResult JSON (preferred full parsed resume if supplied)
+            String resumeJson;
+            try {
+                if (body.resume != null) {
+                    // Use provided resume object verbatim
+                    resumeJson = json.writeValueAsString(body.resume);
+                } else {
+                    // Construct a composite JSON from individual fields
+                    Map<String,Object> root = new HashMap<>();
+                    if (!isBlank(body.summary)) root.put("summary", body.summary);
+                    if (body.personalInfo != null) root.put("personal_info", body.personalInfo);
+                    if (body.sections != null) root.put("sections", body.sections);
+                    if (body.skills != null && !body.skills.isEmpty()) root.put("skills", body.skills);
+                    // Keep raw fallback structure recognizable
+                    root.put("source", "composite");
+                    resumeJson = json.writeValueAsString(root);
+                }
+            } catch (Exception e) {
+                resumeJson = null;
+            }
 
+            // INSERT only existing columns
             final String sql = "INSERT INTO dbo.CandidateParsedCv " +
-                    "(CandidateId, FileUrl, Filename, Status, Summary, PersonalInfo, Sections, Skills, AiResult, RawResult, Normalized, ResumeResult, ReceivedAt) " +
-                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                    "(CandidateId, FileUrl, AiResult, Normalized, ResumeResult, ReceivedAt, RawResult) " +
+                    "VALUES (?,?,?,?,?,?,?)";
 
             jdbc.update(sql,
                 candidateId,
                 body.fileUrl,
-                body.filename,
-                nvl(body.status),
-                body.summary,
-                personalInfoJson,
-                sectionsJson,
-                skillsJson,
                 aiResultJson,
-                rawJson,
                 normalizedJson,
-                resumeJson,            // NEW
-                Timestamp.from(when)
+                resumeJson,
+                Timestamp.from(when),
+                rawJson
             );
 
-            return ResponseEntity.ok().build();
+            return ResponseEntity.ok(Map.of("status","ok","candidateId", candidateId));
         } catch (Exception ex) {
             return ResponseEntity.status(500).body(createErrorResponse("Failed to save parsed CV: " + ex.getMessage()));
         }
