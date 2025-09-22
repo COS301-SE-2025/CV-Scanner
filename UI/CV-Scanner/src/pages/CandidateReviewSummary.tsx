@@ -267,6 +267,66 @@ export default function CandidateReviewSummary() {
     };
   }, [candidateId, activeSection]);
 
+  // --- experience fetch state ---
+  const [experienceData, setExperienceData] = useState<string[]>([]);
+  const [experienceLoading, setExperienceLoading] = useState<boolean>(true);
+  const [experienceError, setExperienceError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (activeSection !== "experience") return;
+    if (!candidateId) {
+      setExperienceLoading(false);
+      setExperienceError("No candidate id.");
+      return;
+    }
+    let aborted = false;
+    (async () => {
+      setExperienceLoading(true);
+      setExperienceError(null);
+      try {
+        const res = await fetch(
+          `http://localhost:8081/cv/${candidateId}/experience`,
+          {
+            headers: { Accept: "application/json" },
+          }
+        );
+        if (!res.ok)
+          throw new Error((await res.text()) || `HTTP ${res.status}`);
+        const json = await res.json();
+
+        // Support object or accidental list
+        let exp: any;
+        if (Array.isArray(json)) {
+          const match = json.find(
+            (c: any) => String(c.id) === String(candidateId)
+          );
+          exp = match?.experience;
+        } else {
+          exp = json.experience;
+        }
+
+        if (!Array.isArray(exp)) exp = [];
+        const cleaned: string[] = [];
+        for (const item of exp) {
+          const v = item == null ? "" : String(item).trim();
+          if (v && cleaned.indexOf(v) === -1) {
+            cleaned.push(v);
+            if (cleaned.length >= 100) break;
+          }
+        }
+        if (!aborted) setExperienceData(cleaned);
+      } catch (e: any) {
+        if (!aborted)
+          setExperienceError(e.message || "Failed to load experience");
+      } finally {
+        if (!aborted) setExperienceLoading(false);
+      }
+    })();
+    return () => {
+      aborted = true;
+    };
+  }, [candidateId, activeSection]);
+
   // Contact popover
   const [contactAnchor, setContactAnchor] = useState<HTMLElement | null>(null);
   const openContact = (e: React.MouseEvent<HTMLElement>) =>
@@ -1003,6 +1063,140 @@ export default function CandidateReviewSummary() {
                       fontWeight: "bold",
                     }}
                   />
+                ))}
+              </Box>
+            </Paper>
+          )}
+
+          {/* Experience Tab Section */}
+          {activeSection === "experience" && (
+            <Paper
+              elevation={6}
+              sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
+            >
+              <Typography
+                variant="h6"
+                sx={{
+                  fontFamily: "Helvetica, sans-serif",
+                  fontWeight: "bold",
+                  mb: 2,
+                }}
+              >
+                Experience
+              </Typography>
+
+              {experienceLoading && (
+                <Box
+                  sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}
+                >
+                  <CircularProgress size={20} />
+                  <Typography variant="body2" sx={{ color: "#555" }}>
+                    Loading experience...
+                  </Typography>
+                </Box>
+              )}
+
+              {!experienceLoading && experienceError && (
+                <Box sx={{ mb: 1 }}>
+                  <Typography variant="body2" sx={{ color: "#b00020", mb: 1 }}>
+                    Error: {experienceError}
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    sx={{ textTransform: "none" }}
+                    onClick={() => {
+                      // simple retry: force effect rerun by toggling section temporarily
+                      setExperienceLoading(true);
+                      setExperienceError(null);
+                      (async () => {
+                        try {
+                          const res = await fetch(
+                            `http://localhost:8081/cv/${candidateId}/experience`,
+                            {
+                              headers: { Accept: "application/json" },
+                            }
+                          );
+                          if (!res.ok)
+                            throw new Error(
+                              (await res.text()) || `HTTP ${res.status}`
+                            );
+                          const json = await res.json();
+                          let exp: any;
+                          if (Array.isArray(json)) {
+                            const match = json.find(
+                              (c: any) => String(c.id) === String(candidateId)
+                            );
+                            exp = match?.experience;
+                          } else exp = json.experience;
+                          if (!Array.isArray(exp)) exp = [];
+                          const cleaned: string[] = [];
+                          for (const item of exp) {
+                            const v = item == null ? "" : String(item).trim();
+                            if (v && cleaned.indexOf(v) === -1) {
+                              cleaned.push(v);
+                              if (cleaned.length >= 100) break;
+                            }
+                          }
+                          setExperienceData(cleaned);
+                        } catch (e: any) {
+                          setExperienceError(
+                            e.message || "Failed to load experience"
+                          );
+                        } finally {
+                          setExperienceLoading(false);
+                        }
+                      })();
+                    }}
+                  >
+                    Retry
+                  </Button>
+                </Box>
+              )}
+
+              {!experienceLoading &&
+                !experienceError &&
+                experienceData.length === 0 && (
+                  <Typography variant="body2" sx={{ color: "#555" }}>
+                    No experience entries found.
+                  </Typography>
+                )}
+
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                {experienceData.map((line, idx) => (
+                  <Paper
+                    key={idx}
+                    elevation={0}
+                    sx={{
+                      p: 1.2,
+                      bgcolor: "#ffffff",
+                      borderRadius: 2,
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 1.5,
+                    }}
+                  >
+                    <Chip
+                      label={idx + 1}
+                      size="small"
+                      sx={{
+                        bgcolor: "#08726a",
+                        color: "#fff",
+                        fontWeight: "bold",
+                        height: 22,
+                      }}
+                    />
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: "#333",
+                        lineHeight: 1.4,
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
+                      {line}
+                    </Typography>
+                  </Paper>
                 ))}
               </Box>
             </Paper>
