@@ -375,14 +375,25 @@ function CategoryHeaderEditor({
           <Button
             variant="outlined"
             color="inherit"
-            onClick={() => {
-              loadConfig();
-              setEditing(false);
+            onClick={async () => {
+              try {
+                const res = await fetch(`${CONFIG_BASE}/auth/config/categories`);
+                if (!res.ok) throw new Error(`Failed (${res.status})`);
+                const json = await res.json();
+
+                setConfigObj(json);
+                setCategoryOrder(Object.keys(json)); // reset order to match server
+                setEditing(false);
+              } catch (e) {
+                alert("Could not reload configuration.");
+                console.error(e);
+              }
             }}
             sx={{ minWidth: 100 }}
           >
             Cancel
           </Button>
+
 
           <Button
             variant="contained"
