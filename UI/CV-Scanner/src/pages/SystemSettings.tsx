@@ -459,7 +459,7 @@ function CategoryHeaderEditor({
 
   {/* Categories */}
   {categoryOrder.map((category) => (
-    <Box key={categoryKeys[category]} sx={{ mb: 4, border: "1px solid #ddd", borderRadius: 2, p: 2 }}>
+    <Box key={categoryKeys[category]} sx={{  border: "1px solid #ddd", borderRadius: 2, p: 2 }}>
       {/* Parent Heading */}
       {editing && <Typography sx={{ fontWeight: "bold", mb: 1, color: "#000"}}>Category</Typography>}
 
@@ -512,56 +512,74 @@ function CategoryHeaderEditor({
 {editing && <Typography sx={{ fontWeight: "bold", mb: 1, color: "#000" }}>Category Tags</Typography>}
 
 {/* Items */}
-<Box sx={{ mt: 1 }}>
-  {configObj[category] && configObj[category].length > 0 ? (
-    configObj[category].map((item: string, idx: number) => (
-      <Box key={idx} sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
-        <input
-          type="text"
-          value={item}
-          disabled={!editing}
-          onChange={(e) => {
-            const updated = [...configObj[category]];
-            updated[idx] = e.target.value;
-            setConfigObj((prev) => ({ ...prev, [category]: updated }));
-          }}
-          style={{
-            flex: 1,
-            padding: "8px",
-            borderRadius: "4px",
-            border: "1px solid #ccc",
-            fontFamily: "Helvetica, sans-serif",
-            fontSize: "1rem",
-          }}
-        />
-        {editing && (
-          <Button
-            variant="outlined"
-            color="error"
-            onClick={() => {
-              const updated = configObj[category].filter((_, i) => i !== idx);
-              setConfigObj((prev) => ({ ...prev, [category]: updated }));
-            }}
-          >
-            Remove
-          </Button>
-        )}
-      </Box>
-    ))
-  ) : (
-    <Typography sx={{ fontStyle: "italic", color: "#666" }}>
-      No tags in list
+<Box
+  sx={{
+    mt: 1,
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+    gap: 1,
+  }}
+>
+  {configObj[category].length === 0 && (
+    <Typography sx={{ fontStyle: "italic", color: "#555" }}>
+      No tags in this list
     </Typography>
   )}
 
-  {/* Add Child Item */}
+  {configObj[category].map((item: string, idx: number) => (
+    <Box
+      key={idx}
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
+        minWidth: 0, // ensures input shrinks if needed
+      }}
+    >
+      <input
+        type="text"
+        value={item}
+        disabled={!editing}
+        onChange={(e) => {
+          const updated = [...configObj[category]];
+          updated[idx] = e.target.value;
+          setConfigObj((prev) => ({ ...prev, [category]: updated }));
+        }}
+        style={{
+          flex: 1,
+          minWidth: 0,
+          padding: "6px",
+          borderRadius: "4px",
+          border: "1px solid #ccc",
+          fontFamily: "Helvetica, sans-serif",
+          fontSize: "0.9rem",
+        }}
+      />
+      {editing && (
+        <Button
+          variant="outlined"
+          color="error"
+          size="small"
+          onClick={() => {
+            const updated = configObj[category].filter((_, i) => i !== idx);
+            setConfigObj((prev) => ({ ...prev, [category]: updated }));
+          }}
+          sx={{ flexShrink: 0 }}
+        >
+          Remove
+        </Button>
+      )}
+    </Box>
+  ))}
+
   {editing && (
     <Button
       variant="contained"
       size="small"
       onClick={() =>
-        setConfigObj((prev) => ({ ...prev, [category]: [...(prev[category] || []), ""] }))
+        setConfigObj((prev) => ({ ...prev, [category]: [...prev[category], ""] }))
       }
+      sx={{ mt: 1 }}
     >
       Add Item
     </Button>
