@@ -9,7 +9,7 @@ import SecurityIcon from '@mui/icons-material/Security';
 import logo from '../assets/logoNavbar.png';
 import landingImage1 from '../assets/landingImage1.svg';
 import landingImage2 from '../assets/landingImage2.svg';
-import landingImage3 from '../assets/landingImage3.svg';
+import landingImage3 from '../assets/landingimage3.svg';
 import landingImage4 from '../assets/landingImage4.svg';
 
 export default function LandingPage() {

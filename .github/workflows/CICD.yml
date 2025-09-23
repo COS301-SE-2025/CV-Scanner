@@ -69,6 +69,7 @@ jobs:
             pip install -r AI/requirements.txt
           else
             pip install fastapi uvicorn pydantic pytest
+          fi
 
       - name: Login to Azure
         uses: azure/login@v1
