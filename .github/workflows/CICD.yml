@@ -98,7 +98,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: UI/CV-Scanner
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Build React UI
         working-directory: UI/CV-Scanner
