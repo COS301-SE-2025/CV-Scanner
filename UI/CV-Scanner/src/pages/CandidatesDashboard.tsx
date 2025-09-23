@@ -32,7 +32,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip as RechartTooltip,
+  Tooltip as RechartsTooltip,
   Legend,
   ResponsiveContainer,
 } from "recharts";
@@ -254,10 +254,7 @@ export default function CandidatesDashboard() {
             {[
               {
                 label: "Candidates",
-                value:
-                  totalCandidates != null
-                    ? String(totalCandidates)
-                    : "—",
+                value: totalCandidates != null ? String(totalCandidates) : "—",
               },
               { label: "Pending Review", value: "24" },
               { label: "Top Technology", value: ".NET" },
@@ -312,7 +309,7 @@ export default function CandidatesDashboard() {
                     tick={{ fill: "#575656ff", fontWeight: "bold" }}
                   />
                   <YAxis tick={{ fill: "#575656ff", fontWeight: "bold" }} />
-                  <Tooltip />
+                  <RechartsTooltip />
                   <Line
                     type="monotone"
                     dataKey="candidates"
@@ -358,7 +355,7 @@ export default function CandidatesDashboard() {
                     stroke="#4a5568"
                     tick={{ fill: "#575656ff", fontWeight: "bold" }}
                   />
-                  <Tooltip
+                  <RechartsTooltip
                     contentStyle={{
                       backgroundColor: "#2b3a55",
                       borderColor: "#4a5568",
@@ -427,7 +424,7 @@ export default function CandidatesDashboard() {
                       />
                     ))}
                   </Pie>
-                  <Tooltip
+                  <RechartsTooltip
                     formatter={(value, name, props) => [
                       value,
                       `${name}: ${(props.payload.percent * 100).toFixed(1)}%`,
@@ -491,7 +488,7 @@ export default function CandidatesDashboard() {
                       />
                     ))}
                   </Pie>
-                  <Tooltip
+                  <RechartsTooltip
                     contentStyle={{
                       backgroundColor: "#2b3a55",
                       borderColor: "#4a5568",

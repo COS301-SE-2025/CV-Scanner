@@ -224,7 +224,6 @@ const renderNormalizedFields = (fields: ParsedCVFields) => {
               label={key.charAt(0).toUpperCase() + key.slice(1)}
               value={value}
               onSave={() => {}}
-              fullWidth
             />
           </Box>
         );
