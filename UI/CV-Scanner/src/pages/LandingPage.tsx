@@ -5,8 +5,8 @@ import {
   AppBar,
   Toolbar,
   IconButton,
-  Grid,
   Paper,
+  Grid, // use v2 Grid via named import
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
@@ -65,21 +65,17 @@ export default function LandingPage() {
         >
           {/* Image */}
           <Grid xs={12} md={6} sx={{ textAlign: "center" }}>
-          <Grid item xs={12} md={6} sx={{ textAlign: "center" }}>
+            <Box
               component="img"
               src={landingImage1}
               alt="Hero"
-              sx={{
-                width: "100%",
-                maxWidth: 500,
-                height: "auto",
-              }}
+              sx={{ width: "100%", maxWidth: 500, height: "auto" }}
             />
           </Grid>
 
           {/* Text Content */}
           <Grid xs={12} md={6}>
-          <Grid item xs={12} md={6}>
+            <Typography
               variant="h3"
               sx={{ fontWeight: "bold", mb: 2, color: "#e1f4ff" }}
             >
@@ -146,12 +142,13 @@ export default function LandingPage() {
             },
           ].map((feature, idx) => (
             <Grid xs={12} sm={6} md={3} key={idx}>
-            <Grid item xs={12} sm={6} md={3} key={idx}>
+              <Paper
                 sx={{
                   p: 3,
                   textAlign: "center",
                   bgcolor: "#232a3b",
                   color: "#fff",
+                  height: "100%",
                 }}
                 elevation={3}
               >
@@ -187,10 +184,11 @@ export default function LandingPage() {
           sx={{ maxWidth: "1200px", mx: "auto", mb: 12 }}
         >
           <Grid xs={12} md={6} sx={{ textAlign: "center" }}>
-            <img
+            <Box
+              component="img"
               src={landingImage2}
               alt="Upload CVs"
-              style={{ width: "100%", maxWidth: 400 }}
+              sx={{ width: "100%", maxWidth: 400 }}
             />
           </Grid>
           <Grid xs={12} md={6}>
@@ -228,10 +226,11 @@ export default function LandingPage() {
             </Typography>
           </Grid>
           <Grid xs={12} md={6} sx={{ textAlign: "center" }}>
-            <img
+            <Box
+              component="img"
               src={landingImage3}
               alt="Analyze CVs"
-              style={{ width: "100%", maxWidth: 400 }}
+              sx={{ width: "100%", maxWidth: 400 }}
             />
           </Grid>
         </Grid>
@@ -245,10 +244,11 @@ export default function LandingPage() {
           sx={{ maxWidth: "1200px", mx: "auto" }}
         >
           <Grid xs={12} md={6} sx={{ textAlign: "center" }}>
-            <img
+            <Box
+              component="img"
               src={landingImage4}
               alt="Filter Candidates"
-              style={{ width: "100%", maxWidth: 400 }}
+              sx={{ width: "100%", maxWidth: 400 }}
             />
           </Grid>
           <Grid xs={12} md={6}>
@@ -291,13 +291,14 @@ export default function LandingPage() {
             },
           ].map((item, idx) => (
             <Grid xs={12} md={4} key={idx}>
-            <Grid item xs={12} md={4} key={idx}>
+              <Paper
                 elevation={4}
                 sx={{
                   p: 4,
                   textAlign: "center",
                   bgcolor: "#2c324a",
                   color: "#fff",
+                  height: "100%",
                 }}
               >
                 <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>

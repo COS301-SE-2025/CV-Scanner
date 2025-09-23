@@ -2,10 +2,6 @@
   "name": "cv-scanner",
   "version": "0.0.0",
   "private": true,
-  "engines": {
-    "node": ">=20.0.0"
-  },
-  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -17,18 +13,17 @@
     "@emotion/react": "^11.14.0",
     "@emotion/serialize": "^1.3.3",
     "@emotion/sheet": "^1.4.0",
-    "@emotion/styled": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "@hookform/resolvers": "^5.0.1",
     "@mui/icons-material": "^7.1.0",
-    "@mui/material": "^7.1.0",
+    "@mui/material": "^5.18.0",
+    "@mui/system": "^5.18.0",
     "axios": "^1.9.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.56.4",
     "react-router": "^6.26.2",
-    "react-router-dom": "^6.26.2",
-    "recharts": "^3.0.0",
-    "yup": "^1.6.1"
+    "react-router-dom": "^6.26.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
