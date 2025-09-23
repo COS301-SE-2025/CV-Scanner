@@ -12,6 +12,7 @@ import landingImage2 from '../assets/landingImage2.svg';
 import landingImage3 from '../assets/landingimage3.svg';
 import landingImage4 from '../assets/landingImage4.svg';
 
+
 export default function LandingPage() {
   const navigate = useNavigate();
 
