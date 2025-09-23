@@ -7,12 +7,15 @@ on:
     branches: [main, dev, API-3]
 
 jobs:
-  api:
-    name: Build & Deploy Java API
+  deploy:
+    name: Build & Deploy All
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      # -----------------------
+      # Build Java API
+      # -----------------------
       - name: Cache Maven
         uses: actions/cache@v4
         with:
@@ -29,27 +32,9 @@ jobs:
       - name: Build API
         run: mvn -B -f API/api/pom.xml package
 
-      - name: Run API tests
-        run: mvn -f API/api/pom.xml test
-
-      - name: Login to Azure
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Deploy API to Azure App Service
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: 'cvscanner'
-          slot-name: 'production'
-          package: API/
-
-  ai:
-    name: Build & Deploy Python AI
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
+      # -----------------------
+      # Build Python AI
+      # -----------------------
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -62,7 +47,7 @@ jobs:
           key: pip-${{ runner.os }}-${{ hashFiles('AI/requirements*.txt') }}
           restore-keys: pip-${{ runner.os }}-
 
-      - name: Install dependencies
+      - name: Install AI dependencies
         run: |
           python -m pip install --upgrade pip
           if [ -f AI/requirements.txt ]; then
@@ -71,43 +56,35 @@ jobs:
             pip install fastapi uvicorn pydantic pytest
           fi
 
-      - name: Login to Azure
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Deploy AI to Azure App Service
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: 'cvscan'
-          slot-name: 'production'
-          package: AI/
-
-  ui:
-    name: Build & Deploy React UI
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
+      # -----------------------
+      # Build React UI
+      # -----------------------
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "npm"
+          cache-dependency-path: UI/CV-Scanner/package-lock.json
 
-      - name: Install dependencies with legacy peer deps
+      - name: Install UI dependencies
         working-directory: UI/CV-Scanner
         run: npm ci --legacy-peer-deps
 
       - name: Build React UI
         working-directory: UI/CV-Scanner
-        run: npx vite build
+        run: npm run build
 
-      - name: Deploy React UI to Azure Static Web App
-        uses: Azure/static-web-apps-deploy@v1
+      # -----------------------
+      # Deploy everything
+      # -----------------------
+      - name: Login to Azure
+        uses: azure/login@v1
         with:
-          azure_static_web_apps_api_token: ${{ secrets.UI_STATIC_WEBAPP_API_TOKEN }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          action: "upload"
-          app_location: "UI/CV-Scanner"
-          output_location: "UI/CV-Scanner/dist"
-          skip_app_build: true
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy API + AI + UI to Azure App Service
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: 'cvscanner'      # your existing App Service
+          slot-name: 'production'
+          package: '.'               # deploy root folder including API, AI, UI/dist
