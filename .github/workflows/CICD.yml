@@ -93,10 +93,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
-          cache-dependency-path: UI/CV-Scanner/package-lock.json
 
-      - name: Install dependencies
+      - name: Install dependencies with legacy peer deps
         working-directory: UI/CV-Scanner
         run: npm ci --legacy-peer-deps
 
@@ -112,3 +110,4 @@ jobs:
           action: "upload"
           app_location: "UI/CV-Scanner"
           output_location: "UI/CV-Scanner/dist"
+          skip_app_build: true
