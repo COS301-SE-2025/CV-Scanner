@@ -32,12 +32,17 @@ jobs:
       - name: Run API tests
         run: mvn -f API/api/pom.xml test
 
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Deploy API to Azure App Service
         uses: azure/webapps-deploy@v2
         with:
           app-name: 'cvscanner'
           slot-name: 'production'
-          publish-profile: ${{ secrets.AZURE_CREDENTIALS }}
+          package: API/
 
   ai:
     name: Build & Deploy Python AI
@@ -65,12 +70,16 @@ jobs:
           else
             pip install fastapi uvicorn pydantic pytest
 
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Deploy AI to Azure App Service
         uses: azure/webapps-deploy@v2
         with:
           app-name: 'cvscan'
           slot-name: 'production'
-          publish-profile: ${{ secrets.AZURE_CREDENTIALS }}
           package: AI/
 
   ui:
