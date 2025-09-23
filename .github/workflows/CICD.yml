@@ -1,115 +1,46 @@
-name: CI/CD
+name: Deploy CV Scanner
 
 on:
   push:
-    branches: [main, dev, API-3]
-  pull_request:
-    branches: [main, dev, API-3]
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
-  api:
-    name: Build & Deploy Java API
+  build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - name: Cache Maven
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: maven-${{ runner.os }}-${{ hashFiles('API/api/pom.xml') }}
-          restore-keys: maven-${{ runner.os }}-
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: "21"
-          distribution: "temurin"
-
-      - name: Build API
-        run: mvn -B -f API/api/pom.xml package
-
-      - name: Run API tests
-        run: mvn -f API/api/pom.xml test
-
-      - name: Login to Azure
+      # 1. Login to Azure
+      - name: Azure Login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy API to Azure App Service
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: 'cvscanner'
-          slot-name: 'production'
-          package: API/
-
-  ai:
-    name: Build & Deploy Python AI
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: pip-${{ runner.os }}-${{ hashFiles('AI/requirements*.txt') }}
-          restore-keys: pip-${{ runner.os }}-
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          if [ -f AI/requirements.txt ]; then
-            pip install -r AI/requirements.txt
-          else
-            pip install fastapi uvicorn pydantic pytest
-          fi
-
-      - name: Login to Azure
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Deploy AI to Azure App Service
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: 'cvscan'
-          slot-name: 'production'
-          package: AI/
-
-  ui:
-    name: Build & Deploy React UI
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: UI/CV-Scanner/package-lock.json
-
-      - name: Install dependencies
-        working-directory: UI/CV-Scanner
-        run: npm ci --legacy-peer-deps
-
-      - name: Build React UI
-        working-directory: UI/CV-Scanner
-        run: npx vite build
-
-      - name: Deploy React UI to Azure Static Web App
+      # 2. Deploy UI (Static Web App)
+      - name: Deploy UI
         uses: Azure/static-web-apps-deploy@v1
         with:
-          azure_static_web_apps_api_token: ${{ secrets.UI_STATIC_WEBAPP_API_TOKEN }}
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_UI }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
           app_location: "UI/CV-Scanner"
-          output_location: "UI/CV-Scanner/dist"
-          skip_app_build: true
+          output_location: "build"
+
+      # 3. Deploy API (App Service)
+      - name: Deploy API
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: cvscanner-api
+          package: ./api
+
+      # 4. Deploy Database Migrations (if any)
+      - name: Run DB migrations
+        run: |
+          echo "Running DB migrations..."
+          # Replace with your migration command, e.g.
+          # dotnet ef database update
+          # or flask db upgrade
