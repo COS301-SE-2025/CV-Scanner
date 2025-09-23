@@ -36,6 +36,7 @@ import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import Sidebar from "./Sidebar";
+import ConfigViewer from "./ConfigViewer";
 
 export default function Search() {
   const [collapsed, setCollapsed] = useState(false);
@@ -424,131 +425,7 @@ export default function Search() {
           >
             {/* Filters */}
             <Box sx={{ display: "flex", gap: 6, mb: 4 }} ref={checkboxesRef}>
-              <Box>
-                <Typography
-                  variant="subtitle1"
-                  sx={{
-                    color: "#000000ff",
-                    fontWeight: "bold",
-                    mb: 2,
-                    fontFamily: "Helvetica, sans-serif",
-                    fontSize: "1rem",
-                  }}
-                >
-                  Primary Skills
-                </Typography>
-                <FormGroup sx={{ color: "#000000ff" }}>
-                  {[".NET", "Java", "React", "Azure"].map((skill) => (
-                    <FormControlLabel
-                      key={skill}
-                      control={
-                        <Checkbox
-                          checked={selectedSkills.includes(skill)}
-                          onChange={() => handleCheckboxChange("skill", skill)}
-                          sx={{
-                            color: "#204E20", // green
-                            "&.Mui-checked": { color: "#204E20" }, //green
-                          }}
-                        />
-                      }
-                      label={
-                        <Typography
-                          sx={{
-                            fontFamily: "Helvetica, sans-serif",
-                            fontSize: "1rem",
-                          }}
-                        >
-                          {skill}
-                        </Typography>
-                      }
-                    />
-                  ))}
-                </FormGroup>
-              </Box>
-              <Box>
-                <Typography
-                  variant="subtitle1"
-                  sx={{
-                    color: "#000000ff",
-                    fontWeight: "bold",
-                    mb: 2,
-                    fontFamily: "Helvetica, sans-serif",
-                    fontSize: "1rem",
-                  }}
-                >
-                  Project Fit
-                </Typography>
-                <FormGroup sx={{ color: "#000000ff" }}>
-                  {["Technical", "Collaborative", "Business"].map((fit) => (
-                    <FormControlLabel
-                      key={fit}
-                      control={
-                        <Checkbox
-                          checked={selectedFits.includes(fit)}
-                          onChange={() => handleCheckboxChange("fit", fit)}
-                          sx={{
-                            color: "#204E20", //green
-                            "&.Mui-checked": { color: "#204E20" }, //green
-                          }}
-                        />
-                      }
-                      label={
-                        <Typography
-                          sx={{
-                            fontFamily: "Helvetica, sans-serif",
-                            fontSize: "1rem",
-                          }}
-                        >
-                          {fit}
-                        </Typography>
-                      }
-                    />
-                  ))}
-                </FormGroup>
-              </Box>
-              <Box>
-                <Typography
-                  variant="subtitle1"
-                  sx={{
-                    color: "#000000ff",
-                    fontWeight: "bold",
-                    mb: 2,
-                    fontFamily: "Helvetica, sans-serif",
-                    fontSize: "1rem",
-                  }}
-                >
-                  Upload Details
-                </Typography>
-                <FormGroup sx={{ color: "#000000ff" }}>
-                  {["My Uploads", "Last 7 Days"].map((detail) => (
-                    <FormControlLabel
-                      key={detail}
-                      control={
-                        <Checkbox
-                          checked={selectedDetails.includes(detail)}
-                          onChange={() =>
-                            handleCheckboxChange("detail", detail)
-                          }
-                          sx={{
-                            color: "#204E20", //green
-                            "&.Mui-checked": { color: "#204E20" }, //green
-                          }}
-                        />
-                      }
-                      label={
-                        <Typography
-                          sx={{
-                            fontFamily: "Helvetica, sans-serif",
-                            fontSize: "1rem",
-                          }}
-                        >
-                          {detail}
-                        </Typography>
-                      }
-                    />
-                  ))}
-                </FormGroup>
-              </Box>
+              <ConfigViewer />
             </Box>
 
             <Divider sx={{ my: 3 }} />
@@ -620,16 +497,6 @@ export default function Search() {
                           }}
                         >
                           {candidate.name}
-                        </Typography>
-                        <Typography
-                          variant="body1"
-                          sx={{
-                            mb: 1,
-                            fontFamily: "Helvetica, sans-serif",
-                            fontSize: "1rem",
-                          }}
-                        >
-                          {candidate.project}
                         </Typography>
                         <Typography
                           variant="body2"
