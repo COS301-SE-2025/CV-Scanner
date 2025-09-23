@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -8,13 +8,12 @@ on:
 
 jobs:
   api:
-    name: Build API (Java/Maven)
+    name: Build & Deploy Java API
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Cache Maven repo
+      - name: Cache Maven
         uses: actions/cache@v4
         with:
           path: ~/.m2/repository
@@ -27,18 +26,24 @@ jobs:
           java-version: "21"
           distribution: "temurin"
 
-      - name: Build with Maven
+      - name: Build API
         run: mvn -B -f API/api/pom.xml package
 
-      - name: Run tests
+      - name: Run API tests
         run: mvn -f API/api/pom.xml test
 
+      - name: Deploy API to Azure App Service
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: 'cvscanner'
+          slot-name: 'production'
+          publish-profile: ${{ secrets.AZURE_CREDENTIALS }}
+
   ai:
-    name: Build AI (Python/FastAPI)
+    name: Build & Deploy Python AI
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -59,30 +64,41 @@ jobs:
             pip install -r AI/requirements.txt
           else
             pip install fastapi uvicorn pydantic pytest
-          fi
+
+      - name: Deploy AI to Azure App Service
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: 'cvscan'
+          slot-name: 'production'
+          publish-profile: ${{ secrets.AZURE_CREDENTIALS }}
+          package: AI/
 
   ui:
-    name: Build UI (Node/React)
-    runs-on: windows-latest
+    name: Build & Deploy React UI
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Use Node.js 20
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
           cache-dependency-path: UI/CV-Scanner/package-lock.json
 
-      - name: Install deps
+      - name: Install dependencies
         working-directory: UI/CV-Scanner
         run: npm ci
 
-      - name: Build UI
+      - name: Build React UI
         working-directory: UI/CV-Scanner
         run: npx vite build
 
-      - name: Test UI
-        working-directory: UI/CV-Scanner
-        run: npm test --if-present -- --watchAll=false
+      - name: Deploy React UI to Azure Static Web App
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.UI_STATIC_WEBAPP_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: "upload"
+          app_location: "UI/CV-Scanner"
+          output_location: "UI/CV-Scanner/dist"
