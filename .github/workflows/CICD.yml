@@ -5,15 +5,14 @@ on:
     branches:
       - main
       - dev
-      - API-3
-      - UI-*
       - API-*
+      - AI-*
+      - UI-*
       - DB-*
   pull_request:
     branches:
       - main
       - dev
-      - API-3
 
 jobs:
   api:
@@ -47,6 +46,41 @@ jobs:
           slot-name: 'production'
           package: API/
 
+  ai:
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/AI-')
+    name: Build & Deploy Python AI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f AI/requirements.txt ]; then
+            pip install -r AI/requirements.txt
+          else
+            pip install fastapi uvicorn pydantic pytest
+
+      - name: Run AI tests
+        run: pytest AI/
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy AI to Azure App Service
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: 'cvscanner-ai'
+          slot-name: 'production'
+          package: AI/
+
   ui:
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/UI-')
     name: Build & Deploy React UI
@@ -75,4 +109,3 @@ jobs:
           action: "upload"
           app_location: "UI/CV-Scanner"
           output_location: "UI/CV-Scanner/dist"
-
