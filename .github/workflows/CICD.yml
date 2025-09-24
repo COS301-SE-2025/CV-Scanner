@@ -1,104 +1,52 @@
-name: CI/CD
+name: CV-Scanner Deployment
 
 on:
   push:
-    branches: [main, dev, API-3]
-  pull_request:
-    branches: [main, dev, API-3]
+    branches:
+      - main
+      - dev
 
 jobs:
   api:
-    name: Build & Deploy Java API
+    name: Deploy API
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Cache Maven
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: maven-${{ runner.os }}-${{ hashFiles('API/api/pom.xml') }}
-          restore-keys: maven-${{ runner.os }}-
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: "21"
-          distribution: "temurin"
-
-      - name: Build API
-        run: mvn -B -f API/api/pom.xml package
-
-      - name: Run API tests
-        run: mvn -f API/api/pom.xml test
-
-      - name: Login to Azure
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Deploy API to Azure App Service
         uses: azure/webapps-deploy@v2
         with:
-          app-name: 'cvscanner-api'
-          slot-name: 'production'
-          package: API/
+          app-name: "cvscanner-api"
+          slot-name: "production"
+          publish-profile: ${{ secrets.CVSCANNER_API_PUBLISH_PROFILE }}
 
   ai:
-    name: Build & Deploy Python AI
+    name: Deploy AI
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: pip-${{ runner.os }}-${{ hashFiles('AI/requirements*.txt') }}
-          restore-keys: pip-${{ runner.os }}-
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          if [ -f AI/requirements.txt ]; then
-            pip install -r AI/requirements.txt
-          else
-            pip install fastapi uvicorn pydantic pytest
-          fi
-
-      - name: Login to Azure
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Deploy AI to Azure App Service
         uses: azure/webapps-deploy@v2
         with:
-          app-name: 'cvscanner-ai'
-          slot-name: 'production'
-          package: AI/
+          app-name: "cvscanner-ai"
+          slot-name: "production"
+          publish-profile: ${{ secrets.CVSCANNER_AI_PUBLISH_PROFILE }}
 
   ui:
-    name: Build & Deploy React UI
+    name: Deploy React UI
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
-          cache-dependency-path: UI/CV-Scanner/package-lock.json
 
-      - name: Install dependencies
+      - name: Install UI dependencies
         working-directory: UI/CV-Scanner
-        run: npm ci --legacy-peer-deps
+        run: npm install --legacy-peer-deps
 
       - name: Build React UI
         working-directory: UI/CV-Scanner
