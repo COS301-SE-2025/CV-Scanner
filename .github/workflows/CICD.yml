@@ -138,22 +138,24 @@ jobs:
       - name: Preinstall AI dependencies into .python_packages
         working-directory: AI
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install --upgrade wheel setuptools
+          python -m pip install --upgrade pip setuptools wheel
           mkdir -p .python_packages/lib/site-packages
           pip install --no-cache-dir -r requirements.txt -t .python_packages/lib/site-packages
-          # Optional: verify a few packages exist
-          ls -1 .python_packages/lib/site-packages | head -n 20
+          python - <<'PY'
+          import sys, pkgutil
+          print("site-packages:", sys.path)
+          print("sample packages:", [m.name for m in pkgutil.iter_modules(['.python_packages/lib/site-packages'])][:20])
+          PY
 
       - name: Package AI (include .python_packages)
         run: |
           cd AI
           zip -r ../ai.zip . \
-            -x "**/__pycache__/**" "**/.git/**" "**/.venv/**" "**/.python_packages/lib/site-packages/__pycache__/**" "**/*.pyc"
+            -x "**/__pycache__/**" "**[.git](http://_vscodecontentref_/1)**" "**/.venv/**" "**/.python_packages/lib/site-packages/__pycache__/**" "**/*.pyc"
           cd -
           ls -lh ai.zip
 
-      - name: Deploy AI (zip, no oryx build)
+      - name: Deploy AI (zip, no Oryx build)
         run: |
           az webapp deploy \
             --resource-group "rg-cvscanner" \
@@ -165,7 +167,7 @@ jobs:
         run: |
           HOST=$(az webapp show -g rg-cvscanner -n cvscanner-ai --query defaultHostName -o tsv)
           curl -fsS -m 20 "https://${HOST}/health" || true
-          curl -fsS -m 60 "https://${HOST}/warmup" || true
+          curl -fsS -m 120 ://${"httpsHOST}/warmup" || true
 
   ui:
     name: Deploy React UI (SWA)
