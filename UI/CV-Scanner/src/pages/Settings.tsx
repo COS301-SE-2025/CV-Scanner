@@ -33,6 +33,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import logo from "../assets/logoNavbar.png";
 import Sidebar from "./Sidebar";
+import { apiFetch } from "../lib/api";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -74,27 +75,45 @@ export default function SettingsPage() {
   useEffect(() => {
     const email = localStorage.getItem("userEmail");
     if (!email) return;
-    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
-      .then((res) => res.json())
-      .then((data) => setUser(data))
-      .catch(() => setUser(null));
+    (async () => {
+      try {
+        const res = await apiFetch(
+          `/auth/me?email=${encodeURIComponent(email)}`
+        );
+        if (!res.ok) {
+          setUser(null);
+          return;
+        }
+        const data = await res.json().catch(() => null);
+        setUser(data);
+      } catch {
+        setUser(null);
+      }
+    })();
   }, []);
 
   useEffect(() => {
     const email = localStorage.getItem("userEmail");
     if (!email) return;
-    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setProfileForm({
-          firstName: data.first_name || "",
-          lastName: data.last_name || "",
-          email: data.email || "",
-        });
-      });
+    (async () => {
+      try {
+        const res = await apiFetch(
+          `/auth/me?email=${encodeURIComponent(email)}`
+        );
+        if (!res.ok) return;
+        const data = await res.json().catch(() => null);
+        if (data) {
+          setProfileForm({
+            firstName: data.first_name || "",
+            lastName: data.last_name || "",
+            email: data.email || "",
+          });
+        }
+      } catch {
+        // ignore
+      }
+    })();
   }, []);
-
-  const location = useLocation();
 
   // Handle profile updates
   const handleProfileUpdate = async (e: React.FormEvent) => {
@@ -104,17 +123,11 @@ export default function SettingsPage() {
     setProfileSuccess("");
 
     try {
-      const response = await fetch(
-        "http://localhost:8081/auth/update-profile",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(profileForm),
-        }
-      );
-
-      const data = await response.json();
-
+      const response = await apiFetch("/auth/update-profile", {
+        method: "POST",
+        body: JSON.stringify(profileForm),
+      });
+      const data = await response.json().catch(() => ({}));
       if (response.ok) {
         setProfileSuccess(data.message || "Profile updated successfully");
       } else {
@@ -150,21 +163,15 @@ export default function SettingsPage() {
     }
 
     try {
-      const response = await fetch(
-        "http://localhost:8081/auth/change-password",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email,
-            currentPassword: passwordForm.currentPassword,
-            newPassword: passwordForm.newPassword,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
+      const response = await apiFetch("/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify({
+          email,
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
       if (response.ok) {
         setSuccess("Password changed successfully");
         setPasswordForm({
@@ -211,12 +218,12 @@ export default function SettingsPage() {
         color: "#fff",
       }}
     >
-            {/* Sidebar */}
-      <Sidebar 
-  userRole={user?.role || devUser.role} 
-  collapsed={collapsed} 
-  setCollapsed={setCollapsed} 
-/>
+      {/* Sidebar */}
+      <Sidebar
+        userRole={user?.role || devUser.role}
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
+      />
 
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
@@ -273,7 +280,14 @@ export default function SettingsPage() {
 
         {/* Settings Content */}
         <Box sx={{ p: 3 }}>
-          <Typography variant="h5" sx={{ fontWeight: "bold", mb: 3, fontFamily: "Helvetica, sans-serif" }}>
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: "bold",
+              mb: 3,
+              fontFamily: "Helvetica, sans-serif",
+            }}
+          >
             User Settings
           </Typography>
 
@@ -307,7 +321,12 @@ export default function SettingsPage() {
             <Box component="form" onSubmit={handleProfileUpdate} sx={{ mb: 4 }}>
               <Typography
                 variant="h6"
-                sx={{ fontWeight: "bold", color: "#232A3B", mb: 2, fontFamily: "Helvetica, sans-serif" }}
+                sx={{
+                  fontWeight: "bold",
+                  color: "#232A3B",
+                  mb: 2,
+                  fontFamily: "Helvetica, sans-serif",
+                }}
               >
                 Profile Information
               </Typography>
@@ -340,8 +359,21 @@ export default function SettingsPage() {
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: "#cbd5e0", borderRadius: 1, fontFamily: "Helvetica, sans-serif",fontSize: "1.2rem" } }}
-                  InputLabelProps={{ sx: { fontFamily: "Helvetica, sans-serif", fontSize: "1.2rem","&.Mui-focused": { color: "#487DA6" },  }}}
+                  InputProps={{
+                    sx: {
+                      bgcolor: "#cbd5e0",
+                      borderRadius: 1,
+                      fontFamily: "Helvetica, sans-serif",
+                      fontSize: "1.2rem",
+                    },
+                  }}
+                  InputLabelProps={{
+                    sx: {
+                      fontFamily: "Helvetica, sans-serif",
+                      fontSize: "1.2rem",
+                      "&.Mui-focused": { color: "#487DA6" },
+                    },
+                  }}
                 />
                 <TextField
                   name="lastName"
@@ -351,8 +383,20 @@ export default function SettingsPage() {
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: "#cbd5e0", borderRadius: 1, fontFamily: "Helvetica, sans-serif",fontSize: "1.2rem" } }}
-                  InputLabelProps={{ sx: { fontFamily: "Helvetica, sans-serif", fontSize: "1.2rem"  }}}
+                  InputProps={{
+                    sx: {
+                      bgcolor: "#cbd5e0",
+                      borderRadius: 1,
+                      fontFamily: "Helvetica, sans-serif",
+                      fontSize: "1.2rem",
+                    },
+                  }}
+                  InputLabelProps={{
+                    sx: {
+                      fontFamily: "Helvetica, sans-serif",
+                      fontSize: "1.2rem",
+                    },
+                  }}
                 />
                 <TextField
                   name="email"
@@ -362,8 +406,20 @@ export default function SettingsPage() {
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: "#cbd5e0", borderRadius: 1, fontFamily: "Helvetica, sans-serif", fontSize: "1.2rem" } }}
-                  InputLabelProps={{ sx: { fontFamily: "Helvetica, sans-serif", fontSize: "1.2rem"  }}}
+                  InputProps={{
+                    sx: {
+                      bgcolor: "#cbd5e0",
+                      borderRadius: 1,
+                      fontFamily: "Helvetica, sans-serif",
+                      fontSize: "1.2rem",
+                    },
+                  }}
+                  InputLabelProps={{
+                    sx: {
+                      fontFamily: "Helvetica, sans-serif",
+                      fontSize: "1.2rem",
+                    },
+                  }}
                 />
               </Box>
 
@@ -372,30 +428,31 @@ export default function SettingsPage() {
                 variant="contained"
                 disabled={profileLoading}
                 sx={{
-                    background: "#232A3B",
-  color: "DEDDEE",
-  fontWeight: "bold",
-  padding: "8px 20px",
-  borderRadius: "4px",
-  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-  "&:hover": {
-    background: "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
-    transform: "translateY(-1px)",
-  },
-  textTransform: "none",
-  transition: "all 0.3s ease",
-  position: "relative",
-  overflow: "hidden",
-  "&::after": {
-    content: '""',
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    background:
-      "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
-  },
+                  background: "#232A3B",
+                  color: "DEDDEE",
+                  fontWeight: "bold",
+                  padding: "8px 20px",
+                  borderRadius: "4px",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                  "&:hover": {
+                    background:
+                      "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
+                    transform: "translateY(-1px)",
+                  },
+                  textTransform: "none",
+                  transition: "all 0.3s ease",
+                  position: "relative",
+                  overflow: "hidden",
+                  "&::after": {
+                    content: '""',
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    background:
+                      "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
+                  },
                 }}
               >
                 {profileLoading ? "Updating..." : "Update Profile"}
@@ -411,8 +468,13 @@ export default function SettingsPage() {
               sx={{ mb: 4 }}
             >
               <Typography
-                variant="h6" 
-                sx={{ fontWeight: "bold", color: "#232A3B", mb: 2, fontFamily: "Helvetica, sans-serif" }}
+                variant="h6"
+                sx={{
+                  fontWeight: "bold",
+                  color: "#232A3B",
+                  mb: 2,
+                  fontFamily: "Helvetica, sans-serif",
+                }}
               >
                 Change Password
               </Typography>
@@ -429,8 +491,20 @@ export default function SettingsPage() {
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: "#cbd5e0", borderRadius: 1, fontFamily: "Helvetica, sans-serif", fontSize: "1.2rem" } }}
-                  InputLabelProps={{ sx: { fontFamily: "Helvetica, sans-serif", fontSize: "1.2rem"  }}}
+                  InputProps={{
+                    sx: {
+                      bgcolor: "#cbd5e0",
+                      borderRadius: 1,
+                      fontFamily: "Helvetica, sans-serif",
+                      fontSize: "1.2rem",
+                    },
+                  }}
+                  InputLabelProps={{
+                    sx: {
+                      fontFamily: "Helvetica, sans-serif",
+                      fontSize: "1.2rem",
+                    },
+                  }}
                 />
                 <Box></Box>
                 <TextField
@@ -442,8 +516,20 @@ export default function SettingsPage() {
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: "#cbd5e0", borderRadius: 1, fontFamily: "Helvetica, sans-serif", fontSize: "1.2rem" } }}
-                  InputLabelProps={{ sx: { fontFamily: "Helvetica, sans-serif", fontSize: "1.2rem"  }}}
+                  InputProps={{
+                    sx: {
+                      bgcolor: "#cbd5e0",
+                      borderRadius: 1,
+                      fontFamily: "Helvetica, sans-serif",
+                      fontSize: "1.2rem",
+                    },
+                  }}
+                  InputLabelProps={{
+                    sx: {
+                      fontFamily: "Helvetica, sans-serif",
+                      fontSize: "1.2rem",
+                    },
+                  }}
                 />
                 <TextField
                   name="confirmPassword"
@@ -454,8 +540,20 @@ export default function SettingsPage() {
                   fullWidth
                   variant="outlined"
                   sx={{ mb: 2 }}
-                  InputProps={{ sx: { bgcolor: "#cbd5e0", borderRadius: 1, fontFamily: "Helvetica, sans-serif", fontSize: "1.2rem" } }}
-                  InputLabelProps={{ sx: { fontFamily: "Helvetica, sans-serif", fontSize: "1.2rem"  }}}
+                  InputProps={{
+                    sx: {
+                      bgcolor: "#cbd5e0",
+                      borderRadius: 1,
+                      fontFamily: "Helvetica, sans-serif",
+                      fontSize: "1.2rem",
+                    },
+                  }}
+                  InputLabelProps={{
+                    sx: {
+                      fontFamily: "Helvetica, sans-serif",
+                      fontSize: "1.2rem",
+                    },
+                  }}
                 />
               </Box>
 
@@ -465,30 +563,31 @@ export default function SettingsPage() {
                 disabled={loading}
                 startIcon={<LockResetIcon />}
                 sx={{
-                   background: "#232A3B",
-  color: "DEDDEE",
-  fontWeight: "bold",
-  padding: "8px 20px",
-  borderRadius: "4px",
-  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-  "&:hover": {
-    background: "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
-    transform: "translateY(-1px)",
-  },
-  textTransform: "none",
-  transition: "all 0.3s ease",
-  position: "relative",
-  overflow: "hidden",
-  "&::after": {
-    content: '""',
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    background:
-      "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
-  },
+                  background: "#232A3B",
+                  color: "DEDDEE",
+                  fontWeight: "bold",
+                  padding: "8px 20px",
+                  borderRadius: "4px",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                  "&:hover": {
+                    background:
+                      "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
+                    transform: "translateY(-1px)",
+                  },
+                  textTransform: "none",
+                  transition: "all 0.3s ease",
+                  position: "relative",
+                  overflow: "hidden",
+                  "&::after": {
+                    content: '""',
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    background:
+                      "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
+                  },
                 }}
               >
                 {loading ? "Updating..." : "Update Password"}
@@ -501,32 +600,33 @@ export default function SettingsPage() {
             <Box>
               <Box sx={{ display: "flex", gap: 2 }}>
                 <Button
-                  variant="contained"    
+                  variant="contained"
                   sx={{
                     background: "#f44336",
-  color: "DEDDEE",
-  fontWeight: "bold",
-  padding: "8px 20px",
-  borderRadius: "4px",
-  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-  "&:hover": {
-    background: "linear-gradient(45deg, #d32f2f 0%, #d32f2f 50%, #d32f2f 100%)",
-    transform: "translateY(-1px)",
-  },
-  textTransform: "none",
-  transition: "all 0.3s ease",
-  position: "relative",
-  overflow: "hidden",
-  "&::after": {
-    content: '""',
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    background:
-      "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
-  },
+                    color: "DEDDEE",
+                    fontWeight: "bold",
+                    padding: "8px 20px",
+                    borderRadius: "4px",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                    "&:hover": {
+                      background:
+                        "linear-gradient(45deg, #d32f2f 0%, #d32f2f 50%, #d32f2f 100%)",
+                      transform: "translateY(-1px)",
+                    },
+                    textTransform: "none",
+                    transition: "all 0.3s ease",
+                    position: "relative",
+                    overflow: "hidden",
+                    "&::after": {
+                      content: '""',
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: "100%",
+                      background:
+                        "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
+                    },
                   }}
                   onClick={handleLogout}
                 >
