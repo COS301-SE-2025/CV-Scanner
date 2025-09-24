@@ -113,6 +113,8 @@ jobs:
 
       - name: Build React UI
         working-directory: UI/CV-Scanner
+        env:
+          VITE_API_BASE_URL: https://cvscanner-api.azurewebsites.net
         run: npm run build
 
       - name: Verify dist exists
