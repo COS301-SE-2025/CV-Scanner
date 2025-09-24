@@ -97,9 +97,9 @@ jobs:
             --name "cvscanner-api" \
             --settings DB_URL='${{ secrets.DB_URL }}' DB_USER='${{ secrets.DB_USER }}' DB_PASS='${{ secrets.DB_PASS }}'
   ai:
-      name: Deploy AI (Python)
-      runs-on: ubuntu-latest
-      steps:
+    name: Deploy AI (Python)
+    runs-on: ubuntu-latest
+    steps:
       - uses: actions/checkout@v4
 
       - name: Azure login (Service Principal)
