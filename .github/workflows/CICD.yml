@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   api:
-    name: Deploy API
+    name: Build, Test, Deploy API (Java 21)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,25 +22,40 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Package API
-        run: |
-          API_PATH="API"
-          test -d "$API_PATH" || (echo "API folder not found at $API_PATH" && exit 1)
-          cd "$API_PATH"
-          zip -r ../api.zip . -x "**/node_modules/**" "**/.git/**"
-          cd -
-          ls -lh api.zip
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: API/api/pom.xml
 
-      - name: Deploy API (zip)
+      - name: Make mvnw executable
+        run: chmod +x API/api/mvnw
+
+      - name: Build & Test API
+        working-directory: API/api
+        run: |
+          ./mvnw -B -ntp -DskipTests=false test
+          ./mvnw -B -ntp -DskipTests package
+
+      - name: Locate API artifact
+        id: api_artifact
+        run: |
+          JAR_PATH=$(ls -1 API/api/target/*.jar | grep -v '\.original$' | head -n 1)
+          echo "jar=$JAR_PATH" >> "$GITHUB_OUTPUT"
+          ls -lh "$JAR_PATH"
+
+      - name: Deploy API (jar)
         run: |
           az webapp deploy \
             --resource-group "rg-cvscanner" \
             --name "cvscanner-api" \
-            --src-path "api.zip" \
-            --type zip
+            --src-path "${{ steps.api_artifact.outputs.jar }}" \
+            --type jar
 
   ai:
-    name: Deploy AI
+    name: Deploy AI (Python)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,12 +65,24 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: AI/requirements.txt
+
+      - name: Install AI dependencies
+        working-directory: AI
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
       - name: Package AI
         run: |
-          AI_PATH="AI"
-          test -d "$AI_PATH" || (echo "AI folder not found at $AI_PATH" && exit 1)
-          cd "$AI_PATH"
-          zip -r ../ai.zip . -x "**/node_modules/**" "**/.git/**"
+          cd AI
+          zip -r ../ai.zip . \
+            -x "**/__pycache__/**" "**/.git/**" "**/.venv/**" "**/.python_packages/**" "**/*.pyc"
           cd -
           ls -lh ai.zip
 
@@ -68,7 +95,7 @@ jobs:
             --type zip
 
   ui:
-    name: Deploy React UI
+    name: Deploy React UI (SWA)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
