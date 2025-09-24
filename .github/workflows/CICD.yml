@@ -118,7 +118,10 @@ jobs:
           az webapp config appsettings set \
             --resource-group "rg-cvscanner" \
             --name "cvscanner-ai" \
-            --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
+            --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true \
+                     TRANSFORMERS_CACHE=/home/transformers-cache \
+                     HF_HOME=/home/hf-cache \
+                     WEBSITES_CONTAINER_START_TIME_LIMIT=1800
           az webapp config set \
             --resource-group "rg-cvscanner" \
             --name "cvscanner-ai" \

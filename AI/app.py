@@ -1,6 +1,6 @@
 import os, io, time
 from typing import Dict, List, Any
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify, request
 
 from config_store import load_categories, save_categories
 from bart_model import classify_text_by_categories
@@ -18,13 +18,28 @@ def extract_text_auto(file_bytes: bytes, filename: str) -> str:
 
 app = Flask(__name__)
 
+_model = None
+
+def get_model():
+    global _model
+    if _model is None:
+        # Import and initialize heavy libs on first use
+        from bart_model import load_bart_model  # adjust to your code
+        _model = load_bart_model()              # or class ctor
+    return _model
+
+@app.get("/health")
+def health():
+    return jsonify(status="ok")
+
+@app.get("/warmup")
+def warmup():
+    get_model()
+    return jsonify(status="warmed")
+
 @app.route("/")
 def root():
     return "OK. Endpoints: GET/POST /admin/categories, POST /classify, GET /health, POST /upload_cv, POST /parse_resume"
-
-@app.route("/health")
-def health():
-    return {"status": "ok", "ts": time.time()}
 
 # -------- ADMIN: manage categories (no hardcoding) --------
 @app.route("/admin/categories", methods=["GET", "POST"])

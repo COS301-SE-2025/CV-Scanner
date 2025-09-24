@@ -8,3 +8,4 @@ torch
 python-docx
 pdfminer.six
 gunicorn>=21,<22
+flask>=2.3
