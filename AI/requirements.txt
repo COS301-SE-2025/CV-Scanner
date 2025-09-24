@@ -5,3 +5,5 @@ tika
 transformers
 spacy
 torch
+python-docx
+pdfminer.six

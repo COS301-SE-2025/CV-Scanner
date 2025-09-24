@@ -402,6 +402,7 @@ class RegisterRequest {
     public Boolean is_active;
 }
 
+
 class LoginRequest {
     public String email;
     public String password;

@@ -7,6 +7,9 @@ from fastapi.responses import JSONResponse, StreamingResponse, PlainTextResponse
 from config_store import load_categories, save_categories
 from bart_model import classify_text_by_categories
 
+# Import CV parser functions
+from cv_parser import parse_resume_from_bytes
+
 # OPTIONAL: simple extractors; replace with your PDF/DOCX code if you like
 def extract_text_auto(file_bytes: bytes, filename: str) -> str:
     name = (filename or "").lower()
@@ -25,7 +28,7 @@ app.add_middleware(
 
 @app.get("/", response_class=PlainTextResponse)
 async def root():
-    return "OK. Endpoints: GET/POST /admin/categories, POST /classify, GET /health"
+    return "OK. Endpoints: GET/POST /admin/categories, POST /classify, GET /health, POST /upload_cv, POST /parse_resume"
 
 @app.get("/health")
 async def health():
@@ -38,7 +41,6 @@ async def get_categories():
 
 @app.post("/admin/categories")
 async def set_categories(payload: Dict[str, List[str]] = Body(...)):
-   
     try:
         save_categories(payload)
         return {"status": "saved", "categories": load_categories()}
@@ -96,6 +98,31 @@ async def upload_cv(file: UploadFile = File(...), top_k: int = 3):
         "applied": applied,
         "raw": result
     })
+
+# -------- NEW: CV/Resume Parsing Endpoint --------
+@app.post("/parse_resume")
+async def parse_resume_endpoint(file: UploadFile = File(...)):
+    """
+    Upload a resume/CV file and get comprehensive parsing results.
+    Uses the complete cv_parser module functionality.
+    """
+    try:
+        # Read the uploaded file
+        data = await file.read()
+        if not data:
+            raise HTTPException(400, "Empty file uploaded.")
+        
+        # Parse the resume using the complete cv_parser functionality
+        result = parse_resume_from_bytes(data, file.filename)
+        
+        return JSONResponse({
+            "status": "success",
+            "filename": file.filename,
+            "result": result
+        })
+    
+    except Exception as e:
+        raise HTTPException(500, f"Error parsing resume: {str(e)}")
 
 
 if __name__ == "__main__":
