@@ -37,6 +37,7 @@ import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import Sidebar from "./Sidebar";
 import ConfigViewer from "./ConfigViewer";
+import { apiFetch, aiFetch } from "../lib/api";
 
 export default function Search() {
   const [collapsed, setCollapsed] = useState(false);
@@ -163,25 +164,29 @@ export default function Search() {
   useEffect(() => {
     document.title = "Search Candidates";
     const email = localStorage.getItem("userEmail") || "admin@email.com";
-    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
-      .then((res) => res.json())
-      .then((data) => setUser(data))
-      .catch(() => setUser(null));
+    (async () => {
+      try {
+        const meRes = await apiFetch(
+          `/auth/me?email=${encodeURIComponent(email)}`
+        );
+        if (meRes.ok) {
+          const meData = await meRes.json().catch(() => null);
+          setUser(meData);
+        } else {
+          setUser(null);
+        }
 
-    // Load candidates & filenames concurrently
-    Promise.all([
-      fetch("http://localhost:8081/cv/candidates").then((r) => {
-        if (!r.ok) throw new Error("Failed candidates");
-        return r.json();
-      }),
-      fetch("http://localhost:8081/cv/filenames")
-        .then((r) => {
-          if (!r.ok) throw new Error("Failed filenames");
-          return r.json();
-        })
-        .catch(() => []), // tolerate filename endpoint failure
-    ])
-      .then(([list, filenames]) => {
+        // Load candidates & filenames concurrently
+        const [candRes, fnRes] = await Promise.all([
+          apiFetch("/cv/candidates"),
+          apiFetch("/cv/filenames").catch(() => null), // tolerate filename endpoint failure
+        ]);
+
+        const list =
+          candRes && candRes.ok ? await candRes.json().catch(() => []) : [];
+        const filenames =
+          fnRes && fnRes.ok ? await fnRes.json().catch(() => []) : [];
+
         const filenameMap = new Map<number, any>();
         if (Array.isArray(filenames)) {
           for (const f of filenames) {
@@ -230,8 +235,13 @@ export default function Search() {
           };
         });
         setCandidates(mapped);
-      })
-      .catch(() => setCandidates([]));
+      } catch {
+        setUser(null);
+        setCandidates([]);
+      }
+    })();
+    return;
+    // previous Promise.all branch replaced
   }, []);
 
   const searchBarRef = useRef<HTMLInputElement>(null);
@@ -265,12 +275,10 @@ export default function Search() {
     setProcessingCandidates((prev) => [...prev, email]);
 
     try {
-      const res = await fetch(`${CONFIG_BASE}/cv/process`, {
+      const res = await apiFetch("/cv/process", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         alert({
@@ -279,7 +287,6 @@ export default function Search() {
         });
         return;
       }
-
       const processedCV = await res.json();
       navigate("/parsed-cv", { state: { cv: processedCV, candidate } });
     } catch (e) {
@@ -574,12 +581,16 @@ export default function Search() {
                             ]);
 
                             try {
-                              // Fetch processed data from your backend
-                              const response = await fetch(
-                                `http://localhost:5000/upload_cv_for_candidate?email=${encodeURIComponent(
+                              // Fetch processed data from AI service (use aiFetch)
+                              const response = await aiFetch(
+                                `/upload_cv_for_candidate?email=${encodeURIComponent(
                                   candidate.email
                                 )}&top_k=3`
                               );
+                              if (!response.ok)
+                                throw new Error(
+                                  `AI request failed ${response.status}`
+                                );
                               const data = await response.json();
 
                               // Prepare payload (mimic UploadCVPage)
