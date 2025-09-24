@@ -118,43 +118,54 @@ jobs:
           az webapp config appsettings set \
             --resource-group "rg-cvscanner" \
             --name "cvscanner-ai" \
-            --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true \
+            --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+                     PYTHONPATH=/home/site/wwwroot/.python_packages/lib/site-packages \
                      TRANSFORMERS_CACHE=/home/transformers-cache \
                      HF_HOME=/home/hf-cache \
                      WEBSITES_CONTAINER_START_TIME_LIMIT=1800
           az webapp config set \
             --resource-group "rg-cvscanner" \
             --name "cvscanner-ai" \
-            --startup-file "gunicorn --bind=0.0.0.0:\$PORT app:app"
+            --startup-file "gunicorn --workers 1 --timeout 300 --bind=0.0.0.0:\$PORT app:app"
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: "pip"
-          cache-dependency-path: "AI/requirements.txt"
+          cache-dependency-path: AI/requirements.txt
 
-      - name: Install AI dependencies
+      - name: Preinstall AI dependencies into .python_packages
         working-directory: AI
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          python -m pip install --upgrade wheel setuptools
+          mkdir -p .python_packages/lib/site-packages
+          pip install --no-cache-dir -r requirements.txt -t .python_packages/lib/site-packages
+          # Optional: verify a few packages exist
+          ls -1 .python_packages/lib/site-packages | head -n 20
 
-      - name: Package AI
+      - name: Package AI (include .python_packages)
         run: |
           cd AI
           zip -r ../ai.zip . \
-            -x "**/__pycache__/**" "**/.git/**" "**/.venv/**" "**/.python_packages/**" "**/*.pyc"
+            -x "**/__pycache__/**" "**/.git/**" "**/.venv/**" "**/.python_packages/lib/site-packages/__pycache__/**" "**/*.pyc"
           cd -
           ls -lh ai.zip
 
-      - name: Deploy AI (zip)
+      - name: Deploy AI (zip, no oryx build)
         run: |
           az webapp deploy \
             --resource-group "rg-cvscanner" \
             --name "cvscanner-ai" \
             --src-path "ai.zip" \
             --type zip
+
+      - name: Warm up AI app
+        run: |
+          HOST=$(az webapp show -g rg-cvscanner -n cvscanner-ai --query defaultHostName -o tsv)
+          curl -fsS -m 20 "https://${HOST}/health" || true
+          curl -fsS -m 60 "https://${HOST}/warmup" || true
 
   ui:
     name: Deploy React UI (SWA)

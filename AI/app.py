@@ -1,6 +1,7 @@
 import os, io, time
 from typing import Dict, List, Any
 from flask import Flask, jsonify, request
+app = Flask(__name__)
 
 from config_store import load_categories, save_categories
 from bart_model import classify_text_by_categories
@@ -16,16 +17,13 @@ def extract_text_auto(file_bytes: bytes, filename: str) -> str:
     # fallback: treat everything as text (front-end can pre-extract)
     return file_bytes.decode("utf-8", errors="ignore")
 
-app = Flask(__name__)
-
 _model = None
-
 def get_model():
     global _model
     if _model is None:
-        # Import and initialize heavy libs on first use
+        # import and init heavy libs here
         from bart_model import load_bart_model  # adjust to your code
-        _model = load_bart_model()              # or class ctor
+        _model = load_bart_model()
     return _model
 
 @app.get("/health")
