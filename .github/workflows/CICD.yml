@@ -1,111 +1,78 @@
-name: CI/CD
+name: Deploy CV Scanner Apps
 
 on:
   push:
     branches:
-      - main
-      - dev
-      - API-*
-      - AI-*
-      - UI-*
-      - DB-*
-  pull_request:
-    branches:
-      - main
-      - dev
+      - main   # 👈 change if your default branch is different
 
 jobs:
-  api:
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/API-')
-    name: Build & Deploy Java API
+  build-and-deploy-ui:
+    name: Deploy Frontend (UI)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: "21"
-          distribution: "temurin"
-
-      - name: Build API
-        run: mvn -B -f API/api/pom.xml package
-
-      - name: Run API tests
-        run: mvn -f API/api/pom.xml test
-
-      - name: Login to Azure
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Deploy API to Azure App Service
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: 'cvscanner-api'
-          slot-name: 'production'
-          package: API/
-
-  ai:
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/AI-')
-    name: Build & Deploy Python AI
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          if [ -f AI/requirements.txt ]; then
-            pip install -r AI/requirements.txt
-          else
-            pip install fastapi uvicorn pydantic pytest
-
-      - name: Run AI tests
-        run: pytest AI/
-
-      - name: Login to Azure
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Deploy AI to Azure App Service
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: 'cvscanner-ai'
-          slot-name: 'production'
-          package: AI/
-
-  ui:
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/UI-')
-    name: Build & Deploy React UI
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js 20
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: '18'
 
-      - name: Install dependencies
+      - name: Install and build UI
         working-directory: UI/CV-Scanner
-        run: npm ci --legacy-peer-deps
+        run: |
+          npm install
+          npm run build
 
-      - name: Build React UI
-        working-directory: UI/CV-Scanner
-        run: npx vite build
-
-      - name: Deploy React UI to Azure Static Web App
-        uses: Azure/static-web-apps-deploy@v1
+      - name: Deploy to Azure App Service (UI)
+        uses: azure/webapps-deploy@v2
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_UI }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          action: "upload"
-          app_location: "UI/CV-Scanner"
-          output_location: "UI/CV-Scanner/dist"
+          app-name: cvscanner-ui   # 👈 your frontend app name
+          publish-profile: ${{ secrets.AZURE_CREDENTIALS }}
+
+  build-and-deploy-api:
+    name: Deploy Backend API
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install and build API
+        working-directory: api
+        run: |
+          npm install
+          npm run build
+
+      - name: Deploy to Azure App Service (API)
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: cvscanner-api   # 👈 backend app service name
+          publish-profile: ${{ secrets.AZURE_CREDENTIALS }}
+
+  build-and-deploy-ai:
+    name: Deploy AI Service
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies (AI)
+        working-directory: ai
+        run: |
+          pip install -r requirements.txt
+
+      - name: Deploy to Azure App Service (AI)
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: cvscanner-ai   # 👈 AI app service name
+          publish-profile: ${{ secrets.AZURE_CREDENTIALS }}
