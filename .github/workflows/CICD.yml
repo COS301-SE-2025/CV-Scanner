@@ -54,6 +54,13 @@ jobs:
             --src-path "${{ steps.api_artifact.outputs.jar }}" \
             --type jar
 
+      - name: Configure API app settings
+        run: |
+          az webapp config appsettings set \
+            --resource-group "rg-cvscanner" \
+            --name "cvscanner-api" \
+            --settings DB_URL='${{ secrets.DB_URL }}' DB_USER='${{ secrets.DB_USER }}' DB_PASS='${{ secrets.DB_PASS }}'
+
   ai:
     name: Deploy AI (Python)
     runs-on: ubuntu-latest
