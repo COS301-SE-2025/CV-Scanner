@@ -50,30 +50,35 @@ export default function LoginPage() {
     }
 
     try {
-      await apiFetch("/auth/login", {
+      const res = await apiFetch("/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
-      })
-        .then((res) => res.text())
-        .then((data) => {
-          // if (data.toLowerCase().includes("success")) {
-          if (data.toLowerCase().indexOf("success") !== -1) {
-            localStorage.setItem("userEmail", email);
-            navigate("/dashboard");
-          } else {
-            setError(data);
-          }
-          setLoading(false);
-        });
-    } catch {
-      // If fetch fails, allow dev login as fallback
-      if (email === devUser.email && password === devUser.password) {
-        localStorage.setItem("userEmail", devUser.email);
-        localStorage.setItem("user", JSON.stringify(devUser));
+      });
+
+      // try JSON first, fallback to text
+      let body: any = null;
+      try {
+        body = await res.json();
+      } catch {
+        body = await res.text().catch(() => null);
+      }
+
+      if (res.ok) {
+        localStorage.setItem("userEmail", email);
+        if (body && typeof body === "object") {
+          localStorage.setItem("user", JSON.stringify(body));
+        }
         navigate("/dashboard");
       } else {
-        setError("Login failed. Please try again.");
+        const errMsg =
+          (body && (body.message || body.error)) ||
+          (typeof body === "string" ? body : null) ||
+          `Login failed (${res.status})`;
+        setError(errMsg);
       }
+    } catch (err) {
+      setError("Login failed. Please try again.");
+    } finally {
       setLoading(false);
     }
   };
