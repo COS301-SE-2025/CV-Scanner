@@ -3,7 +3,7 @@ export const API_BASE_URL =
 
 export const apiFetch = (path: string, init: RequestInit = {}) =>
   fetch(`${API_BASE_URL}${path}`, {
-    credentials: "include", // send cookies across domains
+    credentials: "include",
     ...init,
     headers: {
       "Content-Type": "application/json",
