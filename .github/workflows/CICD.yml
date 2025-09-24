@@ -6,6 +6,10 @@ on:
       - main
       - dev
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   api:
     name: Deploy API
@@ -17,7 +21,7 @@ jobs:
         with:
           app-name: "cvscanner-api"
           slot-name: "production"
-          publish-profile: ${{ secrets.CVSCANNER_API_PUBLISH_PROFILE }}
+          publish-profile: ${{ secrets.AZURE_CREDENTIALS }}
 
   ai:
     name: Deploy AI
@@ -29,7 +33,7 @@ jobs:
         with:
           app-name: "cvscanner-ai"
           slot-name: "production"
-          publish-profile: ${{ secrets.CVSCANNER_AI_PUBLISH_PROFILE }}
+          publish-profile: ${{ secrets.AZURE_CREDENTIALS }}
 
   ui:
     name: Deploy React UI
@@ -41,10 +45,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "18"
+          cache: "npm"
+          cache-dependency-path: UI/CV-Scanner/package-lock.json
 
       - name: Install UI dependencies
         working-directory: UI/CV-Scanner
-        run: npm install --legacy-peer-deps
+        run: npm ci || npm install --legacy-peer-deps
 
       - name: Build React UI
         working-directory: UI/CV-Scanner
@@ -57,4 +63,5 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
           app_location: "UI/CV-Scanner"
-          output_location: "UI/CV-Scanner/dist"
+          output_location: "dist"
+          skip_app_build: true
