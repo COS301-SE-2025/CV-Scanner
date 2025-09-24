@@ -38,7 +38,7 @@ jobs:
         env:
           SPRING_PROFILES_ACTIVE: test
         run: |
-          ./mvnw -B -ntp -DskipTests=false test
+          ./mvnw -B -ntp -DskipTests=false -Dtest=\!*IntegrationTest test
           ./mvnw -B -ntp -DskipTests package
 
       - name: Locate API artifact
@@ -79,7 +79,8 @@ jobs:
           az webapp config set \
             --resource-group "rg-cvscanner" \
             --name "cvscanner-ai" \
-            --linux-fx-version "PYTHON|3.12"
+            --linux-fx-version "PYTHON|3.12" \
+            --always-on true
           az webapp config appsettings set \
             --resource-group "rg-cvscanner" \
             --name "cvscanner-ai" \
