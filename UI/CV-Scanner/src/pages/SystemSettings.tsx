@@ -23,6 +23,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import logo from "../assets/logo.png"; // Update path as needed
 import logo3 from "../assets/logoNavbar.png"; // Update path as needed
+import { apiFetch } from "../lib/api";
 
 export default function SystemSettingsPage() {
   const navigate = useNavigate();
@@ -38,8 +39,6 @@ export default function SystemSettingsPage() {
   const [categoryOrder, setCategoryOrder] = useState<string[]>([]);
   const [categoryKeys, setCategoryKeys] = useState<Record<string, string>>({});
 
-  const CONFIG_BASE = "http://localhost:8081";
-
   // For dev fallback user
   const devUser = {
     email: "dev@example.com",
@@ -52,10 +51,21 @@ export default function SystemSettingsPage() {
   useEffect(() => {
     // Try to get user from API, fallback to devUser if fails
     const email = localStorage.getItem("userEmail") || devUser.email;
-    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
-      .then((res) => res.json())
-      .then((data) => setUser(data))
-      .catch(() => setUser(devUser));
+    (async () => {
+      try {
+        const res = await apiFetch(
+          `/auth/me?email=${encodeURIComponent(email)}`
+        );
+        if (!res.ok) {
+          setUser(devUser);
+          return;
+        }
+        const data = await res.json().catch(() => null);
+        setUser(data ?? devUser);
+      } catch {
+        setUser(devUser);
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -70,7 +80,7 @@ export default function SystemSettingsPage() {
 
   const loadConfig = async () => {
     try {
-      const res = await fetch(`${CONFIG_BASE}/auth/config/categories`);
+      const res = await apiFetch("/auth/config/categories");
       if (!res.ok) throw new Error(`Failed (${res.status})`);
       const json = await res.json();
 
@@ -101,9 +111,12 @@ export default function SystemSettingsPage() {
   };
 
   const startEditing = () => {
-    fetch(`${CONFIG_BASE}/auth/config/categories`)
-      .then((res) => res.json())
-      .then((json) => {
+    (async () => {
+      try {
+        const res = await apiFetch("/auth/config/categories");
+        if (!res.ok) throw new Error(`Failed (${res.status})`);
+        const json = await res.json();
+
         // Build new configObj
         const newConfig: Record<string, any> = {};
         const newCategoryKeys: Record<string, string> = { ...categoryKeys };
@@ -124,11 +137,11 @@ export default function SystemSettingsPage() {
         setCategoryKeys(newCategoryKeys);
         setCategoryOrder(newCategoryOrder);
         setEditing(true);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error(err);
         alert("Could not load configuration.");
-      });
+      }
+    })();
   };
 
   useEffect(() => {
@@ -151,16 +164,15 @@ export default function SystemSettingsPage() {
         if (configObj[key] !== undefined) orderedObj[key] = configObj[key];
       });
 
-      const res = await fetch(`${CONFIG_BASE}/auth/config/categories`, {
+      const res = await apiFetch("/auth/config/categories", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(orderedObj),
       });
 
       if (!res.ok) {
         let msg = `Failed to save configuration (${res.status})`;
         try {
-          const j = await res.json();
+          const j = await res.json().catch(() => null);
           msg = j?.detail || msg;
         } catch {}
         alert(msg);
@@ -420,9 +432,7 @@ export default function SystemSettingsPage() {
                       color="inherit"
                       onClick={async () => {
                         try {
-                          const res = await fetch(
-                            `${CONFIG_BASE}/auth/config/categories`
-                          );
+                          const res = await apiFetch("/auth/config/categories");
                           if (!res.ok)
                             throw new Error(`Failed (${res.status})`);
                           const json = await res.json();
