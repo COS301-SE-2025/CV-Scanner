@@ -22,6 +22,19 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      # Temporarily allow the GitHub runner IP to access Azure SQL (remove at end)
+      - name: Open SQL firewall for runner IP
+        id: sql_fw
+        run: |
+          IP=$(curl -s https://api.ipify.org)
+          echo "ip=$IP" >> "$GITHUB_OUTPUT"
+          az sql server firewall-rule create \
+            -g rg-cvscanner \
+            -s "${{ secrets.SQL_SERVER_NAME }}" \
+            -n "gh-${GITHUB_RUN_ID}" \
+            --start-ip-address "$IP" \
+            --end-ip-address "$IP"
+
       - name: Setup Java 21
         uses: actions/setup-java@v4
         with:
@@ -33,13 +46,23 @@ jobs:
       - name: Make mvnw executable
         run: chmod +x API/api/mvnw
 
-      - name: Build & Test API
+      - name: Build & Test API against production DB
         working-directory: API/api
         env:
-          SPRING_PROFILES_ACTIVE: test
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
         run: |
-          ./mvnw -B -ntp -DskipTests=false -Dtest=\!*IntegrationTest test
+          ./mvnw -B -ntp -DskipTests=false test
           ./mvnw -B -ntp -DskipTests package
+
+      - name: Close SQL firewall rule
+        if: always()
+        run: |
+          az sql server firewall-rule delete \
+            -g rg-cvscanner \
+            -s "${{ secrets.SQL_SERVER_NAME }}" \
+            -n "gh-${GITHUB_RUN_ID}"
 
       - name: Locate API artifact
         id: api_artifact
