@@ -31,6 +31,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import logo from "../assets/logoNavbar.png";
 import Sidebar from "./Sidebar";
+import { API_BASE_URL } from "../lib/api";
 
 export default function AddUserPage() {
   const navigate = useNavigate();
@@ -129,37 +130,44 @@ export default function AddUserPage() {
     return isValid;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (validateForm()) {
-      fetch("http://localhost:8081/auth/add-user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: formData.username,
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-          email: formData.email,
-          role: formData.role,
-          password: formData.password,
-        }),
-      })
-        .then((res) => res.text())
-        .then((msg) => {
-          navigate("/user-management");
-        })
-        .catch(() => {
-          // Optionally show an error toast/snackbar here
+      try {
+        const res = await fetch(`${API_BASE_URL}/auth/add-user`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: formData.username,
+            first_name: formData.first_name,
+            last_name: formData.last_name,
+            email: formData.email,
+            role: formData.role,
+            password: formData.password,
+          }),
         });
+
+        if (!res.ok) {
+          // optional: read error message and show to user
+          const text = await res.text().catch(() => null);
+          console.error("Add user failed:", res.status, text);
+          return;
+        }
+
+        navigate("/user-management");
+      } catch (err) {
+        console.error("Add user error:", err);
+      }
     }
   };
 
   const devUser = {
-      email: "dev@example.com",
-      password: "Password123",
-      first_name: "John",
-      last_name: "Doe",
-      role: "Admin",
-    };
+    email: "dev@example.com",
+    password: "Password123",
+    first_name: "John",
+    last_name: "Doe",
+    role: "Admin",
+  };
 
   const [user, setUser] = React.useState<{
     first_name?: string;
@@ -172,8 +180,14 @@ export default function AddUserPage() {
   React.useEffect(() => {
     const email = localStorage.getItem("userEmail");
     if (!email) return;
-    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
-      .then((res) => res.json())
+    fetch(`${API_BASE_URL}/auth/me?email=${encodeURIComponent(email)}`, {
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("failed to fetch user");
+        return res.json();
+      })
       .then((data) => setUser(data))
       .catch(() => setUser(null));
   }, []);
@@ -188,45 +202,44 @@ export default function AddUserPage() {
       }}
     >
       {/* Sidebar */}
-      <Sidebar 
-  userRole={user?.role || devUser.role} 
-  collapsed={collapsed} 
-  setCollapsed={setCollapsed} 
-/>
+      <Sidebar
+        userRole={user?.role || devUser.role}
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
+      />
 
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
 
-           <AppBar
-                                     position="static"
-                                     sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
-                                   >
-                                     <Toolbar sx={{ justifyContent: "flex-end" }}>
-          
-                             {/* Help / FAQ icon */}
-                             <Tooltip title="Go to Help Page" arrow>
-                               <IconButton
-                                 onClick={() => navigate("/help")}
-                                 sx={{ ml: 1, color: '#90ee90' }}
-                               >
-                                 <HelpOutlineIcon />
-                               </IconButton>
-                             </Tooltip>
-                           
-                             {/* User Info */}
-                             <Box
-                               sx={{
-                                 display: "flex",
-                                 alignItems: "center",
-                                 ml: 2,
-                                 cursor: "pointer",
-                                 "&:hover": { opacity: 0.8 },
-                               }}
-                               onClick={() => navigate("/settings")}
-                             >
-                               <AccountCircleIcon sx={{ mr: 1 }} />
-                               <Typography variant="subtitle1">
+        <AppBar
+          position="static"
+          sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
+        >
+          <Toolbar sx={{ justifyContent: "flex-end" }}>
+            {/* Help / FAQ icon */}
+            <Tooltip title="Go to Help Page" arrow>
+              <IconButton
+                onClick={() => navigate("/help")}
+                sx={{ ml: 1, color: "#90ee90" }}
+              >
+                <HelpOutlineIcon />
+              </IconButton>
+            </Tooltip>
+
+            {/* User Info */}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                ml: 2,
+                cursor: "pointer",
+                "&:hover": { opacity: 0.8 },
+              }}
+              onClick={() => navigate("/settings")}
+            >
+              <AccountCircleIcon sx={{ mr: 1 }} />
+              <Typography variant="subtitle1">
                 {user
                   ? user.first_name
                     ? `${user.first_name} ${user.last_name || ""} (${
@@ -236,19 +249,18 @@ export default function AddUserPage() {
                       (user.role ? ` (${user.role})` : "")
                   : "User"}
               </Typography>
-                             </Box>
-                           
-                             {/* Logout */}
-                             <IconButton
-                               color="inherit"
-                               onClick={() => navigate("/login")}
-                               sx={{ ml: 1 }}
-                             >
-                               <ExitToAppIcon />
-                             </IconButton>
-                           </Toolbar>
-                                     
-                                   </AppBar>
+            </Box>
+
+            {/* Logout */}
+            <IconButton
+              color="inherit"
+              onClick={() => navigate("/login")}
+              sx={{ ml: 1 }}
+            >
+              <ExitToAppIcon />
+            </IconButton>
+          </Toolbar>
+        </AppBar>
 
         {/* Add User Content */}
         <Box
@@ -261,13 +273,18 @@ export default function AddUserPage() {
         >
           {/* Keep header at top */}
           <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-            
-            <Typography variant="h5" sx={{fontFamily: 'Helvetica, sans-serif', mb: 3, fontWeight: "bold" }}>
+            <Typography
+              variant="h5"
+              sx={{
+                fontFamily: "Helvetica, sans-serif",
+                mb: 3,
+                fontWeight: "bold",
+              }}
+            >
               Add New User
             </Typography>
-            
           </Box>
-          
+
           {/* Center form vertically and horizontally */}
           <Box
             sx={{
@@ -282,7 +299,7 @@ export default function AddUserPage() {
               sx={{
                 p: 3,
                 borderRadius: 3,
-                 backgroundColor: "#DEDDEE",
+                backgroundColor: "#DEDDEE",
                 width: "100%",
                 maxWidth: 600,
               }}
@@ -398,8 +415,8 @@ export default function AddUserPage() {
                   }}
                 >
                   <Button
-                     variant="contained"
-                sx={{ backgroundColor: "#d0d0d0", color: "#000" }}
+                    variant="contained"
+                    sx={{ backgroundColor: "#d0d0d0", color: "#000" }}
                     onClick={() => navigate("/user-management")}
                   >
                     Cancel
@@ -407,30 +424,33 @@ export default function AddUserPage() {
                   <Button
                     variant="contained"
                     onClick={handleSubmit}
-                    sx={{ background: "#232A3B",
-  color: "DEDDEE",
-  fontWeight: "bold",
-  padding: "8px 20px",
-  borderRadius: "4px",
-  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-  "&:hover": {
-    background: "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
-    transform: "translateY(-1px)",
-  },
-  textTransform: "none",
-  transition: "all 0.3s ease",
-  position: "relative",
-  overflow: "hidden",
-  "&::after": {
-    content: '""',
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    background:
-      "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
-  }, }}
+                    sx={{
+                      background: "#232A3B",
+                      color: "DEDDEE",
+                      fontWeight: "bold",
+                      padding: "8px 20px",
+                      borderRadius: "4px",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                      "&:hover": {
+                        background:
+                          "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
+                        transform: "translateY(-1px)",
+                      },
+                      textTransform: "none",
+                      transition: "all 0.3s ease",
+                      position: "relative",
+                      overflow: "hidden",
+                      "&::after": {
+                        content: '""',
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        background:
+                          "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
+                      },
+                    }}
                   >
                     Create User
                   </Button>
