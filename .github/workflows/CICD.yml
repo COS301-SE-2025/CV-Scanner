@@ -35,6 +35,8 @@ jobs:
 
       - name: Build & Test API
         working-directory: API/api
+        env:
+          SPRING_PROFILES_ACTIVE: test
         run: |
           ./mvnw -B -ntp -DskipTests=false test
           ./mvnw -B -ntp -DskipTests package
@@ -72,12 +74,27 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - name: Configure AI App Service (runtime + startup)
+        run: |
+          az webapp config set \
+            --resource-group "rg-cvscanner" \
+            --name "cvscanner-ai" \
+            --linux-fx-version "PYTHON|3.12"
+          az webapp config appsettings set \
+            --resource-group "rg-cvscanner" \
+            --name "cvscanner-ai" \
+            --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
+          az webapp config set \
+            --resource-group "rg-cvscanner" \
+            --name "cvscanner-ai" \
+            --startup-file "gunicorn --bind=0.0.0.0:\$PORT app:app"
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: "pip"
-          cache-dependency-path: AI/requirements.txt
+          cache-dependency-path: "AI/requirements.txt"
 
       - name: Install AI dependencies
         working-directory: AI

@@ -1,8 +1,6 @@
 import os, io, time
 from typing import Dict, List, Any
-from fastapi import FastAPI, UploadFile, File, HTTPException, Body
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse, PlainTextResponse
+from flask import Flask, request, jsonify
 
 from config_store import load_categories, save_categories
 from bart_model import classify_text_by_categories
@@ -18,114 +16,112 @@ def extract_text_auto(file_bytes: bytes, filename: str) -> str:
     # fallback: treat everything as text (front-end can pre-extract)
     return file_bytes.decode("utf-8", errors="ignore")
 
-app = FastAPI(title="Dynamic ZSC Classifier (Admin-editable categories)")
+app = Flask(__name__)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"], allow_credentials=True,
-    allow_methods=["*"], allow_headers=["*"]
-)
-
-@app.get("/", response_class=PlainTextResponse)
-async def root():
+@app.route("/")
+def root():
     return "OK. Endpoints: GET/POST /admin/categories, POST /classify, GET /health, POST /upload_cv, POST /parse_resume"
 
-@app.get("/health")
-async def health():
+@app.route("/health")
+def health():
     return {"status": "ok", "ts": time.time()}
 
 # -------- ADMIN: manage categories (no hardcoding) --------
-@app.get("/admin/categories")
-async def get_categories():
-    return load_categories()
-
-@app.post("/admin/categories")
-async def set_categories(payload: Dict[str, List[str]] = Body(...)):
-    try:
-        save_categories(payload)
-        return {"status": "saved", "categories": load_categories()}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+@app.route("/admin/categories", methods=["GET", "POST"])
+def categories():
+    if request.method == "GET":
+        return load_categories()
+    elif request.method == "POST":
+        payload = request.json
+        try:
+            save_categories(payload)
+            return {"status": "saved", "categories": load_categories()}
+        except Exception as e:
+            return {"status": "error", "detail": str(e)}, 400
 
 # -------- CLASSIFY: feed dynamic labels to BART and pick Top-3 --------
-@app.post("/classify")
-async def classify(
-    text: str = Body(None),
-    file: UploadFile = File(None),
-    top_k: int = Body(3)
-):
+@app.route("/classify", methods=["POST"])
+def classify():
+    data = request.json
+    text = data.get("text")
+    file = request.files.get("file")
+    top_k = data.get("top_k", 3)
+
     if file is None and (text is None or not text.strip()):
-        raise HTTPException(400, "Provide `text` or upload `file`.")
+        return {"status": "error", "detail": "Provide `text` or upload `file`."}, 400
     if file is not None:
-        data = await file.read()
+        data = file.read()
         if not data:
-            raise HTTPException(400, "Empty file.")
+            return {"status": "error", "detail": "Empty file."}, 400
         text = extract_text_auto(data, file.filename or "upload.txt")
 
     cats = load_categories()
     if not cats:
-        raise HTTPException(409, "No categories configured. Use POST /admin/categories first.")
+        return {"status": "error", "detail": "No categories configured. Use POST /admin/categories first."}, 409
 
     result = classify_text_by_categories(text, cats, top_k=top_k)
     # Also return a compact "applied" mapping: category -> topK labels
     applied = {cat: [x["label"] for x in info["top_k"]] for cat, info in result.items()}
-    return JSONResponse({
+    return {
         "status": "success",
         "top_k": top_k,
         "applied": applied,
         "raw": result
-    })
+    }
 
-@app.post("/upload_cv")
-async def upload_cv(file: UploadFile = File(...), top_k: int = 3):
-    """
-    Upload a CV file and get classification results.
-    """
-    data = await file.read()
+@app.route("/upload_cv", methods=["POST"])
+def upload_cv():
+    file = request.files.get("file")
+    top_k = request.form.get("top_k", 3)
+
+    if file is None:
+        return {"status": "error", "detail": "No file uploaded."}, 400
+
+    data = file.read()
     if not data:
-        raise HTTPException(400, "Empty file.")
+        return {"status": "error", "detail": "Empty file."}, 400
     text = extract_text_auto(data, file.filename or "upload.txt")
 
     cats = load_categories()
     if not cats:
-        raise HTTPException(409, "No categories configured. Use POST /admin/categories first.")
+        return {"status": "error", "detail": "No categories configured. Use POST /admin/categories first."}, 409
 
     result = classify_text_by_categories(text, cats, top_k=top_k)
     applied = {cat: [x["label"] for x in info["top_k"]] for cat, info in result.items()}
-    return JSONResponse({
+    return {
         "status": "success",
         "top_k": top_k,
         "applied": applied,
         "raw": result
-    })
+    }
 
 # -------- NEW: CV/Resume Parsing Endpoint --------
-@app.post("/parse_resume")
-async def parse_resume_endpoint(file: UploadFile = File(...)):
-    """
-    Upload a resume/CV file and get comprehensive parsing results.
-    Uses the complete cv_parser module functionality.
-    """
+@app.route("/parse_resume", methods=["POST"])
+def parse_resume_endpoint():
+    file = request.files.get("file")
+
+    if file is None:
+        return {"status": "error", "detail": "No file uploaded."}, 400
+
     try:
         # Read the uploaded file
-        data = await file.read()
+        data = file.read()
         if not data:
-            raise HTTPException(400, "Empty file uploaded.")
+            return {"status": "error", "detail": "Empty file uploaded."}, 400
         
         # Parse the resume using the complete cv_parser functionality
         result = parse_resume_from_bytes(data, file.filename)
         
-        return JSONResponse({
+        return {
             "status": "success",
             "filename": file.filename,
             "result": result
-        })
+        }
     
     except Exception as e:
-        raise HTTPException(500, f"Error parsing resume: {str(e)}")
+        return {"status": "error", "detail": f"Error parsing resume: {str(e)}"}, 500
 
 
 if __name__ == "__main__":
-    import uvicorn
     port = int(os.environ.get("PORT", "5000"))
-    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=False)
+    app.run(host="0.0.0.0", port=port, debug=False)

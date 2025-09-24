@@ -7,3 +7,4 @@ spacy
 torch
 python-docx
 pdfminer.six
+gunicorn>=21,<22
