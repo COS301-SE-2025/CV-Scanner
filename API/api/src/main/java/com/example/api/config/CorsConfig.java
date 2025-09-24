@@ -1,5 +1,4 @@
 package com.example.api.config;
-
 import java.util.List;
 
 import org.springframework.context.annotation.Bean;
