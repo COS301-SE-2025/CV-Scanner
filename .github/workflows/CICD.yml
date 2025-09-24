@@ -40,7 +40,7 @@ jobs:
       - name: Deploy API to Azure App Service
         uses: azure/webapps-deploy@v2
         with:
-          app-name: 'cvscanner-api'
+          app-name: 'cvscanner'
           slot-name: 'production'
           package: API/
 
@@ -79,7 +79,7 @@ jobs:
       - name: Deploy AI to Azure App Service
         uses: azure/webapps-deploy@v2
         with:
-          app-name: 'cvscanner-ai'
+          app-name: 'cvscan'
           slot-name: 'production'
           package: AI/
 
