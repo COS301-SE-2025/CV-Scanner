@@ -89,13 +89,12 @@ jobs:
         run: npm run build
 
       - name: Verify dist exists
-        run: test -d "UI/CV-Scanner/dist" && echo "dist found" || (echo "dist missing" && exit 1)
+        run: test -f "UI/CV-Scanner/dist/index.html" && echo "dist found" || (echo "dist missing" && exit 1)
 
       - name: Deploy React UI to Azure Static Web App
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.UI_STATIC_WEBAPP_API_TOKEN }}
           action: "upload"
-          app_location: "."
-          app_artifact_location: "UI/CV-Scanner/dist"
+          app_location: "UI/CV-Scanner/dist"
           skip_app_build: true
