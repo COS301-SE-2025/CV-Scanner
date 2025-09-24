@@ -22,6 +22,17 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - name: Validate SQL Server exists in SQL RG
+        run: |
+          SERVER="${{ secrets.SQL_SERVER_NAME }}"
+          RG="${{ secrets.SQL_RESOURCE_GROUP }}"
+          if ! az sql server show -g "$RG" -n "$SERVER" >/dev/null 2>&1; then
+            echo "ERROR: SQL server '$SERVER' not found in resource group '$RG'." >&2
+            echo "Tip: Set secrets SQL_SERVER_NAME (logical server name, no domain) and SQL_RESOURCE_GROUP (e.g. CV_Scanner)." >&2
+            az sql server list --query "[].{name:name, rg:resourceGroup}" -o table || true
+            exit 1
+          fi
+
       # Temporarily allow the GitHub runner IP to access Azure SQL (remove at end)
       - name: Open SQL firewall for runner IP
         id: sql_fw
@@ -29,7 +40,7 @@ jobs:
           IP=$(curl -s https://api.ipify.org)
           echo "ip=$IP" >> "$GITHUB_OUTPUT"
           az sql server firewall-rule create \
-            -g rg-cvscanner \
+            -g "${{ secrets.SQL_RESOURCE_GROUP }}" \
             -s "${{ secrets.SQL_SERVER_NAME }}" \
             -n "gh-${GITHUB_RUN_ID}" \
             --start-ip-address "$IP" \
@@ -60,7 +71,7 @@ jobs:
         if: always()
         run: |
           az sql server firewall-rule delete \
-            -g rg-cvscanner \
+            -g "${{ secrets.SQL_RESOURCE_GROUP }}" \
             -s "${{ secrets.SQL_SERVER_NAME }}" \
             -n "gh-${GITHUB_RUN_ID}"
 
