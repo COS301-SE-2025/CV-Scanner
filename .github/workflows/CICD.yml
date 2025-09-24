@@ -16,24 +16,56 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Deploy API to Azure App Service
-        uses: azure/webapps-deploy@v2
+
+      - name: Azure login (Service Principal)
+        uses: azure/login@v2
         with:
-          app-name: "cvscanner-api"
-          slot-name: "production"
-          publish-profile: ${{ secrets.AZURE_CREDENTIALS }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Package API
+        run: |
+          API_PATH="API"
+          test -d "$API_PATH" || (echo "API folder not found at $API_PATH" && exit 1)
+          cd "$API_PATH"
+          zip -r ../api.zip . -x "**/node_modules/**" "**/.git/**"
+          cd -
+          ls -lh api.zip
+
+      - name: Deploy API (zip)
+        run: |
+          az webapp deploy \
+            --resource-group "rg-cvscanner" \
+            --name "cvscanner-api" \
+            --src-path "api.zip" \
+            --type zip
 
   ai:
     name: Deploy AI
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Deploy AI to Azure App Service
-        uses: azure/webapps-deploy@v2
+
+      - name: Azure login (Service Principal)
+        uses: azure/login@v2
         with:
-          app-name: "cvscanner-ai"
-          slot-name: "production"
-          publish-profile: ${{ secrets.AZURE_CREDENTIALS }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Package AI
+        run: |
+          AI_PATH="AI"
+          test -d "$AI_PATH" || (echo "AI folder not found at $AI_PATH" && exit 1)
+          cd "$AI_PATH"
+          zip -r ../ai.zip . -x "**/node_modules/**" "**/.git/**"
+          cd -
+          ls -lh ai.zip
+
+      - name: Deploy AI (zip)
+        run: |
+          az webapp deploy \
+            --resource-group "rg-cvscanner" \
+            --name "cvscanner-ai" \
+            --src-path "ai.zip" \
+            --type zip
 
   ui:
     name: Deploy React UI
@@ -56,12 +88,14 @@ jobs:
         working-directory: UI/CV-Scanner
         run: npm run build
 
+      - name: Verify dist exists
+        run: test -d "UI/CV-Scanner/dist" && echo "dist found" || (echo "dist missing" && exit 1)
+
       - name: Deploy React UI to Azure Static Web App
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.UI_STATIC_WEBAPP_API_TOKEN }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          app_location: "UI/CV-Scanner"
-          output_location: "dist"
+          app_location: "."
+          app_artifact_location: "UI/CV-Scanner/dist"
           skip_app_build: true
