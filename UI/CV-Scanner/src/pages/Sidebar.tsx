@@ -9,6 +9,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import logoNavbar from "../assets/logoNavbar.png";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import Typography from "@mui/material/Typography";
 
 interface SidebarProps {
@@ -250,6 +251,26 @@ const Sidebar: React.FC<SidebarProps> = ({
           }}
         >
           Search
+        </span>
+      </Button>
+      <Button
+        fullWidth
+        sx={getButtonStyle("/compare")}
+        className={isActive("/compare") ? "active" : ""}
+        startIcon={<CompareArrowsIcon />} // you can change to CompareArrowsIcon
+        onClick={() => navigate("/compare")}
+      >
+        <span
+          style={{
+            display: "inline-block",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+            transition: "width 0.3s, opacity 0.3s",
+            width: isCollapsing ? 0 : "auto",
+            opacity: isCollapsing ? 0 : 1,
+          }}
+        >
+          Compare
         </span>
       </Button>
 
