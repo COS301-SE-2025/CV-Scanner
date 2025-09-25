@@ -248,10 +248,14 @@ function toLines(value: any): string | undefined {
 const ParsedCVData: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const {
+    aiUpload = { applied: {}, best_fit_project_type: null },
+    aiParse = { result: {} },
+    parsedResume = null,
+  } = location.state ?? {};
   // processedData is the existing response (upload_cv).
   // aiParse / parsedResume are from the parse_resume endpoint (new) and should be shown as well.
-  const { processedData, fileUrl, candidate, aiUpload, aiParse, parsedResume } =
-    location.state || {};
+  const { processedData, fileUrl, candidate } = location.state || {};
 
   const [user, setUser] = useState<any>(null);
   const [pdfSticky, setPdfSticky] = useState(false);
