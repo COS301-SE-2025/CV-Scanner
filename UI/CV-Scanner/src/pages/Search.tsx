@@ -96,41 +96,8 @@ export default function Search() {
 
 
 
- // const [candidates, setCandidates] = useState<CandidateCard[]>([]);
- const [candidates, setCandidates] = useState<CandidateCard[]>([
-  {
-    id: 1,
-    name: "Jane Doe",
-    email: "jane.doe@email.com",
-    skills: ["React", "Node.js", "SQL"],
-    project: "Web App",
-    uploaded: "2 days ago",
-    match: "85%",
-    initials: "JD",
-    details: ["Last 7 Days"],
-    fit: "Strong",
-    cvFileUrl: null,
-    cvFileType: null,
-    filename: "JaneDoe_CV.pdf",
-    score: 9,
-  },
-  {
-    id: 2,
-    name: "John Smith",
-    email: "john.smith@email.com",
-    skills: ["Python", "Django", "Docker"],
-    project: "API",
-    uploaded: "5 hours ago",
-    match: "72%",
-    initials: "JS",
-    details: ["Last 7 Days"],
-    fit: "Medium",
-    cvFileUrl: null,
-    cvFileType: null,
-    filename: "JohnSmith_CV.pdf",
-    score: 6,
-  },
-]);
+  const [candidates, setCandidates] = useState<CandidateCard[]>([]);
+ 
 
 
   // Toggle helper for checkbox filters
