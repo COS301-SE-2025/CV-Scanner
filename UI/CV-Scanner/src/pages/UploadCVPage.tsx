@@ -301,13 +301,29 @@ export default function UploadCVPage() {
         typeof uploadResultRaw === "object"
           ? uploadResultRaw
           : {};
+      // ensure expected shape so downstream components don't get null/undefined
+      if (!uploadResult || typeof uploadResult !== "object") {
+        (uploadResult as any) = {};
+      }
+      if ((uploadResult as any).applied == null)
+        (uploadResult as any).applied = {};
+      if ((uploadResult as any).best_fit_project_type == null)
+        (uploadResult as any).best_fit_project_type = null;
+
       const parseResult =
         parseResp &&
         parseResp.ok &&
         parseResultRaw &&
         typeof parseResultRaw === "object"
           ? parseResultRaw
-          : parseResultRaw || {};
+          : typeof parseResultRaw === "object"
+          ? parseResultRaw
+          : {};
+      if (!parseResult || typeof parseResult !== "object") {
+        (parseResult as any) = {};
+      }
+      // some handlers expect a `result` field
+      if ((parseResult as any).result == null) (parseResult as any).result = {};
 
       const fileUrl = URL.createObjectURL(file);
 
