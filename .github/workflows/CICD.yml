@@ -168,7 +168,8 @@ jobs:
       - name: Build React UI
         working-directory: UI/CV-Scanner
         env:
-          VITE_API_BASE_URL: ${{ secrets.API_BASE_URL }} # set to https://cvscanner-api-eaaudbdneafub4e3.southafricanorth-01.azurewebsites.net
+          VITE_API_BASE_URL: ${{ secrets.API_BASE_URL }} # existing
+          VITE_AI_BASE_URL: ${{ secrets.VITE_AI_BASE_URL }} # add this secret (set to https://cvscanner-ai-bxf4ereygse9eqdh.southafricanorth-01.azurewebsites.net)
         run: npm run build
 
       - name: Verify dist exists
@@ -181,4 +182,3 @@ jobs:
           action: "upload"
           app_location: "UI/CV-Scanner/dist"
           skip_app_build: true
-          
