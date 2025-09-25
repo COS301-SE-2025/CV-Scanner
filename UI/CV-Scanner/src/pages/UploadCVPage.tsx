@@ -243,7 +243,6 @@ export default function UploadCVPage() {
 
   const handleProcess = async () => {
     if (!file) return;
-    // Require candidate fields
     if (!candidateName || !candidateSurname || !candidateEmail) {
       setErrorPopup({
         open: true,
@@ -259,27 +258,14 @@ export default function UploadCVPage() {
     formForParse.append("file", file);
 
     try {
-      // Call both AI endpoints in parallel via centralized aiFetch
-      const uploadPromise = aiFetch("/upload_cv?top_k=3", {
-        method: "POST",
-        body: formForUpload,
-      });
-
-      const parsePromise = aiFetch("/parse_resume", {
-        method: "POST",
-        body: formForParse,
-      });
-
       const [uploadResp, parseResp] = await Promise.all([
-        uploadPromise,
-        parsePromise,
+        aiFetch("/upload_cv?top_k=3", { method: "POST", body: formForUpload }),
+        aiFetch("/parse_resume", { method: "POST", body: formForParse }),
       ]);
 
-      // Safely extract JSON or text
       const uploadResultRaw = await getJsonOrText(uploadResp).catch(() => null);
       const parseResultRaw = await getJsonOrText(parseResp).catch(() => null);
 
-      // If both calls failed, show an error
       if ((!uploadResp || !uploadResp.ok) && (!parseResp || !parseResp.ok)) {
         const uploadMsg =
           (uploadResultRaw &&
@@ -293,45 +279,55 @@ export default function UploadCVPage() {
         return;
       }
 
-      // Normalize results to objects to avoid runtime "Cannot convert undefined or null to object"
+      // Normalize shapes to avoid any null/undefined being passed downstream
       const uploadResult =
-        uploadResp &&
-        uploadResp.ok &&
-        uploadResultRaw &&
-        typeof uploadResultRaw === "object"
+        uploadResp && uploadResp.ok && typeof uploadResultRaw === "object"
           ? uploadResultRaw
           : {};
-      // ensure expected shape so downstream components don't get null/undefined
-      if (!uploadResult || typeof uploadResult !== "object") {
-        (uploadResult as any) = {};
-      }
-      if ((uploadResult as any).applied == null)
-        (uploadResult as any).applied = {};
-      if ((uploadResult as any).best_fit_project_type == null)
-        (uploadResult as any).best_fit_project_type = null;
+      const safeApplied =
+        uploadResult &&
+        typeof uploadResult.applied === "object" &&
+        uploadResult.applied
+          ? uploadResult.applied
+          : {};
+      const safeBestFit =
+        uploadResult && uploadResult.best_fit_project_type
+          ? uploadResult.best_fit_project_type
+          : null;
 
       const parseResult =
-        parseResp &&
-        parseResp.ok &&
-        parseResultRaw &&
-        typeof parseResultRaw === "object"
-          ? parseResultRaw
-          : typeof parseResultRaw === "object"
+        parseResp && parseResp.ok && typeof parseResultRaw === "object"
           ? parseResultRaw
           : {};
-      if (!parseResult || typeof parseResult !== "object") {
-        (parseResult as any) = {};
-      }
-      // some handlers expect a `result` field
-      if ((parseResult as any).result == null) (parseResult as any).result = {};
+      const safeParseResult =
+        typeof parseResult === "object" && parseResult ? parseResult : {};
+      if (safeParseResult.result == null) safeParseResult.result = {};
+
+      // Keep processedData for modal / immediate UI usage - ensure non-null fields
+      const mergedProcessedData = {
+        profile: (safeParseResult.result.profile || "") as string,
+        education: (safeParseResult.result.education || "") as string,
+        skills: (safeParseResult.result.skills || "") as string,
+        experience: (safeParseResult.result.experience || "") as string,
+        projects: (safeParseResult.result.projects || "") as string,
+        achievements: (safeParseResult.result.achievements || "") as string,
+        contact: (safeParseResult.result.contact || "") as string,
+        languages: (safeParseResult.result.languages || "") as string,
+        other: (safeParseResult.result.other || "") as string,
+      };
+
+      setProcessedData(mergedProcessedData);
 
       const fileUrl = URL.createObjectURL(file);
 
-      // Navigate to parsed page with both AI results (always pass objects)
       navigate("/parsed-cv", {
         state: {
-          aiUpload: uploadResult,
-          aiParse: parseResult,
+          aiUpload: {
+            ...uploadResult,
+            applied: safeApplied,
+            best_fit_project_type: safeBestFit,
+          },
+          aiParse: safeParseResult,
           fileUrl,
           fileType: file.type,
           candidate: {
