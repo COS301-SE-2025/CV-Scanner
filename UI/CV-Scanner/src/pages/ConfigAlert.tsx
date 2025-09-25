@@ -1,35 +1,93 @@
 import { useEffect, useState } from "react";
-import { Snackbar, Alert } from "@mui/material";
+import { Box, Typography, Paper, Slide, IconButton, LinearProgress } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 
 export default function ConfigAlert() {
   const [open, setOpen] = useState(false);
+  const [progress, setProgress] = useState(100);
+
+  // Duration settings
+  const displayDuration = 5000; // 5 seconds
+  const intervalTime = 120000; // 2 minutes
 
   useEffect(() => {
-    // show immediately when page loads
-    setOpen(true);
-
-    // show again every 2 minutes (120000 ms)
-    const interval = setInterval(() => {
+    const showAlert = () => {
       setOpen(true);
-    }, 120000);
+      setProgress(100);
 
+      // Countdown progress bar
+      let start = Date.now();
+      const timer = setInterval(() => {
+        const elapsed = Date.now() - start;
+        const percent = Math.max(100 - (elapsed / displayDuration) * 100, 0);
+        setProgress(percent);
+
+        if (percent <= 0) {
+          clearInterval(timer);
+          setOpen(false);
+        }
+      }, 100);
+
+      return () => clearInterval(timer);
+    };
+
+    // show immediately on page load
+    showAlert();
+
+    // repeat every 2 minutes
+    const interval = setInterval(showAlert, intervalTime);
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <Snackbar
-      open={open}
-      autoHideDuration={5000}
-      onClose={() => setOpen(false)}
-      anchorOrigin={{ vertical: "top", horizontal: "right" }}
-    >
-      <Alert
-        onClose={() => setOpen(false)}
-        severity="info"
-        sx={{ bgcolor: "#2E3B4E", color: "#fff", fontWeight: "bold" }}
+    <Slide direction="down" in={open} mountOnEnter unmountOnExit>
+      <Paper
+        elevation={6}
+        sx={{
+          position: "fixed",
+          top: 70, // adjust to match your header height
+          right: 20,
+          minWidth: 350,
+          maxWidth: 500,
+          p: 3,
+          borderRadius: 3,
+          bgcolor: "#2E3B4E",
+          color: "#fff",
+          zIndex: 1500,
+        }}
       >
-        Config file has been changed, see on search page on what's new
-      </Alert>
-    </Snackbar>
+        {/* Header with title + close button */}
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+            Config Update
+          </Typography>
+          <IconButton
+            size="small"
+            onClick={() => setOpen(false)}
+            sx={{ color: "#fff" }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </Box>
+
+        {/* Message */}
+        <Typography sx={{ mt: 1 }}>
+          Config file has been changed, see on search page on what's new.
+        </Typography>
+
+        {/* Progress bar */}
+        <LinearProgress
+          variant="determinate"
+          value={progress}
+          sx={{
+            mt: 2,
+            height: 6,
+            borderRadius: 5,
+            bgcolor: "#1E1E1E",
+            "& .MuiLinearProgress-bar": { bgcolor: "#4CAF50" },
+          }}
+        />
+      </Paper>
+    </Slide>
   );
 }
