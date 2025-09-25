@@ -52,6 +52,7 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import Sidebar from "./Sidebar";
+import ConfigAlert from "./ConfigAlert";
 import { apiFetch } from "../lib/api";
 
 export default function CandidatesDashboard() {
@@ -276,7 +277,7 @@ export default function CandidatesDashboard() {
           >
             Candidates Dashboard
           </Typography>
-
+  <ConfigAlert />
           {/* Stat Cards */}
           <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap", mb: 4 }}>
             {[

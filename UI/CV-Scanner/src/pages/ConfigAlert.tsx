@@ -1,28 +1,18 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Snackbar, Alert } from "@mui/material";
-import { apiFetch } from "../lib/api";
 
 export default function ConfigAlert() {
   const [open, setOpen] = useState(false);
-  const prevConfig = useRef<any>(null);
 
   useEffect(() => {
-    const checkConfig = async () => {
-      try {
-        const res = await apiFetch("/auth/config/categories");
-        const config = res && res.ok ? await res.json() : null;
+    // show immediately when page loads
+    setOpen(true);
 
-        if (prevConfig.current && JSON.stringify(config) !== JSON.stringify(prevConfig.current)) {
-          setOpen(true);
-        }
-        prevConfig.current = config;
-      } catch {
-        // fail silently
-      }
-    };
+    // show again every 2 minutes (120000 ms)
+    const interval = setInterval(() => {
+      setOpen(true);
+    }, 120000);
 
-    checkConfig(); // run once
-    const interval = setInterval(checkConfig, 10000); // check every 10s
     return () => clearInterval(interval);
   }, []);
 
