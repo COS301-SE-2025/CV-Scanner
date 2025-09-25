@@ -10,7 +10,7 @@ export default function ConfigAlert() {
 
   // Duration settings
   const displayDuration = 5000; // 5 seconds
-  const intervalTime = 120000; // 2 minutes
+  const intervalTime = 240000; // 2 minutes
 
   useEffect(() => {
     const showAlert = () => {
