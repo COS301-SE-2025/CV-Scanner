@@ -2,9 +2,13 @@ import os, io, time
 from typing import Dict, List, Any
 from flask import Flask, jsonify, request, make_response
 from flask_cors import CORS
+from asgiref.wsgi import WsgiToAsgi
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+
+# ASGI wrapper so uvicorn can serve this Flask (WSGI) app
+asgi_app = WsgiToAsgi(app)
 
 from config_store import load_categories, save_categories
 from bart_model import classify_text_by_categories
