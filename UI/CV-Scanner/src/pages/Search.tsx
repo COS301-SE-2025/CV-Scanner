@@ -242,6 +242,10 @@ const SCORE_MAP: Record<string, number> = {
             cvFileUrl: c.cvFileUrl,
             cvFileType: c.cvFileType,
             filename,
+                   // Hard-coded score out of 10
+       score:
+             SCORE_MAP[c.email] ??
+             Math.max(0, Math.min(10, (c.id % 11))) // stable fallback 0..10
           };
         });
         setCandidates(mapped);
