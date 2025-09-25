@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { apiFetch } from "../lib/api";
 import {
   Avatar,
   Stack,
@@ -81,10 +82,21 @@ export default function CandidateReviewSummary() {
 
   useEffect(() => {
     const email = localStorage.getItem("userEmail") || "admin@email.com";
-    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
-      .then((res) => res.json())
-      .then((data) => setUser(data))
-      .catch(() => setUser(null));
+    (async () => {
+      try {
+        const res = await apiFetch(
+          `/auth/me?email=${encodeURIComponent(email)}`
+        );
+        if (!res.ok) {
+          setUser(null);
+          return;
+        }
+        const data = await res.json().catch(() => null);
+        setUser(data);
+      } catch {
+        setUser(null);
+      }
+    })();
   }, []);
 
   // Candidate meta (replace with real data from your API later)
@@ -166,13 +178,10 @@ export default function CandidateReviewSummary() {
 
     (async () => {
       try {
-        const res = await fetch(
-          `http://localhost:8081/cv/${candidateId}/summary`,
-          {
-            signal: ctrl.signal,
-            headers: { Accept: "application/json" },
-          }
-        );
+        const res = await apiFetch(`/cv/${candidateId}/summary`, {
+          signal: ctrl.signal,
+          headers: { Accept: "application/json" },
+        });
         if (!res.ok)
           throw new Error((await res.text()) || `HTTP ${res.status}`);
         const data = await res.json();
@@ -218,12 +227,9 @@ export default function CandidateReviewSummary() {
       setSkillsLoading(true);
       setSkillsError(null);
       try {
-        const res = await fetch(
-          `http://localhost:8081/cv/${candidateId}/skills`,
-          {
-            headers: { Accept: "application/json" },
-          }
-        );
+        const res = await apiFetch(`/cv/${candidateId}/skills`, {
+          headers: { Accept: "application/json" },
+        });
         if (!res.ok)
           throw new Error((await res.text()) || `HTTP ${res.status}`);
         const json = await res.json();
@@ -284,12 +290,9 @@ export default function CandidateReviewSummary() {
       setExperienceLoading(true);
       setExperienceError(null);
       try {
-        const res = await fetch(
-          `http://localhost:8081/cv/${candidateId}/experience`,
-          {
-            headers: { Accept: "application/json" },
-          }
-        );
+        const res = await apiFetch(`/cv/${candidateId}/experience`, {
+          headers: { Accept: "application/json" },
+        });
         if (!res.ok)
           throw new Error((await res.text()) || `HTTP ${res.status}`);
         const json = await res.json();
@@ -635,7 +638,10 @@ export default function CandidateReviewSummary() {
             {candidate.name}
             {candidateId ? ` (ID ${candidateId})` : ""}
           </Typography>
-<Typography variant="subtitle1" sx={{ mb: 4 }}> Senior Software Engineer | 5 years experience </Typography>
+          <Typography variant="subtitle1" sx={{ mb: 4 }}>
+            {" "}
+            Senior Software Engineer | 5 years experience{" "}
+          </Typography>
 
           {/* Tabs Section */}
           <Box sx={{ display: "flex", gap: 3, mb: 4 }}>
@@ -663,9 +669,6 @@ export default function CandidateReviewSummary() {
             ))}
           </Box>
           {/* HEADER STRIP */}
-        
-
-        
 
           {/* Contact popover */}
           <Popover
@@ -819,11 +822,9 @@ export default function CandidateReviewSummary() {
                 sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
               >
                 <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
-                  Resume & Contact Details 
+                  Resume & Contact Details
                 </Typography>
 
-               
-             
                 {/* Attach actual summary (your own write-up) + hard-coded AI summary */}
                 <Box
                   sx={{
@@ -920,9 +921,11 @@ export default function CandidateReviewSummary() {
                       setSkillsError(null);
                       (async () => {
                         try {
-                          const res = await fetch(
-                            `http://localhost:8081/cv/${candidateId}/skills`,
-                            { headers: { Accept: "application/json" } }
+                          const res = await apiFetch(
+                            `/cv/${candidateId}/skills`,
+                            {
+                              headers: { Accept: "application/json" },
+                            }
                           );
                           if (!res.ok)
                             throw new Error(
@@ -1034,8 +1037,8 @@ export default function CandidateReviewSummary() {
                       setExperienceError(null);
                       (async () => {
                         try {
-                          const res = await fetch(
-                            `http://localhost:8081/cv/${candidateId}/experience`,
+                          const res = await apiFetch(
+                            `/cv/${candidateId}/experience`,
                             {
                               headers: { Accept: "application/json" },
                             }

@@ -7,3 +7,7 @@ spacy
 torch
 python-docx
 pdfminer.six
+flask>=2.3
+gunicorn>=21,<22
+Flask-Cors
+asgiref

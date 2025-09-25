@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { apiFetch } from "../lib/api";
 import {
   Box,
   Typography,
@@ -46,10 +47,21 @@ export default function CandidateNotesPage() {
 
   useEffect(() => {
     const email = localStorage.getItem("userEmail") || "admin@email.com";
-    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
-      .then((res) => res.json())
-      .then((data) => setUser(data))
-      .catch(() => setUser(null));
+    (async () => {
+      try {
+        const res = await apiFetch(
+          `/auth/me?email=${encodeURIComponent(email)}`
+        );
+        if (!res.ok) {
+          setUser(null);
+          return;
+        }
+        const data = await res.json().catch(() => null);
+        setUser(data);
+      } catch {
+        setUser(null);
+      }
+    })();
   }, []);
 
   // Collapsing sidebar
@@ -119,7 +131,6 @@ export default function CandidateNotesPage() {
         color: "#fff",
       }}
     >
-
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
@@ -132,7 +143,14 @@ export default function CandidateNotesPage() {
             {/* Left: Logo and heading */}
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <img src={logoNavbar} alt="Logo" style={{ width: 80 }} />
-              <Typography variant="h6" sx={{ fontFamily: 'Helvetica, sans-serif',ml: 2, fontWeight: "bold" }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontFamily: "Helvetica, sans-serif",
+                  ml: 2,
+                  fontWeight: "bold",
+                }}
+              >
                 Candidate Notes
               </Typography>
             </Box>
@@ -222,7 +240,14 @@ export default function CandidateNotesPage() {
         >
           <Fade in={fadeIn} timeout={250}>
             <Box sx={{ position: "relative" }}>
-              <Typography variant="h6" sx={{fontFamily: 'Helvetica, sans-serif', fontWeight: "bold", mb: 1 }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontFamily: "Helvetica, sans-serif",
+                  fontWeight: "bold",
+                  mb: 1,
+                }}
+              >
                 {tutorialStep === 0
                   ? "Recruiter Notes"
                   : tutorialStep === 1
@@ -327,7 +352,14 @@ export default function CandidateNotesPage() {
           >
             Back to Candidates
           </Button>
-          <Typography variant="h4" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 2 }}>
+          <Typography
+            variant="h4"
+            sx={{
+              fontFamily: "Helvetica, sans-serif",
+              fontWeight: "bold",
+              mb: 2,
+            }}
+          >
             Jane Smith
           </Typography>
           <Typography variant="subtitle1" sx={{ mb: 4 }}>
@@ -366,7 +398,14 @@ export default function CandidateNotesPage() {
             sx={{ p: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
             ref={notesRef}
           >
-            <Typography variant="h6" sx={{fontFamily: 'Helvetica, sans-serif', fontWeight: "bold", mb: 2 }}>
+            <Typography
+              variant="h6"
+              sx={{
+                fontFamily: "Helvetica, sans-serif",
+                fontWeight: "bold",
+                mb: 2,
+              }}
+            >
               Recruiter Notes
             </Typography>
             <TextField

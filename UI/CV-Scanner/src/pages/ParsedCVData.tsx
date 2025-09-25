@@ -18,6 +18,7 @@ import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import logoNavbar from "../assets/logoNavbar.png";
 import CircularProgressBar from "./CircularProgressBar";
+import { apiFetch } from "../lib/api";
 
 export interface ParsedCVFields {
   profile?: string;
@@ -224,7 +225,6 @@ const renderNormalizedFields = (fields: ParsedCVFields) => {
               label={key.charAt(0).toUpperCase() + key.slice(1)}
               value={value}
               onSave={() => {}}
-              fullWidth
             />
           </Box>
         );
@@ -308,10 +308,16 @@ const ParsedCVData: React.FC = () => {
   useEffect(() => {
     const ue = localStorage.getItem("userEmail");
     if (!ue) return;
-    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(ue)}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => d && setUser(d))
-      .catch(() => {});
+    (async () => {
+      try {
+        const res = await apiFetch(`/auth/me?email=${encodeURIComponent(ue)}`);
+        if (!res.ok) return;
+        const d = await res.json().catch(() => null);
+        if (d) setUser(d);
+      } catch {
+        // ignore
+      }
+    })();
   }, []);
 
   const displayName = useMemo(() => {
@@ -343,14 +349,19 @@ const ParsedCVData: React.FC = () => {
       resume: parseResumeData ?? null, // NEW: send resume JSON
       receivedAt: new Date().toISOString(),
     };
-    const res = await fetch("http://localhost:8081/cv/save", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const text = await res.text();
-    if (!res.ok) throw new Error(text || "Failed to save CV");
-    alert("CV saved successfully!");
+    try {
+      const res = await apiFetch("/cv/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const text = await res.text().catch(() => "");
+      if (!res.ok) throw new Error(text || "Failed to save CV");
+      alert("CV saved successfully!");
+    } catch (e: any) {
+      console.error("Failed to save CV:", e?.message || e);
+      alert("Failed to save CV. See console for details.");
+    }
   };
 
   // Show page when either upload_cv (primaryUpload) or parse_resume (parseResumeData) is present.

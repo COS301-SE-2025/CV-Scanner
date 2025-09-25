@@ -1,8 +1,14 @@
 import os, io, time
 from typing import Dict, List, Any
-from fastapi import FastAPI, UploadFile, File, HTTPException, Body
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse, PlainTextResponse
+from flask import Flask, jsonify, request, make_response
+from flask_cors import CORS
+from asgiref.wsgi import WsgiToAsgi
+
+app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+
+# ASGI wrapper so uvicorn can serve this Flask (WSGI) app
+asgi_app = WsgiToAsgi(app)
 
 from config_store import load_categories, save_categories
 from bart_model import classify_text_by_categories
@@ -18,7 +24,14 @@ def extract_text_auto(file_bytes: bytes, filename: str) -> str:
     # fallback: treat everything as text (front-end can pre-extract)
     return file_bytes.decode("utf-8", errors="ignore")
 
-app = FastAPI(title="Dynamic ZSC Classifier (Admin-editable categories)")
+_model = None
+def get_model():
+    global _model
+    if _model is None:
+        # import and init heavy libs here
+        from bart_model import load_bart_model  # adjust to your code
+        _model = load_bart_model()
+    return _model
 
 # --- Heuristic best-fit project type from CV text + labels ---
 def infer_project_type(text: str, applied_labels: Dict[str, List[str]] | None = None):
@@ -107,115 +120,155 @@ def infer_project_type(text: str, applied_labels: Dict[str, List[str]] | None = 
     return {"type": best_type, "confidence": round(conf, 2), "basis": basis}
 
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"], allow_credentials=True,
-    allow_methods=["*"], allow_headers=["*"]
-)
+@app.route("/warmup", methods=["GET"])
+def warmup():
+    get_model()
+    return jsonify(status="warmed")
 
-@app.get("/", response_class=PlainTextResponse)
-async def root():
+
+@app.route("/")
+def root():
     return "OK. Endpoints: GET/POST /admin/categories, POST /classify, GET /health, POST /upload_cv, POST /parse_resume"
 
-@app.get("/health")
-async def health():
-    return {"status": "ok", "ts": time.time()}
+
+@app.route("/admin/categories", methods=["GET"])
+def get_categories():
+    cats = load_categories()
+    return jsonify(cats)
 
 
-@app.get("/admin/categories")
-async def get_categories():
-    return load_categories()
-
-@app.post("/admin/categories")
-async def set_categories(payload: Dict[str, List[str]] = Body(...)):
+@app.route("/admin/categories", methods=["POST"])
+def set_categories():
     try:
+        payload = request.get_json(force=True)
+        if not isinstance(payload, dict):
+            return make_response(jsonify({"status": "error", "detail": "Expected JSON object"}), 400)
         save_categories(payload)
-        return {"status": "saved", "categories": load_categories()}
+        return jsonify({"status": "saved", "categories": load_categories()})
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        return make_response(jsonify({"status": "error", "detail": str(e)}), 400)
 
 
-@app.post("/classify")
-async def classify(
-    text: str = Body(None),
-    file: UploadFile = File(None),
-    top_k: int = Body(3)
-):
-    if file is None and (text is None or not text.strip()):
-        raise HTTPException(400, "Provide `text` or upload `file`.")
-    if file is not None:
-        data = await file.read()
-        if not data:
-            raise HTTPException(400, "Empty file.")
-        text = extract_text_auto(data, file.filename or "upload.txt")
+@app.route("/classify", methods=["POST"])
+def classify():
+    # Accept either JSON { "text": "..." } or multipart form with file
+    text = None
+    if request.content_type and request.content_type.startswith("multipart/"):
+        file = request.files.get("file")
+        if file:
+            data = file.read()
+            if not data:
+                return make_response(jsonify({"status": "error", "detail": "Empty file."}), 400)
+            text = extract_text_auto(data, file.filename or "upload.txt")
+    else:
+        j = request.get_json(silent=True) or {}
+        text = j.get("text")
+
+    if not text or not str(text).strip():
+        return make_response(jsonify({"status": "error", "detail": "Provide `text` or upload `file`."}), 400)
+
+    try:
+        top_k = int(request.values.get("top_k", request.args.get("top_k", 3)))
+    except Exception:
+        top_k = 3
 
     cats = load_categories()
     if not cats:
-        raise HTTPException(409, "No categories configured. Use POST /admin/categories first.")
+        return make_response(jsonify({"status": "error", "detail": "No categories configured. Use POST /admin/categories first."}), 409)
 
     result = classify_text_by_categories(text, cats, top_k=top_k)
-    # Also return a compact "applied" mapping: category -> topK labels
     applied = {cat: [x["label"] for x in info["top_k"]] for cat, info in result.items()}
-    return JSONResponse({
+    return jsonify({
         "status": "success",
         "top_k": top_k,
         "applied": applied,
         "raw": result
     })
 
-@app.post("/upload_cv")
-async def upload_cv(file: UploadFile = File(...), top_k: int = 3):
-    data = await file.read()
+
+@app.route("/upload_cv", methods=["POST"])
+def upload_cv():
+    file = request.files.get("file")
+    if file is None:
+        return make_response(jsonify({"status": "error", "detail": "No file uploaded."}), 400)
+
+    data = file.read()
     if not data:
-        raise HTTPException(400, "Empty file.")
+        return make_response(jsonify({"status": "error", "detail": "Empty file."}), 400)
+
+    try:
+        top_k = int(request.values.get("top_k", request.args.get("top_k", 3)))
+    except Exception:
+        top_k = 3
+
     text = extract_text_auto(data, file.filename or "upload.txt")
 
     cats = load_categories()
     if not cats:
-        raise HTTPException(409, "No categories configured. Use POST /admin/categories first.")
+        return make_response(jsonify({"status": "error", "detail": "No categories configured. Use POST /admin/categories first."}), 409)
 
     result = classify_text_by_categories(text, cats, top_k=top_k)
     applied = {cat: [x["label"] for x in info["top_k"]] for cat, info in result.items()}
 
-   
     best_fit = infer_project_type(text, applied)
 
-    return JSONResponse({
+    return jsonify({
         "status": "success",
         "top_k": top_k,
         "applied": applied,
         "raw": result,
-        "best_fit_project_type": best_fit  # ⬅️ added field
+        "best_fit_project_type": best_fit
     })
 
 
 # -------- NEW: CV/Resume Parsing Endpoint --------
-@app.post("/parse_resume")
-async def parse_resume_endpoint(file: UploadFile = File(...)):
-    """
-    Upload a resume/CV file and get comprehensive parsing results.
-    Uses the complete cv_parser module functionality.
-    """
+@app.route("/parse_resume", methods=["POST"])
+def parse_resume_endpoint():
+    file = request.files.get("file")
+
+    if file is None:
+        return make_response(jsonify({"status": "error", "detail": "No file uploaded."}), 400)
+
     try:
-        # Read the uploaded file
-        data = await file.read()
+        data = file.read()
         if not data:
-            raise HTTPException(400, "Empty file uploaded.")
-        
-        # Parse the resume using the complete cv_parser functionality
-        result = parse_resume_from_bytes(data, file.filename)
-        
-        return JSONResponse({
+            return make_response(jsonify({"status": "error", "detail": "Empty file uploaded."}), 400)
+
+        # Lazy-import parser so startup stays fast and we get a clear error if parser deps are missing
+        try:
+            from cv_parser import parse_resume_from_bytes
+        except Exception as imp_err:
+            import traceback
+            traceback.print_exc()
+            return make_response(jsonify({
+                "status": "error",
+                "detail": "Parser module import failed",
+                "exception": str(imp_err)
+            }), 500)
+
+        try:
+            result = parse_resume_from_bytes(data, file.filename)
+        except Exception as parse_err:
+            import traceback
+            traceback.print_exc()
+            return make_response(jsonify({
+                "status": "error",
+                "detail": "Parser error",
+                "exception": str(parse_err)
+            }), 500)
+
+        return jsonify({
             "status": "success",
             "filename": file.filename,
             "result": result
         })
-    
+
     except Exception as e:
-        raise HTTPException(500, f"Error parsing resume: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return make_response(jsonify({"status": "error", "detail": f"Error parsing resume: {str(e)}"}), 500)
 
 
 if __name__ == "__main__":
-    import uvicorn
     port = int(os.environ.get("PORT", "5000"))
-    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=False)
+    app.run(host="0.0.0.0", port=port, debug=False)

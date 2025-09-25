@@ -14,6 +14,7 @@ import {
 import { AppBar, Toolbar } from "@mui/material";
 import logo from "../assets/logo.png";
 import logo3 from "../assets/logoNavbar.png"; // Import the third logo if needed
+import { apiFetch } from "../lib/api";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -38,7 +39,7 @@ export default function RegisterPage() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -61,47 +62,60 @@ export default function RegisterPage() {
       return;
     }
 
-    fetch("http://localhost:8081/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: formData.username,
-        password: formData.password,
-        email: formData.email,
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        role: formData.role,
-        is_active: formData.is_active,
-      }),
-    })
-      .then((res) => res.text())
-      .then((data) => {
-        if (data.indexOf("successfully") !== -1) {
-          navigate("/login");
-        } else {
-          setError(data);
-        }
-        setLoading(false);
-      })
-      .catch(() => {
-        setError("Registration failed. Please try again.");
-        setLoading(false);
+    try {
+      const res = await apiFetch("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({
+          username: formData.username,
+          password: formData.password,
+          email: formData.email,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          role: formData.role,
+          is_active: formData.is_active,
+        }),
       });
+
+      // prefer JSON response, fallback to text
+      let body: any = null;
+      try {
+        body = await res.json();
+      } catch {
+        body = await res.text().catch(() => null);
+      }
+
+      if (res.ok) {
+        navigate("/login");
+      } else {
+        const msg =
+          (body && (body.message || body.error)) ||
+          (typeof body === "string" ? body : null) ||
+          `Registration failed (${res.status})`;
+        setError(msg);
+      }
+    } catch (err) {
+      setError("Registration failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <>
       {/* Header */}
-          <AppBar position="fixed" sx={{ bgcolor: "#0A2540", boxShadow: "none" }}>
-         <Toolbar sx={{ justifyContent: "space-between" }}>
-           <Box sx={{ display: "flex", alignItems: "center" }}>
-             <img src={logo3} alt="Logo" style={{ width: 80 }} />
-             <Typography variant="h6" sx={{ ml: 2, fontWeight: "bold", color: "#fff" }}>
-               CV Scanner
-             </Typography>
-           </Box>
-         </Toolbar>
-       </AppBar>
+      <AppBar position="fixed" sx={{ bgcolor: "#0A2540", boxShadow: "none" }}>
+        <Toolbar sx={{ justifyContent: "space-between" }}>
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <img src={logo3} alt="Logo" style={{ width: 80 }} />
+            <Typography
+              variant="h6"
+              sx={{ ml: 2, fontWeight: "bold", color: "#fff" }}
+            >
+              CV Scanner
+            </Typography>
+          </Box>
+        </Toolbar>
+      </AppBar>
 
       {/* Main Content */}
       <Box
@@ -121,23 +135,23 @@ export default function RegisterPage() {
             width: "100%",
             maxWidth: 420,
             borderRadius: 3,
-              bgcolor: "#1e2539",
-             background: "linear-gradient(145deg, #1e2539, #2a314b)",
-             boxShadow: "0px 8px 20px rgba(0,0,0,0.4)",
+            bgcolor: "#1e2539",
+            background: "linear-gradient(145deg, #1e2539, #2a314b)",
+            boxShadow: "0px 8px 20px rgba(0,0,0,0.4)",
           }}
         >
-            <Typography
-              variant="h4"
-              align="center"
-              gutterBottom
-              sx={{
-                fontWeight: 700,
-                fontFamily: 'Inter, sans-serif',
-                background: "linear-gradient(to right, #6ddf6d, #b0e0ff)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
+          <Typography
+            variant="h4"
+            align="center"
+            gutterBottom
+            sx={{
+              fontWeight: 700,
+              fontFamily: "Inter, sans-serif",
+              background: "linear-gradient(to right, #6ddf6d, #b0e0ff)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
             Create Account
           </Typography>
 

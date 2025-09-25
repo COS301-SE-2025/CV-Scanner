@@ -1,15 +1,22 @@
 import { Box, Typography, Chip, Button } from "@mui/material";
 import { useEffect, useState } from "react";
+import { apiFetch } from "../lib/api";
 
 export default function ConfigViewer() {
   const [config, setConfig] = useState<Record<string, string[]>>({});
 
-  const fetchConfig = () => {
-    const CONFIG_BASE = "http://localhost:8081";
-    fetch(`${CONFIG_BASE}/auth/config/categories`)
-      .then((res) => res.json())
-      .then((data) => setConfig(data))
-      .catch(() => setConfig({}));
+  const fetchConfig = async () => {
+    try {
+      const res = await apiFetch("/auth/config/categories");
+      if (!res.ok) {
+        setConfig({});
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      setConfig(data);
+    } catch {
+      setConfig({});
+    }
   };
 
   useEffect(() => {

@@ -44,6 +44,7 @@ import logo from "../assets/logo.png";
 import logoNavbar from "../assets/logoNavbar.png";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import EditIcon from "@mui/icons-material/Edit";
+import { apiFetch } from "../lib/api";
 
 export default function UserManagementPage() {
   const [collapsed, setCollapsed] = useState(false);
@@ -58,13 +59,13 @@ export default function UserManagementPage() {
     email?: string;
   } | null>(null);
 
-const devUser = {
-      email: "dev@example.com",
-      password: "Password123",
-      first_name: "John",
-      last_name: "Doe",
-      role: "Admin",
-    };
+  const devUser = {
+    email: "dev@example.com",
+    password: "Password123",
+    first_name: "John",
+    last_name: "Doe",
+    role: "Admin",
+  };
 
   const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -109,53 +110,65 @@ const devUser = {
     setEditingUser(null);
   };
 
-  const handleEditSave = () => {
-    fetch("http://localhost:8081/auth/edit-user", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(editFormData),
-    })
-      .then((res) => res.text())
-      .then((msg) => {
-        // Optionally show a toast/snackbar here
+  const handleEditSave = async () => {
+    try {
+      const res = await apiFetch("/auth/edit-user", {
+        method: "PUT",
+        body: JSON.stringify(editFormData),
+      });
+      const text = await res.text().catch(() => "");
+      if (res.ok) {
+        // update local list
         setUsers((prev) =>
           prev.map((u) =>
             u.email === editFormData.email ? { ...u, ...editFormData } : u
           )
         );
         handleEditClose();
-      })
-      .catch(() => {
-        // Optionally show an error toast/snackbar here
-      });
+      } else {
+        console.error("Edit user failed:", res.status, text);
+      }
+    } catch (err) {
+      console.error("Network error editing user:", err);
+    }
   };
   const handleDeleteUser = (user) => {
     if (!window.confirm(`Are you sure you want to delete ${user.email}?`))
       return;
-    fetch(
-      `http://localhost:8081/auth/delete-user?email=${encodeURIComponent(
-        user.email
-      )}`,
-      {
-        method: "DELETE",
+    (async () => {
+      try {
+        const res = await apiFetch(
+          `/auth/delete-user?email=${encodeURIComponent(user.email)}`,
+          { method: "DELETE" }
+        );
+        const text = await res.text().catch(() => "");
+        if (res.ok) {
+          setUsers((prev) => prev.filter((u) => u.email !== user.email));
+        } else {
+          console.error("Delete user failed:", res.status, text);
+        }
+      } catch (err) {
+        console.error("Network error deleting user:", err);
       }
-    )
-      .then((res) => res.text())
-      .then((msg) => {
-        // Optionally show a toast/snackbar here
-        // Refresh the user list
-        setUsers((prev) => prev.filter((u) => u.email !== user.email));
-      })
-      .catch(() => {
-        // Optionally show an error toast/snackbar here
-      });
+    })();
   };
   useEffect(() => {
     const email = localStorage.getItem("userEmail") || "admin@email.com";
-    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
-      .then((res) => res.json())
-      .then((data) => setUser(data))
-      .catch(() => setUser(null));
+    (async () => {
+      try {
+        const res = await apiFetch(
+          `/auth/me?email=${encodeURIComponent(email)}`
+        );
+        if (!res.ok) {
+          setUser(null);
+          return;
+        }
+        const data = await res.json().catch(() => null);
+        setUser(data);
+      } catch {
+        setUser(null);
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -165,39 +178,59 @@ const devUser = {
   }, [user, navigate]);
 
   useEffect(() => {
-    fetch("http://localhost:8081/auth/all-users")
-      .then((res) => res.json())
-      .then((data) => setUsers(data))
-      .catch(() => setUsers([]));
+    (async () => {
+      try {
+        const res = await apiFetch("/auth/all-users");
+        if (!res.ok) {
+          setUsers([]);
+          return;
+        }
+        const data = await res.json().catch(() => []);
+        setUsers(data);
+      } catch {
+        setUsers([]);
+      }
+    })();
   }, []);
 
   useEffect(() => {
     const fetchUsers = async () => {
-      let url = "http://localhost:8081/auth/all-users";
-      if (search.trim() !== "") {
-        url = `http://localhost:8081/auth/search-users?query=${encodeURIComponent(
-          search
-        )}`;
+      try {
+        const url = search.trim()
+          ? `/auth/search-users?query=${encodeURIComponent(search)}`
+          : `/auth/all-users`;
+        const res = await apiFetch(url);
+        if (!res.ok) {
+          setUsers([]);
+          return;
+        }
+        const data = await res.json().catch(() => []);
+        setUsers(data);
+      } catch {
+        setUsers([]);
       }
-      fetch(url)
-        .then((res) => res.json())
-        .then((data) => setUsers(data))
-        .catch(() => setUsers([]));
     };
     fetchUsers();
   }, [search]);
 
   useEffect(() => {
-    let url = "http://localhost:8081/auth/all-users";
-    if (roleFilter !== "All Roles") {
-      url = `http://localhost:8081/auth/filter-users?role=${encodeURIComponent(
-        roleFilter
-      )}`;
-    }
-    fetch(url)
-      .then((res) => res.json())
-      .then((data) => setUsers(data))
-      .catch(() => setUsers([]));
+    (async () => {
+      try {
+        const url =
+          roleFilter !== "All Roles"
+            ? `/auth/filter-users?role=${encodeURIComponent(roleFilter)}`
+            : `/auth/all-users`;
+        const res = await apiFetch(url);
+        if (!res.ok) {
+          setUsers([]);
+          return;
+        }
+        const data = await res.json().catch(() => []);
+        setUsers(data);
+      } catch {
+        setUsers([]);
+      }
+    })();
   }, [roleFilter]);
 
   // Set anchorEl for tutorial popover
@@ -238,11 +271,11 @@ const devUser = {
       }}
     >
       {/* Sidebar */}
-      <Sidebar 
-  userRole={user?.role || devUser.role} 
-  collapsed={collapsed} 
-  setCollapsed={setCollapsed} 
-/>
+      <Sidebar
+        userRole={user?.role || devUser.role}
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
+      />
 
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
@@ -312,13 +345,20 @@ const devUser = {
 
         {/* User Management Content */}
         <Box sx={{ p: 3 }}>
-          <Typography variant="h5" sx={{ fontFamily: 'Helvetica, sans-serif', fontWeight: "bold", mb: 3, color: "#fff " }}>
+          <Typography
+            variant="h5"
+            sx={{
+              fontFamily: "Helvetica, sans-serif",
+              fontWeight: "bold",
+              mb: 3,
+              color: "#fff ",
+            }}
+          >
             User Management
           </Typography>
 
           {/* Search and Filter Section */}
           <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
-            
             <TextField
               inputRef={searchRef}
               placeholder="Search users..."
@@ -341,7 +381,7 @@ const devUser = {
                 ),
               }}
             />
-            
+
             <div ref={filterBoxRef}>
               <Select
                 value={roleFilter}
@@ -370,9 +410,11 @@ const devUser = {
             sx={{ p: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
           >
             <TableContainer>
-              <Table sx={{"& td, & th": { fontFamily: 'Helvetica, sans-serif'}}}>
+              <Table
+                sx={{ "& td, & th": { fontFamily: "Helvetica, sans-serif" } }}
+              >
                 {/* 2. Update the table headers: */}
-                <TableHead sx={{ "& th": {fontSize: 16 } }}>
+                <TableHead sx={{ "& th": { fontSize: 16 } }}>
                   <TableRow>
                     <TableCell sx={{ fontWeight: "bold" }}>Username</TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>
@@ -442,7 +484,7 @@ const devUser = {
                           onClick={() => handleEditClick(user)}
                           ref={idx === 0 ? firstEditRef : null}
                         >
-                          <EditIcon/>
+                          <EditIcon />
                         </Button>
                         <Button
                           variant="contained"
@@ -456,9 +498,8 @@ const devUser = {
                             "&:hover": { bgcolor: "#d32f2f" },
                           }}
                           onClick={() => handleDeleteUser(user)}
-
                         >
-                          < DeleteIcon />
+                          <DeleteIcon />
                         </Button>
                       </TableCell>
                     </TableRow>

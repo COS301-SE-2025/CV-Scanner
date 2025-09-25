@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { apiFetch } from "../lib/api";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -25,7 +26,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -48,36 +49,38 @@ export default function LoginPage() {
       return;
     }
 
-    fetch("http://localhost:8081/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email,
-        password,
-      }),
-    })
-      .then((res) => res.text())
-      .then((data) => {
-        // if (data.toLowerCase().includes("success")) {
-        if (data.toLowerCase().indexOf("success") !== -1) {
-          localStorage.setItem("userEmail", email);
-          navigate("/dashboard");
-        } else {
-          setError(data);
-        }
-        setLoading(false);
-      })
-      .catch(() => {
-        // If fetch fails, allow dev login as fallback
-        if (email === devUser.email && password === devUser.password) {
-          localStorage.setItem("userEmail", devUser.email);
-          localStorage.setItem("user", JSON.stringify(devUser));
-          navigate("/dashboard");
-        } else {
-          setError("Login failed. Please try again.");
-        }
-        setLoading(false);
+    try {
+      const res = await apiFetch("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
       });
+
+      // try JSON first, fallback to text
+      let body: any = null;
+      try {
+        body = await res.json();
+      } catch {
+        body = await res.text().catch(() => null);
+      }
+
+      if (res.ok) {
+        localStorage.setItem("userEmail", email);
+        if (body && typeof body === "object") {
+          localStorage.setItem("user", JSON.stringify(body));
+        }
+        navigate("/dashboard");
+      } else {
+        const errMsg =
+          (body && (body.message || body.error)) ||
+          (typeof body === "string" ? body : null) ||
+          `Login failed (${res.status})`;
+        setError(errMsg);
+      }
+    } catch (err) {
+      setError("Login failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

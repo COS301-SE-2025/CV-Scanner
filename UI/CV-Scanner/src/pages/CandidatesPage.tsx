@@ -37,6 +37,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import Sidebar from "./Sidebar";
+import { apiFetch } from "../lib/api";
 
 export default function CandidatesPage() {
   const [collapsed, setCollapsed] = useState(false);
@@ -45,12 +46,12 @@ export default function CandidatesPage() {
   const [searchTerm, setSearchTerm] = useState("");
 
   const devUser = {
-      email: "dev@example.com",
-      password: "Password123",
-      first_name: "John",
-      last_name: "Doe",
-      role: "Admin",
-    };
+    email: "dev@example.com",
+    password: "Password123",
+    first_name: "John",
+    last_name: "Doe",
+    role: "Admin",
+  };
 
   const [user, setUser] = useState<{
     first_name?: string;
@@ -71,10 +72,22 @@ export default function CandidatesPage() {
   useEffect(() => {
     document.title = "Candidates";
     const email = localStorage.getItem("userEmail") || "admin@email.com";
-    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
-      .then((res) => res.json())
-      .then((data) => setUser(data))
-      .catch(() => setUser(null));
+
+    (async () => {
+      try {
+        const meRes = await apiFetch(
+          `/auth/me?email=${encodeURIComponent(email)}`
+        );
+        if (meRes.ok) {
+          const meData = await meRes.json().catch(() => null);
+          setUser(meData);
+        } else {
+          setUser(null);
+        }
+      } catch {
+        setUser(null);
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -130,98 +143,105 @@ export default function CandidatesPage() {
         color: "#fff",
       }}
     >
-{/* Sidebar */}
-      <Sidebar 
-  userRole={user?.role || devUser.role} 
-  collapsed={collapsed} 
-  setCollapsed={setCollapsed} 
-/>
+      {/* Sidebar */}
+      <Sidebar
+        userRole={user?.role || devUser.role}
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
+      />
       {/* Main Content */}
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
         {/* Top App Bar */}
 
-         <AppBar
-                  position="static"
-                  sx={{ bgcolor: "#232A3B ", boxShadow: "none" }}
-                >
-                  <Toolbar sx={{ justifyContent: "flex-end" }}>
-          {/* Tutorial icon */}
-          <Tooltip title="Run Tutorial" arrow>
-            <IconButton
-              onClick={() => {
-                setTutorialStep(0);
-                setFadeIn(true);
+        <AppBar
+          position="static"
+          sx={{ bgcolor: "#232A3B ", boxShadow: "none" }}
+        >
+          <Toolbar sx={{ justifyContent: "flex-end" }}>
+            {/* Tutorial icon */}
+            <Tooltip title="Run Tutorial" arrow>
+              <IconButton
+                onClick={() => {
+                  setTutorialStep(0);
+                  setFadeIn(true);
+                }}
+                sx={{ ml: 1, color: "#FFEB3B" }}
+              >
+                <LightbulbRoundedIcon />
+              </IconButton>
+            </Tooltip>
+
+            {/* Help / FAQ icon */}
+            <Tooltip title="Go to Help Page" arrow>
+              <IconButton
+                onClick={() => navigate("/help")}
+                sx={{ ml: 1, color: "#90ee90" }}
+              >
+                <HelpOutlineIcon />
+              </IconButton>
+            </Tooltip>
+
+            {/* User Info */}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                ml: 2,
+                cursor: "pointer",
+                "&:hover": { opacity: 0.8 },
               }}
-                 sx={{ml: 1, color: '#FFEB3B'}}
+              onClick={() => navigate("/settings")}
             >
-              <LightbulbRoundedIcon />
-            </IconButton>
-          </Tooltip>
-        
-          {/* Help / FAQ icon */}
-          <Tooltip title="Go to Help Page" arrow>
+              <AccountCircleIcon sx={{ mr: 1 }} />
+              <Typography variant="subtitle1">
+                {user
+                  ? user.first_name
+                    ? `${user.first_name} ${user.last_name || ""} (${
+                        user.role || "User"
+                      })`
+                    : (user.username || user.email) +
+                      (user.role ? ` (${user.role})` : "")
+                  : "User"}
+              </Typography>
+            </Box>
+
+            {/* Logout */}
             <IconButton
-              onClick={() => navigate("/help")}
-              sx={{ ml: 1, color: '#90ee90' }}
+              color="inherit"
+              onClick={() => navigate("/login")}
+              sx={{ ml: 1 }}
             >
-              <HelpOutlineIcon />
+              <ExitToAppIcon />
             </IconButton>
-          </Tooltip>
-        
-          {/* User Info */}
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              ml: 2,
-              cursor: "pointer",
-              "&:hover": { opacity: 0.8 },
-            }}
-            onClick={() => navigate("/settings")}
-          >
-            <AccountCircleIcon sx={{ mr: 1 }} />
-            <Typography variant="subtitle1">
-              {user
-                ? user.first_name
-                  ? `${user.first_name} ${user.last_name || ""} (${user.role || "User"})`
-                  : (user.username || user.email) +
-                    (user.role ? ` (${user.role})` : "")
-                : "User"}
-            </Typography>
-          </Box>
-        
-          {/* Logout */}
-          <IconButton
-            color="inherit"
-            onClick={() => navigate("/login")}
-            sx={{ ml: 1 }}
-          >
-            <ExitToAppIcon />
-          </IconButton>
-        </Toolbar>
-                  
-                </AppBar>
+          </Toolbar>
+        </AppBar>
 
         {/* Main Page Content */}
 
-          <Box sx={{ p: 3 }}>
-          <Typography variant="h5" sx={{fontFamily: 'Helvetica, sans-serif', mb: 3, fontWeight: "bold" }}>
+        <Box sx={{ p: 3 }}>
+          <Typography
+            variant="h5"
+            sx={{
+              fontFamily: "Helvetica, sans-serif",
+              mb: 3,
+              fontWeight: "bold",
+            }}
+          >
             Candidate Dictionary
           </Typography>
         </Box>
 
-        <Box sx={{  pt: 0, px: 3, pb: 3  }}>
+        <Box sx={{ pt: 0, px: 3, pb: 3 }}>
           <Paper
             elevation={6}
             sx={{ p: 3, borderRadius: 3, backgroundColor: "#DEDDEE" }}
           >
-           {/*<Typography
+            {/*<Typography
               variant="h5"
               sx={{ fontWeight: "bold", color: "#0073c1", mb: 2 }}
             >
               Candidate Directory
                 </Typography> */}
-            
 
             {/* Search Controls */}
             <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
@@ -253,7 +273,6 @@ export default function CandidatesPage() {
                 Clear
               </Button>
             </Box>
-            
 
             {/* Table */}
             <TableContainer>
@@ -319,7 +338,6 @@ export default function CandidatesPage() {
           </Paper>
         </Box>
       </Box>
-      
 
       {/* Tutorial Popover */}
       <Popover
@@ -351,7 +369,14 @@ export default function CandidatesPage() {
           <Box sx={{ position: "relative" }}>
             {tutorialStep === 0 && (
               <>
-                <Typography variant="h6" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 1 }}>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontFamily: "Helvetica, sans-serif",
+                    fontWeight: "bold",
+                    mb: 1,
+                  }}
+                >
                   Search Candidates
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
@@ -362,7 +387,14 @@ export default function CandidatesPage() {
             )}
             {tutorialStep === 1 && (
               <>
-                <Typography variant="h6" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 1 }}>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontFamily: "Helvetica, sans-serif",
+                    fontWeight: "bold",
+                    mb: 1,
+                  }}
+                >
                   Review a Candidate
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
@@ -483,7 +515,8 @@ const reviewButtonStyle = {
   borderRadius: "4px",
   boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
   "&:hover": {
-    background: "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
+    background:
+      "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
     transform: "translateY(-1px)",
   },
   textTransform: "none",
