@@ -144,9 +144,18 @@ jobs:
 
       - name: Warm up AI app
         run: |
+          set -e
           HOST=$(az webapp show -g rg-cvscanner -n cvscanner-ai --query defaultHostName -o tsv)
-          curl -fsS -m 30 "https://${HOST}/health" || true
-          curl -fsS -m 120 "https://${HOST}/warmup" || true
+          echo "AI host: $HOST"
+          # wait for /health up to ~90s
+          for i in {1..18}; do
+            if curl -fsS -m 5 "https://${HOST}/health"; then
+              echo "Health OK"; break
+            fi
+            sleep 5
+          done
+          # try warmup but don't fail pipeline
+          curl -v -m 240 "https://${HOST}/warmup" || true
 
   ui:
     name: Deploy React UI (SWA)
