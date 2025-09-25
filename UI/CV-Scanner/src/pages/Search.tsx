@@ -110,6 +110,55 @@ const SCORE_MAP: Record<string, number> = {
       : [...list, value];
   }
 
+  function ScoreRing({ value }: { value: number }) {
+  const pct = Math.max(0, Math.min(10, value)) * 10; // convert /10 -> /100
+  return (
+    <Box sx={{ position: "relative", display: "inline-flex" }}>
+      {/* Track */}
+      <CircularProgress
+        variant="determinate"
+        value={100}
+        sx={{ color: "rgba(255,255,255,0.15)" }}
+        size={64}
+        thickness={4}
+      />
+      {/* Progress */}
+      <CircularProgress
+        variant="determinate"
+        value={pct}
+        sx={{ color: "#5a88ad", position: "absolute", left: 0 }}
+        size={64}
+        thickness={4}
+      />
+      {/* Center label */}
+      <Box
+        sx={{
+          top: 0,
+          left: 0,
+          bottom: 0,
+          right: 0,
+          position: "absolute",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
+        }}
+      >
+        <Typography
+          variant="subtitle2"
+          sx={{ lineHeight: 1, fontWeight: 800, color: "#fff" }}
+        >
+          {value}/10
+        </Typography>
+        <Typography variant="caption" sx={{ color: "#cfd8dc" }}>
+          Score
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
+
+
   // Handler for checkbox groups
   function handleCheckboxChange(
     kind: "skill" | "fit" | "detail",
