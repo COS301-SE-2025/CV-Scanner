@@ -107,14 +107,7 @@ export default function Search() {
       : [...list, value];
   }
 
-  function scoreColor(value: number) {
-  // clamp 0..10
-  const v = Math.max(0, Math.min(10, value));
-  // map 0..10 → 0..120 hue (red→green)
-  const hue = (v / 10) * 120;
-  // nice saturation/lightness for vibrant color
-  return `hsl(${hue} 70% 45%)`;
-}
+ 
 
 function scoreColor(value: number) {
   const v = Math.max(0, Math.min(10, value));
@@ -316,7 +309,7 @@ function ScoreRing({ value }: { value: number }) {
             filename,
                    // Hard-coded score out of 10
        score:
-             SCORE_MAP[c.email] ??
+             //SCORE_MAP[c.email] ??
              Math.max(0, Math.min(10, (c.id % 11))) // stable fallback 0..10
           };
         });
