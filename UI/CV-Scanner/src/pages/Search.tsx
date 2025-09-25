@@ -101,7 +101,42 @@ const SCORE_MAP: Record<string, number> = {
 };
 
 
-  const [candidates, setCandidates] = useState<CandidateCard[]>([]);
+ // const [candidates, setCandidates] = useState<CandidateCard[]>([]);
+ const [candidates, setCandidates] = useState<CandidateCard[]>([
+  {
+    id: 1,
+    name: "Jane Doe",
+    email: "jane.doe@email.com",
+    skills: ["React", "Node.js", "SQL"],
+    project: "Web App",
+    uploaded: "2 days ago",
+    match: "85%",
+    initials: "JD",
+    details: ["Last 7 Days"],
+    fit: "Strong",
+    cvFileUrl: null,
+    cvFileType: null,
+    filename: "JaneDoe_CV.pdf",
+    score: 9,
+  },
+  {
+    id: 2,
+    name: "John Smith",
+    email: "john.smith@email.com",
+    skills: ["Python", "Django", "Docker"],
+    project: "API",
+    uploaded: "5 hours ago",
+    match: "72%",
+    initials: "JS",
+    details: ["Last 7 Days"],
+    fit: "Medium",
+    cvFileUrl: null,
+    cvFileType: null,
+    filename: "JohnSmith_CV.pdf",
+    score: 6,
+  },
+]);
+
 
   // Toggle helper for checkbox filters
   function toggle(list: string[], value: string) {
@@ -110,34 +145,51 @@ const SCORE_MAP: Record<string, number> = {
       : [...list, value];
   }
 
-  function ScoreRing({ value }: { value: number }) {
-  const pct = Math.max(0, Math.min(10, value)) * 10; // convert /10 -> /100
+  function scoreColor(value: number) {
+  // clamp 0..10
+  const v = Math.max(0, Math.min(10, value));
+  // map 0..10 → 0..120 hue (red→green)
+  const hue = (v / 10) * 120;
+  // nice saturation/lightness for vibrant color
+  return `hsl(${hue} 70% 45%)`;
+}
+
+function ScoreRing({ value }: { value: number }) {
+  const clamped = Math.max(0, Math.min(10, value));
+  const pct = clamped * 10; // CircularProgress expects 0..100
+  const ringColor = scoreColor(clamped);
+  const isPerfect = clamped === 10;
+
   return (
     <Box sx={{ position: "relative", display: "inline-flex" }}>
       {/* Track */}
       <CircularProgress
         variant="determinate"
         value={100}
-        sx={{ color: "rgba(255,255,255,0.15)" }}
         size={64}
         thickness={4}
+        sx={{ color: "rgba(255,255,255,0.15)" }}
       />
       {/* Progress */}
       <CircularProgress
         variant="determinate"
         value={pct}
-        sx={{ color: "#5a88ad", position: "absolute", left: 0 }}
         size={64}
         thickness={4}
+        sx={{
+          color: ringColor,
+          position: "absolute",
+          left: 0,
+          ...(isPerfect && {
+            filter: "drop-shadow(0 0 6px rgba(0, 255, 0, 0.6))",
+          }),
+        }}
       />
       {/* Center label */}
       <Box
         sx={{
-          top: 0,
-          left: 0,
-          bottom: 0,
-          right: 0,
           position: "absolute",
+          inset: 0,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -146,9 +198,9 @@ const SCORE_MAP: Record<string, number> = {
       >
         <Typography
           variant="subtitle2"
-          sx={{ lineHeight: 1, fontWeight: 800, color: "#fff" }}
+          sx={{ lineHeight: 1, fontWeight: 800, color: ringColor }}
         >
-          {value}/10
+          {clamped}/10
         </Typography>
         <Typography variant="caption" sx={{ color: "#cfd8dc" }}>
           Score
@@ -157,6 +209,7 @@ const SCORE_MAP: Record<string, number> = {
     </Box>
   );
 }
+
 
 
   // Handler for checkbox groups
@@ -626,7 +679,8 @@ const SCORE_MAP: Record<string, number> = {
                           Match: {candidate.match}
                         </Typography>
                       </Box>
-                      <Box sx={{ mt: 1 }}>
+                     <Box sx={{ mt: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 1.5 }}>
+                     <ScoreRing value={candidate.score} />
                         <Button
                           variant="contained"
                           size="small"
