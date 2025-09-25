@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { Box, Typography, Paper, Slide, IconButton, LinearProgress } from "@mui/material";
+import { Box, Typography, Paper, Slide, IconButton, LinearProgress, Button } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import { useNavigate } from "react-router-dom";
 
 export default function ConfigAlert() {
   const [open, setOpen] = useState(false);
   const [progress, setProgress] = useState(100);
+  const navigate = useNavigate();
 
   // Duration settings
   const displayDuration = 5000; // 5 seconds
@@ -71,9 +73,22 @@ export default function ConfigAlert() {
         </Box>
 
         {/* Message */}
-        <Typography sx={{ mt: 1 }}>
+        <Typography sx={{ mt: 1, mb: 2 }}>
           Config file has been changed, see on search page on what's new.
         </Typography>
+
+        {/* Go to Search Button */}
+        <Button
+          variant="contained"
+          size="small"
+          sx={{ bgcolor: "#4CAF50", "&:hover": { bgcolor: "#45A049" } }}
+          onClick={() => {
+            navigate("/search");
+            setOpen(false);
+          }}
+        >
+          Go to Search
+        </Button>
 
         {/* Progress bar */}
         <LinearProgress
