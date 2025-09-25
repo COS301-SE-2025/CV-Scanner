@@ -269,6 +269,11 @@ def parse_resume_endpoint():
         return make_response(jsonify({"status": "error", "detail": f"Error parsing resume: {str(e)}"}), 500)
 
 
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify(status="ok")
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "5000"))
     app.run(host="0.0.0.0", port=port, debug=False)
