@@ -228,6 +228,19 @@ export default function UploadCVPage() {
     }
   };
 
+  const getJsonOrText = async (res: Response | null) => {
+    if (!res) return null;
+    const ct = res.headers?.get?.("content-type") ?? "";
+    try {
+      if (ct.includes("application/json")) {
+        return await res.json().catch(() => null);
+      }
+      return await res.text().catch(() => null);
+    } catch {
+      return null;
+    }
+  };
+
   const handleProcess = async () => {
     if (!file) return;
     // Require candidate fields
