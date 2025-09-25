@@ -90,7 +90,7 @@ export default function Search() {
     cvFileUrl?: string;
     cvFileType?: string;
     filename?: string | null;
-   
+   score: number; // 0-10
   };
 
   const [candidates, setCandidates] = useState<CandidateCard[]>([]);
