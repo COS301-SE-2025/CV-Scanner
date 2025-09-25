@@ -93,6 +93,14 @@ export default function Search() {
    score: number; // 0-10
   };
 
+  // Example hard-coded scores. Add your real emails/names here.
+const SCORE_MAP: Record<string, number> = {
+  "jane.doe@email.com": 9,
+  "john.smith@email.com": 7,
+  // ...
+};
+
+
   const [candidates, setCandidates] = useState<CandidateCard[]>([]);
 
   // Toggle helper for checkbox filters
