@@ -275,48 +275,43 @@ export default function UploadCVPage() {
         parsePromise,
       ]);
 
-      // Try to parse JSON responses (fallback to text)
-      const uploadResult = await (async () => {
-        try {
-          return await uploadResp.json();
-        } catch {
-          try {
-            return await uploadResp.text();
-          } catch {
-            return null;
-          }
-        }
-      })();
-
-      const parseResult = await (async () => {
-        try {
-          return await parseResp.json();
-        } catch {
-          try {
-            return await parseResp.text();
-          } catch {
-            return null;
-          }
-        }
-      })();
+      // Safely extract JSON or text
+      const uploadResultRaw = await getJsonOrText(uploadResp).catch(() => null);
+      const parseResultRaw = await getJsonOrText(parseResp).catch(() => null);
 
       // If both calls failed, show an error
       if ((!uploadResp || !uploadResp.ok) && (!parseResp || !parseResp.ok)) {
         const uploadMsg =
-          uploadResult?.detail ||
-          uploadResult?.message ||
+          (uploadResultRaw &&
+            (uploadResultRaw.detail || uploadResultRaw.message)) ||
           `upload_cv failed (${uploadResp?.status})`;
         const parseMsg =
-          parseResult?.detail ||
-          parseResult?.message ||
+          (parseResultRaw &&
+            (parseResultRaw.detail || parseResultRaw.message)) ||
           `parse_resume failed (${parseResp?.status})`;
         setErrorPopup({ open: true, message: `${uploadMsg}; ${parseMsg}` });
         return;
       }
 
+      // Normalize results to objects to avoid runtime "Cannot convert undefined or null to object"
+      const uploadResult =
+        uploadResp &&
+        uploadResp.ok &&
+        uploadResultRaw &&
+        typeof uploadResultRaw === "object"
+          ? uploadResultRaw
+          : {};
+      const parseResult =
+        parseResp &&
+        parseResp.ok &&
+        parseResultRaw &&
+        typeof parseResultRaw === "object"
+          ? parseResultRaw
+          : parseResultRaw || {};
+
       const fileUrl = URL.createObjectURL(file);
 
-      // Navigate to parsed page with both AI results
+      // Navigate to parsed page with both AI results (always pass objects)
       navigate("/parsed-cv", {
         state: {
           aiUpload: uploadResult,
