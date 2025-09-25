@@ -35,6 +35,7 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import Sidebar from "./Sidebar";
+import ConfigAlert from "./ConfigAlert";
 
 export default function UploadCVPage() {
   const [collapsed, setCollapsed] = useState(false);
@@ -432,6 +433,8 @@ export default function UploadCVPage() {
             Upload Candidate CV
           </Typography>
 
+                    {/* Config Alert */}
+                    <ConfigAlert />  
           <Paper
             elevation={6}
             sx={{ p: 4, borderRadius: 3, backgroundColor: "#DEDDEE" }}
