@@ -53,7 +53,7 @@ export default function ConfigAlert() {
           maxWidth: 500,
           p: 3,
           borderRadius: 3,
-          bgcolor: "#2E3B4E",
+          bgcolor: "rgba(46, 59, 78, 0.8)", // 50% transparent background
           color: "#fff",
           zIndex: 1500,
         }}
@@ -98,7 +98,7 @@ export default function ConfigAlert() {
             mt: 2,
             height: 6,
             borderRadius: 5,
-            bgcolor: "#1E1E1E",
+            bgcolor: "rgba(30,30,30,0.8)", // semi-transparent track
             "& .MuiLinearProgress-bar": { bgcolor: "#4CAF50" },
           }}
         />
