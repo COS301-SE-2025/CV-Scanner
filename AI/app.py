@@ -1,11 +1,17 @@
-import os, io, time
+import os, time, logging
 from typing import Dict, List, Any
 from flask import Flask, jsonify, request, make_response
 from flask_cors import CORS
 from asgiref.wsgi import WsgiToAsgi
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+CORS(app, resources={r"/*": {"origins": os.getenv("CORS_ORIGINS", "*")}})
+
+# Use gunicorn logger when available
+gunicorn_logger = logging.getLogger("gunicorn.error")
+if gunicorn_logger.handlers:
+    app.logger.handlers = gunicorn_logger.handlers
+    app.logger.setLevel(gunicorn_logger.level)
 
 # ASGI wrapper so uvicorn can serve this Flask (WSGI) app
 asgi_app = WsgiToAsgi(app)
@@ -120,10 +126,33 @@ def infer_project_type(text: str, applied_labels: Dict[str, List[str]] | None = 
     return {"type": best_type, "confidence": round(conf, 2), "basis": basis}
 
 
-@app.route("/warmup", methods=["GET"])
+@app.get("/health")
+def health():
+    return jsonify(status="ok")
+
+
+def _ensure_cache_dirs():
+    for var in ("TRANSFORMERS_CACHE", "HF_HOME"):
+        path = os.getenv(var)
+        if path:
+            try:
+                os.makedirs(path, exist_ok=True)
+            except Exception:
+                app.logger.exception("Failed creating cache dir for %s", var)
+
+
+@app.get("/warmup")
 def warmup():
-    get_model()
-    return jsonify(status="warmed")
+    t0 = time.perf_counter()
+    try:
+        _ensure_cache_dirs()
+        # If you have model preload logic, call it here safely:
+        # preload_models()  # make sure it handles repeated calls
+        ms = int((time.perf_counter() - t0) * 1000)
+        return jsonify(status="ok", warmed=True, ms=ms)
+    except Exception as e:
+        app.logger.exception("Warmup failed")
+        return jsonify(status="error", error=str(e)), 500
 
 
 @app.route("/")
