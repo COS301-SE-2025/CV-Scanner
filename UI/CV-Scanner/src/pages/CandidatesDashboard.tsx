@@ -277,7 +277,10 @@ export default function CandidatesDashboard() {
           >
             Candidates Dashboard
           </Typography>
-  <ConfigAlert />
+
+          {/* Config Alert */}
+          <ConfigAlert />
+
           {/* Stat Cards */}
           <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap", mb: 4 }}>
             {[
