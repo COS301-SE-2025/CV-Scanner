@@ -26,6 +26,7 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import PeopleIcon from "@mui/icons-material/People";
 import SettingsIcon from "@mui/icons-material/Settings";
+import { CircularProgress } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
@@ -89,9 +90,15 @@ export default function Search() {
     cvFileUrl?: string;
     cvFileType?: string;
     filename?: string | null;
+   score: number; // 0-10
   };
 
+
+
+
   const [candidates, setCandidates] = useState<CandidateCard[]>([]);
+ 
+
 
   // Toggle helper for checkbox filters
   function toggle(list: string[], value: string) {
@@ -99,6 +106,81 @@ export default function Search() {
       ? list.filter((v) => v !== value)
       : [...list, value];
   }
+
+  function scoreColor(value: number) {
+  // clamp 0..10
+  const v = Math.max(0, Math.min(10, value));
+  // map 0..10 → 0..120 hue (red→green)
+  const hue = (v / 10) * 120;
+  // nice saturation/lightness for vibrant color
+  return `hsl(${hue} 70% 45%)`;
+}
+
+function scoreColor(value: number) {
+  const v = Math.max(0, Math.min(10, value));
+  const hue = (v / 10) * 120; // 0..10 → red..green
+  return `hsl(${hue} 70% 45%)`;
+}
+
+function ScoreRing({ value }: { value: number }) {
+  const clamped = Math.max(0, Math.min(10, value));
+  const pct = clamped * 10;
+  const ringColor = scoreColor(clamped);
+  const isPerfect = clamped === 10;
+
+  return (
+    <Box sx={{ position: "relative", display: "inline-flex" }}>
+      {/* Track */}
+      <CircularProgress
+        variant="determinate"
+        value={100}
+        size={64}
+        thickness={4}
+        sx={{ color: "rgba(255,255,255,0.15)" }}
+      />
+      {/* Progress (colored ring) */}
+      <CircularProgress
+        variant="determinate"
+        value={pct}
+        size={64}
+        thickness={4}
+        sx={{
+          color: ringColor,
+          position: "absolute",
+          left: 0,
+          ...(isPerfect && {
+            filter: "drop-shadow(0 0 6px rgba(0, 255, 0, 0.6))",
+          }),
+        }}
+      />
+      {/* Center label (black text) */}
+      <Box
+        sx={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
+        }}
+      >
+        <Typography
+          variant="subtitle2"
+          sx={{ lineHeight: 1, fontWeight: 800, color: "#000" }}
+        >
+          {clamped}/10
+        </Typography>
+        <Typography variant="caption" sx={{ color: "#000" }}>
+          Score
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
+
+
+
+
 
   // Handler for checkbox groups
   function handleCheckboxChange(
@@ -232,6 +314,10 @@ export default function Search() {
             cvFileUrl: c.cvFileUrl,
             cvFileType: c.cvFileType,
             filename,
+                   // Hard-coded score out of 10
+       score:
+             SCORE_MAP[c.email] ??
+             Math.max(0, Math.min(10, (c.id % 11))) // stable fallback 0..10
           };
         });
         setCandidates(mapped);
@@ -563,7 +649,8 @@ export default function Search() {
                           Match: {candidate.match}
                         </Typography>
                       </Box>
-                      <Box sx={{ mt: 1 }}>
+                     <Box sx={{ mt: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 1.5 }}>
+                     <ScoreRing value={candidate.score} />
                         <Button
                           variant="contained"
                           size="small"
