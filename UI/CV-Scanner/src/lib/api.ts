@@ -1,7 +1,7 @@
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8081";
 
-function buildHeaders(init?: RequestInit) {
+function buildHeaders(init?: RequestInit): HeadersInit {
   const hdrs: Record<string, string> =
     init && init.headers && !(init.headers instanceof Headers)
       ? (init.headers as Record<string, string>)
@@ -12,7 +12,10 @@ function buildHeaders(init?: RequestInit) {
   } else {
     hdrs["Content-Type"] = hdrs["Content-Type"] ?? "application/json";
   }
-  return new Headers(hdrs);
+  return {
+    "Content-Type": "application/json",
+    ...hdrs,
+  };
 }
 
 export const apiFetch = (path: string, init: RequestInit = {}) =>
@@ -32,15 +35,14 @@ export const aiFetch = async (path: string, init: RequestInit = {}) => {
   const join = (base: string, p: string) =>
     base + (p.startsWith("/") ? p : "/" + p);
 
-  // Try in order: configured AI base, apiBase + /ai, apiBase (plain)
   const candidates = [
     join(AI_BASE, path),
     join(apiBase, `/ai${path.startsWith("/") ? path : "/" + path}`),
     join(apiBase, path),
   ];
 
-  // Ensure headers applied consistently
-  const finalInit = {
+  // ensure finalInit is typed as RequestInit to satisfy fetch overloads
+  const finalInit: RequestInit = {
     credentials: "include",
     ...init,
     headers: buildHeaders(init),
@@ -49,13 +51,11 @@ export const aiFetch = async (path: string, init: RequestInit = {}) => {
   for (const url of candidates) {
     try {
       const res = await fetch(url, finalInit);
-      // If found or server error, return immediately. Only continue on 404.
       if (res.status !== 404) return res;
-    } catch (e) {
-      // network error -> try next
+    } catch {
+      // try next candidate
     }
   }
 
-  // Last attempt: call the primary AI_BASE even if it returned 404 earlier
   return fetch(join(AI_BASE, path), finalInit);
 };
