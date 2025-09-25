@@ -230,7 +230,28 @@ def parse_resume_endpoint():
         if not data:
             return make_response(jsonify({"status": "error", "detail": "Empty file uploaded."}), 400)
 
-        result = parse_resume_from_bytes(data, file.filename)
+        # Lazy-import parser so startup stays fast and we get a clear error if parser deps are missing
+        try:
+            from cv_parser import parse_resume_from_bytes
+        except Exception as imp_err:
+            import traceback
+            traceback.print_exc()
+            return make_response(jsonify({
+                "status": "error",
+                "detail": "Parser module import failed",
+                "exception": str(imp_err)
+            }), 500)
+
+        try:
+            result = parse_resume_from_bytes(data, file.filename)
+        except Exception as parse_err:
+            import traceback
+            traceback.print_exc()
+            return make_response(jsonify({
+                "status": "error",
+                "detail": "Parser error",
+                "exception": str(parse_err)
+            }), 500)
 
         return jsonify({
             "status": "success",
@@ -239,6 +260,8 @@ def parse_resume_endpoint():
         })
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return make_response(jsonify({"status": "error", "detail": f"Error parsing resume: {str(e)}"}), 500)
 
 
