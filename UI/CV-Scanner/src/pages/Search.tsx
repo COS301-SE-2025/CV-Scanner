@@ -93,12 +93,7 @@ export default function Search() {
    score: number; // 0-10
   };
 
-  // Example hard-coded scores. Add your real emails/names here.
-const SCORE_MAP: Record<string, number> = {
-  "jane.doe@email.com": 9,
-  "john.smith@email.com": 7,
-  // ...
-};
+
 
 
  // const [candidates, setCandidates] = useState<CandidateCard[]>([]);
@@ -154,9 +149,15 @@ const SCORE_MAP: Record<string, number> = {
   return `hsl(${hue} 70% 45%)`;
 }
 
+function scoreColor(value: number) {
+  const v = Math.max(0, Math.min(10, value));
+  const hue = (v / 10) * 120; // 0..10 → red..green
+  return `hsl(${hue} 70% 45%)`;
+}
+
 function ScoreRing({ value }: { value: number }) {
   const clamped = Math.max(0, Math.min(10, value));
-  const pct = clamped * 10; // CircularProgress expects 0..100
+  const pct = clamped * 10;
   const ringColor = scoreColor(clamped);
   const isPerfect = clamped === 10;
 
@@ -170,7 +171,7 @@ function ScoreRing({ value }: { value: number }) {
         thickness={4}
         sx={{ color: "rgba(255,255,255,0.15)" }}
       />
-      {/* Progress */}
+      {/* Progress (colored ring) */}
       <CircularProgress
         variant="determinate"
         value={pct}
@@ -185,7 +186,7 @@ function ScoreRing({ value }: { value: number }) {
           }),
         }}
       />
-      {/* Center label */}
+      {/* Center label (black text) */}
       <Box
         sx={{
           position: "absolute",
@@ -198,17 +199,19 @@ function ScoreRing({ value }: { value: number }) {
       >
         <Typography
           variant="subtitle2"
-          sx={{ lineHeight: 1, fontWeight: 800, color: ringColor }}
+          sx={{ lineHeight: 1, fontWeight: 800, color: "#000" }}
         >
           {clamped}/10
         </Typography>
-        <Typography variant="caption" sx={{ color: "#cfd8dc" }}>
+        <Typography variant="caption" sx={{ color: "#000" }}>
           Score
         </Typography>
       </Box>
     </Box>
   );
 }
+
+
 
 
 
