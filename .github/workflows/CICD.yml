@@ -114,7 +114,93 @@ jobs:
           . venv/bin/activate
           python -m pip install --upgrade pip
           pip install --no-cache-dir -r AI/requirements.txt -t ai_build
-          python -c "import torch, sys; print('Torch OK', torch.__version__)"
+          # Torch verification using local target path
+          python - <<'PY'
+          import sys
+          sys.path.insert(0, "ai_build")
+          import torch
+          print("Torch OK", torch.__version__)
+          PY
+          # Copy source
+          cp AI/*.py ai_build/
+          [ -d AI/models ] && cp -r AI/models ai_build/models
+          [ -d AI/config ] && cp -r AI/config ai_build/config
+          # Prune
+          find ai_build -type d -name "__pycache__" -prune -exec rm -rf {} +
+          find ai_build -type f -name "*.pyc" -delete
+          find ai_build -type d -path "*/tests" -prune -exec rm -rf {} + || true
+          find ai_build -maxdepth 1 -type d -name "*.dist-info" | while read d; do
+            find "$d" -type f ! -name "METADATA" ! -name "WHEEL" -delete || true
+          done
+          echo "Artifact size:"
+          du -sh ai_build || true
+          (cd ai_build && zip -qr -9 ../ai.zip .)
+          ls -lh ai.zip
+          SIZE_MB=$(du -m ai.zip | cut -f1)
+          if [ "$SIZE_MB" -gt 300 ]; then
+            echo "Artifact too large (${SIZE_MB}MB > 300MB)." >&2
+            exit 1
+          fi
+
+      - name: Configure AI App Service
+        run: |
+          az webapp config set \
+            --resource-group rg-cvscanner \
+            --name cvscanner-ai \
+            --linux-fx-version "PYTHON|3.12" \
+            --always-on true
+          az webapp config appsettings set \
+            --resource-group rg-cvscanner \
+            --name cvscanner-ai \
+            --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+                     WEBSITE_RUN_FROM_PACKAGE=1 \
+                     PYTHONPATH=/home/site/wwwroot \
+                     TRANSFORMERS_CACHE=/home/transformers-cache \
+                     HF_HOME=/home/hf-cache \
+                     WEBSITES_CONTAINER_START_TIME_LIMIT=1800
+          az webapp config set \
+            --resource-group rg-cvscanner \
+            --name cvscanner-ai \
+            --startup-file "gunicorn --workers 1 --timeout 300 --bind=0.0.0.0:$PORT app:app"
+          az webapp log config \
+            --resource-group rg-cvscanner \
+            --name cvscanner-ai \
+            --application-logging true \
+            --level information
+
+      - name: Deploy AI (retry once on 504)
+        run: |
+          set -e
+          deploy() {
+            az webapp deploy \
+              --resource-group rg-cvscanner \
+              --name cvscanner-ai \
+              --src-path ai.zip \
+              --type zip
+          }
+          if deploy; then
+            echo "Deploy ok"
+          else
+            echo "Retrying in 25s..."
+            sleep 25
+            deploy
+          fi
+
+      - name: Warm up AI
+        run: |
+          set -e
+          HOST=$(az webapp show -g rg-cvscanner -n cvscanner-ai --query defaultHostName -o tsv)
+          echo "AI host: $HOST"
+          for i in {1..18}; do
+            if curl -fsS -m 5 "https://${HOST}/health"; then
+              echo "Health OK"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Health failed; tailing logs:"
+          az webapp log tail -g rg-cvscanner -n cvscanner-ai --timeout 45 || true
+          exit 1
 
   ui:
     name: Deploy React UI (SWA)
