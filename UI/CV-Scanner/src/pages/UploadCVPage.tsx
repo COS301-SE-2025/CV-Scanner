@@ -242,6 +242,10 @@ export default function UploadCVPage() {
     }
   };
 
+  // Reusable null/undefined guard
+  const safe = <T, F>(v: T | null | undefined, fallback: F): T | F =>
+    v == null ? fallback : v;
+
   const handleProcess = async () => {
     if (!file) return;
     if (!candidateName || !candidateSurname || !candidateEmail) {
@@ -280,41 +284,33 @@ export default function UploadCVPage() {
         return;
       }
 
-      // Normalize shapes to avoid any null/undefined being passed downstream
+      // Simplified normalization using safe()
       const uploadResult =
-        uploadResp && uploadResp.ok && typeof uploadResultRaw === "object"
+        uploadResp?.ok && typeof uploadResultRaw === "object" && uploadResultRaw
           ? uploadResultRaw
           : {};
-      const safeApplied =
-        uploadResult &&
-        typeof uploadResult.applied === "object" &&
-        uploadResult.applied
-          ? uploadResult.applied
-          : {};
-      const safeBestFit =
-        uploadResult && uploadResult.best_fit_project_type
-          ? uploadResult.best_fit_project_type
-          : null;
+      const applied = safe((uploadResult as any).applied, {});
+      const bestFitProjectType = safe(
+        (uploadResult as any).best_fit_project_type,
+        null
+      );
 
       const parseResult =
-        parseResp && parseResp.ok && typeof parseResultRaw === "object"
+        parseResp?.ok && typeof parseResultRaw === "object" && parseResultRaw
           ? parseResultRaw
           : {};
-      const safeParseResult =
-        typeof parseResult === "object" && parseResult ? parseResult : {};
-      if (safeParseResult.result == null) safeParseResult.result = {};
+      const parseResultObj = safe((parseResult as any).result, {});
 
-      // Keep processedData for modal / immediate UI usage - ensure non-null fields
       const mergedProcessedData = {
-        profile: (safeParseResult.result.profile || "") as string,
-        education: (safeParseResult.result.education || "") as string,
-        skills: (safeParseResult.result.skills || "") as string,
-        experience: (safeParseResult.result.experience || "") as string,
-        projects: (safeParseResult.result.projects || "") as string,
-        achievements: (safeParseResult.result.achievements || "") as string,
-        contact: (safeParseResult.result.contact || "") as string,
-        languages: (safeParseResult.result.languages || "") as string,
-        other: (safeParseResult.result.other || "") as string,
+        profile: safe(parseResultObj.profile, ""),
+        education: safe(parseResultObj.education, ""),
+        skills: safe(parseResultObj.skills, ""),
+        experience: safe(parseResultObj.experience, ""),
+        projects: safe(parseResultObj.projects, ""),
+        achievements: safe(parseResultObj.achievements, ""),
+        contact: safe(parseResultObj.contact, ""),
+        languages: safe(parseResultObj.languages, ""),
+        other: safe(parseResultObj.other, ""),
       };
 
       setProcessedData(mergedProcessedData);
@@ -325,10 +321,10 @@ export default function UploadCVPage() {
         state: {
           aiUpload: {
             ...uploadResult,
-            applied: safeApplied,
-            best_fit_project_type: safeBestFit,
+            applied,
+            best_fit_project_type: bestFitProjectType,
           },
-          aiParse: safeParseResult,
+          aiParse: { ...parseResult, result: parseResultObj },
           fileUrl,
           fileType: file.type,
           candidate: {
@@ -453,8 +449,8 @@ export default function UploadCVPage() {
             Upload Candidate CV
           </Typography>
 
-                    {/* Config Alert */}
-                    <ConfigAlert />  
+          {/* Config Alert */}
+          <ConfigAlert />
           <Paper
             elevation={6}
             sx={{ p: 4, borderRadius: 3, backgroundColor: "#DEDDEE" }}
