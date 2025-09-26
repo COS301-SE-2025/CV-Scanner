@@ -4,10 +4,13 @@ python-multipart
 tika
 transformers==4.40.0
 spacy
-torch==2.2.2
+torch==2.2.2+cpu
 python-docx
 pdfminer.six
 Flask==3.0.3
 flask-cors==4.0.0
 asgiref>=3.7.0
 gunicorn==21.2.0
+sentencepiece==0.2.0
+accelerate==0.29.3
+--extra-index-url https://download.pytorch.org/whl/cpu
