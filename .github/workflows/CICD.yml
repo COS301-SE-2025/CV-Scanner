@@ -161,7 +161,7 @@ jobs:
           az webapp config set \
             --resource-group rg-cvscanner \
             --name cvscanner-ai \
-            --startup-file "gunicorn --workers 1 --timeout 300 --bind=0.0.0.0:\$PORT app:app"
+            --startup-file "bash start.sh"
           az webapp log config \
             --resource-group rg-cvscanner \
             --name cvscanner-ai \
