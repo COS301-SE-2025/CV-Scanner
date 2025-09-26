@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -124,7 +123,7 @@ jobs:
           az webapp config set \
             --resource-group "rg-cvscanner" \
             --name "cvscanner-ai" \
-            --startup-file "gunicorn --workers 1 --timeout 300 --bind=0.0.0.0:\$PORT app:app"
+            --startup-file "gunicorn --workers 1 --timeout 300 --bind=0.0.0.0:$PORT app:app"
 
       - name: Package AI (source only)
         run: |
@@ -147,15 +146,16 @@ jobs:
           set -e
           HOST=$(az webapp show -g rg-cvscanner -n cvscanner-ai --query defaultHostName -o tsv)
           echo "AI host: $HOST"
-          # wait for /health up to ~90s
           for i in {1..18}; do
             if curl -fsS -m 5 "https://${HOST}/health"; then
-              echo "Health OK"; break
+              echo "Health OK"
+              exit 0
             fi
             sleep 5
           done
-          # try warmup but don't fail pipeline
-          curl -v -m 240 "https://${HOST}/warmup" || true
+          echo "Health failed, dumping logs"
+          az webapp log tail -g rg-cvscanner -n cvscanner-ai --timeout 30 || true
+          exit 1
 
   ui:
     name: Deploy React UI (SWA)

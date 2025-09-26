@@ -268,6 +268,11 @@ export default function UploadCVPage() {
         aiFetch("/parse_resume", { method: "POST", body: formForParse }),
       ]);
 
+      if (!uploadResp && !parseResp) {
+        setErrorPopup({ open: true, message: "Backend unavailable." });
+        return;
+      }
+
       const uploadResultRaw = await getJsonOrText(uploadResp).catch(() => null);
       const parseResultRaw = await getJsonOrText(parseResp).catch(() => null);
 

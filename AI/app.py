@@ -6,20 +6,21 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": os.getenv("CORS_ORIGINS", "*")}})
 
-# Use gunicorn logger when available
 gunicorn_logger = logging.getLogger("gunicorn.error")
 if gunicorn_logger.handlers:
     app.logger.handlers = gunicorn_logger.handlers
     app.logger.setLevel(gunicorn_logger.level)
 
-# ASGI wrapper so uvicorn can serve this Flask (WSGI) app
-# asgi_app = WsgiToAsgi(app)  # Remove if not serving through uvicorn
-
-from config_store import load_categories, save_categories
-from bart_model import classify_text_by_categories
-
-# Import CV parser functions
-from cv_parser import parse_resume_from_bytes
+# MOVE heavy imports inside functions (lazy)
+def _lazy_import():
+    """
+    Import modules that may pull large ML deps. Prevents crash at startup
+    if dependencies not yet installed or slow to load.
+    """
+    from config_store import load_categories, save_categories
+    from bart_model import classify_text_by_categories
+    from cv_parser import parse_resume_from_bytes
+    return load_categories, save_categories, classify_text_by_categories, parse_resume_from_bytes
 
 # OPTIONAL: simple extractors; replace with your PDF/DOCX code if you like
 def extract_text_auto(file_bytes: bytes, filename: str) -> str:
@@ -127,7 +128,26 @@ def infer_project_type(text: str, applied_labels: Dict[str, List[str]] | None = 
 
 @app.get("/health")
 def health():
-    return jsonify(status="ok")
+    return jsonify(status="ok", time=time.time())
+
+
+@app.get("/startup_diagnostics")
+def startup_diagnostics():
+    """
+    Quick endpoint to confirm files & environment.
+    """
+    root_files = []
+    try:
+        root_files = os.listdir(".")
+    except Exception as e:
+        root_files = [f"error: {e}"]
+    return jsonify(
+        status="ok",
+        cwd=os.getcwd(),
+        files=root_files,
+        python_version=os.sys.version,
+        env_present=bool(os.getenv("WEBSITE_SITE_NAME")),
+    )
 
 
 def _ensure_cache_dirs():
@@ -156,17 +176,18 @@ def warmup():
 
 @app.route("/")
 def root():
-    return "OK. Endpoints: GET/POST /admin/categories, POST /classify, GET /health, POST /upload_cv, POST /parse_resume"
+    return "OK. Endpoints: GET/POST /admin/categories, POST /classify, POST /upload_cv, POST /parse_resume, GET /health"
 
 
 @app.route("/admin/categories", methods=["GET"])
 def get_categories():
-    cats = load_categories()
-    return jsonify(cats)
+    load_categories, _, _, _ = _lazy_import()
+    return jsonify(load_categories())
 
 
 @app.route("/admin/categories", methods=["POST"])
 def set_categories():
+    load_categories, save_categories, _, _ = _lazy_import()
     try:
         payload = request.get_json(force=True)
         if not isinstance(payload, dict):
@@ -174,11 +195,13 @@ def set_categories():
         save_categories(payload)
         return jsonify({"status": "saved", "categories": load_categories()})
     except Exception as e:
+        app.logger.exception("Saving categories failed")
         return make_response(jsonify({"status": "error", "detail": str(e)}), 400)
 
 
 @app.route("/classify", methods=["POST"])
 def classify():
+    load_categories, _, classify_text_by_categories, _ = _lazy_import()
     # Accept either JSON { "text": "..." } or multipart form with file
     text = None
     if request.content_type and request.content_type.startswith("multipart/"):
@@ -216,6 +239,7 @@ def classify():
 
 @app.route("/upload_cv", methods=["POST"])
 def upload_cv():
+    load_categories, _, classify_text_by_categories, _ = _lazy_import()
     file = request.files.get("file")
     if file is None:
         return make_response(jsonify({"status": "error", "detail": "No file uploaded."}), 400)
@@ -252,6 +276,7 @@ def upload_cv():
 # -------- NEW: CV/Resume Parsing Endpoint --------
 @app.route("/parse_resume", methods=["POST"])
 def parse_resume_endpoint():
+    _, _, _, parse_resume_from_bytes = _lazy_import()
     file = request.files.get("file")
 
     if file is None:
@@ -295,11 +320,6 @@ def parse_resume_endpoint():
         import traceback
         traceback.print_exc()
         return make_response(jsonify({"status": "error", "detail": f"Error parsing resume: {str(e)}"}), 500)
-
-
-@app.route("/health", methods=["GET"])
-def health():
-    return jsonify(status="ok")
 
 
 if __name__ == "__main__":
