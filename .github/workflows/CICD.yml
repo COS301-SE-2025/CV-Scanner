@@ -106,56 +106,66 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Configure AI App Service (runtime + startup)
+      - name: Build AI package (skip Oryx)
+        run: |
+          set -e
+          rm -rf ai_build
+          python -m venv venv
+          . venv/bin/activate
+          python -m pip install --upgrade pip
+          # Install dependencies into a flat folder (App Service adds /home/site/wwwroot to PYTHONPATH)
+          pip install -r AI/requirements.txt -t ai_build
+          # Copy application source (adjust if more files)
+          cp AI/*.py ai_build/
+          # Optional: include config/data folders if needed
+          if [ -d AI/models ]; then cp -r AI/models ai_build/models; fi
+          if [ -d AI/config ]; then cp -r AI/config ai_build/config; fi
+          (cd ai_build && zip -r ../ai.zip .)
+          ls -lh ai.zip
+
+      - name: Configure AI App Service
         run: |
           az webapp config set \
-            --resource-group "rg-cvscanner" \
-            --name "cvscanner-ai" \
+            --resource-group rg-cvscanner \
+            --name cvscanner-ai \
             --linux-fx-version "PYTHON|3.12" \
             --always-on true
           az webapp config appsettings set \
-            --resource-group "rg-cvscanner" \
-            --name "cvscanner-ai" \
-            --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true \
+            --resource-group rg-cvscanner \
+            --name cvscanner-ai \
+            --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+                     WEBSITE_RUN_FROM_PACKAGE=0 \
                      TRANSFORMERS_CACHE=/home/transformers-cache \
                      HF_HOME=/home/hf-cache \
                      WEBSITES_CONTAINER_START_TIME_LIMIT=1800
           az webapp config set \
-            --resource-group "rg-cvscanner" \
-            --name "cvscanner-ai" \
-            --startup-file "gunicorn --workers 1 --timeout 300 --bind=0.0.0.0:$PORT app:app"
+            --resource-group rg-cvscanner \
+            --name cvscanner-ai \
+            --startup-file "gunicorn --workers 1 --timeout 300 --bind=0.0.0.0:\$PORT app:app"
 
-      - name: Package AI (source only)
-        run: |
-          cd AI
-          zip -r ../ai.zip . \
-            -x "**/__pycache__/**" "**/.venv/**" "**/.git/**" "**/*.pyc"
-          cd -
-          ls -lh ai.zip
-
-      - name: Deploy AI (zip, let Oryx build)
+      - name: Deploy AI (prebuilt)
         run: |
           az webapp deploy \
-            --resource-group "rg-cvscanner" \
-            --name "cvscanner-ai" \
-            --src-path "ai.zip" \
+            --resource-group rg-cvscanner \
+            --name cvscanner-ai \
+            --src-path ai.zip \
             --type zip
 
-      - name: Warm up AI app
+      - name: Warm up AI
         run: |
           set -e
-          HOST=$(az webapp show -g rg-cvscanner -n cvscanner-ai --query defaultHostName -o tsv)
-          echo "AI host: $HOST"
-          for i in {1..18}; do
-            if curl -fsS -m 5 "https://${HOST}/health"; then
-              echo "Health OK"
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "Health failed, dumping logs"
-          az webapp log tail -g rg-cvscanner -n cvscanner-ai --timeout 30 || true
-          exit 1
+            HOST=$(az webapp show -g rg-cvscanner -n cvscanner-ai --query defaultHostName -o tsv)
+            echo "AI host: $HOST"
+            for i in {1..18}; do
+              if curl -fsS -m 5 "https://${HOST}/health"; then
+                echo "Health OK"
+                exit 0
+              fi
+              sleep 5
+            done
+            echo "Health failed; recent logs:"
+            az webapp log tail -g rg-cvscanner -n cvscanner-ai --timeout 30 || true
+            exit 1
 
   ui:
     name: Deploy React UI (SWA)
