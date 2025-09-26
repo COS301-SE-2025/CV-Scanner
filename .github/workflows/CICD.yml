@@ -161,12 +161,14 @@ jobs:
           az webapp config set \
             --resource-group rg-cvscanner \
             --name cvscanner-ai \
-            --startup-file "gunicorn --workers 1 --timeout 300 --bind=0.0.0.0:$PORT app:app"
+            --startup-file "gunicorn --workers 1 --timeout 300 --bind=0.0.0.0:\$PORT app:app"
           az webapp log config \
             --resource-group rg-cvscanner \
             --name cvscanner-ai \
-            --application-logging true \
-            --level information
+            --application-logging filesystem \
+            --web-server-logging filesystem \
+            --level information \
+            --retention-days 3
 
       - name: Deploy AI (retry once on 504)
         run: |
