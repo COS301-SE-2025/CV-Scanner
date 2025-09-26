@@ -2,7 +2,6 @@ import os, time, logging
 from typing import Dict, List, Any
 from flask import Flask, jsonify, request, make_response
 from flask_cors import CORS
-from asgiref.wsgi import WsgiToAsgi
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": os.getenv("CORS_ORIGINS", "*")}})
@@ -14,7 +13,7 @@ if gunicorn_logger.handlers:
     app.logger.setLevel(gunicorn_logger.level)
 
 # ASGI wrapper so uvicorn can serve this Flask (WSGI) app
-asgi_app = WsgiToAsgi(app)
+# asgi_app = WsgiToAsgi(app)  # Remove if not serving through uvicorn
 
 from config_store import load_categories, save_categories
 from bart_model import classify_text_by_categories
@@ -304,5 +303,5 @@ def health():
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", "5000"))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    # Local run only; in Azure use gunicorn startup command
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "8000")))
