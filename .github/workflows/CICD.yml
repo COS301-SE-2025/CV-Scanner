@@ -115,3 +115,38 @@ jobs:
           python -m pip install --upgrade pip
           pip install --no-cache-dir -r AI/requirements.txt -t ai_build
           python -c "import torch, sys; print('Torch OK', torch.__version__)"
+
+  ui:
+    name: Deploy React UI (SWA)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: UI/CV-Scanner/package-lock.json
+
+      - name: Install UI dependencies
+        working-directory: UI/CV-Scanner
+        run: npm ci || npm install --legacy-peer-deps
+
+      - name: Build React UI
+        working-directory: UI/CV-Scanner
+        env:
+          VITE_API_BASE_URL: ${{ secrets.API_BASE_URL }} # existing
+          VITE_AI_BASE_URL: ${{ secrets.VITE_AI_BASE_URL }} # add this secret (set to https://cvscanner-ai-bxf4ereygse9eqdh.southafricanorth-01.azurewebsites.net)
+        run: npm run build
+
+      - name: Verify dist exists
+        run: test -f "UI/CV-Scanner/dist/index.html" && echo "dist found" || (echo "dist missing" && exit 1)
+
+      - name: Deploy React UI to Azure Static Web App
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.UI_STATIC_WEBAPP_API_TOKEN }}
+          action: "upload"
+          app_location: "UI/CV-Scanner/dist"
+          skip_app_build: true
