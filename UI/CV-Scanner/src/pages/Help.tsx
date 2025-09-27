@@ -29,8 +29,8 @@ export default function HelpPage() {
     {
       question: 'Can I edit candidate information after upload?',
       answer: 'Yes. Navigate to the Candidates page, click the "Review" button next to a candidate, then naviagte to either "Skills" if you would like to add a new skill or "Recruiter Notes" if you want add additional informations. You can update skills by typing and clicking "ADD" or using the Recruiter Notes section to type then press "Save Notes".' ,
-    },
-  ];
+    },
+  ];
 
 const filteredFaqs = faqs.filter(
     (faq) =>
@@ -102,8 +102,14 @@ const filteredFaqs = faqs.filter(
              </Paper>
         )}
       </Box>
-
-
+        <Button
+        variant="contained"
+        href="/User_Manual_V3.pdf"
+        target="_blank"
+        rel="noopener noreferrer"
+        >
+          View Help Guide (PDF)
+        </Button>
 
       {/* Footer */}
       <Box sx={{ textAlign: 'center', py: 2, bgcolor: '#232A3B', color: '#fff' }}>
