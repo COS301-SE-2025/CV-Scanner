@@ -167,8 +167,7 @@ jobs:
             --name cvscanner-ai \
             --application-logging filesystem \
             --web-server-logging filesystem \
-            --level information \
-            --retention-days 3
+            --level information
 
       - name: Deploy AI (retry once on 504)
         run: |
