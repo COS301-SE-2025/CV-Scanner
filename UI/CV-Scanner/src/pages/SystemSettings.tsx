@@ -39,49 +39,112 @@ export default function SystemSettingsPage() {
   const [categoryOrder, setCategoryOrder] = useState<string[]>([]);
   const [categoryKeys, setCategoryKeys] = useState<Record<string, string>>({});
 
-  // Permission guard: check current user and show forbidden panel if not allowed
-  const [forbidden, setForbidden] = useState<boolean>(false);
+  // Permission guard: require auth check then forbid non-admins (mirrors UserManagement behavior)
+  const [forbidden, setForbidden] = useState<boolean>(true);
   const [authChecked, setAuthChecked] = useState<boolean>(false);
 
-  // show forbidden warning when user isn't allowed
-  const devUser = {
-    email: "dev@example.com",
-    password: "Password123",
-    first_name: "John",
-    last_name: "Doe",
-    role: "Admin",
-  };
-
   useEffect(() => {
-    // Try to get user from API, fallback to devUser if fails
-    const email = localStorage.getItem("userEmail") || devUser.email;
+    let mounted = true;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
     (async () => {
       try {
-        const res = await apiFetch(
-          `/auth/me?email=${encodeURIComponent(email)}`
-        );
-        if (!res.ok) {
-          setUser(devUser);
+        const email = localStorage.getItem("userEmail");
+        const url = email
+          ? `/auth/me?email=${encodeURIComponent(email)}`
+          : `/auth/me`;
+        console.debug("[SystemSettings] auth check ->", url);
+        const res = await apiFetch(url, { signal: controller.signal });
+        if (!mounted) return;
+        if (!res || !res.ok) {
+          console.warn("[SystemSettings] auth check failed", res && res.status);
+          setForbidden(true);
           return;
         }
         const data = await res.json().catch(() => null);
-        setUser(data ?? devUser);
-      } catch {
-        setUser(devUser);
+        console.debug("[SystemSettings] auth response", data);
+        const isAdmin =
+          data &&
+          (String(data.role).toLowerCase() === "admin" ||
+            (Array.isArray(data.roles) && data.roles.includes("admin")));
+        setForbidden(!isAdmin);
+      } catch (err: any) {
+        console.warn("[SystemSettings] auth check error", err && err.message);
+        setForbidden(true);
       } finally {
-        // Ensure we always mark the auth check complete so the UI unblocks
-        setAuthChecked(true);
+        clearTimeout(timeoutId);
+        if (mounted) setAuthChecked(true);
       }
     })();
+
+    return () => {
+      mounted = false;
+      controller.abort();
+      clearTimeout(timeoutId);
+    };
   }, []);
 
-  useEffect(() => {
-    // Determine permission and show forbidden warning instead of immediately navigating away.
-    const isAdmin =
-      (user && user.role && String(user.role).toLowerCase() === "admin") ||
-      devUser.role === "Admin";
-    setForbidden(!isAdmin);
-  }, [user]);
+  if (!authChecked) {
+    return <div style={{ padding: 24 }}>Checking permissions…</div>;
+  }
+
+  if (forbidden) {
+    return (
+      <div style={{ padding: 24 }}>
+        <div
+          role="alert"
+          style={{
+            maxWidth: 900,
+            margin: "0 auto",
+            background: "#fff6f6",
+            border: "1px solid #f5c2c2",
+            color: "#7a1f1f",
+            borderRadius: 6,
+            padding: 16,
+          }}
+        >
+          <strong>Forbidden</strong>
+          <div style={{ marginTop: 8 }}>
+            You do not have permission to view System Settings. If you believe
+            this is an error, contact your administrator or sign in with an
+            administrator account.
+          </div>
+          <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+            <button onClick={() => navigate("/dashboard")}>
+              Back to Dashboard
+            </button>
+            <button
+              onClick={async () => {
+                // retry permission check
+                try {
+                  const email = localStorage.getItem("userEmail");
+                  const url = email
+                    ? `/auth/me?email=${encodeURIComponent(email)}`
+                    : `/auth/me`;
+                  const res = await apiFetch(url);
+                  if (res && res.ok) {
+                    const data = await res.json().catch(() => null);
+                    const isAdmin =
+                      data &&
+                      (String(data.role).toLowerCase() === "admin" ||
+                        (Array.isArray(data.roles) &&
+                          data.roles.includes("admin")));
+                    setForbidden(!isAdmin);
+                    setAuthChecked(true);
+                  }
+                } catch {
+                  // keep forbidden true
+                }
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const loadConfig = async () => {
     try {
@@ -327,66 +390,6 @@ export default function SystemSettingsPage() {
     );
   }
 
-  if (!authChecked) {
-    return <div style={{ padding: 24 }}>Checking permissions…</div>;
-  }
-
-  if (forbidden) {
-    return (
-      <div style={{ padding: 24 }}>
-        <div
-          role="alert"
-          style={{
-            maxWidth: 900,
-            margin: "0 auto",
-            background: "#fff6f6",
-            border: "1px solid #f5c2c2",
-            color: "#7a1f1f",
-            borderRadius: 6,
-            padding: 16,
-          }}
-        >
-          <strong>Forbidden</strong>
-          <div style={{ marginTop: 8 }}>
-            You do not have permission to view System Settings. If you believe
-            this is an error, contact your administrator or sign in with an
-            administrator account.
-          </div>
-          <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
-            <button onClick={() => navigate("/dashboard")}>
-              Back to Dashboard
-            </button>
-            <button
-              onClick={async () => {
-                const email = localStorage.getItem("userEmail");
-                try {
-                  const url = email
-                    ? `/auth/me?email=${encodeURIComponent(email)}`
-                    : `/auth/me`;
-                  const res = await apiFetch(url);
-                  if (res && res.ok) {
-                    const data = await res.json().catch(() => null);
-                    const isAdmin =
-                      data &&
-                      (String(data.role).toLowerCase() === "admin" ||
-                        (Array.isArray(data.roles) &&
-                          data.roles.includes("admin")));
-                    setForbidden(!isAdmin);
-                    setAuthChecked(true);
-                  }
-                } catch {
-                  // keep forbidden true
-                }
-              }}
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <Box
       sx={{
@@ -398,7 +401,7 @@ export default function SystemSettingsPage() {
     >
       {/* Sidebar */}
       <Sidebar
-        userRole={user?.role || devUser.role}
+        userRole={user?.role || "user"}
         collapsed={collapsed}
         setCollapsed={setCollapsed}
       />
