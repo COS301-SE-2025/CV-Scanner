@@ -152,6 +152,16 @@ class AIExtractor:
                 personal_info, skills, experience, education, clean_text
             )
 
+        return {
+            "personal_info": personal_info,
+            "skills": skills,
+            "experience": experience,
+            "education": education,
+            "summary": summary,
+            "certifications": self._extract_certifications(clean_text),
+            "projects": self._extract_projects(clean_text),
+            "languages": self._extract_languages(clean_text)
+        }
     #endof extract_with_ai_prompting
 
     def _generate_professional_candidate_summary(self, personal_info: Dict, skills: List, 
