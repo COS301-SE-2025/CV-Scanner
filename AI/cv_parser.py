@@ -113,7 +113,7 @@ class AIExtractor:
             self.generator = pipeline(
                 "text-generation",
                 model="microsoft/DialoGPT-medium",
-                device=self.device
+                device=self.device,
                 max_length=512,
                 truncation=True
             )
@@ -156,7 +156,52 @@ class AIExtractor:
 
     def _generate_professional_candidate_summary(self, personal_info: Dict, skills: List, 
                                                    experience: List, education: List, text: str) -> str:
-            """Generate a fluid sentence describing the CV and the person using AI summarization."""
+        """Generate a fluid sentence describing the CV and the person using AI summarization."""
+
+        if self.summerizer:
+            try:
+                clean_text = text[:2000] if len(text) > 2000 else text
+                result = self.summerizer(clean_text, max_length=150, min_length=40, do_sample=False)
+                summary = result[0]['summary_text'].strip()
+                if not summary.endswith('.'):
+                    summary += '.'
+                return summary
+            except Exception as e:
+                logger.warning(f"Summarization failed: {e}")
+
+        name = personal_info.get('name', 'The candidate')
+        if name and name != 'Name not found' or name == 'Phone Number':
+            name = 'The candidate'
+
+        parts = []
+
+        if name != 'The candidate':
+            parts.append(f"{name} is")
+        else:
+            parts.append("The candidate is")
+
+        text_lower = text.lower()
+        professional_level = self._determine_professional_level(skills, experience, education, text)
+        parts.append(professional_level)
+
+        if education:
+            highest_edu = self._get_highest_education(education)
+            if highest_edu:
+                parts.append(f"with a {highest_edu}")
+
+        if experience:
+            exp_years = self._calculate_experience_years(experience)
+            if exp_years > 0:
+                parts.append(f"and over {exp_years} years of experience")
+
+        specialization = self._determine_specialization(skills, text)
+        if specialization:
+            parts.append(f"specializing in {specialization}")
+
+        summary = ' '.join(parts) + '.'
+        summary = self._clean_sentence(summary)
+
+        return summary
 
 
     def _extract_education(self, text: str) -> List[Dict[str, str]]:
