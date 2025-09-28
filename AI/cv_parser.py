@@ -19,6 +19,9 @@ except Exception:
     extract_pdf_text = None
     _HAS_PDFMINER = False
 from transformers import pipeline
+from pydantic import BaseModel, Field
+from typing import List, Dict, Optional
+
 
 # ---------- Logging ----------
 logging.basicConfig(level=logging.INFO)
