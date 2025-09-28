@@ -107,8 +107,15 @@ def _extract_experience(self, text: str) -> List[Dict[str, str]]:
     r'|(?:\b(?:WORK EXPERIENCE|EMPLOYMENT HISTORY|PROFESSIONAL EXPERIENCE|CAREER HISTORY)\b))',
     exp_section,
     flags=re.IGNORECASE
-)
+    )
 
+    for entry in entries:
+        if len(entry.strip()) > 30:
+            exp_data = self.parse_experience_entry(entry)
+            if exp_data and exp_data.get('company') != 'company extracted':
+                experience.append(exp_data)
+                
+    return experience
 
 def _clean_text(self,text:str) ->str:
     """Clean and normalize CV text"""
