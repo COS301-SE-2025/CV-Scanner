@@ -223,52 +223,39 @@ class AIExtractor:
         return summary
 
 
-    def _extract_projects(self, text: str) -> List[Dict[str, str]]:
+    def _extract_projects(self, text: str) -> list[str]:
         """
-        Extract project details from CV text using AI token-classification.
-        Returns a list of dictionaries, each representing a project.
+        Extract project entries from CV text.
+        Returns a list of strings (each = one project).
         """
+
         projects = []
 
-        if not self.extractor:
-            logger.warning("Extractor not initialized")
-            return projects
+    
+        blocks = re.split(r"(?:PROJECTS?|ACADEMIC\s+PROJECTS?|PERSONAL\s+PROJECTS?)[:\n]", text, flags=re.I)
+        if len(blocks) <= 1:
+            return []
 
-        try:
-            # Run the token-classification model
-            results = self.extractor(text)
+        content = blocks[1:]
 
-            # Process results: assuming your model labels project-related tokens as "PROJECT" or similar
-            current_project = {}
-            for token in results:
-                label = token.get('entity_group')
-                word = token.get('word', '').strip()
+        for block in content:
+            lines = [l.strip() for l in block.split("\n") if l.strip()]
+            if not lines:
+                continue
 
-                if not word:
-                    continue
-
-                # If the token is part of a project name or description
-                if label == "PROJECT_NAME":
-                    if current_project:
-                        # Save previous project
-                        projects.append(current_project)
-                        current_project = {}
-                    current_project['name'] = word
-                elif label == "PROJECT_DESC":
-                    if 'description' not in current_project:
-                        current_project['description'] = word
-                    else:
-                        # Append if multi-token
-                        current_project['description'] += f" {word}"
-
-            # Add last project if exists
-            if current_project:
-                projects.append(current_project)
-
-        except Exception as e:
-            logger.warning(f"Project extraction failed: {e}")
+            project_text = " ".join(lines)
+            projects.append(project_text)
 
         return projects
+
+
+    def _find_duration(self, text: str) -> str:
+        match = re.search(r"(\b\d+\s*(?:months?|years?)\b)", text, flags=re.I)
+        return match.group(1) if match else ""
+
+    def _find_technologies(self, text: str) -> List[str]:
+        tech_keywords = ["python", "java", "c++", "node.js", "react", "flask", "django", "sql", "aws", "docker"]
+        return [t for t in tech_keywords if re.search(rf"\b{re.escape(t)}\b", text, re.I)]
 
     def _extract_languages(self, text: str) -> List[str]:
         """Extract spoken languages from CV text"""
@@ -419,7 +406,7 @@ class AIExtractor:
             r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}'  
             r'|\d{4}'                                                            
         r')\b'
-        r'\s*[-–—to]+\s*'                                                        
+        r'\s*[-——to]+\s*'                                                        
         r'\b(?:'
             r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}'  
             r'|\d{4}'                                                            
@@ -742,3 +729,4 @@ def parse_resume_from_bytes(file_bytes: bytes, filename: str):
         "certifications": ai_result.get("certifications", []),
         "languages": ai_result.get("languages", [])
     }
+
