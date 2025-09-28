@@ -280,7 +280,7 @@ public class CVController {
             return ResponseEntity.status(500).body(createErrorResponse("Failed to save parsed CV: " + ex.getMessage()));
         }
     }
-    @PostMapping("/api/proxy-ai")
+    @PostMapping("/proxy-ai")
 public ResponseEntity<String> proxyToAi(@RequestBody ProxyRequest request) {
     try {
         // Validate request
