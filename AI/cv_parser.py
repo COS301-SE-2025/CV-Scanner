@@ -210,6 +210,31 @@ class AIExtractor:
     def _calculate_experience_years(self, experience: List[Dict]) -> int:
 
     def _determine_specialization(self, skills: List[str], text: str) -> str:
+        skill_text_lower = skill_text.lower()
+    
+    
+        specializations_map = {
+            "Frontend Development": ['react', 'angular', 'vue', 'frontend', 'javascript', 'html', 'css', 'typescript'],
+            "Backend Development": ['python', 'java', 'c#', 'c++', 'node.js', 'backend', 'api', 'spring', 'django', 'flask'],
+            "AI/ML / Data Science": ['machine learning', 'ai', 'tensorflow', 'pytorch', 'data science', 'nlp', 'deep learning', 'scikit-learn'],
+            "Cloud / DevOps": ['docker', 'kubernetes', 'aws', 'azure', 'gcp', 'devops', 'cloud', 'terraform'],
+            "Mobile Development": ['android', 'ios', 'react native', 'flutter', 'swift', 'kotlin'],
+            "Cybersecurity": ['security', 'pentest', 'ethical hacking', 'network security', 'encryption'],
+            "Business / Management": ['mba', 'business', 'management', 'finance', 'accounting', 'economics', 'marketing', 'strategy'],
+            "Engineering": ['mechanical', 'civil', 'electrical', 'chemical', 'engineering', 'mechatronics', 'aerospace'],
+            "Law": ['law', 'llb', 'legal', 'attorney', 'juris', 'lawyer'],
+            "Medicine / Healthcare": ['medical', 'medicine', 'md', 'nursing', 'healthcare', 'pharmacy', 'doctor', 'clinical'],
+            "Arts / Design": ['art', 'design', 'graphic', 'visual', 'painting', 'fashion', 'music', 'creative'],
+            "Education / Research": ['phd', 'research', 'education', 'teaching', 'professor', 'academic', 'scholarship'],
+        }
+
+        specializations = []
+        for specialization, keywords in specializations_map.items():
+            if any(term in skill_text_lower for term in keywords):
+                specializations.append(specialization)
+
+        return specializations
+
 
     def _clean_sentence(self, s: str) -> str:
         s = s.strip()
