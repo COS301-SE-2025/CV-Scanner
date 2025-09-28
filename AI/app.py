@@ -210,7 +210,13 @@ def infer_project_type(text: str, applied_labels: Dict[str, List[str]] | None = 
 
 @app.get("/health")
 def health():
-    return jsonify(status="ok", time=time.time())
+    # Minimal, safe health response to avoid any jsonify/context issues during debug
+    try:
+        return {"status": "ok", "time": time.time()}, 200
+    except Exception as e:
+        app.logger.exception("Health endpoint failed")
+        # fallback plain-text error
+        return ("error", 500)
 
 
 # Removed FastAPI-style duplicate /admin/categories route (invalid for Flask because load_categories not in scope here)
