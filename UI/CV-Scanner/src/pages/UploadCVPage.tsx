@@ -263,9 +263,8 @@ export default function UploadCVPage() {
     formForParse.append("file", file);
 
     try {
-      // Hardcoded AI base (temporary). Replace with VITE_AI_BASE_URL for production.
-      const AI_BASE =
-        "https://cv-scanner-ai-cee2d5g9epb0hcg6.southafricanorth-01.azurewebsites.net";
+      // Force AI calls to localhost for local testing
+      const AI_BASE = "http://localhost:5000";
       const uploadEndpoint = `${AI_BASE.replace(/\/+$/, "")}/upload_cv?top_k=3`;
       const parseEndpoint = `${AI_BASE.replace(/\/+$/, "")}/parse_resume`;
 
