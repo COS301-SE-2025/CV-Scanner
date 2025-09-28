@@ -1,6 +1,5 @@
 name: CV-Scanner Deployment
 
-
 on:
   push:
     branches:
@@ -97,7 +96,6 @@ jobs:
             --name "cvscanner-api" \
             --settings DB_URL='${{ secrets.DB_URL }}' DB_USER='${{ secrets.DB_USER }}' DB_PASS='${{ secrets.DB_PASS }}'
 
-
   ui:
     name: Deploy React UI (SWA)
     runs-on: ubuntu-latest
@@ -114,6 +112,10 @@ jobs:
       - name: Install UI dependencies
         working-directory: UI/CV-Scanner
         run: npm ci || npm install --legacy-peer-deps
+
+      - name: Inject VITE env for UI build
+        run: |
+          echo "VITE_AI_BASE_URL=${{ secrets.VITE_AI_BASE_URL }}" > UI/CV-Scanner/.env.production
 
       - name: Build React UI
         working-directory: UI/CV-Scanner
