@@ -115,7 +115,15 @@ def extract_with_ai_prompting(self, cv_text:str) -> Dict[str,any]:
     experience = self._extract_experience(clean_text)
     education = self._extract_education(clean_text)
 
+    summary = self._generate_professional_candidate_summary(
+            personal_info, skills, experience, education, clean_text
+        )
+
 #endof extract_with_ai_prompting
+
+def _generate_professional_candidate_summary(self, personal_info: Dict, skills: List, 
+                                               experience: List, education: List, text: str) -> str:
+        """Generate a fluid sentence describing the CV and the person using AI summarization."""
 
 def _extract_education(self, text: str) -> List[Dict[str, str]]:
     """Extract education information from CV text"""
@@ -176,8 +184,23 @@ def _parse_education_entry(self, entry: str) -> Dict[str, str]:
     }
 
 def _extract_institution_degree(self, first_line: str, all_lines: List[str]) -> tuple[str, str]:
-        """Extract institution and degree from education entry"""
+    """Extract institution and degree from education entry"""
+
+    if ' at ' in first_line:
+        parts = first_line.split(' at ', 1)
+        return parts[1].strip(), parts[0].strip()
+    elif ', ' in first_line:
+        parts = first_line.split(', ', 1)
+        return parts[1].strip(), parts[0].strip()
+
+    institution_keywords = ['University', 'College', 'School', 'Institute', 'Academy']
+    for line in all_lines:
+        for keyword in institution_keywords:
+            if keyword in line:
+                return line.strip(), first_line.strip()
     
+    return None, first_line.strip()
+
 def _extract_experience(self, text: str) -> List[Dict[str, str]]:
     """Extract work experience information from CV text"""
     experience = []
