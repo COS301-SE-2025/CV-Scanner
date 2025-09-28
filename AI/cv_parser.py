@@ -145,6 +145,50 @@ def _extract_personal_info(self, text: str) -> Dict[str, str]:
 
  def _extract_skills(self, text: str) -> List[str]:
         """Extract skills using keyword matching and context"""
+        text_lower = text.lower()
+
+        skills_dict = {
+            "tech": [
+                'python', 'java', 'javascript', 'typescript', 'react', 'angular', 'vue',
+                'node.js', 'express', 'django', 'flask', 'spring', 'c++', 'c#', 'go', 'rust',
+                'html', 'css', 'sass', 'less', 'bootstrap', 'tailwind', 'jquery',
+                'mysql', 'postgresql', 'mongodb', 'redis', 'sqlite', 'oracle',
+                'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'jenkins', 'git', 'github',
+                'tensorflow', 'pytorch', 'keras', 'scikit-learn', 'pandas', 'numpy'
+            ],
+            "design": [
+                'figma', 'adobe xd', 'sketch', 'photoshop', 'illustrator', 'indesign',
+                'after effects', 'premiere pro', '3ds max', 'autocad', 'solidworks'
+            ],
+            "business": [
+                'business analysis', 'data analysis', 'financial modeling', 'accounting',
+                'bookkeeping', 'budgeting', 'forecasting', 'erp', 'sap', 'crm',
+                'excel', 'power bi', 'tableau', 'ms office'
+            ],
+            "healthcare": [
+                'patient care', 'first aid', 'cpr', 'emr', 'surgery assistance', 'nursing',
+                'phlebotomy', 'medication administration', 'medical coding', 'hipaa compliance'
+            ],
+            "education": [
+                'curriculum development', 'lesson planning', 'teaching', 'mentoring',
+                'tutoring', 'classroom management', 'educational technology'
+            ],
+            "sales_marketing": [
+                'seo', 'sem', 'social media', 'digital marketing', 'content creation',
+                'copywriting', 'salesforce', 'lead generation', 'market research',
+                'customer relationship management'
+            ],
+            "soft": [
+                'leadership', 'communication', 'teamwork', 'problem solving', 'critical thinking',
+                'time management', 'project management', 'agile', 'scrum', 'kanban',
+                'analytical skills', 'creativity', 'adaptability', 'collaboration', 'mentoring',
+                'public speaking', 'presentation', 'negotiation', 'strategic planning'
+            ],
+            "trades": [
+                'plumbing', 'electrical wiring', 'carpentry', 'welding', 'machining',
+                'hvac', 'blueprint reading', 'forklift operation', 'osha compliance'
+            ]
+        }
         
 
 def parse_resume_from_bytes(file_bytes: bytes, filename: str):
