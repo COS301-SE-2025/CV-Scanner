@@ -53,59 +53,81 @@ interface ApiResponse {
   error?: string;
 }
 
-// Replace the safeAiFetch function with this proxy version
-const safeAiFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
+// safeAiFetch: calls local AI directly for localhost targets, otherwise routes through backend proxy
+const safeAiFetch = async (
+  url: string,
+  options: RequestInit = {}
+): Promise<Response> => {
   try {
-    // Use the Spring Boot proxy endpoint instead of direct AI calls
-    const proxyUrl = "https://cvscanner-api-eaaudbdneafub4e3.southafricanorth-01.azurewebsites.net/cv/proxy-ai";
-    
-    // Prepare the proxy request body
-    const proxyBody: any = {
-      targetUrl: url,
-      method: options.method || 'POST',
-    };
-
-    // Handle FormData for file uploads
-    if (options.body instanceof FormData) {
-      const file = options.body.get('file') as File;
-      if (file) {
-        // Convert file to base64 for proxy
-        const base64File = await fileToBase64(file);
-        proxyBody.body = base64File;
-        proxyBody.isFormData = true;
+    // If target is localhost, call it directly from the browser (avoids backend proxy and 500 from remote proxy)
+    try {
+      const parsed = new URL(url);
+      if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
+        console.debug("safeAiFetch: calling local AI directly", url);
+        // Preserve the original options (FormData will be sent correctly)
+        return await fetch(url, options);
       }
-    } else if (options.body) {
-      // For non-FormData, pass the body as-is
-      proxyBody.body = options.body;
-      proxyBody.isFormData = false;
+    } catch {
+      // If URL constructor fails, fallthrough to proxy behavior
     }
 
-    console.log('Making proxy request to Spring Boot backend');
-    
-    // Call the Spring Boot proxy endpoint
-    const response = await fetch(proxyUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(proxyBody),
+    // Fallback: proxy via backend so deployed backend can call external AI endpoints
+    const proxyBody: any = {
+      targetUrl: url,
+      method: options.method || "POST",
+      headers: {}, // optional: pass through headers if needed
+      isFormData: false,
+      fileName: null,
+      contentType: null,
+      body: null,
+    };
+
+    if (options.body instanceof FormData) {
+      const file = options.body.get("file") as File | null;
+      if (file) {
+        proxyBody.isFormData = true;
+        proxyBody.fileName = file.name;
+        proxyBody.contentType = file.type || null;
+        proxyBody.body = await fileToBase64(file); // base64 payload
+      }
+    } else if (options.body) {
+      try {
+        proxyBody.body =
+          typeof options.body === "string"
+            ? options.body
+            : JSON.stringify(options.body);
+      } catch {
+        proxyBody.body = String(options.body);
+      }
+    }
+
+    console.debug("safeAiFetch -> proxy payload:", {
+      target: proxyBody.targetUrl,
+      fileName: proxyBody.fileName,
     });
 
-    console.log('Proxy response status:', response.status);
-    return response;
-  } catch (error) {
-    console.error('Proxy fetch error:', error);
-    // Return a mock response that won't break anything
-    return {
-      ok: false,
-      status: 0,
-      statusText: 'Proxy Error',
-      headers: {
-        get: () => null
-      },
-      json: async () => ({ error: 'Proxy request failed' }),
-      text: async () => 'Proxy request failed',
-    } as any;
+    const res = await apiFetch("/cv/proxy-ai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(proxyBody),
+    } as RequestInit);
+
+    if (!res) throw new Error("No response from proxy endpoint");
+    if (!res.ok) {
+      const text = await res.text().catch(() => "<no body>");
+      console.error("proxy /cv/proxy-ai returned non-OK:", res.status, text);
+      return new Response(text, {
+        status: res.status,
+        statusText: res.statusText,
+        headers: res.headers,
+      });
+    }
+
+    return res;
+  } catch (err: any) {
+    console.error("safeAiFetch/proxy error:", err && err.message);
+    const body = typeof err === "string" ? err : err?.message || "Proxy Error";
+    return new Response(body, { status: 502, statusText: "Proxy Error" });
   }
 };
 
@@ -114,7 +136,7 @@ const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
-      const base64 = (reader.result as string).split(',')[1];
+      const base64 = (reader.result as string).split(",")[1];
       resolve(base64);
     };
     reader.onerror = reject;
@@ -125,7 +147,9 @@ const fileToBase64 = (file: File): Promise<string> => {
 export default function UploadCVPage() {
   const [collapsed, setCollapsed] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const [processedData, setProcessedData] = useState<ProcessedData | null>(null);
+  const [processedData, setProcessedData] = useState<ProcessedData | null>(
+    null
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [candidateName, setCandidateName] = useState("");
   const [candidateSurname, setCandidateSurname] = useState("");
@@ -166,41 +190,45 @@ export default function UploadCVPage() {
 
   // Helper function for safe extraction
   const safeExtract = (obj: any, key: string): string => {
-    if (!obj || typeof obj !== 'object') return '';
-    
+    if (!obj || typeof obj !== "object") return "";
+
     const value = obj[key];
-    if (value == null) return '';
-    if (typeof value === 'string') return value;
-    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
-    
+    if (value == null) return "";
+    if (typeof value === "string") return value;
+    if (typeof value === "number" || typeof value === "boolean")
+      return String(value);
+
     try {
       return JSON.stringify(value);
     } catch {
-      return '';
+      return "";
     }
   };
 
   // Safe data extraction
   const extractDataSafely = (data: any): ProcessedData => {
     // Ensure we have an object to work with
-    const safeData = data && typeof data === 'object' ? data : {};
+    const safeData = data && typeof data === "object" ? data : {};
     const result = safeData.result || safeData;
-    
+
     return {
-      profile: safeExtract(result, 'profile'),
-      education: safeExtract(result, 'education'),
-      skills: safeExtract(result, 'skills'),
-      experience: safeExtract(result, 'experience'),
-      projects: safeExtract(result, 'projects'),
-      achievements: safeExtract(result, 'achievements'),
-      contact: safeExtract(result, 'contact'),
-      languages: safeExtract(result, 'languages'),
-      other: safeExtract(result, 'other'),
+      profile: safeExtract(result, "profile"),
+      education: safeExtract(result, "education"),
+      skills: safeExtract(result, "skills"),
+      experience: safeExtract(result, "experience"),
+      projects: safeExtract(result, "projects"),
+      achievements: safeExtract(result, "achievements"),
+      contact: safeExtract(result, "contact"),
+      languages: safeExtract(result, "languages"),
+      other: safeExtract(result, "other"),
     };
   };
 
   // Safe API call function
-  const makeApiCall = async (endpoint: string, formData: FormData): Promise<ApiResponse> => {
+  const makeApiCall = async (
+    endpoint: string,
+    formData: FormData
+  ): Promise<ApiResponse> => {
     try {
       const response = await safeAiFetch(endpoint, {
         method: "POST",
@@ -208,14 +236,18 @@ export default function UploadCVPage() {
       });
 
       if (!response || !response.ok) {
+        // attempt to read body text to provide more detail
+        const txt = await response.text().catch(() => "");
         return {
           success: false,
-          error: `HTTP ${response?.status || 'No response'}`,
+          error: `HTTP ${response?.status || "No response"} - ${
+            txt || response?.statusText || ""
+          }`,
         };
       }
 
-      const contentType = response.headers.get('content-type');
-      if (contentType?.includes('application/json')) {
+      const contentType = response.headers.get("content-type");
+      if (contentType?.includes("application/json")) {
         const data = await response.json();
         return { success: true, data };
       } else {
@@ -226,7 +258,7 @@ export default function UploadCVPage() {
       console.error(`API call failed for ${endpoint}:`, error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   };
@@ -236,7 +268,9 @@ export default function UploadCVPage() {
     const loadUser = async () => {
       const email = localStorage.getItem("userEmail") || "admin@email.com";
       try {
-        const res = await apiFetch(`/auth/me?email=${encodeURIComponent(email)}`);
+        const res = await apiFetch(
+          `/auth/me?email=${encodeURIComponent(email)}`
+        );
         if (res.ok) {
           const data = await res.json();
           setUser(data);
@@ -272,21 +306,38 @@ export default function UploadCVPage() {
       return;
     }
 
-    if (!candidateName.trim() || !candidateSurname.trim() || !candidateEmail.trim()) {
-      setErrorPopup({ open: true, message: "Please fill in all candidate details." });
+    if (
+      !candidateName.trim() ||
+      !candidateSurname.trim() ||
+      !candidateEmail.trim()
+    ) {
+      setErrorPopup({
+        open: true,
+        message: "Please fill in all candidate details.",
+      });
       return;
     }
 
     // Validate file type
-    const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const validTypes = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
     if (!validTypes.includes(file.type)) {
-      setErrorPopup({ open: true, message: "Please upload a PDF or Word document." });
+      setErrorPopup({
+        open: true,
+        message: "Please upload a PDF or Word document.",
+      });
       return;
     }
 
     // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
-      setErrorPopup({ open: true, message: "File size must be less than 5MB." });
+      setErrorPopup({
+        open: true,
+        message: "File size must be less than 5MB.",
+      });
       return;
     }
 
@@ -308,20 +359,24 @@ export default function UploadCVPage() {
         makeApiCall(parseEndpoint, formData),
       ]);
 
-      console.log("Safe API Results:", { 
+      console.log("Safe API Results:", {
         uploadSuccess: uploadResult.success,
         parseSuccess: parseResult.success,
         uploadError: uploadResult.error,
-        parseError: parseResult.error
+        parseError: parseResult.error,
       });
 
       // Check if both calls failed
       if (!uploadResult.success && !parseResult.success) {
-        throw new Error(`Upload: ${uploadResult.error}, Parse: ${parseResult.error}`);
+        throw new Error(
+          `Upload: ${uploadResult.error}, Parse: ${parseResult.error}`
+        );
       }
 
       // Process the data safely
-      const processedData = extractDataSafely(parseResult.success ? parseResult.data : uploadResult.data);
+      const processedData = extractDataSafely(
+        parseResult.success ? parseResult.data : uploadResult.data
+      );
       setProcessedData(processedData);
 
       // Create file URL for preview
@@ -345,12 +400,14 @@ export default function UploadCVPage() {
 
       // Navigate to results page
       navigate("/parsed-cv", { state: navigationState });
-
     } catch (error) {
       console.error("CV Processing Error:", error);
       setErrorPopup({
         open: true,
-        message: error instanceof Error ? error.message : "Failed to process CV. Please try again.",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to process CV. Please try again.",
       });
     } finally {
       setLoading(false);
@@ -363,20 +420,23 @@ export default function UploadCVPage() {
     if (selectedFile) {
       // Validate file type
       const validTypes = [
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       ];
-      
+
       if (!validTypes.includes(selectedFile.type)) {
-        setErrorPopup({ open: true, message: "Please select a PDF or Word document (.pdf, .doc, .docx)" });
+        setErrorPopup({
+          open: true,
+          message: "Please select a PDF or Word document (.pdf, .doc, .docx)",
+        });
         return;
       }
 
       setFile(selectedFile);
-      
+
       // Create preview URL for PDFs
-      if (selectedFile.type === 'application/pdf') {
+      if (selectedFile.type === "application/pdf") {
         setPdfUrl(URL.createObjectURL(selectedFile));
       } else {
         setPdfUrl(null);
@@ -391,9 +451,11 @@ export default function UploadCVPage() {
       URL.revokeObjectURL(pdfUrl);
       setPdfUrl(null);
     }
-    
+
     // Reset file input
-    const fileInput = document.getElementById("file-upload") as HTMLInputElement;
+    const fileInput = document.getElementById(
+      "file-upload"
+    ) as HTMLInputElement;
     if (fileInput) fileInput.value = "";
   };
 
@@ -409,7 +471,9 @@ export default function UploadCVPage() {
   const handleCloseTutorial = () => setShowTutorial(false);
 
   const handleBrowseClick = () => {
-    const fileInput = document.getElementById("file-upload") as HTMLInputElement;
+    const fileInput = document.getElementById(
+      "file-upload"
+    ) as HTMLInputElement;
     if (fileInput) fileInput.click();
   };
 
@@ -423,7 +487,15 @@ export default function UploadCVPage() {
   }, [pdfUrl]);
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#1E1E1E", color: "#fff", fontFamily: "Helvetica, sans-serif" }}>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        bgcolor: "#1E1E1E",
+        color: "#fff",
+        fontFamily: "Helvetica, sans-serif",
+      }}
+    >
       <Sidebar
         userRole={user?.role || "User"}
         collapsed={collapsed}
@@ -433,9 +505,12 @@ export default function UploadCVPage() {
           setTimeout(() => setSidebarAnimating(false), 300);
         }}
       />
-      
+
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
-        <AppBar position="static" sx={{ bgcolor: "#232A3B", boxShadow: "none" }}>
+        <AppBar
+          position="static"
+          sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
+        >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
             <Tooltip title="Run Tutorial" arrow>
               <IconButton
@@ -449,7 +524,7 @@ export default function UploadCVPage() {
                 <LightbulbRoundedIcon />
               </IconButton>
             </Tooltip>
-            
+
             <Tooltip title="Go to Help Page" arrow>
               <IconButton
                 color="inherit"
@@ -461,35 +536,67 @@ export default function UploadCVPage() {
             </Tooltip>
 
             <Box
-              sx={{ display: "flex", alignItems: "center", ml: 2, cursor: "pointer", "&:hover": { opacity: 0.8 } }}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                ml: 2,
+                cursor: "pointer",
+                "&:hover": { opacity: 0.8 },
+              }}
               onClick={() => navigate("/settings")}
             >
               <AccountCircleIcon sx={{ mr: 1 }} />
               <Typography variant="subtitle1">
                 {user
                   ? user.first_name
-                    ? `${user.first_name} ${user.last_name || ""} (${user.role || "User"})`
-                    : (user.username || user.email) + (user.role ? ` (${user.role})` : "")
+                    ? `${user.first_name} ${user.last_name || ""} (${
+                        user.role || "User"
+                      })`
+                    : (user.username || user.email) +
+                      (user.role ? ` (${user.role})` : "")
                   : "User"}
               </Typography>
             </Box>
 
-            <IconButton color="inherit" onClick={() => navigate("/login")} sx={{ ml: 1 }}>
+            <IconButton
+              color="inherit"
+              onClick={() => navigate("/login")}
+              sx={{ ml: 1 }}
+            >
               <ExitToAppIcon />
             </IconButton>
           </Toolbar>
         </AppBar>
 
         <Box sx={{ p: 3 }}>
-          <Typography variant="h5" sx={{ mb: 3, fontWeight: "bold", fontFamily: "Helvetica, sans-serif" }}>
+          <Typography
+            variant="h5"
+            sx={{
+              mb: 3,
+              fontWeight: "bold",
+              fontFamily: "Helvetica, sans-serif",
+            }}
+          >
             Upload Candidate CV
           </Typography>
 
           <ConfigAlert />
-          
-          <Paper elevation={6} sx={{ p: 4, borderRadius: 3, backgroundColor: "#DEDDEE" }}>
-            <Typography variant="h6" sx={{ fontWeight: "bold", color: "#000000ff", mb: 2, fontFamily: "Helvetica, sans-serif" }}>
-              Upload a candidate's CV to automatically extract skills and project matches
+
+          <Paper
+            elevation={6}
+            sx={{ p: 4, borderRadius: 3, backgroundColor: "#DEDDEE" }}
+          >
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: "bold",
+                color: "#000000ff",
+                mb: 2,
+                fontFamily: "Helvetica, sans-serif",
+              }}
+            >
+              Upload a candidate's CV to automatically extract skills and
+              project matches
             </Typography>
 
             {/* Upload Area */}
@@ -630,9 +737,13 @@ export default function UploadCVPage() {
                   >
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: "bold" }}>File Name</TableCell>
+                        <TableCell sx={{ fontWeight: "bold" }}>
+                          File Name
+                        </TableCell>
                         <TableCell sx={{ fontWeight: "bold" }}>Size</TableCell>
-                        <TableCell sx={{ fontWeight: "bold" }}>Action</TableCell>
+                        <TableCell sx={{ fontWeight: "bold" }}>
+                          Action
+                        </TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -898,7 +1009,7 @@ export default function UploadCVPage() {
         componentsProps={{
           root: {
             onMouseDown: (e: React.MouseEvent) => e.preventDefault(),
-          }
+          },
         }}
         disableRestoreFocus={false}
         disableAutoFocus={true}
