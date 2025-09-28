@@ -179,6 +179,18 @@ def _parse_experience_entry(self, entry: str) -> Dict[str, str]:
     }
 
 def _extract_company_position(self, line: str) -> tuple[str, str]:
+    """Extract company name and position from a line"""
+    if ' at ' in line:
+        parts = line.split(' at ', 1)
+        return parts[1].strip(), parts[0].strip()
+    elif ' - ' in line:
+        parts = line.split(' - ', 1)
+        return parts[0].strip(), parts[1].strip()
+    elif ', ' in line and len(line.split(', ')) == 2:
+        parts = line.split(', ', 1)
+        return parts[1].strip(), parts[0].strip()
+    
+    return None, line.strip()
 
 def _clean_text(self,text:str) ->str:
     """Clean and normalize CV text"""
