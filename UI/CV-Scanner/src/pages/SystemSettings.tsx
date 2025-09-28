@@ -52,7 +52,6 @@ export default function SystemSettingsPage() {
     role: "Admin",
   };
 
-  
   useEffect(() => {
     // Try to get user from API, fallback to devUser if fails
     const email = localStorage.getItem("userEmail") || devUser.email;
@@ -69,6 +68,9 @@ export default function SystemSettingsPage() {
         setUser(data ?? devUser);
       } catch {
         setUser(devUser);
+      } finally {
+        // Ensure we always mark the auth check complete so the UI unblocks
+        setAuthChecked(true);
       }
     })();
   }, []);
