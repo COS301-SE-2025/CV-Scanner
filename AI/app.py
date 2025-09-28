@@ -1,7 +1,10 @@
 import time, logging
 from typing import Dict, List, Any
 import os
+import sys
+import subprocess
 from flask import Flask, jsonify, request, make_response
+from flask_cors import CORS
 import torch
 import spacy
 
@@ -25,7 +28,7 @@ logging.info("Runtime device: %s (cuda_available=%s)", DEVICE_ID, torch.cuda.is_
 # ner = pipeline("ner", model=..., tokenizer=..., device=DEVICE_ID)
 
 app = Flask(__name__)
-
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 gunicorn_logger = logging.getLogger("gunicorn.error")
 if gunicorn_logger.handlers:
     app.logger.handlers = gunicorn_logger.handlers
