@@ -189,7 +189,38 @@ def _extract_personal_info(self, text: str) -> Dict[str, str]:
                 'hvac', 'blueprint reading', 'forklift operation', 'osha compliance'
             ]
         }
-        
+
+        all_skills = [skill for group in skills_dict.values() for skill in group]
+
+        found_skills = []
+
+        skill_sections = self._find_section(text, ['skills', 'technical skills', 'competencies', 'strengths'])
+
+def _find_section(self, text:str, keywords:List[str]) -> str:
+    """Find and extract a specific section from CV text"""
+    lines = text.split('\n')
+    start_section = -1
+
+    for i, line in enumerate(lines):
+        line_lower = line.strip().lower()
+        if any(kw in line_lower for kw in keywords) and len(line.strip()) <100:
+            start_section = i
+            break
+
+    if start_section == -1:
+        return ""
+    
+    common_headers = ['experience', 'education', 'skills', 'projects', 'contact', 
+                         'summary', 'objective', 'certifications', 'languages', 'references']
+    section_end = len(lines)
+
+    for i in range(section_start +1, len(lines)):
+        line_lower = lines[i].strip().lower()
+        if any(header in line_lower for header in common_headers) and len(lines[i].strip()) <100:
+            section_end = i
+            break
+
+    return "\n".join(lines[start_section + 1:section_end]) if start_section != -1 else ""
 
 def parse_resume_from_bytes(file_bytes: bytes, filename: str):
     ext = os.path.splitext(filename or "upload.bin")[1].lower()
