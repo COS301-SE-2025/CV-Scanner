@@ -178,7 +178,7 @@ def _parse_experience_entry(self, entry: str) -> Dict[str, str]:
             'description': description
     }
 
-
+def _extract_company_position(self, line: str) -> tuple[str, str]:
 
 def _clean_text(self,text:str) ->str:
     """Clean and normalize CV text"""
