@@ -1,5 +1,7 @@
 python3 -m venv .venv
+# activate the venv (WSL / Bash)
 source .venv/bin/activate
 pip install -U pip
 pip install -r requirements.txt
-uvicorn app:app --host 0.0.0.0 --port 5000
+# Run Uvicorn against the ASGI wrapper exported as `asgi_app`
+uvicorn app:asgi_app --host 0.0.0.0 --port 5000 --log-level debug

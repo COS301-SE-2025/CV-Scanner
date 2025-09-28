@@ -1,30 +1,33 @@
 # Start from slim Python base
 FROM python:3.10-slim
 
-# keep Python output unbuffered and avoid pycache
+# Prevent Python from writing .pyc files / buffering stdout
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-# default port (can be overridden by WEBSITES_PORT)
-ENV PORT=5000
 
+# Set working directory
 WORKDIR /app
 
-# system deps (poppler for PDF parsing if needed)
+# Install system deps (needed for pdfminer, spacy, docx etc.)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy requirements first for caching
 COPY requirements.txt .
 
+# Install Python deps
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Optional: pre-download spaCy model if listed in requirements or handled in app
-# RUN python -m spacy download en_core_web_sm || true
+# Download spacy model if you want it baked in
+RUN python -m spacy download en_core_web_sm || true
 
+# Copy app source
 COPY . .
 
-EXPOSE ${PORT}
+# Expose port 80 (Azure requirement)
+EXPOSE 80
 
-# Use gunicorn with uvicorn workers; fallback port 5000 when PORT not set
-CMD ["sh", "-c", "exec gunicorn --bind 0.0.0.0:${PORT:-5000} -k uvicorn.workers.UvicornWorker --workers 2 --threads 4 --timeout 300 app:app"]
+# Use gunicorn on port 80 with more tolerant settings
+CMD ["sh", "-c", "exec gunicorn --bind 0.0.0.0:80 -k uvicorn.workers.UvicornWorker --workers 2 --threads 4 --timeout 300 app:app"]

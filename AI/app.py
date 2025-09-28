@@ -1,6 +1,28 @@
-import os, time, logging
+import time, logging
 from typing import Dict, List, Any
+import os
 from flask import Flask, jsonify, request, make_response
+import torch
+import spacy
+
+# Ensure spaCy model is available at startup (safe, idempotent)
+try:
+    spacy.load("en_core_web_sm")
+except Exception:
+    try:
+        subprocess.check_call([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
+        spacy.load("en_core_web_sm")
+    except Exception as e:
+        logging.warning("Failed to ensure spaCy model en_core_web_sm: %s", e)
+
+# Select device for transformers pipeline: 0 for first GPU, -1 for CPU
+DEVICE_ID = 0 if torch.cuda.is_available() else -1
+logging.info("Runtime device: %s (cuda_available=%s)", DEVICE_ID, torch.cuda.is_available())
+
+# When creating any transformers pipeline, pass device=DEVICE_ID
+# Example:
+# from transformers import pipeline
+# ner = pipeline("ner", model=..., tokenizer=..., device=DEVICE_ID)
 
 app = Flask(__name__)
 
@@ -335,16 +357,51 @@ def classify():
         app.logger.exception("Classification failed")
         return make_response(jsonify({"status": "error", "detail": "Classification failed", "exception": str(e)}), 500)
 
-    applied = {cat: [x["label"] for x in info.get("top_k", [])] for cat, info in result.items()}
-    best_fit = infer_project_type(text, applied)
+    # Build canonical response shape: status, top_k, applied (labels per category), raw (labels/scores/top_k)
+    resp_applied = {}
+    resp_raw = {}
 
-    return jsonify({
+    def _info_from_item(item):
+        # Accept dict with labels/scores/top_k or list of top_k dicts
+        if isinstance(item, dict):
+            labels = item.get("labels") or [t.get("label") for t in item.get("top_k", [])]
+            scores = item.get("scores") or [t.get("score") for t in item.get("top_k", [])]
+            topk = item.get("top_k") or [{"label": l, "score": s} for l, s in zip(labels, scores)]
+        elif isinstance(item, list):
+            topk = item
+            labels = [t.get("label") for t in topk]
+            scores = [t.get("score") for t in topk]
+        else:
+            labels, scores, topk = [], [], []
+        return labels, scores, topk
+
+    if isinstance(result, dict):
+        for cat, info in result.items():
+            labels, scores, topk = _info_from_item(info)
+            resp_applied[cat] = labels[:top_k]
+            resp_raw[cat] = {
+                "labels": labels,
+                "scores": scores,
+                "top_k": [{"label": l, "score": float(s)} for l, s in zip(labels, scores)][:top_k] if labels and scores else topk[:top_k]
+            }
+    elif isinstance(result, list):
+        # If classifier returned a single list of top_k predictions, map it to each requested category
+        for cat in cats:
+            labels, scores, topk = _info_from_item(result)
+            resp_applied[cat] = labels[:top_k]
+            resp_raw[cat] = {"labels": labels, "scores": scores, "top_k": topk[:top_k]}
+    else:
+        for cat in cats:
+            resp_applied[cat] = []
+            resp_raw[cat] = {"labels": [], "scores": [], "top_k": []}
+
+    response_payload = {
         "status": "success",
         "top_k": top_k,
-        "applied": applied,
-        "raw": result,
-        "best_fit_project_type": best_fit
-    })
+        "applied": resp_applied,
+        "raw": resp_raw
+    }
+    return response_payload
 
 
 @app.route("/upload_cv", methods=["POST"])
@@ -371,24 +428,20 @@ def upload_cv():
         return make_response(jsonify({"status": "error", "detail": "No categories configured. Use POST /admin/categories first."}), 409)
 
     result = classify_text_by_categories(text, cats, top_k=top_k)
-    applied = {cat: [x["label"] for x in info["top_k"]] for cat, info in result.items()}
+    # normalize result to a mapping with "top_k" lists so downstream code is stable
+    if isinstance(result, dict):
+        normalized = result
+    elif isinstance(result, list):
+        # list assumed to be [{"label":..., "score":...}, ...] for top_k results
+        normalized = {"_predictions": {"top_k": result}}
+    else:
+        normalized = {"_predictions": {"top_k": []}}
+
+    applied = {cat: [x.get("label") for x in info.get("top_k", [])] for cat, info in normalized.items()}
 
     best_fit = infer_project_type(text, applied)
 
     return jsonify({
-        "status": "success",
-        "top_k": top_k,
-        "applied": applied,
-        "raw": result,
-        "best_fit_project_type": best_fit
-    })
-    applied = {cat: [x["label"] for x in info["top_k"]] for cat, info in result.items()}
-
-
-   
-    best_fit = infer_project_type(text, applied)
-
-    return JSONResponse({
         "status": "success",
         "top_k": top_k,
         "applied": applied,
@@ -448,9 +501,15 @@ def parse_resume_endpoint():
         return make_response(jsonify({"status": "error", "detail": f"Error parsing resume: {str(e)}"}), 500)
 
 
-if __name__ == "__main__":
+# Expose an ASGI adapter so uvicorn can serve this Flask (WSGI) app.
+# Requires asgiref to be installed.
+try:
+    from asgiref.wsgi import WsgiToAsgi
+    asgi_app = WsgiToAsgi(app)
+except Exception:
+    asgi_app = None
 
-    import uvicorn
+if __name__ == "__main__":
     port = int(os.environ.get("PORT", "5000"))
-    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=False)
+    app.run(host="0.0.0.0", port=port)
 

@@ -1,8 +1,10 @@
 fastapi==0.115.0
 uvicorn[standard]==0.30.1
 transformers==4.44.2
-torch==2.3.0+cpu
---extra-index-url https://download.pytorch.org/whl/cpu
+--extra-index-url https://download.pytorch.org/whl/cu126
+torch
+torchvision
+torchaudio
 pdfminer.six==20221105
 python-docx==1.1.2
 spacy==3.7.5
@@ -10,4 +12,7 @@ python-multipart==0.0.9
 flask
 Flask-Cors
 gunicorn
+asgiref>=3.4.1
+
+
 
