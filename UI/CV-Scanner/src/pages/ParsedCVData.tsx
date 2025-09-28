@@ -245,6 +245,14 @@ function toLines(value: any): string | undefined {
   return String(value).trim();
 }
 
+// Add small helpers
+function isObject(v: any): v is Record<string, any> {
+  return v !== null && typeof v === "object" && !Array.isArray(v);
+}
+function safeObject(v: any): Record<string, any> {
+  return isObject(v) ? v : {};
+}
+
 const ParsedCVData: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -277,7 +285,7 @@ const ParsedCVData: React.FC = () => {
   const primaryUpload = processedData ?? aiUpload ?? null;
 
   const fieldsInitial = useMemo(
-    () => normalizeToParsedFields(primaryUpload ?? parseResumeData),
+    () => normalizeToParsedFields(primaryUpload ?? parseResumeData) ?? {},
     [primaryUpload, parseResumeData]
   );
   const [fields, setFields] = useState<ParsedCVFields>(fieldsInitial);
@@ -528,9 +536,11 @@ const ParsedCVData: React.FC = () => {
                 },
               }}
             >
-              {Object.entries(fields).map(([key, value]) => {
+              {Object.entries(safeObject(fields)).map(([key, value]) => {
                 if (key === "probabilities" && value) {
-                  const probs = String(value).split("\n");
+                  const probs = String(value || "")
+                    .split("\n")
+                    .filter(Boolean);
 
                   return (
                     <Box
@@ -561,12 +571,16 @@ const ParsedCVData: React.FC = () => {
                         }}
                       >
                         {probs.map((p, i) => {
-                          const [label, percent] = p.split(":");
+                          const [labelRaw, percentRaw] = p.split(":");
+                          const label = (labelRaw || "").trim();
+                          const valueNum = Number(
+                            parseFloat((percentRaw || "").trim()) || 0
+                          );
                           return (
                             <CircularProgressBar
                               key={i}
-                              label={label.trim()}
-                              value={parseFloat(percent)}
+                              label={label || `item ${i + 1}`}
+                              value={isNaN(valueNum) ? 0 : valueNum}
                             />
                           );
                         })}
@@ -660,8 +674,8 @@ const ParsedCVData: React.FC = () => {
                 {(() => {
                   try {
                     const parsedFields =
-                      normalizeToParsedFields(parseResumeData);
-                    const hasAny = Object.keys(parsedFields || {}).length > 0;
+                      normalizeToParsedFields(parseResumeData) || {};
+                    const hasAny = Object.keys(parsedFields).length > 0;
                     if (!hasAny) {
                       return (
                         <Typography

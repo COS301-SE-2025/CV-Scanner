@@ -300,17 +300,28 @@ export default function UploadCVPage() {
         uploadResp?.ok && typeof uploadResultRaw === "object" && uploadResultRaw
           ? uploadResultRaw
           : {};
-      const applied = safe((uploadResult as any).applied, {});
-      const bestFitProjectType = safe(
-        (uploadResult as any).best_fit_project_type,
-        null
-      );
+
+      // Ensure 'applied' is always a plain object (avoid Object.entries(null) errors)
+      const appliedRaw = (uploadResult as any)?.applied;
+      const applied =
+        appliedRaw &&
+        typeof appliedRaw === "object" &&
+        !Array.isArray(appliedRaw)
+          ? appliedRaw
+          : {};
+      const bestFitProjectType =
+        (uploadResult as any)?.best_fit_project_type ?? null;
 
       const parseResult =
         parseResp?.ok && typeof parseResultRaw === "object" && parseResultRaw
           ? parseResultRaw
           : {};
-      const parseResultObj = safe((parseResult as any).result, {});
+      // Ensure parseResult.result is an object
+      const parseResultObjRaw = (parseResult as any)?.result;
+      const parseResultObj =
+        parseResultObjRaw && typeof parseResultObjRaw === "object"
+          ? parseResultObjRaw
+          : {};
 
       const mergedProcessedData = {
         profile: safe(parseResultObj.profile, ""),
