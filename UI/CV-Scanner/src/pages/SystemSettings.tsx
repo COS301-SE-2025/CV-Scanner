@@ -39,6 +39,9 @@ export default function SystemSettingsPage() {
   const [categoryOrder, setCategoryOrder] = useState<string[]>([]);
   const [categoryKeys, setCategoryKeys] = useState<Record<string, string>>({});
 
+  // show forbidden warning when user isn't allowed
+  const [forbidden, setForbidden] = useState<boolean>(false);
+
   // For dev fallback user
   const devUser = {
     email: "dev@example.com",
@@ -69,14 +72,12 @@ export default function SystemSettingsPage() {
   }, []);
 
   useEffect(() => {
-    // Only allow admin users (loaded user or devUser)
+    // Determine permission and show forbidden warning instead of immediately navigating away.
     const isAdmin =
-      (user && user.role && user.role.toLowerCase() === "admin") ||
+      (user && user.role && String(user.role).toLowerCase() === "admin") ||
       devUser.role === "Admin";
-    if (!isAdmin) {
-      navigate("/dashboard");
-    }
-  }, [user, navigate]);
+    setForbidden(!isAdmin);
+  }, [user]);
 
   const loadConfig = async () => {
     try {
@@ -318,6 +319,67 @@ export default function SystemSettingsPage() {
         >
           Remove
         </Button>
+      </Box>
+    );
+  }
+
+  // If forbidden, render a clear warning panel with a back button
+  if (forbidden) {
+    return (
+      <Box sx={{ p: 6 }}>
+        <Box
+          role="alert"
+          sx={{
+            maxWidth: 800,
+            mx: "auto",
+            bgcolor: "#fff6f6",
+            border: "1px solid #f5c2c2",
+            color: "#7a1f1f",
+            borderRadius: 2,
+            p: 3,
+          }}
+        >
+          <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+            Forbidden
+          </Typography>
+          <Typography sx={{ mb: 2 }}>
+            You do not have permission to view System Settings. If you believe
+            this is an error, sign in with an administrator account or contact
+            your administrator.
+          </Typography>
+          <Stack direction="row" spacing={2}>
+            <Button variant="contained" onClick={() => navigate("/dashboard")}>
+              Back to Dashboard
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={async () => {
+                // re-check permissions
+                const email =
+                  localStorage.getItem("userEmail") || devUser.email;
+                try {
+                  const res = await apiFetch(
+                    `/auth/me?email=${encodeURIComponent(email)}`
+                  );
+                  if (res.ok) {
+                    const data = await res.json().catch(() => null);
+                    setUser(data ?? devUser);
+                    const isAdmin =
+                      (data &&
+                        data.role &&
+                        String(data.role).toLowerCase() === "admin") ||
+                      devUser.role === "Admin";
+                    setForbidden(!isAdmin);
+                  }
+                } catch {
+                  // keep forbidden true
+                }
+              }}
+            >
+              Retry
+            </Button>
+          </Stack>
+        </Box>
       </Box>
     );
   }
