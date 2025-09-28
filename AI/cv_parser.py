@@ -106,7 +106,35 @@ class CVData(BaseModel):
 class AIExtractor:
 
     def __init__(self):
-        
+        self.device = 0 if torch.cuda.is_available() else -1
+        logger.info(f"Using device: {'GPU' if self.device == 0 else 'CPU'}")
+
+        try:
+            self.generator = pipeline(
+                "text-generation",
+                model="microsoft/DialoGPT-medium",
+                device=self.device
+                max_length=512,
+                truncation=True
+            )
+            logger.info("Text generation model loaded successfully")
+        except Exception as e:
+            logger.error(f"Could not load text generation model: {e}")
+            self.generator = None
+
+        try:
+            self.summerizer = pipeline(
+                "summarization",
+                model="facebook/bart-large-cnn",
+                device=self.device,
+                max_length=150,
+                min_length=30,
+                do_sample=False
+            )
+            logger.info("Summarization model loaded successfully")
+        except Exception as e:
+            logger.error(f"Could not load summarization model: {e}")
+            self.summerizer = None
 
     def extract_with_ai_prompting(self, cv_text:str) -> Dict[str,any]:
         """
