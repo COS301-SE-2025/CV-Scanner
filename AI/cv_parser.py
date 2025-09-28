@@ -93,6 +93,15 @@ class PersonalInfo(BaseModel):
     email: Optional[str] = Field(default=None, description="Email address")
     phone: Optional[str] = Field(default=None, description="Phone number")
 
+class CVData(BaseModel):
+    personal_info: PersonalInfo
+    summary: Optional[str] = Field(default=None, description="Professional summary or objective")
+    skills: List[str] = Field(description="List of technical and soft skills")
+    experience: List[Experience] = Field(description="Work experience entries")
+    education: List[Education] = Field(description="Educational background")
+    certifications: List[str] = Field(default=[], description="Professional certifications")
+    projects: List[Dict[str, str]] = Field(default=[], description="Notable projects")
+    languages: List[str] = Field(default=[], description="Programming/spoken languages")
 
 def extract_with_ai_prompting(self, cv_text:str) -> Dict[str,any]:
     """
