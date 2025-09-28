@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import type { FC } from "react";
 import { apiFetch, aiFetch } from "../lib/api";
 
 import {
@@ -36,6 +37,105 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import Sidebar from "./Sidebar";
 import ConfigAlert from "./ConfigAlert";
+
+type CandidateAvg = {
+  candidateId: number | string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  averageScoreOutOf10?: number | null;
+};
+
+const AVG_API_BASE = "http://localhost:8080";
+const AVG_ENDPOINT = `${AVG_API_BASE.replace(
+  /\/+$/,
+  ""
+)}/cv/average-scores?limit=100`;
+
+const AverageScoresPanel: FC = () => {
+  const [items, setItems] = useState<CandidateAvg[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchAverages = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(AVG_ENDPOINT, { method: "GET" });
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      const json = await res.json();
+      if (Array.isArray(json)) {
+        setItems(json as CandidateAvg[]);
+      } else if (json && typeof json === "object" && Array.isArray(json.data)) {
+        setItems(json.data as CandidateAvg[]);
+      } else {
+        // try to interpret top-level as list
+        setItems(Array.isArray(json) ? (json as CandidateAvg[]) : []);
+      }
+    } catch (e: any) {
+      setError(String(e.message ?? e));
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAverages();
+  }, [fetchAverages]);
+
+  return (
+    <section style={{ marginTop: 20 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <h3>Candidate Average Scores</h3>
+        <div>
+          <button onClick={() => fetchAverages()} disabled={loading}>
+            {loading ? "Refreshing..." : "Refresh"}
+          </button>
+        </div>
+      </div>
+      {error && <div style={{ color: "red" }}>Error: {error}</div>}
+      <table
+        style={{ width: "100%", borderCollapse: "collapse", marginTop: 8 }}
+      >
+        <thead>
+          <tr>
+            <th style={{ textAlign: "left", padding: 6 }}>Candidate</th>
+            <th style={{ textAlign: "left", padding: 6 }}>Email</th>
+            <th style={{ textAlign: "right", padding: 6 }}>Avg Score (0-10)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.length === 0 && !loading && (
+            <tr>
+              <td colSpan={3}>No results</td>
+            </tr>
+          )}
+          {items.map((c) => (
+            <tr key={String(c.candidateId)}>
+              <td style={{ padding: 6 }}>
+                {`${c.firstName ?? ""} ${c.lastName ?? ""}`.trim() ||
+                  c.candidateId}
+              </td>
+              <td style={{ padding: 6 }}>{c.email ?? "-"}</td>
+              <td style={{ padding: 6, textAlign: "right" }}>
+                {c.averageScoreOutOf10 == null
+                  ? "-"
+                  : c.averageScoreOutOf10.toFixed(2)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+};
 
 export default function UploadCVPage() {
   const [collapsed, setCollapsed] = useState(false);

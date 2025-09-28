@@ -1564,6 +1564,124 @@ private String truncateSummary(String s) {
         return null;
     }
 
+    @GetMapping("/average-scores")
+    public ResponseEntity<?> averageScores(@RequestParam(value = "limit", required = false, defaultValue = "100") int limit) {
+        try {
+            int top = Math.max(1, Math.min(limit, 1000));
+            String sql = """
+                WITH latest AS (
+                  SELECT cpc.CandidateId, cpc.AiResult, cpc.ReceivedAt,
+                         ROW_NUMBER() OVER (PARTITION BY cpc.CandidateId ORDER BY cpc.ReceivedAt DESC) rn
+                  FROM dbo.CandidateParsedCv cpc
+                )
+                SELECT TOP %d
+                       c.Id, c.FirstName, c.LastName, c.Email, l.AiResult
+                FROM dbo.Candidates c
+                LEFT JOIN latest l ON l.CandidateId = c.Id AND l.rn = 1
+                ORDER BY c.Id DESC
+            """.formatted(top);
+
+            var list = jdbc.query(sql, (rs, i) -> {
+                long id = rs.getLong("Id");
+                String first = rs.getString("FirstName");
+                String last = rs.getString("LastName");
+                String email = rs.getString("Email");
+                String aiResult = rs.getString("AiResult");
+
+                Double avgScore = computeAverageScoreFromAiResult(aiResult);
+                Map<String, Object> map = new HashMap<>();
+                map.put("candidateId", id);
+                map.put("firstName", first);
+                map.put("lastName", last);
+                map.put("email", email);
+                map.put("averageScoreOutOf10", avgScore); // null if unavailable
+                return map;
+            });
+
+            return ResponseEntity.ok(list);
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body(createErrorResponse("Failed to compute averages: " + ex.getMessage()));
+        }
+    }
+
+    // Computes average score (0..10) from AiResult JSON. Returns null if no numeric scores found.
+    private Double computeAverageScoreFromAiResult(String aiResultJson) {
+        try {
+            Map<String, Object> root = parseJsonToMap(aiResultJson);
+            if (root == null) return null;
+
+            Object rawObj = root.get("raw");
+            Map<String, Object> raw = null;
+            if (rawObj instanceof Map) raw = (Map<String, Object>) rawObj;
+            else if (rawObj instanceof String) {
+                try { raw = json.readValue((String) rawObj, Map.class); } catch (Exception ignored) {}
+            } else {
+                // also support case where top-level keys are categories (raw absent)
+                raw = root;
+            }
+
+            if (raw == null || raw.isEmpty()) return null;
+
+            List<Double> collected = new ArrayList<>();
+            for (Object v : raw.values()) {
+                if (v == null) continue;
+                if (v instanceof Map<?, ?> info) {
+                    // Prefer explicit "scores" array
+                    Object scoresObj = info.get("scores");
+                    if (scoresObj instanceof java.util.List<?> scoresList && !scoresList.isEmpty()) {
+                        Object first = scoresList.get(0);
+                        Double d = toDouble(first);
+                        if (d != null) { collected.add(d); continue; }
+                    }
+                    // Fallback: top_k list of {label,score}
+                    Object topkObj = info.get("top_k");
+                    if (topkObj instanceof java.util.List<?> topkList && !topkList.isEmpty()) {
+                        Object first = topkList.get(0);
+                        if (first instanceof Map<?,?> m && m.get("score") != null) {
+                            Double d = toDouble(m.get("score"));
+                            if (d != null) { collected.add(d); continue; }
+                        }
+                    }
+                    // Fallback: try any numeric value inside info
+                    for (Object inner : ((Map<?,?>) info).values()) {
+                        Double d = toDouble(inner);
+                        if (d != null) { collected.add(d); break; }
+                    }
+                } else if (v instanceof java.util.List<?> list) {
+                    // If raw category directly a list of scores or top_k objects
+                    Object first = list.isEmpty() ? null : list.get(0);
+                    Double d = toDouble(first);
+                    if (d != null) { collected.add(d); continue; }
+                    if (first instanceof Map<?,?> m && m.get("score") != null) {
+                        Double d2 = toDouble(m.get("score"));
+                        if (d2 != null) { collected.add(d2); continue; }
+                    }
+                } else {
+                    Double d = toDouble(v);
+                    if (d != null) collected.add(d);
+                }
+            }
+
+            if (collected.isEmpty()) return null;
+
+            double mean = collected.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+            double scaled = mean * 10.0;
+            // round to 2 decimals
+            return Math.round(scaled * 100.0) / 100.0;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private Double toDouble(Object o) {
+        if (o == null) return null;
+        if (o instanceof Number) return ((Number) o).doubleValue();
+        try {
+            String s = String.valueOf(o).trim();
+            if (s.isEmpty()) return null;
+            return Double.parseDouble(s);
+        } catch (Exception ignored) { return null; }
+    }
 }
 
 
