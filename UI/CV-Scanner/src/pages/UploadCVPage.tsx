@@ -346,14 +346,32 @@ export default function UploadCVPage() {
 
       const fileUrl = URL.createObjectURL(file);
 
+      // Sanitize navigation payload: ensure applied and result are plain objects
+      const safeApplied =
+        applied && typeof applied === "object" && !Array.isArray(applied)
+          ? applied
+          : {};
+      const safeParseResultObj =
+        parseResultObj &&
+        typeof parseResultObj === "object" &&
+        !Array.isArray(parseResultObj)
+          ? parseResultObj
+          : {};
+
+      const safeAiUpload = {
+        ...uploadResult,
+        applied: safeApplied,
+        best_fit_project_type: bestFitProjectType ?? null,
+      };
+      const safeAiParse = {
+        ...parseResult,
+        result: safeParseResultObj,
+      };
+
       navigate("/parsed-cv", {
         state: {
-          aiUpload: {
-            ...uploadResult,
-            applied,
-            best_fit_project_type: bestFitProjectType,
-          },
-          aiParse: { ...parseResult, result: parseResultObj },
+          aiUpload: safeAiUpload,
+          aiParse: safeAiParse,
           fileUrl,
           fileType: file.type,
           candidate: {
