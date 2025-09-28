@@ -167,7 +167,16 @@ def _parse_experience_entry(self, entry: str) -> Dict[str, str]:
     duration = " - ".join(dates) if len(dates) > 2 else "Duration not found"
 
     first_line = lines[0]
-    company, position  = sself._extract_company_position(first_line)
+    company, position  = self._extract_company_position(first_line)
+
+    description = ' '.join(lines[1:])[:500]
+
+    return {
+        'company': company or 'Company information',
+            'position': position or first_line[:60],
+            'duration': duration,
+            'description': description
+    }
 
 
 
