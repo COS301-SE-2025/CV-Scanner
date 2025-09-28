@@ -145,6 +145,32 @@ def _extract_experience(self, text: str) -> List[Dict[str, str]]:
 
     return experience
 
+def _parse_experience_entry(self, entry: str) -> Dict[str, str]:
+
+    lines = [line.strip() for line in entry.split('\n') if line.strip()]
+    if len(lines) < 2:
+        return None
+    
+    date_pattern = (
+    r'\b(?:' 
+        r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}'  
+        r'|\d{4}'                                                            
+    r')\b'
+    r'\s*[-–—to]+\s*'                                                        
+    r'\b(?:'
+        r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}'  
+        r'|\d{4}'                                                            
+        r'|Present|Current'                                                  
+    r')\b'
+    )
+    dates = re.findall(date_pattern, entry, re.IGNORECASE)
+    duration = " - ".join(dates) if len(dates) > 2 else "Duration not found"
+
+    first_line = lines[0]
+    company, position  = sself._extract_company_position(first_line)
+
+
+
 def _clean_text(self,text:str) ->str:
     """Clean and normalize CV text"""
     text = re.sub(r'\n\s*\n', '\n\n',text)
