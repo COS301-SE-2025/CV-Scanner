@@ -143,8 +143,37 @@ def _extract_education(self, text: str) -> List[Dict[str, str]]:
     return education
 
 def _parse_education_entry(self, entry: str) -> Dict[str, str]:
-        """Parse individual education entry"""
+    """Parse individual education entry"""
+    lines = [line.strip() for line in entry.split('\n') if line.strip()]
+    if not lines:
+        return None
+    
+    date_pattern = (
+    r'\b(?:' 
+        r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}'  
+        r'|\d{4}'                                                            
+    r')\b'
+    r'\s*[-–—to]+\s*'                                                        
+    r'\b(?:'
+        r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}'  
+        r'|\d{4}'                                                            
+        r'|Present|Current'                                                  
+    r')\b'
+    )
 
+    dates = re.findall(date_pattern, entry, re.IGNORECASE)
+    duration = " - ".join(dates) if len(dates) >= 2 else "Duration not found"
+
+    first_line = lines[0]
+    institution, degree = self._extract_institution_degree(first_line)
+
+    return {
+            'institution': institution or 'Educational institution',
+            'degree': degree or first_line[:80],
+            'duration': duration,
+            'gpa': self._extract_gpa(entry),
+            'location': None
+        }
 
 def _extract_experience(self, text: str) -> List[Dict[str, str]]:
     """Extract work experience information from CV text"""
