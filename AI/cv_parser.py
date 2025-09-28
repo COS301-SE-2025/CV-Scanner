@@ -378,30 +378,61 @@ class AIExtractor:
         s = re.sub(r'\s+', ' ', s)
         return s
 
-    def _extract_education(self, text: str) -> List[Dict[str, str]]:
-        """Extract education information from CV text"""
-        education = []
-
+    def _extract_education(self, text: str) -> List[str]:
+        """Extract education information as simple array of strings"""
+        education_entries = []
+    
+        # Find education section
         edu_section = self._find_section(text, ['education', 'academic background', 'qualifications', 'educational background', 'degrees'])
         if not edu_section:
-            return education
-        
-        entries = re.split(
-        r'\n(?=\s*(?:[A-Z][a-z]+\.?\s+)?'
-        r'(?:University|College|School|Institute|Academy|Polytechnic|High School|'
-        r'B\.?Sc|B\.?A|B\.?Eng|M\.?Sc|M\.?A|MBA|LLB|Ph\.?D|Diploma|Certificate)'
-        r'|\n(?:EDUCATION|ACADEMIC BACKGROUND|QUALIFICATIONS|EDUCATIONAL BACKGROUND)\n)',
-        edu_section,
-        flags=re.IGNORECASE
-        )
+            return education_entries
+    
+        # Split into potential entries
+        entries = re.split(r'\n\s*\n', edu_section)
 
         for entry in entries:
-            if len(entry.strip()) > 30:
-                edu_data = self._parse_education_entry(entry)
-                if edu_data and edu_data.get('institution') != 'institution extracted':
-                    education.append(edu_data)
-        
-        return education
+            if len(entry.strip()) > 20:  # Minimum length for meaningful entry
+                # Clean and extract the main education line
+                lines = [line.strip() for line in entry.split('\n') if line.strip()]
+                if lines:
+                    # Take the most meaningful line (usually first line)
+                    main_line = lines[0]
+                
+                    # Clean up the line
+                    clean_entry = self._clean_education_entry(main_line)
+                    if clean_entry and len(clean_entry) > 10:  # Ensure it's meaningful
+                        education_entries.append(clean_entry)
+    
+        return education_entries[:10]  # Limit to 10 entries
+
+def _clean_education_entry(self, entry: str) -> str:
+    """Clean and format education entry"""
+    # Remove common prefixes and suffixes
+    entry = re.sub(r'^(?:•|\-|\*|\d+\.?)\s*', '', entry)  # Remove bullets/numbers
+    entry = re.sub(r'\s*[\(\[].*?[\)\]]', '', entry)  # Remove content in brackets
+    entry = re.sub(r'\b(?:Duration|Dates?|Year):.*$', '', entry, flags=re.IGNORECASE)
+    entry = re.sub(r'\bGPA:.*$', '', entry, flags=re.IGNORECASE)
+    
+    # Clean up whitespace
+    entry = re.sub(r'\s+', ' ', entry).strip()
+    
+    # Remove standalone dates and locations
+    words = entry.split()
+    filtered_words = []
+    for word in words:
+        # Keep words that are not just years or locations
+        if not (re.match(r'^\d{4}$', word) or 
+                re.match(r'^\d{4}[-–]\d{4}$', word) or
+                word.lower() in ['present', 'current']):
+            filtered_words.append(word)
+    
+    clean_entry = ' '.join(filtered_words).strip()
+    
+    # Final cleanup
+    clean_entry = re.sub(r',\s*,', ',', clean_entry)  # Fix double commas
+    clean_entry = re.sub(r'\s+$', '', clean_entry)  # Remove trailing whitespace
+    
+    return clean_entry if len(clean_entry) > 5 else None  # Return only if meaningful
 
     def _parse_education_entry(self, entry: str) -> Dict[str, str]:
         """Parse individual education entry"""
@@ -432,7 +463,6 @@ class AIExtractor:
                 'institution': institution or 'Educational institution',
                 'degree': degree or first_line[:80],
                 'duration': duration,
-                'gpa': self._extract_gpa(entry),
                 'location': None
         }
 
@@ -477,7 +507,7 @@ class AIExtractor:
 
         for entry in entries:
             if len(entry.strip()) > 30:
-                exp_data = self.parse_experience_entry(entry)
+                exp_data = self._parse_experience_entry(entry)
                 if exp_data and exp_data.get('company') != 'company extracted':
                     experience.append(exp_data)
 
@@ -566,9 +596,9 @@ class AIExtractor:
                 words=line.split()
                 if 2<=len(words) <=4:
                     capital_words = sum(1 for w in words if w and w[0].isupper())
-                if capital_words >=len(words) *0.8:
-                    exclude_keywords = [
-                         'experience', 'education', 'skills', 'projects', 'certifications',
+                    if capital_words >=len(words) *0.8:
+                        exclude_keywords = [
+                            'experience', 'education', 'skills', 'projects', 'certifications',
                                 'summary', 'objective', 'references', 'awards', 'publications'
                     ]
                     if not any(kw in line.lower() for kw in exclude_keywords):
