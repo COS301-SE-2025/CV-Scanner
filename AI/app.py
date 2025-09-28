@@ -123,12 +123,109 @@ def infer_project_type(text: str, applied_labels: Dict[str, List[str]] | None = 
     basis.extend(label_bonus_basis)
     basis = basis[:5]
 
+# --- Heuristic best-fit project type from CV text + labels ---
+def infer_project_type(text: str, applied_labels: Dict[str, List[str]] | None = None):
+    """
+    Returns a dict: {"type": <str>, "confidence": <0..1>, "basis": [<keywords/labels>]}
+    """
+    text_l = (text or "").lower()
+
+    # Keyword rules (tweak freely)
+    RULES = {
+        "Machine Learning / Data Science": [
+            "machine learning", "deep learning", "data science", "nlp", "computer vision",
+            "pytorch", "tensorflow", "sklearn", "xgboost", "model training", "dataset"
+        ],
+        "API Backend / Services": [
+            "rest api", "graphql", "fastapi", "django", "flask", "express", "spring boot",
+            "microservice", "endpoint", "jwt", "postgres", "mongodb"
+        ],
+        "Frontend Web App": [
+            "react", "next.js", "typescript", "javascript", "spa", "redux", "tailwind",
+            "vue", "angular", "ui", "ux"
+        ],
+        "DevOps / Infrastructure": [
+            "docker", "kubernetes", "terraform", "ci/cd", "jenkins", "github actions",
+            "helm", "prometheus", "grafana", "aws", "azure", "gcp"
+        ],
+        "Mobile App": [
+            "android", "ios", "react native", "flutter", "kotlin", "swift", "xcode"
+        ],
+        "Data Engineering / ETL": [
+            "airflow", "spark", "databricks", "etl", "elt", "data pipeline", "kafka",
+            "bigquery", "snowflake", "redshift"
+        ],
+        "General Web Application": [
+            "full-stack", "web application", "crud", "authentication", "authorization"
+        ]
+    }
+
+    scores = {k: 0 for k in RULES}
+
+    # Keyword scoring
+    for ptype, kws in RULES.items():
+        for kw in kws:
+            if kw in text_l:
+                scores[ptype] += 1
+
+    # Label bonuses (from your classifier result)
+    label_bonus_basis = []
+    if applied_labels:
+        flat = {lbl.lower() for group in applied_labels.values() for lbl in group}
+        if any(x in flat for x in ["data science", "machine learning", "ml engineer"]):
+            scores["Machine Learning / Data Science"] += 2; label_bonus_basis.append("label: ML/DS")
+        if any(x in flat for x in ["backend", "api", "software engineering"]):
+            scores["API Backend / Services"] += 2; label_bonus_basis.append("label: Backend/API")
+        if any(x in flat for x in ["frontend", "ui", "web dev"]):
+            scores["Frontend Web App"] += 2; label_bonus_basis.append("label: Frontend")
+        if "devops" in flat:
+            scores["DevOps / Infrastructure"] += 2; label_bonus_basis.append("label: DevOps")
+        if any(x in flat for x in ["mobile", "android", "ios"]):
+            scores["Mobile App"] += 2; label_bonus_basis.append("label: Mobile")
+        if any(x in flat for x in ["data engineering", "etl", "pipeline"]):
+            scores["Data Engineering / ETL"] += 2; label_bonus_basis.append("label: Data Eng")
+
+    # Pick best
+    best_type, best_score = max(scores.items(), key=lambda kv: kv[1])
+    sorted_vals = sorted(scores.values(), reverse=True)
+    second = sorted_vals[1] if len(sorted_vals) > 1 else 0
+
+    if best_score == 0:
+        return {"type": "General Software Project", "confidence": 0.3, "basis": []}
+
+    # Confidence: base 0.55 + margin bonus (capped)
+    margin = max(0, best_score - second)
+    conf = min(0.9, 0.55 + 0.1 * margin)
+
+    # Basis (top 3 matched keywords + any label reasons)
+    basis = []
+    for kw in RULES[best_type]:
+        if kw in text_l:
+            basis.append(kw)
+        if len(basis) >= 3:
+            break
+    basis.extend(label_bonus_basis)
+    basis = basis[:5]
+
     return {"type": best_type, "confidence": round(conf, 2), "basis": basis}
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], allow_credentials=True,
+    allow_methods=["*"], allow_headers=["*"]
+)
+
 
 
 @app.get("/health")
 def health():
     return jsonify(status="ok", time=time.time())
+
+
+@app.get("/admin/categories")
+async def get_categories():
+    return load_categories()
 
 
 @app.get("/startup_diagnostics")
@@ -195,33 +292,22 @@ def set_categories():
         save_categories(payload)
         return jsonify({"status": "saved", "categories": load_categories()})
     except Exception as e:
-        app.logger.exception("Saving categories failed")
-        return make_response(jsonify({"status": "error", "detail": str(e)}), 400)
+        raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.route("/classify", methods=["POST"])
-def classify():
-    load_categories, _, classify_text_by_categories, _ = _lazy_import()
-    # Accept either JSON { "text": "..." } or multipart form with file
-    text = None
-    if request.content_type and request.content_type.startswith("multipart/"):
-        file = request.files.get("file")
-        if file:
-            data = file.read()
-            if not data:
-                return make_response(jsonify({"status": "error", "detail": "Empty file."}), 400)
-            text = extract_text_auto(data, file.filename or "upload.txt")
-    else:
-        j = request.get_json(silent=True) or {}
-        text = j.get("text")
-
-    if not text or not str(text).strip():
-        return make_response(jsonify({"status": "error", "detail": "Provide `text` or upload `file`."}), 400)
-
-    try:
-        top_k = int(request.values.get("top_k", request.args.get("top_k", 3)))
-    except Exception:
-        top_k = 3
+@app.post("/classify")
+async def classify(
+    text: str = Body(None),
+    file: UploadFile = File(None),
+    top_k: int = Body(3)
+):
+    if file is None and (text is None or not text.strip()):
+        raise HTTPException(400, "Provide `text` or upload `file`.")
+    if file is not None:
+        data = await file.read()
+        if not data:
+            raise HTTPException(400, "Empty file.")
+        text = extract_text_auto(data, file.filename or "upload.txt")
 
     cats = load_categories()
     if not cats:
@@ -237,14 +323,9 @@ def classify():
     })
 
 
-@app.route("/upload_cv", methods=["POST"])
-def upload_cv():
-    load_categories, _, classify_text_by_categories, _ = _lazy_import()
-    file = request.files.get("file")
-    if file is None:
-        return make_response(jsonify({"status": "error", "detail": "No file uploaded."}), 400)
-
-    data = file.read()
+@app.post("/upload_cv")
+async def upload_cv(file: UploadFile = File(...), top_k: int = 3):
+    data = await file.read()
     if not data:
         return make_response(jsonify({"status": "error", "detail": "Empty file."}), 400)
 
@@ -262,14 +343,18 @@ def upload_cv():
     result = classify_text_by_categories(text, cats, top_k=top_k)
     applied = {cat: [x["label"] for x in info["top_k"]] for cat, info in result.items()}
 
+
+   
     best_fit = infer_project_type(text, applied)
 
-    return jsonify({
+    return JSONResponse({
         "status": "success",
         "top_k": top_k,
         "applied": applied,
         "raw": result,
-        "best_fit_project_type": best_fit
+
+        "best_fit_project_type": best_fit  # ⬅️ added field
+
     })
 
 
@@ -323,5 +408,8 @@ def parse_resume_endpoint():
 
 
 if __name__ == "__main__":
-    # Local run only; in Azure use gunicorn startup command
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "8000")))
+
+    import uvicorn
+    port = int(os.environ.get("PORT", "5000"))
+    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=False)
+
