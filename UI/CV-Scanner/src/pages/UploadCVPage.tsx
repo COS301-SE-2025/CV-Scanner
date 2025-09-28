@@ -346,148 +346,122 @@ export default function UploadCVPage() {
   const safe = <T, F>(v: T | null | undefined, fallback: F): T | F =>
     v == null ? fallback : v;
 
-  const handleProcess = async () => {
-    if (!file) return;
-    if (!candidateName || !candidateSurname || !candidateEmail) {
-      setErrorPopup({
-        open: true,
-        message: "Please enter candidate name, surname, and email.",
-      });
+const handleProcess = async () => {
+  if (!file) return;
+  if (!candidateName || !candidateSurname || !candidateEmail) {
+    setErrorPopup({
+      open: true,
+      message: "Please enter candidate name, surname, and email.",
+    });
+    return;
+  }
+
+  const formForUpload = new FormData();
+  formForUpload.append("file", file);
+
+  const formForParse = new FormData();
+  formForParse.append("file", file);
+
+  try {
+    // Force AI calls to localhost for local testing
+    const AI_BASE = "http://localhost:5000";
+    const uploadEndpoint = `${AI_BASE.replace(/\/+$/, "")}/upload_cv?top_k=3`;
+    const parseEndpoint = `${AI_BASE.replace(/\/+$/, "")}/parse_resume`;
+
+    const [uploadResp, parseResp] = await Promise.all([
+      aiFetch(uploadEndpoint, { method: "POST", body: formForUpload }),
+      aiFetch(parseEndpoint, { method: "POST", body: formForParse }),
+    ]);
+
+    if (!uploadResp && !parseResp) {
+      setErrorPopup({ open: true, message: "Backend unavailable." });
       return;
     }
 
-    const formForUpload = new FormData();
-    formForUpload.append("file", file);
+    const uploadResultRaw = await getJsonOrText(uploadResp).catch(() => null);
+    const parseResultRaw = await getJsonOrText(parseResp).catch(() => null);
 
-    const formForParse = new FormData();
-    formForParse.append("file", file);
-
-    try {
-      // Force AI calls to localhost for local testing
-      const AI_BASE = "http://localhost:5000";
-      const uploadEndpoint = `${AI_BASE.replace(/\/+$/, "")}/upload_cv?top_k=3`;
-      const parseEndpoint = `${AI_BASE.replace(/\/+$/, "")}/parse_resume`;
-
-      const [uploadResp, parseResp] = await Promise.all([
-        aiFetch(uploadEndpoint, { method: "POST", body: formForUpload }),
-        aiFetch(parseEndpoint, { method: "POST", body: formForParse }),
-      ]);
-
-      if (!uploadResp && !parseResp) {
-        setErrorPopup({ open: true, message: "Backend unavailable." });
-        return;
-      }
-
-      const uploadResultRaw = await getJsonOrText(uploadResp).catch(() => null);
-      const parseResultRaw = await getJsonOrText(parseResp).catch(() => null);
-
-      if ((!uploadResp || !uploadResp.ok) && (!parseResp || !parseResp.ok)) {
-        const uploadMsg =
-          (uploadResultRaw &&
-            (uploadResultRaw.detail || uploadResultRaw.message)) ||
-          `upload_cv failed (${uploadResp?.status})`;
-        const parseMsg =
-          (parseResultRaw &&
-            (parseResultRaw.detail || parseResultRaw.message)) ||
-          `parse_resume failed (${parseResp?.status})`;
-        setErrorPopup({ open: true, message: `${uploadMsg}; ${parseMsg}` });
-        return;
-      }
-
-      // Simplified normalization using safe()
-      const uploadResult =
-        uploadResp?.ok && typeof uploadResultRaw === "object" && uploadResultRaw
-          ? uploadResultRaw
-          : {};
-
-      // Ensure 'applied' is always a plain object (avoid Object.entries(null) errors)
-      const appliedRaw = (uploadResult as any)?.applied;
-      const applied =
-        appliedRaw &&
-        typeof appliedRaw === "object" &&
-        !Array.isArray(appliedRaw)
-          ? appliedRaw
-          : {};
-      const bestFitProjectType =
-        (uploadResult as any)?.best_fit_project_type ?? null;
-
-      const parseResult =
-        parseResp?.ok && typeof parseResultRaw === "object" && parseResultRaw
-          ? parseResultRaw
-          : {};
-      // Ensure parseResult.result is an object
-      const parseResultObjRaw = (parseResult as any)?.result;
-      const parseResultObj =
-        parseResultObjRaw && typeof parseResultObjRaw === "object"
-          ? parseResultObjRaw
-          : {};
-
-      const mergedProcessedData = {
-        profile: safe(parseResultObj.profile, ""),
-        education: safe(parseResultObj.education, ""),
-        skills: safe(parseResultObj.skills, ""),
-        experience: safe(parseResultObj.experience, ""),
-        projects: safe(parseResultObj.projects, ""),
-        achievements: safe(parseResultObj.achievements, ""),
-        contact: safe(parseResultObj.contact, ""),
-        languages: safe(parseResultObj.languages, ""),
-        other: safe(parseResultObj.other, ""),
-      };
-
-      setProcessedData(mergedProcessedData);
-
-      // Debug: ensure we pass only plain objects / sane shapes to ParsedCVData
-      console.log("DEBUG uploadResult:", uploadResult);
-      console.log("DEBUG applied:", applied);
-      console.log("DEBUG parseResult:", parseResult);
-      console.log("DEBUG parseResultObj:", parseResultObj);
-      console.log("DEBUG mergedProcessedData:", mergedProcessedData);
-
-      const fileUrl = URL.createObjectURL(file);
-
-      // Sanitize navigation payload: ensure applied and result are plain objects
-      const safeApplied =
-        applied && typeof applied === "object" && !Array.isArray(applied)
-          ? applied
-          : {};
-      const safeParseResultObj =
-        parseResultObj &&
-        typeof parseResultObj === "object" &&
-        !Array.isArray(parseResultObj)
-          ? parseResultObj
-          : {};
-
-      const safeAiUpload = {
-        ...uploadResult,
-        applied: safeApplied,
-        best_fit_project_type: bestFitProjectType ?? null,
-      };
-      const safeAiParse = {
-        ...parseResult,
-        result: safeParseResultObj,
-      };
-
-      navigate("/parsed-cv", {
-        state: {
-          aiUpload: safeAiUpload,
-          aiParse: safeAiParse,
-          fileUrl,
-          fileType: file.type,
-          candidate: {
-            firstName: candidateName,
-            lastName: candidateSurname,
-            email: candidateEmail,
-          },
-        },
-      });
-    } catch (error) {
-      console.error(error);
-      setErrorPopup({
-        open: true,
-        message: "An error occurred while processing the CV.",
-      });
+    if ((!uploadResp || !uploadResp.ok) && (!parseResp || !parseResp.ok)) {
+      const uploadMsg = getErrorMessage(uploadResultRaw, uploadResp?.status, "upload_cv");
+      const parseMsg = getErrorMessage(parseResultRaw, parseResp?.status, "parse_resume");
+      setErrorPopup({ open: true, message: `${uploadMsg}; ${parseMsg}` });
+      return;
     }
-  };
+
+    // Safer data normalization
+    const uploadResult = uploadResp?.ok && isObject(uploadResultRaw) ? uploadResultRaw : {};
+    const parseResult = parseResp?.ok && isObject(parseResultRaw) ? parseResultRaw : {};
+
+    // Ensure nested objects exist
+    const appliedRaw = (uploadResult as any)?.applied;
+    const applied = isObject(appliedRaw) ? appliedRaw : {};
+    
+    const bestFitProjectType = (uploadResult as any)?.best_fit_project_type ?? null;
+    
+    const parseResultObjRaw = (parseResult as any)?.result;
+    const parseResultObj = isObject(parseResultObjRaw) ? parseResultObjRaw : {};
+
+    const mergedProcessedData = {
+      profile: safe(parseResultObj.profile, ""),
+      education: safe(parseResultObj.education, ""),
+      skills: safe(parseResultObj.skills, ""),
+      experience: safe(parseResultObj.experience, ""),
+      projects: safe(parseResultObj.projects, ""),
+      achievements: safe(parseResultObj.achievements, ""),
+      contact: safe(parseResultObj.contact, ""),
+      languages: safe(parseResultObj.languages, ""),
+      other: safe(parseResultObj.other, ""),
+    };
+
+    setProcessedData(mergedProcessedData);
+
+    const fileUrl = URL.createObjectURL(file);
+
+    // Ensure we're passing safe objects to navigate
+    const safeAiUpload = {
+      ...uploadResult,
+      applied: isObject(applied) ? applied : {},
+      best_fit_project_type: bestFitProjectType,
+    };
+    
+    const safeAiParse = {
+      ...parseResult,
+      result: isObject(parseResultObj) ? parseResultObj : {},
+    };
+
+    navigate("/parsed-cv", {
+      state: {
+        aiUpload: safeAiUpload,
+        aiParse: safeAiParse,
+        fileUrl,
+        fileType: file.type,
+        candidate: {
+          firstName: candidateName,
+          lastName: candidateSurname,
+          email: candidateEmail,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Process CV error:", error);
+    setErrorPopup({
+      open: true,
+      message: "An error occurred while processing the CV.",
+    });
+  }
+};
+
+// Helper functions
+const isObject = (value: any): boolean => {
+  return value && typeof value === 'object' && !Array.isArray(value);
+};
+
+const getErrorMessage = (result: any, status: number | undefined, endpoint: string): string => {
+  if (result && (result.detail || result.message)) {
+    return result.detail || result.message;
+  }
+  return `${endpoint} failed (${status || 'unknown status'})`;
+};
 
   const handleCloseModal = () => setIsModalOpen(false);
   const handleBrowseClick = () => {
