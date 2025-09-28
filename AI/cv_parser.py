@@ -74,6 +74,13 @@ PHONE_RE = re.compile(r"(\+?\d{1,3}[-\.\s]?)?\(?\d{3}\)?[-\.\s]?\d{3}[-\.\s]?\d{
 #CODE---------------------------------------------------------------------------------------
 
 
+class Experience(BaseModel):
+    company: str = Field(description="Company name")
+    position: str = Field(description="Job title/position")
+    duration: str = Field(description="Employment duration (e.g., '2020-2023', 'Jan 2020 - Present')")
+    description: str = Field(description="Job responsibilities and achievements")
+    location: Optional[str] = Field(default=None, description="Job location")
+
 
 def extract_with_ai_prompting(self, cv_text:str) -> Dict[str,any]:
     """
@@ -114,7 +121,7 @@ def _extract_experience(self, text: str) -> List[Dict[str, str]]:
             exp_data = self.parse_experience_entry(entry)
             if exp_data and exp_data.get('company') != 'company extracted':
                 experience.append(exp_data)
-                
+
     return experience
 
 def _clean_text(self,text:str) ->str:
