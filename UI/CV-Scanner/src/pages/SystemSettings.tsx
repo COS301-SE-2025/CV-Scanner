@@ -39,10 +39,11 @@ export default function SystemSettingsPage() {
   const [categoryOrder, setCategoryOrder] = useState<string[]>([]);
   const [categoryKeys, setCategoryKeys] = useState<Record<string, string>>({});
 
-  // show forbidden warning when user isn't allowed
+  // Permission guard: check current user and show forbidden panel if not allowed
   const [forbidden, setForbidden] = useState<boolean>(false);
+  const [authChecked, setAuthChecked] = useState<boolean>(false);
 
-  // For dev fallback user
+  // show forbidden warning when user isn't allowed
   const devUser = {
     email: "dev@example.com",
     password: "Password123",
@@ -51,6 +52,7 @@ export default function SystemSettingsPage() {
     role: "Admin",
   };
 
+  
   useEffect(() => {
     // Try to get user from API, fallback to devUser if fails
     const email = localStorage.getItem("userEmail") || devUser.email;
@@ -323,53 +325,52 @@ export default function SystemSettingsPage() {
     );
   }
 
-  // If forbidden, render a clear warning panel with a back button
+  if (!authChecked) {
+    return <div style={{ padding: 24 }}>Checking permissions…</div>;
+  }
+
   if (forbidden) {
     return (
-      <Box sx={{ p: 6 }}>
-        <Box
+      <div style={{ padding: 24 }}>
+        <div
           role="alert"
-          sx={{
-            maxWidth: 800,
-            mx: "auto",
-            bgcolor: "#fff6f6",
+          style={{
+            maxWidth: 900,
+            margin: "0 auto",
+            background: "#fff6f6",
             border: "1px solid #f5c2c2",
             color: "#7a1f1f",
-            borderRadius: 2,
-            p: 3,
+            borderRadius: 6,
+            padding: 16,
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-            Forbidden
-          </Typography>
-          <Typography sx={{ mb: 2 }}>
+          <strong>Forbidden</strong>
+          <div style={{ marginTop: 8 }}>
             You do not have permission to view System Settings. If you believe
-            this is an error, sign in with an administrator account or contact
-            your administrator.
-          </Typography>
-          <Stack direction="row" spacing={2}>
-            <Button variant="contained" onClick={() => navigate("/dashboard")}>
+            this is an error, contact your administrator or sign in with an
+            administrator account.
+          </div>
+          <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+            <button onClick={() => navigate("/dashboard")}>
               Back to Dashboard
-            </Button>
-            <Button
-              variant="outlined"
+            </button>
+            <button
               onClick={async () => {
-                // re-check permissions
-                const email =
-                  localStorage.getItem("userEmail") || devUser.email;
+                const email = localStorage.getItem("userEmail");
                 try {
-                  const res = await apiFetch(
-                    `/auth/me?email=${encodeURIComponent(email)}`
-                  );
-                  if (res.ok) {
+                  const url = email
+                    ? `/auth/me?email=${encodeURIComponent(email)}`
+                    : `/auth/me`;
+                  const res = await apiFetch(url);
+                  if (res && res.ok) {
                     const data = await res.json().catch(() => null);
-                    setUser(data ?? devUser);
                     const isAdmin =
-                      (data &&
-                        data.role &&
-                        String(data.role).toLowerCase() === "admin") ||
-                      devUser.role === "Admin";
+                      data &&
+                      (String(data.role).toLowerCase() === "admin" ||
+                        (Array.isArray(data.roles) &&
+                          data.roles.includes("admin")));
                     setForbidden(!isAdmin);
+                    setAuthChecked(true);
                   }
                 } catch {
                   // keep forbidden true
@@ -377,10 +378,10 @@ export default function SystemSettingsPage() {
               }}
             >
               Retry
-            </Button>
-          </Stack>
-        </Box>
-      </Box>
+            </button>
+          </div>
+        </div>
+      </div>
     );
   }
 
