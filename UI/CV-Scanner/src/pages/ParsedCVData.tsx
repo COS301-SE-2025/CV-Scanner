@@ -92,10 +92,88 @@ function applyFieldToRaw(
   return clone;
 }
 
+function toLines(value: any): string | undefined {
+  if (value == null) return undefined;
+  if (typeof value === "string") return value.trim() || undefined;
+  if (Array.isArray(value))
+    return value
+      .map((v) => (typeof v === "string" ? v : JSON.stringify(v)))
+      .join("\n")
+      .trim();
+  if (typeof value === "object") return JSON.stringify(value, null, 2);
+  return String(value).trim();
+}
+
+// Add small helpers (moved/ensured here)
+function isObject(v: any): v is Record<string, any> {
+  return v !== null && typeof v === "object" && !Array.isArray(v);
+}
+function safeObject(v: any): Record<string, any> {
+  return isObject(v) ? v : {};
+}
+
+const renderNormalizedFields = (fields: ParsedCVFields) => {
+  const safeFields = safeObject(fields);
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+      }}
+    >
+      {Object.entries(safeFields).map(([key, value]) => {
+        if (!value) return null;
+
+        // Skills → keep compact grid
+        if (key === "skills") {
+          return (
+            <Box
+              key={key}
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, 1fr)",
+                gap: 2,
+                p: 1,
+                borderRadius: 1,
+                backgroundColor: "#adb6beff",
+              }}
+            >
+              <EditableField
+                label={key.charAt(0).toUpperCase() + key.slice(1)}
+                value={value}
+                onSave={() => {}}
+              />
+            </Box>
+          );
+        }
+
+        // Everything else → full width
+        return (
+          <Box
+            key={key}
+            sx={{
+              p: 1,
+              borderRadius: 1,
+              backgroundColor: "#adb6beff",
+            }}
+          >
+            <EditableField
+              label={key.charAt(0).toUpperCase() + key.slice(1)}
+              value={value}
+              onSave={() => {}}
+            />
+          </Box>
+        );
+      })}
+    </Box>
+  );
+};
+
 function normalizeToParsedFields(input: any): ParsedCVFields {
   if (!input) return {};
-  const data = input.data ?? input.result ?? input.payload ?? input;
-  const applied = data.applied || data.classification || {};
+  const data = input?.data ?? input?.result ?? input?.payload ?? input ?? {};
+  const applied = safeObject(data.applied || data.classification || {});
 
   const fields: ParsedCVFields = {
     profile:
@@ -174,83 +252,6 @@ function normalizeToParsedFields(input: any): ParsedCVFields {
   });
 
   return fields;
-}
-
-const renderNormalizedFields = (fields: ParsedCVFields) => {
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 2,
-      }}
-    >
-      {Object.entries(fields).map(([key, value]) => {
-        if (!value) return null;
-
-        // Skills → keep compact grid
-        if (key === "skills") {
-          return (
-            <Box
-              key={key}
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
-                gap: 2,
-                p: 1,
-                borderRadius: 1,
-                backgroundColor: "#adb6beff",
-              }}
-            >
-              <EditableField
-                label={key.charAt(0).toUpperCase() + key.slice(1)}
-                value={value}
-                onSave={() => {}}
-              />
-            </Box>
-          );
-        }
-
-        // Everything else → full width
-        return (
-          <Box
-            key={key}
-            sx={{
-              p: 1,
-              borderRadius: 1,
-              backgroundColor: "#adb6beff",
-            }}
-          >
-            <EditableField
-              label={key.charAt(0).toUpperCase() + key.slice(1)}
-              value={value}
-              onSave={() => {}}
-            />
-          </Box>
-        );
-      })}
-    </Box>
-  );
-};
-
-function toLines(value: any): string | undefined {
-  if (value == null) return undefined;
-  if (typeof value === "string") return value.trim() || undefined;
-  if (Array.isArray(value))
-    return value
-      .map((v) => (typeof v === "string" ? v : JSON.stringify(v)))
-      .join("\n")
-      .trim();
-  if (typeof value === "object") return JSON.stringify(value, null, 2);
-  return String(value).trim();
-}
-
-// Add small helpers
-function isObject(v: any): v is Record<string, any> {
-  return v !== null && typeof v === "object" && !Array.isArray(v);
-}
-function safeObject(v: any): Record<string, any> {
-  return isObject(v) ? v : {};
 }
 
 const ParsedCVData: React.FC = () => {
