@@ -314,6 +314,35 @@ function ScoreRing({ value }: { value: number }) {
           };
         });
         setCandidates(mapped);
+        // Fetch average scores from API and merge into candidates
+        (async function fetchAndApplyAverages() {
+            try {
+              const avgRes = await apiFetch("/cv/average-scores?limit=100");
+              if (!avgRes || !avgRes.ok) return;
+              const avgJson = await avgRes.json();
+              // avgJson expected as array of { candidateId, averageScoreOutOf10, ... }
+              if (!Array.isArray(avgJson)) return;
+              const avgMap = new Map<number, number>();
+              for (const it of avgJson) {
+                const id = Number(it?.candidateId ?? it?.id);
+                const score = it?.averageScoreOutOf10 ?? it?.averageScore;
+                if (!Number.isNaN(id) && score != null) {
+                  avgMap.set(id, Number(score));
+                }
+              }
+              // merge into current candidate list
+              setCandidates((prev) =>
+                prev.map((cand) => ({
+                  ...cand,
+                  score: avgMap.has(Number(cand.id)) ? Math.max(0, Math.min(10, Number(avgMap.get(Number(cand.id))))) : cand.score,
+                }))
+              );
+            } catch (e) {
+              // ignore; keep fallback scores
+              console.warn("Failed to fetch average scores:", e);
+            }
+          })();
+ 
       } catch {
         setUser(null);
         setCandidates([]);
@@ -651,8 +680,9 @@ function ScoreRing({ value }: { value: number }) {
                             e.stopPropagation(); // Prevents triggering the Paper onClick
 
                             // Show loading state if needed
-                            if (processingCandidates.includes(candidate.email))
+                            if (processingCandidates.includes(candidate.email)) {
                               return;
+                            }
 
                             // Add candidate to processing list
                             setProcessingCandidates((prev) => [
