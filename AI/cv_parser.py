@@ -103,337 +103,343 @@ class CVData(BaseModel):
     projects: List[Dict[str, str]] = Field(default=[], description="Notable projects")
     languages: List[str] = Field(default=[], description="Programming/spoken languages")
 
-def extract_with_ai_prompting(self, cv_text:str) -> Dict[str,any]:
-    """
-        Use AI prompting to extract structured data from CV text
-        Focus on candidate qualifications, not project descriptions
-    """
-    clean_text = self._clean_text(cv_text)
+class AIExtractor:
 
-    personal_info = self._extract_personal_info(clean_text)
-    skills = self._extract_skills(clean_text)
-    experience = self._extract_experience(clean_text)
-    education = self._extract_education(clean_text)
+    def __init__(self):
+        
 
-    summary = self._generate_professional_candidate_summary(
-            personal_info, skills, experience, education, clean_text
+    def extract_with_ai_prompting(self, cv_text:str) -> Dict[str,any]:
+        """
+            Use AI prompting to extract structured data from CV text
+            Focus on candidate qualifications, not project descriptions
+        """
+        clean_text = self._clean_text(cv_text)
+
+        personal_info = self._extract_personal_info(clean_text)
+        skills = self._extract_skills(clean_text)
+        experience = self._extract_experience(clean_text)
+        education = self._extract_education(clean_text)
+
+        summary = self._generate_professional_candidate_summary(
+                personal_info, skills, experience, education, clean_text
+            )
+
+    #endof extract_with_ai_prompting
+
+    def _generate_professional_candidate_summary(self, personal_info: Dict, skills: List, 
+                                                   experience: List, education: List, text: str) -> str:
+            """Generate a fluid sentence describing the CV and the person using AI summarization."""
+
+
+    def _extract_education(self, text: str) -> List[Dict[str, str]]:
+        """Extract education information from CV text"""
+        education = []
+
+        edu_section = self._find_section(text, ['education', 'academic background', 'qualifications', 'educational background', 'degrees'])
+        if not edu_section:
+            return education
+        
+        entries = re.split(
+        r'\n(?=\s*(?:[A-Z][a-z]+\.?\s+)?'
+        r'(?:University|College|School|Institute|Academy|Polytechnic|High School|'
+        r'B\.?Sc|B\.?A|B\.?Eng|M\.?Sc|M\.?A|MBA|LLB|Ph\.?D|Diploma|Certificate)'
+        r'|\n(?:EDUCATION|ACADEMIC BACKGROUND|QUALIFICATIONS|EDUCATIONAL BACKGROUND)\n)',
+        edu_section,
+        flags=re.IGNORECASE
         )
 
-#endof extract_with_ai_prompting
-
-def _generate_professional_candidate_summary(self, personal_info: Dict, skills: List, 
-                                               experience: List, education: List, text: str) -> str:
-        """Generate a fluid sentence describing the CV and the person using AI summarization."""
-
-def _extract_education(self, text: str) -> List[Dict[str, str]]:
-    """Extract education information from CV text"""
-    education = []
-
-    edu_section = self._find_section(text, ['education', 'academic background', 'qualifications', 'educational background', 'degrees'])
-    if not edu_section:
+        for entry in entries:
+            if len(entry.strip()) > 30:
+                edu_data = self.parse_education_entry(entry)
+                if edu_data and edu_data.get('institution') != 'institution extracted':
+                    education.append(edu_data)
+        
         return education
-    
-    entries = re.split(
-    r'\n(?=\s*(?:[A-Z][a-z]+\.?\s+)?'
-    r'(?:University|College|School|Institute|Academy|Polytechnic|High School|'
-    r'B\.?Sc|B\.?A|B\.?Eng|M\.?Sc|M\.?A|MBA|LLB|Ph\.?D|Diploma|Certificate)'
-    r'|\n(?:EDUCATION|ACADEMIC BACKGROUND|QUALIFICATIONS|EDUCATIONAL BACKGROUND)\n)',
-    edu_section,
-    flags=re.IGNORECASE
-    )
 
-    for entry in entries:
-        if len(entry.strip()) > 30:
-            edu_data = self.parse_education_entry(entry)
-            if edu_data and edu_data.get('institution') != 'institution extracted':
-                education.append(edu_data)
-    
-    return education
+    def _parse_education_entry(self, entry: str) -> Dict[str, str]:
+        """Parse individual education entry"""
+        lines = [line.strip() for line in entry.split('\n') if line.strip()]
+        if not lines:
+            return None
+        
+        date_pattern = (
+        r'\b(?:' 
+            r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}'  
+            r'|\d{4}'                                                            
+        r')\b'
+        r'\s*[-–—to]+\s*'                                                        
+        r'\b(?:'
+            r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}'  
+            r'|\d{4}'                                                            
+            r'|Present|Current'                                                  
+        r')\b'
+        )
 
-def _parse_education_entry(self, entry: str) -> Dict[str, str]:
-    """Parse individual education entry"""
-    lines = [line.strip() for line in entry.split('\n') if line.strip()]
-    if not lines:
-        return None
-    
-    date_pattern = (
-    r'\b(?:' 
-        r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}'  
-        r'|\d{4}'                                                            
-    r')\b'
-    r'\s*[-–—to]+\s*'                                                        
-    r'\b(?:'
-        r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}'  
-        r'|\d{4}'                                                            
-        r'|Present|Current'                                                  
-    r')\b'
-    )
+        dates = re.findall(date_pattern, entry, re.IGNORECASE)
+        duration = " - ".join(dates) if len(dates) >= 2 else "Duration not found"
 
-    dates = re.findall(date_pattern, entry, re.IGNORECASE)
-    duration = " - ".join(dates) if len(dates) >= 2 else "Duration not found"
+        first_line = lines[0]
+        institution, degree = self._extract_institution_degree(first_line)
 
-    first_line = lines[0]
-    institution, degree = self._extract_institution_degree(first_line)
-
-    return {
-            'institution': institution or 'Educational institution',
-            'degree': degree or first_line[:80],
-            'duration': duration,
-            'gpa': self._extract_gpa(entry),
-            'location': None
-    }
-
-def _extract_institution_degree(self, first_line: str, all_lines: List[str]) -> tuple[str, str]:
-    """Extract institution and degree from education entry"""
-
-    if ' at ' in first_line:
-        parts = first_line.split(' at ', 1)
-        return parts[1].strip(), parts[0].strip()
-    elif ', ' in first_line:
-        parts = first_line.split(', ', 1)
-        return parts[1].strip(), parts[0].strip()
-
-    institution_keywords = ['University', 'College', 'School', 'Institute', 'Academy']
-    for line in all_lines:
-        for keyword in institution_keywords:
-            if keyword in line:
-                return line.strip(), first_line.strip()
-    
-    return None, first_line.strip()
-
-def _extract_experience(self, text: str) -> List[Dict[str, str]]:
-    """Extract work experience information from CV text"""
-    experience = []
-
-    exp_section = self._find_section(text, ['experience', 'work experience', 'professional experience', 'employment history', 'employment'])
-    if not exp_section:
-        return experience
-    
-    entries = re.split(
-    r'\n(?=(?:(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|'
-    r'May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|'
-    r'Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?|\d{4})'
-    r'(?:\s*[-–—to]+\s*'
-    r'(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|'
-    r'May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|'
-    r'Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?|\d{4}|Present|Current))?)'
-    r'|(?:\b(?:WORK EXPERIENCE|EMPLOYMENT HISTORY|PROFESSIONAL EXPERIENCE|CAREER HISTORY)\b))',
-    exp_section,
-    flags=re.IGNORECASE
-    )
-
-    for entry in entries:
-        if len(entry.strip()) > 30:
-            exp_data = self.parse_experience_entry(entry)
-            if exp_data and exp_data.get('company') != 'company extracted':
-                experience.append(exp_data)
-
-    return experience
-
-def _parse_experience_entry(self, entry: str) -> Dict[str, str]:
-
-    lines = [line.strip() for line in entry.split('\n') if line.strip()]
-    if len(lines) < 2:
-        return None
-    
-    date_pattern = (
-    r'\b(?:' 
-        r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}'  
-        r'|\d{4}'                                                            
-    r')\b'
-    r'\s*[-–—to]+\s*'                                                        
-    r'\b(?:'
-        r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}'  
-        r'|\d{4}'                                                            
-        r'|Present|Current'                                                  
-    r')\b'
-    )
-    dates = re.findall(date_pattern, entry, re.IGNORECASE)
-    duration = " - ".join(dates) if len(dates) > 2 else "Duration not found"
-
-    first_line = lines[0]
-    company, position  = self._extract_company_position(first_line)
-
-    description = ' '.join(lines[1:])[:500]
-
-    return {
-        'company': company or 'Company information',
-            'position': position or first_line[:60],
-            'duration': duration,
-            'description': description
-    }
-
-def _extract_company_position(self, line: str) -> tuple[str, str]:
-    """Extract company name and position from a line"""
-    if ' at ' in line:
-        parts = line.split(' at ', 1)
-        return parts[1].strip(), parts[0].strip()
-    elif ' - ' in line:
-        parts = line.split(' - ', 1)
-        return parts[0].strip(), parts[1].strip()
-    elif ', ' in line and len(line.split(', ')) == 2:
-        parts = line.split(', ', 1)
-        return parts[1].strip(), parts[0].strip()
-    
-    return None, line.strip()
-
-def _clean_text(self,text:str) ->str:
-    """Clean and normalize CV text"""
-    text = re.sub(r'\n\s*\n', '\n\n',text)
-    text = re.sub(r'[ \t]+', ' ', text)
-    return text
-
-def _extract_personal_info(self, text: str) -> Dict[str, str]:
-    """Extract personal information with improved name detection"""
-
-    info = {
-        'name':'Name not found',
-        'email': None,
-        'phone': None,
-    }
-
-    email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-    email_match = re.saerch(email_pattern, text)
-    if email_match:
-        info['email'] = email_match.group()
-    
-    phone_pattern = r'(\+?27|0)[\s-]?(\d{2,3}[\s-]?\d{3,4}[\s-]?\d{3,4}|\d{2,3}[\s-]?\d{3,4}[\s-]?\d{4})'
-    phone_match = re.search(phone_pattern, text)
-    if phone_match:
-        info['phone'] = phone_match.group().strip()
-    
-    lines  = text.split('\n')
-    candidate_names = []
-    for i, line in enumerate(lines[:10]):
-        if len(line) > 3 and len(line) <50:
-            if any(indicator in line.lower() for indicator in[
-                '@', 'http', 'linkedin', 'github', 'phone', 'mobile', 'tel:', 'email', 'resume', 'cv'
-            ]):
-                continue
-            words=line.split()
-            if 2<=len(words) <=4:
-                capital_words = sum(1 for w in words if w and w[0].isupper())
-            if capital_words >=len(words) *0.8:
-                exclude_keywords = [
-                     'experience', 'education', 'skills', 'projects', 'certifications',
-                            'summary', 'objective', 'references', 'awards', 'publications'
-                ]
-                if not any(kw in line.lower() for kw in exclude_keywords):
-                    candidate_names.append(line.strip())
-    if candidate_names:
-        info['name'] = candidate_names[0]
-
-    if info['name'] in ['Name not found', 'Phone Number'] and info['email']:
-            email_name = info['email'].split('@')[0]
-            clean_name = re.sub(r'[0-9._+-]+', ' ', email_name).title().strip()
-            if len(clean_name) > 3:
-                info['name'] = clean_name
-
-    return info
-
-#endof _extract_personal_info
-
-def _extract_skills(self, text: str) -> List[str]:
-        """Extract skills using keyword matching and context"""
-        text_lower = text.lower()
-
-        skills_dict = {
-            "tech": [
-                'python', 'java', 'javascript', 'typescript', 'react', 'angular', 'vue',
-                'node.js', 'express', 'django', 'flask', 'spring', 'c++', 'c#', 'go', 'rust',
-                'html', 'css', 'sass', 'less', 'bootstrap', 'tailwind', 'jquery',
-                'mysql', 'postgresql', 'mongodb', 'redis', 'sqlite', 'oracle',
-                'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'jenkins', 'git', 'github',
-                'tensorflow', 'pytorch', 'keras', 'scikit-learn', 'pandas', 'numpy'
-            ],
-            "design": [
-                'figma', 'adobe xd', 'sketch', 'photoshop', 'illustrator', 'indesign',
-                'after effects', 'premiere pro', '3ds max', 'autocad', 'solidworks'
-            ],
-            "business": [
-                'business analysis', 'data analysis', 'financial modeling', 'accounting',
-                'bookkeeping', 'budgeting', 'forecasting', 'erp', 'sap', 'crm',
-                'excel', 'power bi', 'tableau', 'ms office'
-            ],
-            "healthcare": [
-                'patient care', 'first aid', 'cpr', 'emr', 'surgery assistance', 'nursing',
-                'phlebotomy', 'medication administration', 'medical coding', 'hipaa compliance'
-            ],
-            "education": [
-                'curriculum development', 'lesson planning', 'teaching', 'mentoring',
-                'tutoring', 'classroom management', 'educational technology'
-            ],
-            "sales_marketing": [
-                'seo', 'sem', 'social media', 'digital marketing', 'content creation',
-                'copywriting', 'salesforce', 'lead generation', 'market research',
-                'customer relationship management'
-            ],
-            "soft": [
-                'leadership', 'communication', 'teamwork', 'problem solving', 'critical thinking',
-                'time management', 'project management', 'agile', 'scrum', 'kanban',
-                'analytical skills', 'creativity', 'adaptability', 'collaboration', 'mentoring',
-                'public speaking', 'presentation', 'negotiation', 'strategic planning'
-            ],
-            "trades": [
-                'plumbing', 'electrical wiring', 'carpentry', 'welding', 'machining',
-                'hvac', 'blueprint reading', 'forklift operation', 'osha compliance'
-            ]
+        return {
+                'institution': institution or 'Educational institution',
+                'degree': degree or first_line[:80],
+                'duration': duration,
+                'gpa': self._extract_gpa(entry),
+                'location': None
         }
 
-        all_skills = [skill for group in skills_dict.values() for skill in group]
+    def _extract_institution_degree(self, first_line: str, all_lines: List[str]) -> tuple[str, str]:
+        """Extract institution and degree from education entry"""
 
-        found_skills = []
+        if ' at ' in first_line:
+            parts = first_line.split(' at ', 1)
+            return parts[1].strip(), parts[0].strip()
+        elif ', ' in first_line:
+            parts = first_line.split(', ', 1)
+            return parts[1].strip(), parts[0].strip()
 
-        skill_sections = self._find_section(text, ['skills', 'technical skills', 'competencies', 'strengths'])
-        if skill_sections:
-            section_lower = skill_sections.lower()
+        institution_keywords = ['University', 'College', 'School', 'Institute', 'Academy']
+        for line in all_lines:
+            for keyword in institution_keywords:
+                if keyword in line:
+                    return line.strip(), first_line.strip()
+        
+        return None, first_line.strip()
+
+    def _extract_experience(self, text: str) -> List[Dict[str, str]]:
+        """Extract work experience information from CV text"""
+        experience = []
+
+        exp_section = self._find_section(text, ['experience', 'work experience', 'professional experience', 'employment history', 'employment'])
+        if not exp_section:
+            return experience
+        
+        entries = re.split(
+        r'\n(?=(?:(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|'
+        r'May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|'
+        r'Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?|\d{4})'
+        r'(?:\s*[-–—to]+\s*'
+        r'(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|'
+        r'May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|'
+        r'Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?|\d{4}|Present|Current))?)'
+        r'|(?:\b(?:WORK EXPERIENCE|EMPLOYMENT HISTORY|PROFESSIONAL EXPERIENCE|CAREER HISTORY)\b))',
+        exp_section,
+        flags=re.IGNORECASE
+        )
+
+        for entry in entries:
+            if len(entry.strip()) > 30:
+                exp_data = self.parse_experience_entry(entry)
+                if exp_data and exp_data.get('company') != 'company extracted':
+                    experience.append(exp_data)
+
+        return experience
+
+    def _parse_experience_entry(self, entry: str) -> Dict[str, str]:
+
+        lines = [line.strip() for line in entry.split('\n') if line.strip()]
+        if len(lines) < 2:
+            return None
+        
+        date_pattern = (
+        r'\b(?:' 
+            r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}'  
+            r'|\d{4}'                                                            
+        r')\b'
+        r'\s*[-–—to]+\s*'                                                        
+        r'\b(?:'
+            r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}'  
+            r'|\d{4}'                                                            
+            r'|Present|Current'                                                  
+        r')\b'
+        )
+        dates = re.findall(date_pattern, entry, re.IGNORECASE)
+        duration = " - ".join(dates) if len(dates) > 2 else "Duration not found"
+
+        first_line = lines[0]
+        company, position  = self._extract_company_position(first_line)
+
+        description = ' '.join(lines[1:])[:500]
+
+        return {
+            'company': company or 'Company information',
+                'position': position or first_line[:60],
+                'duration': duration,
+                'description': description
+        }
+
+    def _extract_company_position(self, line: str) -> tuple[str, str]:
+        """Extract company name and position from a line"""
+        if ' at ' in line:
+            parts = line.split(' at ', 1)
+            return parts[1].strip(), parts[0].strip()
+        elif ' - ' in line:
+            parts = line.split(' - ', 1)
+            return parts[0].strip(), parts[1].strip()
+        elif ', ' in line and len(line.split(', ')) == 2:
+            parts = line.split(', ', 1)
+            return parts[1].strip(), parts[0].strip()
+        
+        return None, line.strip()
+
+    def _clean_text(self,text:str) ->str:
+        """Clean and normalize CV text"""
+        text = re.sub(r'\n\s*\n', '\n\n',text)
+        text = re.sub(r'[ \t]+', ' ', text)
+        return text
+
+    def _extract_personal_info(self, text: str) -> Dict[str, str]:
+        """Extract personal information with improved name detection"""
+
+        info = {
+            'name':'Name not found',
+            'email': None,
+            'phone': None,
+        }
+
+        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        email_match = re.saerch(email_pattern, text)
+        if email_match:
+            info['email'] = email_match.group()
+        
+        phone_pattern = r'(\+?27|0)[\s-]?(\d{2,3}[\s-]?\d{3,4}[\s-]?\d{3,4}|\d{2,3}[\s-]?\d{3,4}[\s-]?\d{4})'
+        phone_match = re.search(phone_pattern, text)
+        if phone_match:
+            info['phone'] = phone_match.group().strip()
+        
+        lines  = text.split('\n')
+        candidate_names = []
+        for i, line in enumerate(lines[:10]):
+            if len(line) > 3 and len(line) <50:
+                if any(indicator in line.lower() for indicator in[
+                    '@', 'http', 'linkedin', 'github', 'phone', 'mobile', 'tel:', 'email', 'resume', 'cv'
+                ]):
+                    continue
+                words=line.split()
+                if 2<=len(words) <=4:
+                    capital_words = sum(1 for w in words if w and w[0].isupper())
+                if capital_words >=len(words) *0.8:
+                    exclude_keywords = [
+                         'experience', 'education', 'skills', 'projects', 'certifications',
+                                'summary', 'objective', 'references', 'awards', 'publications'
+                    ]
+                    if not any(kw in line.lower() for kw in exclude_keywords):
+                        candidate_names.append(line.strip())
+        if candidate_names:
+            info['name'] = candidate_names[0]
+
+        if info['name'] in ['Name not found', 'Phone Number'] and info['email']:
+                email_name = info['email'].split('@')[0]
+                clean_name = re.sub(r'[0-9._+-]+', ' ', email_name).title().strip()
+                if len(clean_name) > 3:
+                    info['name'] = clean_name
+
+        return info
+
+    #endof _extract_personal_info
+
+    def _extract_skills(self, text: str) -> List[str]:
+            """Extract skills using keyword matching and context"""
+            text_lower = text.lower()
+
+            skills_dict = {
+                "tech": [
+                    'python', 'java', 'javascript', 'typescript', 'react', 'angular', 'vue',
+                    'node.js', 'express', 'django', 'flask', 'spring', 'c++', 'c#', 'go', 'rust',
+                    'html', 'css', 'sass', 'less', 'bootstrap', 'tailwind', 'jquery',
+                    'mysql', 'postgresql', 'mongodb', 'redis', 'sqlite', 'oracle',
+                    'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'jenkins', 'git', 'github',
+                    'tensorflow', 'pytorch', 'keras', 'scikit-learn', 'pandas', 'numpy'
+                ],
+                "design": [
+                    'figma', 'adobe xd', 'sketch', 'photoshop', 'illustrator', 'indesign',
+                    'after effects', 'premiere pro', '3ds max', 'autocad', 'solidworks'
+                ],
+                "business": [
+                    'business analysis', 'data analysis', 'financial modeling', 'accounting',
+                    'bookkeeping', 'budgeting', 'forecasting', 'erp', 'sap', 'crm',
+                    'excel', 'power bi', 'tableau', 'ms office'
+                ],
+                "healthcare": [
+                    'patient care', 'first aid', 'cpr', 'emr', 'surgery assistance', 'nursing',
+                    'phlebotomy', 'medication administration', 'medical coding', 'hipaa compliance'
+                ],
+                "education": [
+                    'curriculum development', 'lesson planning', 'teaching', 'mentoring',
+                    'tutoring', 'classroom management', 'educational technology'
+                ],
+                "sales_marketing": [
+                    'seo', 'sem', 'social media', 'digital marketing', 'content creation',
+                    'copywriting', 'salesforce', 'lead generation', 'market research',
+                    'customer relationship management'
+                ],
+                "soft": [
+                    'leadership', 'communication', 'teamwork', 'problem solving', 'critical thinking',
+                    'time management', 'project management', 'agile', 'scrum', 'kanban',
+                    'analytical skills', 'creativity', 'adaptability', 'collaboration', 'mentoring',
+                    'public speaking', 'presentation', 'negotiation', 'strategic planning'
+                ],
+                "trades": [
+                    'plumbing', 'electrical wiring', 'carpentry', 'welding', 'machining',
+                    'hvac', 'blueprint reading', 'forklift operation', 'osha compliance'
+                ]
+            }
+
+            all_skills = [skill for group in skills_dict.values() for skill in group]
+
+            found_skills = []
+
+            skill_sections = self._find_section(text, ['skills', 'technical skills', 'competencies', 'strengths'])
+            if skill_sections:
+                section_lower = skill_sections.lower()
+                for skill in all_skills:
+                    if skill in section_lower:
+                        found_skills.append(skill)
+
+            context_patterns = ["proficient in", "expertise in", "skilled in",
+                "experience with", "knowledge of", "familiar with"]
+            
             for skill in all_skills:
-                if skill in section_lower:
-                    found_skills.append(skill)
+                if skill in text_lower:
+                    if any(f"{ctx} {skill}" in text_lower for ctx in context_patterns) \
+                        or any(symbol in text_lower for symbol in [f" {skill},", f" {skill}.", f" {skill};", f" {skill}."]):
+                        found_skills.append(skill.title())
+            
+            seen = set()
+            unique_skills = []
+            for skill in found_skills:
+                if skill not in seen:
+                    seen.add(skill)
+                    unique_skills.append(skill)
 
-        context_patterns = ["proficient in", "expertise in", "skilled in",
-            "experience with", "knowledge of", "familiar with"]
+            return unique_skills[:20]
+
+    def _find_section(self, text:str, keywords:List[str]) -> str:
+        """Find and extract a specific section from CV text"""
+        lines = text.split('\n')
+        start_section = -1
+
+        for i, line in enumerate(lines):
+            line_lower = line.strip().lower()
+            if any(kw in line_lower for kw in keywords) and len(line.strip()) <100:
+                start_section = i
+                break
+
+        if start_section == -1:
+            return ""
         
-        for skill in all_skills:
-            if skill in text_lower:
-                if any(f"{ctx} {skill}" in text_lower for ctx in context_patterns) \
-                    or any(symbol in text_lower for symbol in [f" {skill},", f" {skill}.", f" {skill};", f" {skill}."]):
-                    found_skills.append(skill.title())
-        
-        seen = set()
-        unique_skills = []
-        for skill in found_skills:
-            if skill not in seen:
-                seen.add(skill)
-                unique_skills.append(skill)
+        common_headers = ['experience', 'education', 'skills', 'projects', 'contact', 
+                             'summary', 'objective', 'certifications', 'languages', 'references']
+        section_end = len(lines)
 
-        return unique_skills[:20]
+        for i in range(section_start +1, len(lines)):
+            line_lower = lines[i].strip().lower()
+            if any(header in line_lower for header in common_headers) and len(lines[i].strip()) <100:
+                section_end = i
+                break
 
-def _find_section(self, text:str, keywords:List[str]) -> str:
-    """Find and extract a specific section from CV text"""
-    lines = text.split('\n')
-    start_section = -1
-
-    for i, line in enumerate(lines):
-        line_lower = line.strip().lower()
-        if any(kw in line_lower for kw in keywords) and len(line.strip()) <100:
-            start_section = i
-            break
-
-    if start_section == -1:
-        return ""
-    
-    common_headers = ['experience', 'education', 'skills', 'projects', 'contact', 
-                         'summary', 'objective', 'certifications', 'languages', 'references']
-    section_end = len(lines)
-
-    for i in range(section_start +1, len(lines)):
-        line_lower = lines[i].strip().lower()
-        if any(header in line_lower for header in common_headers) and len(lines[i].strip()) <100:
-            section_end = i
-            break
-
-    return "\n".join(lines[start_section + 1:section_end]) if start_section != -1 else ""
+        return "\n".join(lines[start_section + 1:section_end]) if start_section != -1 else ""
 
 def parse_resume_from_bytes(file_bytes: bytes, filename: str):
     ext = os.path.splitext(filename or "upload.bin")[1].lower()
