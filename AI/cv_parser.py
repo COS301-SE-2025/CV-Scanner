@@ -284,28 +284,20 @@ class AIExtractor:
         return list(set(found_languages))
 
 
-    def _determine_professional_level(self, skills: List[str], experience: List, education: List, text: str) -> str:
+    def _determine_professional_level(self, skills: List[str], experience: List[str], education: List[str], text: str) -> str:
         text_lower = text.lower()
 
         senior_terms = ['senior', 'sr.', 'lead', 'principal', 'staff', 'head', 'director', 'manager']
         junior_terms = ['junior', 'entry level', 'graduate', 'associate', 'intern', 'trainee']
 
-    
         if any(term in text_lower for term in senior_terms):
             return "Senior Professional"
         elif any(term in text_lower for term in junior_terms):
             return "Junior Professional"
 
-
         if experience:
             total_positions = len(experience)
-            total_years = 0
-            for exp in experience:
-                start = exp.get('start_year')
-                end = exp.get('end_year')
-                if start and end:
-                    total_years += int(end) - int(start)
-            if total_years >= 5 or total_positions >= 3:
+            if total_positions >= 3:
                 return "Experienced Professional"
 
         return "Professional"
@@ -317,9 +309,10 @@ class AIExtractor:
     
         return education[0] if education else ""
 
-    def _calculate_experience_years(self, experience: List[Dict]) -> int:
+    def _calculate_experience_years(self, experience: List[str]) -> int:
+        """Calculate approximate years of experience from experience entries"""
         try:
-            return min(len(experience), 10)
+            return min(len(experience) * 2, 20)
         except:
             return 0
 
