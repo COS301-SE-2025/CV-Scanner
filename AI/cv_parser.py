@@ -87,6 +87,29 @@ def extract_with_ai_prompting(self, cv_text:str) -> Dict[str,any]:
     experience = self._extract_experience(clean_text)
     education = self._extract_education(clean_text)
 
+#endof extract_with_ai_prompting
+def _extract_experience(self, text: str) -> List[Dict[str, str]]:
+    """Extract work experience information from CV text"""
+    experience = []
+
+    exp_section = self._find_section(text, ['experience', 'work experience', 'professional experience', 'employment history', 'employment'])
+    if not exp_section:
+        return experience
+    
+    entries = re.split(
+    r'\n(?=(?:(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|'
+    r'May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|'
+    r'Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?|\d{4})'
+    r'(?:\s*[-–—to]+\s*'
+    r'(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|'
+    r'May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|'
+    r'Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?|\d{4}|Present|Current))?)'
+    r'|(?:\b(?:WORK EXPERIENCE|EMPLOYMENT HISTORY|PROFESSIONAL EXPERIENCE|CAREER HISTORY)\b))',
+    exp_section,
+    flags=re.IGNORECASE
+)
+
+
 def _clean_text(self,text:str) ->str:
     """Clean and normalize CV text"""
     text = re.sub(r'\n\s*\n', '\n\n',text)
