@@ -155,6 +155,8 @@ export default function UploadCVPage() {
   const [candidateSurname, setCandidateSurname] = useState("");
   const [candidateEmail, setCandidateEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [aiUploadData, setAiUploadData] = useState<any | null>(null);
+  const [aiParseData, setAiParseData] = useState<any | null>(null);
 
   const candidateDetailsRef = useRef<HTMLDivElement>(null);
   const cvTableRef = useRef<HTMLDivElement>(null);
@@ -359,6 +361,10 @@ export default function UploadCVPage() {
         makeApiCall(parseEndpoint, formData),
       ]);
 
+      // Save raw AI responses into state for later display
+      setAiUploadData(uploadResult.success ? uploadResult.data : null);
+      setAiParseData(parseResult.success ? parseResult.data : null);
+
       console.log("Safe API Results:", {
         uploadSuccess: uploadResult.success,
         parseSuccess: parseResult.success,
@@ -373,10 +379,34 @@ export default function UploadCVPage() {
         );
       }
 
-      // Process the data safely
-      const processedData = extractDataSafely(
+      // Process the data safely - prefer parse, fallback to upload
+      let processedData = extractDataSafely(
         parseResult.success ? parseResult.data : uploadResult.data
       );
+      // If parse didn't provide skills/education/etc, try to pull from uploadResult
+      if (
+        uploadResult.success &&
+        (!processedData.skills || processedData.skills === "")
+      ) {
+        try {
+          const up = uploadResult.data || {};
+          // common shapes: applied => { Skills: [...] }  or raw => { Skills: { top_k: [...] } }
+          const appliedSkills = up?.applied?.Skills;
+          if (Array.isArray(appliedSkills) && appliedSkills.length) {
+            processedData.skills = appliedSkills.join(", ");
+          } else {
+            const rawSkills = up?.raw?.Skills?.top_k;
+            if (Array.isArray(rawSkills) && rawSkills.length) {
+              processedData.skills = rawSkills
+                .map((t: any) => t.label)
+                .join(", ");
+            }
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+
       setProcessedData(processedData);
 
       // Create file URL for preview
@@ -942,6 +972,58 @@ export default function UploadCVPage() {
               </Box>
             </Box>
           )}
+          {/* Show raw AI upload/parse JSON for debugging / visibility */}
+          <Divider sx={{ my: 2 }} />
+          <Box sx={{ px: 2 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
+              AI Upload Result (raw)
+            </Typography>
+            <Box
+              sx={{
+                bgcolor: "#ffffff",
+                color: "#000",
+                p: 1,
+                borderRadius: 1,
+                fontFamily: "monospace",
+                whiteSpace: "pre-wrap",
+                maxHeight: "20vh",
+                overflow: "auto",
+                fontSize: 12,
+              }}
+            >
+              <pre style={{ margin: 0 }}>
+                {aiUploadData
+                  ? JSON.stringify(aiUploadData, null, 2)
+                  : "No upload result"}
+              </pre>
+            </Box>
+
+            <Typography
+              variant="subtitle2"
+              sx={{ fontWeight: "bold", mt: 2, mb: 1 }}
+            >
+              AI Parse Result (raw)
+            </Typography>
+            <Box
+              sx={{
+                bgcolor: "#ffffff",
+                color: "#000",
+                p: 1,
+                borderRadius: 1,
+                fontFamily: "monospace",
+                whiteSpace: "pre-wrap",
+                maxHeight: "20vh",
+                overflow: "auto",
+                fontSize: 12,
+              }}
+            >
+              <pre style={{ margin: 0 }}>
+                {aiParseData
+                  ? JSON.stringify(aiParseData, null, 2)
+                  : "No parse result"}
+              </pre>
+            </Box>
+          </Box>
         </DialogContent>
         <DialogActions sx={{ bgcolor: "#181c2f", justifyContent: "flex-end" }}>
           <Button
