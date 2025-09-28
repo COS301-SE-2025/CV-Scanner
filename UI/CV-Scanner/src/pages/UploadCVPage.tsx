@@ -1,7 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
-import type { FC } from "react";
-import { apiFetch, aiFetch } from "../lib/api";
-
+import React, { useEffect, useState, useRef } from "react";
 import {
   Box,
   Typography,
@@ -21,13 +18,11 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Divider,
   Popover,
   Fade,
   Tooltip,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import { useLocation } from "react-router-dom";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
@@ -37,123 +32,39 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import Sidebar from "./Sidebar";
 import ConfigAlert from "./ConfigAlert";
+import { apiFetch, aiFetch } from "../lib/api";
 
-type CandidateAvg = {
-  candidateId: number | string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  averageScoreOutOf10?: number | null;
-};
+interface ProcessedData {
+  profile: string;
+  education: string;
+  skills: string;
+  experience: string;
+  projects: string;
+  achievements: string;
+  contact: string;
+  languages: string;
+  other: string;
+}
 
-const AVG_API_BASE = "http://localhost:8080";
-const AVG_ENDPOINT = `${AVG_API_BASE.replace(
-  /\/+$/,
-  ""
-)}/cv/average-scores?limit=100`;
-
-const AverageScoresPanel: FC = () => {
-  const [items, setItems] = useState<CandidateAvg[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchAverages = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(AVG_ENDPOINT, { method: "GET" });
-      if (!res.ok) throw new Error(`status ${res.status}`);
-      const json = await res.json();
-      if (Array.isArray(json)) {
-        setItems(json as CandidateAvg[]);
-      } else if (json && typeof json === "object" && Array.isArray(json.data)) {
-        setItems(json.data as CandidateAvg[]);
-      } else {
-        // try to interpret top-level as list
-        setItems(Array.isArray(json) ? (json as CandidateAvg[]) : []);
-      }
-    } catch (e: any) {
-      setError(String(e.message ?? e));
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchAverages();
-  }, [fetchAverages]);
-
-  return (
-    <section style={{ marginTop: 20 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <h3>Candidate Average Scores</h3>
-        <div>
-          <button onClick={() => fetchAverages()} disabled={loading}>
-            {loading ? "Refreshing..." : "Refresh"}
-          </button>
-        </div>
-      </div>
-      {error && <div style={{ color: "red" }}>Error: {error}</div>}
-      <table
-        style={{ width: "100%", borderCollapse: "collapse", marginTop: 8 }}
-      >
-        <thead>
-          <tr>
-            <th style={{ textAlign: "left", padding: 6 }}>Candidate</th>
-            <th style={{ textAlign: "left", padding: 6 }}>Email</th>
-            <th style={{ textAlign: "right", padding: 6 }}>Avg Score (0-10)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.length === 0 && !loading && (
-            <tr>
-              <td colSpan={3}>No results</td>
-            </tr>
-          )}
-          {items.map((c) => (
-            <tr key={String(c.candidateId)}>
-              <td style={{ padding: 6 }}>
-                {`${c.firstName ?? ""} ${c.lastName ?? ""}`.trim() ||
-                  c.candidateId}
-              </td>
-              <td style={{ padding: 6 }}>{c.email ?? "-"}</td>
-              <td style={{ padding: 6, textAlign: "right" }}>
-                {c.averageScoreOutOf10 == null
-                  ? "-"
-                  : c.averageScoreOutOf10.toFixed(2)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </section>
-  );
-};
+interface ApiResponse {
+  success: boolean;
+  data?: any;
+  error?: string;
+}
 
 export default function UploadCVPage() {
   const [collapsed, setCollapsed] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const [processedData, setProcessedData] = useState<any | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [processedData, setProcessedData] = useState<ProcessedData | null>(null);
   const [candidateName, setCandidateName] = useState("");
   const [candidateSurname, setCandidateSurname] = useState("");
   const [candidateEmail, setCandidateEmail] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const candidateDetailsRef = useRef<HTMLDivElement>(null);
   const cvTableRef = useRef<HTMLDivElement>(null);
-
-  // Config editor state
-  const [configJson, setConfigJson] = useState<string>("");
-  const [originalConfig, setOriginalConfig] = useState<string>("");
-  const [isEditingConfig, setIsEditingConfig] = useState(false);
-  const [configSavedPopup, setConfigSavedPopup] = useState(false);
+  const uploadBoxRef = useRef<HTMLDivElement>(null);
+  const processBtnRef = useRef<HTMLButtonElement>(null);
 
   const [errorPopup, setErrorPopup] = useState<{
     open: boolean;
@@ -163,14 +74,6 @@ export default function UploadCVPage() {
     message: "",
   });
 
-  const devUser = {
-    email: "dev@example.com",
-    password: "Password123",
-    first_name: "John",
-    last_name: "Doe",
-    role: "Admin",
-  };
-
   const [user, setUser] = useState<{
     first_name?: string;
     last_name?: string;
@@ -178,364 +81,246 @@ export default function UploadCVPage() {
     role?: string;
     email?: string;
   } | null>(null);
+
   const [tutorialStep, setTutorialStep] = useState(0);
   const [fadeIn, setFadeIn] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
-  const [sidebarAnimating, setSidebarAnimating] = useState(false);
-
-  const uploadBoxRef = useRef<HTMLDivElement>(null);
-  const additionalInfoRef = useRef<HTMLInputElement>(null);
-  const processBtnRef = useRef<HTMLButtonElement>(null);
-  const configBoxRef = useRef<HTMLDivElement>(null);
 
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   const navigate = useNavigate();
-  const location = useLocation();
 
-  // Helper functions
-  const safeParseResponse = async (response: Response | null): Promise<any> => {
-  if (!response) return {};
-  
-  try {
-    const contentType = response.headers?.get?.('content-type') || '';
-    if (contentType.includes('application/json')) {
-      const json = await response.json();
-      return json || {};
-    }
-    const text = await response.text();
-    return text || '';
-  } catch (error) {
-    console.error('Error parsing response:', error);
-    return {};
-  }
-};
-
-const normalizeObject = (obj: any): any => {
-  // More defensive check - return empty object for any falsy value
-  if (!obj) return {};
-  if (typeof obj !== 'object') return {};
-  if (Array.isArray(obj)) return {};
-  
-  // Additional safety: check if it's a proper object
-  try {
-    Object.keys(obj);
-    return obj;
-  } catch {
-    return {};
-  }
-};
-
-const safeString = (value: any): string => {
-  if (value == null) return '';
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
-  
-  // Handle objects by stringifying them
-  try {
-    if (typeof value === 'object') {
+  // Helper function for safe extraction
+  const safeExtract = (obj: any, key: string): string => {
+    if (!obj || typeof obj !== 'object') return '';
+    
+    const value = obj[key];
+    if (value == null) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    
+    try {
       return JSON.stringify(value);
+    } catch {
+      return '';
     }
-  } catch {
-    return '';
-  }
-  
-  return '';
-};
-
-const getSafeErrorMessage = (result: any, status: number | undefined, endpoint: string): string => {
-  if (result && typeof result === 'object') {
-    return result.detail || result.message || `${endpoint} failed (${status || 'unknown status'})`;
-  }
-  if (typeof result === 'string') {
-    return result;
-  }
-  return `${endpoint} failed (${status || 'unknown status'})`;
-};
-
-  const safe = <T, F>(v: T | null | undefined, fallback: F): T | F => {
-    if (v == null) return fallback;
-    if (typeof v === 'object' && !Array.isArray(v)) {
-      return Object.keys(v).length > 0 ? v as T : fallback;
-    }
-    return v;
   };
 
-  const safeEntries = (obj: any): [string, any][] => {
-    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
-      return [];
-    }
-    return Object.entries(obj);
+  // Safe data extraction
+  const extractDataSafely = (data: any): ProcessedData => {
+    // Ensure we have an object to work with
+    const safeData = data && typeof data === 'object' ? data : {};
+    const result = safeData.result || safeData;
+    
+    return {
+      profile: safeExtract(result, 'profile'),
+      education: safeExtract(result, 'education'),
+      skills: safeExtract(result, 'skills'),
+      experience: safeExtract(result, 'experience'),
+      projects: safeExtract(result, 'projects'),
+      achievements: safeExtract(result, 'achievements'),
+      contact: safeExtract(result, 'contact'),
+      languages: safeExtract(result, 'languages'),
+      other: safeExtract(result, 'other'),
+    };
   };
 
+  // Load user on component mount
   useEffect(() => {
-    const email = localStorage.getItem("userEmail") || "admin@email.com";
-    (async () => {
+    const loadUser = async () => {
+      const email = localStorage.getItem("userEmail") || "admin@email.com";
       try {
-        const res = await apiFetch(
-          `/auth/me?email=${encodeURIComponent(email)}`
-        );
-        if (!res.ok) {
+        const res = await apiFetch(`/auth/me?email=${encodeURIComponent(email)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data);
+        } else {
           setUser(null);
-          return;
         }
-        const data = await res.json().catch(() => null);
-        setUser(data);
       } catch {
         setUser(null);
       }
-    })();
+    };
+    loadUser();
   }, []);
 
+  // Tutorial anchor element management
   useEffect(() => {
-    if (tutorialStep === 0 && uploadBoxRef.current)
+    if (tutorialStep === 0 && uploadBoxRef.current) {
       setAnchorEl(uploadBoxRef.current);
-    else if (tutorialStep === 1 && candidateDetailsRef.current)
+    } else if (tutorialStep === 1 && candidateDetailsRef.current) {
       setAnchorEl(candidateDetailsRef.current);
-    else if (tutorialStep === 2 && file && cvTableRef.current)
+    } else if (tutorialStep === 2 && file && cvTableRef.current) {
       setAnchorEl(cvTableRef.current);
-    else if (
-      tutorialStep === 3 &&
-      file &&
-      user?.role === "Admin" &&
-      configBoxRef.current
-    )
-      setAnchorEl(configBoxRef.current);
-    else if (
-      tutorialStep === 3 &&
-      file &&
-      user?.role !== "Admin" &&
-      processBtnRef.current
-    )
+    } else if (tutorialStep === 3 && file && processBtnRef.current) {
       setAnchorEl(processBtnRef.current);
-    else if (tutorialStep === 4 && processBtnRef.current)
-      setAnchorEl(processBtnRef.current);
-    else setAnchorEl(null);
-  }, [tutorialStep, file, user]);
-
-  // Load config from Spring when admin and a file is selected (reveals the box)
-  useEffect(() => {
-    if (file && user?.role === "Admin") {
-      loadConfig();
+    } else {
+      setAnchorEl(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [file, user?.role]);
+  }, [tutorialStep, file]);
 
-  const loadConfig = async () => {
+  // Safe API call function
+  const makeApiCall = async (endpoint: string, formData: FormData): Promise<ApiResponse> => {
     try {
-      const res = await apiFetch("/auth/config/categories");
-      if (!res.ok) {
-        let msg = `Failed to load configuration (${res.status})`;
-        try {
-          const j = await res.json();
-          msg = j?.detail || msg;
-        } catch {}
-        setErrorPopup({ open: true, message: msg });
-        return;
+      const response = await aiFetch(endpoint, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response || !response.ok) {
+        return {
+          success: false,
+          error: `HTTP ${response?.status || 'No response'}`,
+        };
       }
-      const json = await res.json();
-      const pretty = JSON.stringify(json, null, 2);
-      setConfigJson(pretty);
-      setOriginalConfig(pretty);
-      setIsEditingConfig(false);
-    } catch (e) {
-      setErrorPopup({ open: true, message: "Could not load configuration." });
+
+      const contentType = response.headers.get('content-type');
+      if (contentType?.includes('application/json')) {
+        const data = await response.json();
+        return { success: true, data };
+      } else {
+        const text = await response.text();
+        return { success: true, data: text };
+      }
+    } catch (error) {
+      console.error(`API call failed for ${endpoint}:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
     }
   };
 
-  const saveConfig = async () => {
-    let parsed: any;
-    try {
-      parsed = JSON.parse(configJson);
-    } catch {
-      setErrorPopup({
-        open: true,
-        message: "Invalid JSON. Please fix before saving.",
-      });
+  // Main processing function
+  const handleProcess = async () => {
+    if (!file) {
+      setErrorPopup({ open: true, message: "Please select a file first." });
       return;
     }
 
+    if (!candidateName.trim() || !candidateSurname.trim() || !candidateEmail.trim()) {
+      setErrorPopup({ open: true, message: "Please fill in all candidate details." });
+      return;
+    }
+
+    // Validate file type
+    const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!validTypes.includes(file.type)) {
+      setErrorPopup({ open: true, message: "Please upload a PDF or Word document." });
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorPopup({ open: true, message: "File size must be less than 5MB." });
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      const res = await apiFetch("/auth/config/categories", {
-        method: "PUT",
-        body: JSON.stringify(parsed),
-      });
-      if (!res.ok) {
-        let msg = `Failed to save configuration (${res.status})`;
-        try {
-          const j = await res.json();
-          msg = j?.detail || msg;
-        } catch {}
-        setErrorPopup({ open: true, message: msg });
-        return;
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const AI_BASE = "http://localhost:5000";
+      const uploadEndpoint = `${AI_BASE}/upload_cv?top_k=3`;
+      const parseEndpoint = `${AI_BASE}/parse_resume`;
+
+      console.log("Starting CV processing...");
+
+      // Make API calls in parallel
+      const [uploadResult, parseResult] = await Promise.all([
+        makeApiCall(uploadEndpoint, formData),
+        makeApiCall(parseEndpoint, formData),
+      ]);
+
+      console.log("API Results:", { uploadResult, parseResult });
+
+      // Check if both calls failed
+      if (!uploadResult.success && !parseResult.success) {
+        throw new Error(`Upload: ${uploadResult.error}, Parse: ${parseResult.error}`);
       }
-      setOriginalConfig(configJson);
-      setIsEditingConfig(false);
-      setConfigSavedPopup(true);
-    } catch (e) {
-      setErrorPopup({ open: true, message: "Could not save configuration." });
+
+      // Process the data safely
+      const processedData = extractDataSafely(parseResult.success ? parseResult.data : uploadResult.data);
+      setProcessedData(processedData);
+
+      // Create file URL for preview
+      const fileUrl = URL.createObjectURL(file);
+
+      // Prepare navigation data
+      const navigationState = {
+        aiUpload: uploadResult.success ? uploadResult.data : {},
+        aiParse: parseResult.success ? parseResult.data : {},
+        fileUrl,
+        fileType: file.type,
+        candidate: {
+          firstName: candidateName.trim(),
+          lastName: candidateSurname.trim(),
+          email: candidateEmail.trim(),
+        },
+        processedData,
+      };
+
+      console.log("Navigating with state:", navigationState);
+
+      // Navigate to results page
+      navigate("/parsed-cv", { state: navigationState });
+
+    } catch (error) {
+      console.error("CV Processing Error:", error);
+      setErrorPopup({
+        open: true,
+        message: error instanceof Error ? error.message : "Failed to process CV. Please try again.",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
+  // File handling
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.files?.[0];
-    if (selected) {
-      setFile(selected);
-      setPdfUrl(URL.createObjectURL(selected));
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      // Validate file type
+      const validTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      ];
+      
+      if (!validTypes.includes(selectedFile.type)) {
+        setErrorPopup({ open: true, message: "Please select a PDF or Word document (.pdf, .doc, .docx)" });
+        return;
+      }
+
+      setFile(selectedFile);
+      
+      // Create preview URL for PDFs
+      if (selectedFile.type === 'application/pdf') {
+        setPdfUrl(URL.createObjectURL(selectedFile));
+      } else {
+        setPdfUrl(null);
+      }
     }
   };
 
   const handleRemove = () => {
     setFile(null);
     setProcessedData(null);
-
     if (pdfUrl) {
       URL.revokeObjectURL(pdfUrl);
       setPdfUrl(null);
     }
-
-    const fileInput = document.getElementById(
-      "file-upload"
-    ) as HTMLInputElement;
-    if (fileInput) {
-      fileInput.value = "";
-    }
+    
+    // Reset file input
+    const fileInput = document.getElementById("file-upload") as HTMLInputElement;
+    if (fileInput) fileInput.value = "";
   };
 
-  const handleProcess = async () => {
-    if (!file) return;
-    if (!candidateName || !candidateSurname || !candidateEmail) {
-      setErrorPopup({
-        open: true,
-        message: "Please enter candidate name, surname, and email.",
-      });
-      return;
-    }
-
-    const formForUpload = new FormData();
-    formForUpload.append("file", file);
-    const formForParse = new FormData();
-    formForParse.append("file", file);
-
-    try {
-      const AI_BASE = "http://localhost:5000";
-      const uploadEndpoint = `${AI_BASE.replace(/\/+$/, "")}/upload_cv?top_k=3`;
-      const parseEndpoint = `${AI_BASE.replace(/\/+$/, "")}/parse_resume`;
-
-      console.log("Making API calls to:", { uploadEndpoint, parseEndpoint });
-
-      const [uploadResp, parseResp] = await Promise.all([
-        aiFetch(uploadEndpoint, { method: "POST", body: formForUpload }),
-        aiFetch(parseEndpoint, { method: "POST", body: formForParse }),
-      ]);
-
-      console.log("API responses:", { uploadResp, parseResp });
-
-      // Handle cases where responses might be null
-      if (!uploadResp && !parseResp) {
-        setErrorPopup({ open: true, message: "Backend unavailable." });
-        return;
-      }
-
-      // Safe response parsing
-      const uploadResultRaw = await safeParseResponse(uploadResp);
-      const parseResultRaw = await safeParseResponse(parseResp);
-
-      console.log("Parsed responses:", { uploadResultRaw, parseResultRaw });
-
-      // Check if both requests failed
-      if ((!uploadResp || !uploadResp.ok) && (!parseResp || !parseResp.ok)) {
-        const uploadMsg = getSafeErrorMessage(uploadResultRaw, uploadResp?.status, "upload_cv");
-        const parseMsg = getSafeErrorMessage(parseResultRaw, parseResp?.status, "parse_resume");
-        setErrorPopup({ open: true, message: `${uploadMsg}; ${parseMsg}` });
-        return;
-      }
-
-      // Safe data normalization with extensive null checks
-      const uploadResult = uploadResp?.ok ? normalizeObject(uploadResultRaw) : {};
-      const parseResult = parseResp?.ok ? normalizeObject(parseResultRaw) : {};
-
-      console.log("Normalized results:", { uploadResult, parseResult });
-
-      // Extract nested data safely with additional checks
-      const appliedRaw = uploadResult && typeof uploadResult === 'object' ? (uploadResult as any).applied : undefined;
-      const applied = normalizeObject(appliedRaw);
-
-      const bestFitProjectType = uploadResult && typeof uploadResult === 'object' ? (uploadResult as any).best_fit_project_type ?? null : null;
-
-      const parseResultObjRaw = parseResult && typeof parseResult === 'object' ? (parseResult as any).result : undefined;
-      const parseResultObj = normalizeObject(parseResultObjRaw);
-
-      console.log("Extracted data:", { applied, bestFitProjectType, parseResultObj });
-
-      // Build processed data with fallbacks
-      const mergedProcessedData = {
-        profile: safeString(parseResultObj?.profile),
-        education: safeString(parseResultObj?.education),
-        skills: safeString(parseResultObj?.skills),
-        experience: safeString(parseResultObj?.experience),
-        projects: safeString(parseResultObj?.projects),
-        achievements: safeString(parseResultObj?.achievements),
-        contact: safeString(parseResultObj?.contact),
-        languages: safeString(parseResultObj?.languages),
-        other: safeString(parseResultObj?.other),
-      };
-
-      console.log("Merged processed data:", mergedProcessedData);
-      setProcessedData(mergedProcessedData);
-
-      const fileUrl = URL.createObjectURL(file);
-
-      // Prepare navigation data with guaranteed object structure
-      const safeAiUpload = {
-        ...uploadResult,
-        applied: applied || {},
-        best_fit_project_type: bestFitProjectType,
-      };
-      
-      const safeAiParse = {
-        ...parseResult,
-        result: parseResultObj || {},
-      };
-
-      // Final safety check before navigation - ensure no undefined/null values
-      const navigationState = {
-        aiUpload: safeAiUpload || {},
-        aiParse: safeAiParse || {},
-        fileUrl,
-        fileType: file.type || 'application/pdf',
-        candidate: {
-          firstName: candidateName || '',
-          lastName: candidateSurname || '',
-          email: candidateEmail || '',
-        },
-      };
-
-      console.log("DEBUG: Final navigation state:", navigationState);
-      
-      // Use setTimeout to ensure state is properly set before navigation
-      setTimeout(() => {
-        navigate("/parsed-cv", { state: navigationState });
-      }, 100);
-
-    } catch (error) {
-      console.error("Process CV error:", error);
-      setErrorPopup({
-        open: true,
-        message: "An error occurred while processing the CV.",
-      });
-    }
-  };
-
-  const handleCloseModal = () => setIsModalOpen(false);
-  const handleBrowseClick = () => {
-    const fileInput = document.getElementById(
-      "file-upload"
-    ) as HTMLInputElement;
-    if (fileInput) fileInput.click();
-  };
+  // Tutorial handlers
   const handleStepChange = (nextStep: number) => {
     setFadeIn(false);
     setTimeout(() => {
@@ -543,41 +328,31 @@ const getSafeErrorMessage = (result: any, status: number | undefined, endpoint: 
       setFadeIn(true);
     }, 250);
   };
+
   const handleCloseTutorial = () => setShowTutorial(false);
 
-  // Cleanup effect
+  const handleBrowseClick = () => {
+    const fileInput = document.getElementById("file-upload") as HTMLInputElement;
+    if (fileInput) fileInput.click();
+  };
+
+  // Cleanup
   useEffect(() => {
     return () => {
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl);
-      }
+      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
     };
   }, [pdfUrl]);
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        minHeight: "100vh",
-        bgcolor: "#1E1E1E",
-        color: "#fff",
-        fontFamily: "Helvetica, sans-serif",
-      }}
-    >
+    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#1E1E1E", color: "#fff" }}>
       <Sidebar
-        userRole={user?.role || devUser.role}
+        userRole={user?.role || "User"}
         collapsed={collapsed}
-        setCollapsed={(val) => {
-          setCollapsed(val);
-          setSidebarAnimating(true);
-          setTimeout(() => setSidebarAnimating(false), 300);
-        }}
+        setCollapsed={setCollapsed}
       />
+      
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
-        <AppBar
-          position="static"
-          sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
-        >
+        <AppBar position="static" sx={{ bgcolor: "#232A3B", boxShadow: "none" }}>
           <Toolbar sx={{ justifyContent: "flex-end" }}>
             <Tooltip title="Run Tutorial" arrow>
               <IconButton
@@ -591,7 +366,8 @@ const getSafeErrorMessage = (result: any, status: number | undefined, endpoint: 
                 <LightbulbRoundedIcon />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Go to Help Page" arrow>
+            
+            <Tooltip title="Help" arrow>
               <IconButton
                 color="inherit"
                 onClick={() => navigate("/help")}
@@ -600,68 +376,36 @@ const getSafeErrorMessage = (result: any, status: number | undefined, endpoint: 
                 <HelpOutlineIcon />
               </IconButton>
             </Tooltip>
+
             <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                ml: 2,
-                cursor: "pointer",
-                "&:hover": { opacity: 0.8 },
-              }}
+              sx={{ display: "flex", alignItems: "center", ml: 2, cursor: "pointer" }}
               onClick={() => navigate("/settings")}
             >
               <AccountCircleIcon sx={{ mr: 1 }} />
               <Typography variant="subtitle1">
-                {user
-                  ? user.first_name
-                    ? `${user.first_name} ${user.last_name || ""} (${
-                        user.role || "User"
-                      })`
-                    : (user.username || user.email) +
-                      (user.role ? ` (${user.role})` : "")
-                  : "User"}
+                {user ? `${user.first_name || user.email} (${user.role || "User"})` : "User"}
               </Typography>
             </Box>
-            <IconButton
-              color="inherit"
-              onClick={() => navigate("/login")}
-              sx={{ ml: 1 }}
-            >
+
+            <IconButton color="inherit" onClick={() => navigate("/login")} sx={{ ml: 1 }}>
               <ExitToAppIcon />
             </IconButton>
           </Toolbar>
         </AppBar>
 
         <Box sx={{ p: 3 }}>
-          <Typography
-            variant="h5"
-            sx={{
-              mb: 3,
-              fontWeight: "bold",
-              fontFamily: "Helvetica, sans-serif",
-            }}
-          >
+          <Typography variant="h5" sx={{ mb: 3, fontWeight: "bold" }}>
             Upload Candidate CV
           </Typography>
 
           <ConfigAlert />
-          <Paper
-            elevation={6}
-            sx={{ p: 4, borderRadius: 3, backgroundColor: "#DEDDEE" }}
-          >
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: "bold",
-                color: "#000000ff",
-                mb: 2,
-                fontFamily: "Helvetica, sans-serif",
-              }}
-            >
-              Upload a candidate's CV to automatically extract skills and
-              project matches
+          
+          <Paper elevation={6} sx={{ p: 4, borderRadius: 3, backgroundColor: "#DEDDEE" }}>
+            <Typography variant="h6" sx={{ fontWeight: "bold", color: "#000", mb: 2 }}>
+              Upload a candidate's CV to automatically extract skills and project matches
             </Typography>
 
+            {/* Upload Area */}
             <Box
               ref={uploadBoxRef}
               sx={{
@@ -677,82 +421,45 @@ const getSafeErrorMessage = (result: any, status: number | undefined, endpoint: 
               }}
             >
               <CloudUploadIcon fontSize="large" />
-              <Typography variant="body2">
+              <Typography variant="body2" sx={{ mb: 2 }}>
                 Drag and drop CV File here
               </Typography>
-              <Box>
-                <input
-                  id="file-upload"
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  style={{ display: "none" }}
-                  onChange={handleFileChange}
-                />
-                <Button
-                  variant="contained"
-                  sx={reviewButtonStyle}
-                  onClick={handleBrowseClick}
-                >
-                  Browse Files
-                </Button>
-              </Box>
+              <input
+                id="file-upload"
+                type="file"
+                accept=".pdf,.doc,.docx"
+                style={{ display: "none" }}
+                onChange={handleFileChange}
+              />
+              <Button
+                variant="contained"
+                sx={reviewButtonStyle}
+                onClick={handleBrowseClick}
+              >
+                Browse Files
+              </Button>
             </Box>
 
+            {/* Candidate Details */}
             <Box ref={candidateDetailsRef}>
               <TextField
                 label="Candidate Name"
                 fullWidth
                 required
-                variant="outlined"
                 value={candidateName}
                 onChange={(e) => setCandidateName(e.target.value)}
-                sx={{
-                  fontFamily: "Helvetica, sans-serif",
-                  mb: 3,
-                  "& .MuiOutlinedInput-root": {
-                    "& fieldset": { borderColor: "#000000ff" },
-                    fontFamily: "Helvetica, sans-serif",
-                    fontSize: "1rem",
-                    color: "#000000ff",
-                  },
-                }}
-                InputLabelProps={{
-                  sx: {
-                    color: "#000000ff",
-                    "&.Mui-focused": {
-                      borderColor: "#204E20",
-                      color: "#204E20",
-                    },
-                    fontFamily: "Helvetica, sans-serif",
-                    fontWeight: "bold",
-                  },
-                }}
+                sx={{ mb: 3 }}
+                InputLabelProps={{ sx: { color: "#000", fontWeight: "bold" } }}
               />
 
               <TextField
                 label="Candidate Surname"
                 fullWidth
                 required
-                variant="outlined"
                 value={candidateSurname}
                 onChange={(e) => setCandidateSurname(e.target.value)}
-                sx={{
-                  mb: 3,
-                  "& .MuiOutlinedInput-root": {
-                    "& fieldset": { borderColor: "#000000ff" },
-                    fontFamily: "Helvetica, sans-serif",
-                    fontSize: "1rem",
-                    color: "#000000ff",
-                  },
-                }}
-                InputLabelProps={{
-                  sx: {
-                    "&.Mui-focused": { color: "#204E20" },
-                    fontFamily: "Helvetica, sans-serif",
-                    fontWeight: "bold",
-                    color: "#000000ff",
-                  },
-                }}
+                sx={{ mb: 3 }}
+                InputLabelProps={{ sx: { color: "#000", fontWeight: "bold" } }}
               />
 
               <TextField
@@ -760,50 +467,23 @@ const getSafeErrorMessage = (result: any, status: number | undefined, endpoint: 
                 fullWidth
                 required
                 type="email"
-                variant="outlined"
                 value={candidateEmail}
                 onChange={(e) => setCandidateEmail(e.target.value)}
-                sx={{
-                  mb: 3,
-                  "& .MuiOutlinedInput-root": {
-                    "& fieldset": { borderColor: "#000000ff" },
-                    fontFamily: "Helvetica, sans-serif",
-                    fontSize: "1rem",
-                    color: "#000000ff",
-                  },
-                }}
-                InputLabelProps={{
-                  sx: {
-                    "&.Mui-focused": { color: "#204E20" },
-                    fontFamily: "Helvetica, sans-serif",
-                    fontWeight: "bold",
-                    color: "#000000ff",
-                  },
-                }}
+                sx={{ mb: 3 }}
+                InputLabelProps={{ sx: { color: "#000", fontWeight: "bold" } }}
               />
             </Box>
 
+            {/* File Preview */}
             {file && (
               <Box ref={cvTableRef}>
                 <TableContainer sx={{ mb: 3 }}>
-                  <Table
-                    sx={{
-                      "& td, & th": {
-                        color: "#000000ff",
-                        fontFamily: "Helvetica, sans-serif",
-                        fontSize: "1rem",
-                      },
-                    }}
-                  >
+                  <Table>
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: "bold" }}>
-                          File Name
-                        </TableCell>
+                        <TableCell sx={{ fontWeight: "bold" }}>File Name</TableCell>
                         <TableCell sx={{ fontWeight: "bold" }}>Size</TableCell>
-                        <TableCell sx={{ fontWeight: "bold" }}>
-                          Action
-                        </TableCell>
+                        <TableCell sx={{ fontWeight: "bold" }}>Action</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -813,20 +493,17 @@ const getSafeErrorMessage = (result: any, status: number | undefined, endpoint: 
                             sx={{
                               display: "flex",
                               alignItems: "center",
-                              cursor: "pointer",
-                              color: "#003cbdff",
-                              textDecoration: "underline",
-                              "&:hover": { color: "#204E20" },
+                              cursor: pdfUrl ? "pointer" : "default",
+                              color: pdfUrl ? "#003cbd" : "#000",
+                              textDecoration: pdfUrl ? "underline" : "none",
                             }}
-                            onClick={() => setPdfPreviewOpen(true)}
+                            onClick={() => pdfUrl && setPdfPreviewOpen(true)}
                           >
                             <PictureAsPdfIcon sx={{ mr: 1 }} />
                             {file.name}
                           </Box>
                         </TableCell>
-                        <TableCell>
-                          {(file.size / 1024 / 1024).toFixed(2)} MB
-                        </TableCell>
+                        <TableCell>{(file.size / 1024 / 1024).toFixed(2)} MB</TableCell>
                         <TableCell>
                           <IconButton color="error" onClick={handleRemove}>
                             <DeleteIcon />
@@ -839,208 +516,47 @@ const getSafeErrorMessage = (result: any, status: number | undefined, endpoint: 
               </Box>
             )}
 
+            {/* Process Button */}
             <Box sx={{ textAlign: "center", mb: 2 }}>
               {file && (
                 <Button
                   variant="contained"
                   sx={reviewButtonStyle}
                   onClick={handleProcess}
+                  disabled={loading}
                   ref={processBtnRef}
                 >
-                  Process CV
+                  {loading ? "Processing..." : "Process CV"}
                 </Button>
               )}
             </Box>
 
-            <Typography
-              variant="body2"
-              color="#000000ff"
-              sx={{ fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
-            >
+            <Typography variant="body2" color="#000">
               <strong>Requirements:</strong>
               <br />
               • Accepted formats: PDF, DOC, DOCX
               <br />
               • Maximum file size: 5MB
-              <br />• Ensure CV contains clear section headings
+              <br />
+              • Ensure CV contains clear section headings
             </Typography>
           </Paper>
         </Box>
       </Box>
 
-      <Dialog
-        open={errorPopup.open}
-        onClose={() => setErrorPopup({ ...errorPopup, open: false })}
-      >
+      {/* Error Dialog */}
+      <Dialog open={errorPopup.open} onClose={() => setErrorPopup({ ...errorPopup, open: false })}>
         <DialogTitle>Error</DialogTitle>
         <DialogContent>
           <Typography>{errorPopup.message}</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setErrorPopup({ ...errorPopup, open: false })}>
-            OK
-          </Button>
+          <Button onClick={() => setErrorPopup({ ...errorPopup, open: false })}>OK</Button>
         </DialogActions>
       </Dialog>
 
-      <Dialog
-        open={configSavedPopup}
-        onClose={() => setConfigSavedPopup(false)}
-      >
-        <DialogTitle>Configuration Saved</DialogTitle>
-        <DialogContent>
-          <Typography>
-            The extraction configuration was saved successfully.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfigSavedPopup(false)}>OK</Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog
-        open={isModalOpen}
-        onClose={handleCloseModal}
-        PaperProps={{
-          sx: {
-            backgroundColor: "#5a88ad",
-            maxWidth: "60vw",
-            width: "60vw",
-            height: "60vw",
-            maxHeight: "90vh",
-            minHeight: "40vh",
-          },
-        }}
-      >
-        <DialogTitle
-          sx={{
-            bgcolor: "#181c2f",
-            color: "#fff",
-            fontWeight: "bold",
-            fontSize: "1.3rem",
-          }}
-        >
-          Processed CV Data
-        </DialogTitle>
-        <Divider sx={{ mb: 2 }} />
-        <DialogContent>
-          {processedData && (
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 6,
-                px: 2,
-                py: 1,
-              }}
-            >
-              <Box>
-                <Typography
-                  variant="subtitle2"
-                  sx={{
-                    color: "#232a3b",
-                    mb: 2,
-                    fontWeight: "bold",
-                    letterSpacing: 1,
-                  }}
-                >
-                  Profile
-                </Typography>
-                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
-                  {processedData.profile || "N/A"}
-                </Typography>
-                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
-                  Education:
-                </Typography>
-                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
-                  {processedData.education || "N/A"}
-                </Typography>
-                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
-                  Skills:
-                </Typography>
-                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
-                  {processedData.skills || "N/A"}
-                </Typography>
-                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
-                  Experience:
-                </Typography>
-                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
-                  {processedData.experience || "N/A"}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography
-                  variant="subtitle2"
-                  sx={{
-                    color: "#232a3b",
-                    mb: 2,
-                    fontWeight: "bold",
-                    letterSpacing: 1,
-                  }}
-                >
-                  Other Information
-                </Typography>
-                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
-                  Projects:
-                </Typography>
-                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
-                  {processedData.projects || "N/A"}
-                </Typography>
-                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
-                  Achievements:
-                </Typography>
-                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
-                  {processedData.achievements || "N/A"}
-                </Typography>
-                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
-                  Contact:
-                </Typography>
-                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
-                  {processedData.contact || "N/A"}
-                </Typography>
-                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
-                  Languages:
-                </Typography>
-                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
-                  {processedData.languages || "N/A"}
-                </Typography>
-                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
-                  Other:
-                </Typography>
-                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
-                  {processedData.other || "N/A"}
-                </Typography>
-              </Box>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ bgcolor: "#181c2f", justifyContent: "flex-end" }}>
-          <Button
-            onClick={handleCloseModal}
-            sx={{
-              bgcolor: "#e0e0e0",
-              color: "#333",
-              fontWeight: "bold",
-              textTransform: "none",
-              boxShadow: "none",
-              "&:hover": {
-                bgcolor: "#cccccc",
-                color: "#222",
-              },
-            }}
-            variant="contained"
-          >
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog
-        open={pdfPreviewOpen}
-        onClose={() => setPdfPreviewOpen(false)}
-        maxWidth="lg"
-        fullWidth
-      >
+      {/* PDF Preview Dialog */}
+      <Dialog open={pdfPreviewOpen} onClose={() => setPdfPreviewOpen(false)} maxWidth="lg" fullWidth>
         <DialogTitle>Preview: {file?.name}</DialogTitle>
         <DialogContent sx={{ p: 0 }}>
           {pdfUrl && (
@@ -1058,54 +574,29 @@ const getSafeErrorMessage = (result: any, status: number | undefined, endpoint: 
         </DialogActions>
       </Dialog>
 
+      {/* Tutorial Popover */}
       <Popover
-        open={
-          showTutorial &&
-          tutorialStep >= 0 &&
-          tutorialStep <= 4 &&
-          Boolean(anchorEl)
-        }
+        open={showTutorial && tutorialStep >= 0 && tutorialStep <= 3 && Boolean(anchorEl)}
         anchorEl={anchorEl}
         onClose={handleCloseTutorial}
-        anchorOrigin={{
-          vertical: "top",
-          horizontal: "center",
-        }}
-        transformOrigin={{
-          vertical: "bottom",
-          horizontal: "center",
-        }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        transformOrigin={{ vertical: "bottom", horizontal: "center" }}
         componentsProps={{
-          root: {
-            onMouseDown: (e: React.MouseEvent) => e.preventDefault(),
-          }
+          root: { onMouseDown: (e: React.MouseEvent) => e.preventDefault() }
         }}
         disableRestoreFocus={false}
         disableAutoFocus={true}
         disableEnforceFocus={true}
-        PaperProps={{
-          sx: {
-            p: 2,
-            bgcolor: "#fff",
-            color: "#181c2f",
-            borderRadius: 2,
-            boxShadow: 6,
-            minWidth: 280,
-            zIndex: 1502,
-            textAlign: "center",
-          },
-        }}
       >
         <Fade in={fadeIn} timeout={250}>
-          <Box sx={{ position: "relative" }}>
+          <Box sx={{ p: 2, minWidth: 280, textAlign: "center" }}>
             {tutorialStep === 0 && (
               <>
                 <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
                   Step 1: Upload a CV
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
-                  Start by uploading a candidate's CV here. You can drag and
-                  drop or browse for a file.
+                  Start by uploading a candidate's CV here. You can drag and drop or browse for a file.
                 </Typography>
               </>
             )}
@@ -1115,8 +606,7 @@ const getSafeErrorMessage = (result: any, status: number | undefined, endpoint: 
                   Step 2: Candidate Details
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
-                  Enter the candidate's name, surname, and email address in
-                  these fields.
+                  Enter the candidate's name, surname, and email address in these fields.
                 </Typography>
               </>
             )}
@@ -1126,109 +616,36 @@ const getSafeErrorMessage = (result: any, status: number | undefined, endpoint: 
                   Step 3: CV Table
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
-                  Here you can see the uploaded CV file. You can remove it if
-                  needed before processing.
+                  Here you can see the uploaded CV file. You can remove it if needed before processing.
                 </Typography>
               </>
             )}
-            {tutorialStep === 3 && user?.role === "Admin" && (
-              <>
-                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-                  Step 4: CV Extraction Configuration (Admin Only)
-                </Typography>
-                <Typography sx={{ mb: 2 }}>
-                  As an admin, you can view and edit the CV extraction
-                  configuration here.
-                </Typography>
-              </>
-            )}
-            {tutorialStep === 3 && user?.role !== "Admin" && (
+            {tutorialStep === 3 && (
               <>
                 <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
                   Step 4: Process the CV
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
-                  When you're ready, click <b>Process CV</b> to extract skills
-                  and information from the uploaded file.
+                  When you're ready, click <b>Process CV</b> to extract skills and information from the uploaded file.
                 </Typography>
               </>
             )}
-            {tutorialStep === 4 && (
-              <>
-                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-                  Step 5: Process the CV
-                </Typography>
-                <Typography sx={{ mb: 2 }}>
-                  When you're ready, click <b>Process CV</b> to extract skills
-                  and information from the uploaded file.
-                </Typography>
-              </>
-            )}
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mt: 3,
-                gap: 2,
-              }}
-            >
-              <Button
-                variant="text"
-                size="small"
-                onClick={handleCloseTutorial}
-                sx={{
-                  color: "#888",
-                  fontSize: "0.85rem",
-                  textTransform: "none",
-                  minWidth: "auto",
-                  p: 0,
-                }}
-              >
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 3, gap: 2 }}>
+              <Button variant="text" size="small" onClick={handleCloseTutorial}>
                 End Tutorial
               </Button>
               <Box sx={{ display: "flex", gap: 2 }}>
                 {tutorialStep > 0 && (
-                  <Button
-                    variant="outlined"
-                    onClick={() => handleStepChange(tutorialStep - 1)}
-                    sx={{
-                      color: "#5a88ad",
-                      borderColor: "#5a88ad",
-                      fontWeight: "bold",
-                      textTransform: "none",
-                      "&:hover": { borderColor: "#487DA6", color: "#487DA6" },
-                    }}
-                  >
+                  <Button variant="outlined" onClick={() => handleStepChange(tutorialStep - 1)}>
                     Previous
                   </Button>
                 )}
-                {tutorialStep < 4 ? (
-                  <Button
-                    variant="contained"
-                    onClick={() => handleStepChange(tutorialStep + 1)}
-                    sx={{
-                      bgcolor: "#5a88ad",
-                      color: "#fff",
-                      fontWeight: "bold",
-                      textTransform: "none",
-                      "&:hover": { bgcolor: "#487DA6" },
-                    }}
-                  >
+                {tutorialStep < 3 ? (
+                  <Button variant="contained" onClick={() => handleStepChange(tutorialStep + 1)}>
                     Next
                   </Button>
                 ) : (
-                  <Button
-                    variant="contained"
-                    onClick={handleCloseTutorial}
-                    sx={{
-                      bgcolor: "#5a88ad",
-                      color: "#fff",
-                      fontWeight: "bold",
-                      textTransform: "none",
-                      "&:hover": { bgcolor: "#487DA6" },
-                    }}
-                  >
+                  <Button variant="contained" onClick={handleCloseTutorial}>
                     Finish
                   </Button>
                 )}
@@ -1243,28 +660,17 @@ const getSafeErrorMessage = (result: any, status: number | undefined, endpoint: 
 
 const reviewButtonStyle = {
   background: "#232A3B",
-  color: "DEDDEE",
+  color: "#DEDDEE",
   fontWeight: "bold",
   padding: "8px 20px",
   borderRadius: "4px",
-  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
   "&:hover": {
-    background:
-      "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
+    background: "#2d3748",
     transform: "translateY(-1px)",
+  },
+  "&:disabled": {
+    background: "#6b7280",
   },
   textTransform: "none",
   transition: "all 0.3s ease",
-  position: "relative",
-  overflow: "hidden",
-  "&::after": {
-    content: '""',
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    background:
-      "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
-  },
 };
