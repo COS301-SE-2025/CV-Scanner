@@ -170,7 +170,6 @@ class AIExtractor:
             "experience": experience,
             "education": education,
             "summary": summary,
-            "certifications": self._extract_certifications(clean_text),
             "projects": self._extract_projects(clean_text),
             "languages": self._extract_languages(clean_text)
         }
@@ -224,9 +223,7 @@ class AIExtractor:
         summary = self._clean_sentence(summary)
 
         return summary
-    
-    def _extract_certifications(self, text: str) -> List[str]:
-        
+
 
     def _extract_projects(self, text: str) -> List[Dict[str, str]]:
         """
@@ -340,7 +337,7 @@ class AIExtractor:
             return 0
 
     def _determine_specialization(self, skills: List[str], text: str) -> str:
-        skill_text_lower = skill_text.lower()
+        skill_text_lower = text.lower()
     
     
         specializations_map = {
@@ -426,7 +423,7 @@ class AIExtractor:
         duration = " - ".join(dates) if len(dates) >= 2 else "Duration not found"
 
         first_line = lines[0]
-        institution, degree = self._extract_institution_degree(first_line)
+        institution, degree = self._extract_institution_degree(first_line, lines)
 
         return {
                 'institution': institution or 'Educational institution',
@@ -546,7 +543,7 @@ class AIExtractor:
         }
 
         email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-        email_match = re.saerch(email_pattern, text)
+        email_match = re.search(email_pattern, text)
         if email_match:
             info['email'] = email_match.group()
         
@@ -680,7 +677,7 @@ class AIExtractor:
                              'summary', 'objective', 'certifications', 'languages', 'references']
         section_end = len(lines)
 
-        for i in range(section_start +1, len(lines)):
+        for i in range(start_section + 1, len(lines)):
             line_lower = lines[i].strip().lower()
             if any(header in line_lower for header in common_headers) and len(lines[i].strip()) <100:
                 section_end = i
@@ -707,9 +704,9 @@ def parse_resume_from_bytes(file_bytes: bytes, filename: str):
     try:
         from ai_cv_extractor import ai_extractor
         logger.info("Using AI-driven CV extraction")
-        
-        ai_result = ai_extractor.extract_with_ai_prompting(original)
-        
+
+        ai_result = AIExtractor.extract_with_ai_prompting(original)
+
         # Convert to expected format for compatibility
         return {
             "personal_info": ai_result["personal_info"],
