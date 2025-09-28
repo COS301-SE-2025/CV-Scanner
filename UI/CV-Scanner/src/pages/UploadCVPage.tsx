@@ -57,7 +57,7 @@ interface ApiResponse {
 const safeAiFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
   try {
     // Use the Spring Boot proxy endpoint instead of direct AI calls
-    const proxyUrl = `https://cvscanner-api-eaaudbdneafub4e3.southafricanorth-01.azurewebsites.net/cv/proxy-ai"`;
+    const proxyUrl = "https://cvscanner-api-eaaudbdneafub4e3.southafricanorth-01.azurewebsites.net/cv/proxy-ai";
     
     // Prepare the proxy request body
     const proxyBody: any = {
