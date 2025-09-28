@@ -53,61 +53,73 @@ interface ApiResponse {
   error?: string;
 }
 
-// Safe AI fetch workaround - completely bypasses the problematic aiFetch function
+// Replace the safeAiFetch function with this proxy version
 const safeAiFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
-  const AI_BASE = "http://localhost:5000";
-  const fullUrl = url.startsWith('http') ? url : `${AI_BASE}${url.startsWith('/') ? url : '/' + url}`;
-  
-  // Completely bypass any header building logic for FormData
-  // For file uploads, let the browser set Content-Type automatically
-  let headers: Record<string, string> = {};
-  
-  if (!(options.body instanceof FormData)) {
-    headers['Content-Type'] = 'application/json';
-  }
-  
-  // Safely add any existing headers (if provided)
-  if (options.headers && typeof options.headers === 'object') {
-    Object.entries(options.headers).forEach(([key, value]) => {
-      if (key && value != null) {
-        // Don't override Content-Type for FormData
-        if (!(options.body instanceof FormData) || key.toLowerCase() !== 'content-type') {
-          headers[key] = String(value);
-        }
-      }
-    });
-  }
-
-  const config: RequestInit = {
-    method: options.method || 'POST',
-    body: options.body,
-  };
-
-  // Only add headers if we have any (for FormData, this might be empty)
-  if (Object.keys(headers).length > 0) {
-    config.headers = headers;
-  }
-
-  console.log('Making safe AI call to:', fullUrl);
-  
   try {
-    const response = await fetch(fullUrl, config);
-    console.log('Safe AI response status:', response.status);
+    // Use the Spring Boot proxy endpoint instead of direct AI calls
+    const proxyUrl = `/api/proxy-ai`;
+    
+    // Prepare the proxy request body
+    const proxyBody: any = {
+      targetUrl: url,
+      method: options.method || 'POST',
+    };
+
+    // Handle FormData for file uploads
+    if (options.body instanceof FormData) {
+      const file = options.body.get('file') as File;
+      if (file) {
+        // Convert file to base64 for proxy
+        const base64File = await fileToBase64(file);
+        proxyBody.body = base64File;
+        proxyBody.isFormData = true;
+      }
+    } else if (options.body) {
+      // For non-FormData, pass the body as-is
+      proxyBody.body = options.body;
+      proxyBody.isFormData = false;
+    }
+
+    console.log('Making proxy request to Spring Boot backend');
+    
+    // Call the Spring Boot proxy endpoint
+    const response = await fetch(proxyUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(proxyBody),
+    });
+
+    console.log('Proxy response status:', response.status);
     return response;
   } catch (error) {
-    console.error('Safe AI fetch error:', error);
+    console.error('Proxy fetch error:', error);
     // Return a mock response that won't break anything
     return {
       ok: false,
       status: 0,
-      statusText: 'Network Error',
+      statusText: 'Proxy Error',
       headers: {
         get: () => null
       },
-      json: async () => ({ error: 'Network request failed' }),
-      text: async () => 'Network request failed',
+      json: async () => ({ error: 'Proxy request failed' }),
+      text: async () => 'Proxy request failed',
     } as any;
   }
+};
+
+// Helper to convert file to base64 for proxy
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 };
 
 export default function UploadCVPage() {

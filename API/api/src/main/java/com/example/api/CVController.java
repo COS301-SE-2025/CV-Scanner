@@ -12,6 +12,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.net.URI;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.http.HttpClient;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -276,7 +280,88 @@ public class CVController {
             return ResponseEntity.status(500).body(createErrorResponse("Failed to save parsed CV: " + ex.getMessage()));
         }
     }
+    @PostMapping("/api/proxy-ai")
+public ResponseEntity<String> proxyToAi(@RequestBody ProxyRequest request) {
+    try {
+        // Validate request
+        if (request == null || request.getTargetUrl() == null) {
+            return ResponseEntity.badRequest().body("{\"error\": \"Missing targetUrl\"}");
+        }
 
+        // Build the full URL to the AI server
+        String targetUrl = request.getTargetUrl();
+        if (!targetUrl.startsWith("http")) {
+            targetUrl = "http://localhost:5000" + (targetUrl.startsWith("/") ? targetUrl : "/" + targetUrl);
+        }
+
+        // Create HTTP client
+        HttpClient client = HttpClient.newHttpClient();
+        
+        // Build request to AI server
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+            .uri(URI.create(targetUrl))
+            .method(request.getMethod(), getBodyPublisher(request));
+
+        // Add headers
+        if (request.isFormData() && request.getBody() != null) {
+            // Handle FormData - convert base64 back to file
+            byte[] fileBytes = java.util.Base64.getDecoder().decode(request.getBody());
+            requestBuilder.header("Content-Type", "multipart/form-data");
+            HttpRequest.BodyPublisher bodyPublisher = HttpRequest.BodyPublishers.ofByteArray(fileBytes);
+            requestBuilder.method(request.getMethod(), bodyPublisher);
+        } else if (request.getBody() != null && !request.getBody().isEmpty()) {
+            requestBuilder.header("Content-Type", "application/json");
+            HttpRequest.BodyPublisher bodyPublisher = HttpRequest.BodyPublishers.ofString(request.getBody());
+            requestBuilder.method(request.getMethod(), bodyPublisher);
+        } else {
+            requestBuilder.method(request.getMethod(), HttpRequest.BodyPublishers.noBody());
+        }
+
+        // Execute request
+        HttpResponse<String> response = client.send(
+            requestBuilder.build(),
+            HttpResponse.BodyHandlers.ofString()
+        );
+        
+        // Return the AI server's response
+        return ResponseEntity.status(response.statusCode())
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(response.body());
+            
+    } catch (Exception e) {
+        System.err.println("Proxy error: " + e.getMessage());
+        return ResponseEntity.status(500)
+            .body("{\"error\": \"Proxy failed: " + e.getMessage() + "\"}");
+    }
+}
+
+private HttpRequest.BodyPublisher getBodyPublisher(ProxyRequest request) {
+    if (request.getBody() == null || request.getBody().isEmpty()) {
+        return HttpRequest.BodyPublishers.noBody();
+    }
+    return HttpRequest.BodyPublishers.ofString(request.getBody());
+}
+
+// Add this inner class for the proxy request
+public static class ProxyRequest {
+    private String targetUrl;
+    private String method = "POST";
+    private String body;
+    private boolean isFormData;
+
+    // getters and setters
+    public String getTargetUrl() { return targetUrl; }
+    public void setTargetUrl(String targetUrl) { this.targetUrl = targetUrl; }
+    
+    public String getMethod() { return method; }
+    public void setMethod(String method) { this.method = method; }
+    
+    public String getBody() { return body; }
+    public void setBody(String body) { this.body = body; }
+    
+    public boolean isFormData() { return isFormData; }
+    public void setFormData(boolean formData) { isFormData = formData; }
+}
     // Upsert candidate: insert if not exists, else update and return id
     private long upsertCandidate(Candidate candidate) {
         // Try to find candidate by email
