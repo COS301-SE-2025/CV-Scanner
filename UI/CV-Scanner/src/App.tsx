@@ -21,6 +21,7 @@ import ParsedCVData from "./pages/ParsedCVData";
 import BrandLoading from "./components/BrandLoading";
 import { BrandLoaderProvider, useBrandLoader } from "./hooks/brandLoader";
 import CompareCandidates from "./pages/CompareCandidates";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 //const UploadCVPage       = lazy(() => import("./pages/UploadCVPage"));
 
@@ -41,7 +42,9 @@ function App() {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/dashboard" element={<CandidatesDashboard />} />
             <Route path="/upload" element={<UploadCVPage />} />
-            <Route path="/candidates" element={<CandidatesPage />} />
+            <ErrorBoundary>
+              <Route path="/candidates" element={<CandidatesPage />} />
+            </ErrorBoundary>
             <Route path="/compare" element={<CompareCandidates />} />
             <Route path="/search" element={<Search />} />
             <Route

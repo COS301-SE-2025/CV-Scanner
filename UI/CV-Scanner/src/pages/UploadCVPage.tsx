@@ -343,9 +343,19 @@ export default function UploadCVPage() {
   };
 
   // Reusable null/undefined guard
-  const safe = <T, F>(v: T | null | undefined, fallback: F): T | F =>
-    v == null ? fallback : v;
-
+const safe = <T, F>(v: T | null | undefined, fallback: F): T | F => {
+  if (v == null) return fallback;
+  if (typeof v === 'object' && !Array.isArray(v)) {
+    return Object.keys(v).length > 0 ? v as T : fallback;
+  }
+  return v;
+};
+const safeEntries = (obj: any): [string, any][] => {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+    return [];
+  }
+  return Object.entries(obj);
+};
 const handleProcess = async () => {
   if (!file) return;
   if (!candidateName || !candidateSurname || !candidateEmail) {
