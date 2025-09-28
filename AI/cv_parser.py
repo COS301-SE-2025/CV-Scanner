@@ -212,6 +212,8 @@ class AIExtractor:
         summary = self._clean_sentence(summary)
 
         return summary
+    
+    def _extract_certifications(self, text: str) -> List[str]:
 
     def _determine_professional_level(self, skills: List[str], experience: List, education: List, text: str) -> str:
         text_lower = text.lower()
