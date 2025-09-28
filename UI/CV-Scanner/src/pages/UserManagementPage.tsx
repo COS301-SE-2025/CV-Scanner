@@ -67,6 +67,9 @@ export default function UserManagementPage() {
     role: "Admin",
   };
 
+  // show forbidden warning when current user is not allowed
+  const [forbidden, setForbidden] = useState<boolean>(false);
+
   const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All Roles");
@@ -161,21 +164,86 @@ export default function UserManagementPage() {
         );
         if (!res.ok) {
           setUser(null);
+          setForbidden(true);
           return;
         }
         const data = await res.json().catch(() => null);
         setUser(data);
       } catch {
         setUser(null);
+        setForbidden(true);
       }
     })();
   }, []);
 
   useEffect(() => {
-    if (user && user.role && user.role.toLowerCase() !== "admin") {
-      navigate("/dashboard");
-    }
-  }, [user, navigate]);
+    // show forbidden panel instead of redirecting away
+    if (!user) return;
+    const isAdmin =
+      (user && user.role && String(user.role).toLowerCase() === "admin") ||
+      devUser.role === "Admin";
+    setForbidden(!isAdmin);
+  }, [user]);
+
+  // If forbidden, render a clear warning panel with actions
+  if (forbidden) {
+    return (
+      <Box sx={{ p: 6 }}>
+        <Box
+          role="alert"
+          sx={{
+            maxWidth: 800,
+            mx: "auto",
+            bgcolor: "#fff6f6",
+            border: "1px solid #f5c2c2",
+            color: "#7a1f1f",
+            borderRadius: 2,
+            p: 3,
+          }}
+        >
+          <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+            Forbidden
+          </Typography>
+          <Typography sx={{ mb: 2 }}>
+            You do not have permission to view User Management. If you believe
+            this is an error, sign in with an administrator account or contact
+            your administrator.
+          </Typography>
+          <Box sx={{ display: "flex", gap: 2 }}>
+            <Button variant="contained" onClick={() => navigate("/dashboard")}>
+              Back to Dashboard
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={async () => {
+                const email =
+                  localStorage.getItem("userEmail") || devUser.email;
+                try {
+                  const res = await apiFetch(
+                    `/auth/me?email=${encodeURIComponent(email)}`
+                  );
+                  if (res.ok) {
+                    const data = await res.json().catch(() => null);
+                    setUser(data ?? devUser);
+                    const isAdmin =
+                      (data &&
+                        data.role &&
+                        String(data.role).toLowerCase() === "admin") ||
+                      devUser.role === "Admin";
+                    setForbidden(!isAdmin);
+                  }
+                } catch {
+                  // keep forbidden true
+                }
+              }}
+            >
+              Retry
+            </Button>
+          </Box>
+        </Box>
+      </Box>
+    );
+  }
 
   useEffect(() => {
     (async () => {
