@@ -203,6 +203,11 @@ class AIExtractor:
 
         return summary
 
+    def _determine_professional_level(self, skills: List[str], experience: List, education: List, text: str) -> str:
+
+    
+
+
 
     def _extract_education(self, text: str) -> List[Dict[str, str]]:
         """Extract education information from CV text"""
