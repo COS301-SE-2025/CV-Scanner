@@ -212,7 +212,16 @@ class AIExtractor:
     def _determine_specialization(self, skills: List[str], text: str) -> str:
 
     def _clean_sentence(self, s: str) -> str:
-       
+        s = s.strip()
+        if not s:
+            return s
+        if not s.endswith('.'):
+            s += '.'
+        s = s.replace(' a a ', ' a ')
+        s = s.replace(' is a an ', ' is an ')
+        s = s.replace(' is an a ', ' is a ')
+        s = re.sub(r'\s+', ' ', s)
+        return s
 
     def _extract_education(self, text: str) -> List[Dict[str, str]]:
         """Extract education information from CV text"""
