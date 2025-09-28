@@ -158,7 +158,7 @@ class AIExtractor:
         personal_info = self._extract_personal_info(clean_text)
         skills = self._extract_skills(clean_text)
         experience = self._extract_experience(clean_text)
-        education = self._extract_education(clean_text)  # Now returns simple array
+        education = self._extract_education(clean_text)
 
         summary = self._generate_professional_candidate_summary(
         personal_info, skills, experience, education, clean_text
@@ -168,7 +168,7 @@ class AIExtractor:
         "personal_info": personal_info,
         "skills": skills,
         "experience": experience,
-        "education": education,  # Simple array format
+        "education": education, 
         "summary": summary,
         "projects": self._extract_projects(clean_text),
         "languages": self._extract_languages(clean_text)
@@ -584,15 +584,31 @@ class AIExtractor:
         if candidate_names:
             info['name'] = candidate_names[0]
 
+        if info['name'] and info['name'] != 'Name not found':
+            info['name'] = self._capitalize_name(info['name'])
+
         if info['name'] in ['Name not found', 'Phone Number'] and info['email']:
                 email_name = info['email'].split('@')[0]
                 clean_name = re.sub(r'[0-9._+-]+', ' ', email_name).title().strip()
                 if len(clean_name) > 3:
                     info['name'] = clean_name
 
+        if info['name'] and info['name'] not in ['Name not found', 'Phone Number']:
+            info['name'] = self._capitalize_name(info['name'])
+
         return info
 
-    #endof _extract_personal_info
+
+    def _capitalize_name(self, name: str) -> str:
+        """Capitalize name properly: first letter of each word uppercase, rest lowercase"""
+        if not name:
+            return name
+        words = name.split()
+        capitalized_words = []
+        for word in words:
+            if word:
+                capitalized_words.append(word[0].upper() + word[1:].lower())
+        return ' '.join(capitalized_words)
 
     def _extract_skills(self, text: str) -> List[str]:
             """Extract skills using keyword matching and context"""
@@ -720,7 +736,6 @@ def parse_resume_from_bytes(file_bytes: bytes, filename: str):
         "sections": {
             "experience": str(ai_result.get("experience", [])),
             "education": str(ai_result.get("education", [])),
-            "skills": ", ".join(ai_result.get("skills", [])),
             "projects": str(ai_result.get("projects", []))
         },
         "skills": ai_result.get("skills", []),
