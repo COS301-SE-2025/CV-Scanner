@@ -197,40 +197,63 @@ export default function UploadCVPage() {
 
   // Helper functions
   const safeParseResponse = async (response: Response | null): Promise<any> => {
-    if (!response) return null;
-    
-    try {
-      const contentType = response.headers?.get?.('content-type') || '';
-      if (contentType.includes('application/json')) {
-        return await response.json();
-      }
-      return await response.text();
-    } catch (error) {
-      console.error('Error parsing response:', error);
-      return null;
+  if (!response) return {};
+  
+  try {
+    const contentType = response.headers?.get?.('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const json = await response.json();
+      return json || {};
     }
-  };
+    const text = await response.text();
+    return text || '';
+  } catch (error) {
+    console.error('Error parsing response:', error);
+    return {};
+  }
+};
 
-  const normalizeObject = (obj: any): any => {
-    if (obj == null) return {};
-    if (typeof obj !== 'object') return {};
-    if (Array.isArray(obj)) return {};
+const normalizeObject = (obj: any): any => {
+  // More defensive check - return empty object for any falsy value
+  if (!obj) return {};
+  if (typeof obj !== 'object') return {};
+  if (Array.isArray(obj)) return {};
+  
+  // Additional safety: check if it's a proper object
+  try {
+    Object.keys(obj);
     return obj;
-  };
+  } catch {
+    return {};
+  }
+};
 
-  const safeString = (value: any): string => {
-    if (value == null) return '';
-    if (typeof value === 'string') return value;
-    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
-    return '';
-  };
-
-  const getSafeErrorMessage = (result: any, status: number | undefined, endpoint: string): string => {
-    if (result && typeof result === 'object') {
-      return result.detail || result.message || `${endpoint} failed (${status || 'unknown status'})`;
+const safeString = (value: any): string => {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  
+  // Handle objects by stringifying them
+  try {
+    if (typeof value === 'object') {
+      return JSON.stringify(value);
     }
-    return `${endpoint} failed (${status || 'unknown status'})`;
-  };
+  } catch {
+    return '';
+  }
+  
+  return '';
+};
+
+const getSafeErrorMessage = (result: any, status: number | undefined, endpoint: string): string => {
+  if (result && typeof result === 'object') {
+    return result.detail || result.message || `${endpoint} failed (${status || 'unknown status'})`;
+  }
+  if (typeof result === 'string') {
+    return result;
+  }
+  return `${endpoint} failed (${status || 'unknown status'})`;
+};
 
   const safe = <T, F>(v: T | null | undefined, fallback: F): T | F => {
     if (v == null) return fallback;
@@ -436,13 +459,13 @@ export default function UploadCVPage() {
 
       console.log("Normalized results:", { uploadResult, parseResult });
 
-      // Extract nested data safely
-      const appliedRaw = (uploadResult as any)?.applied;
+      // Extract nested data safely with additional checks
+      const appliedRaw = uploadResult && typeof uploadResult === 'object' ? (uploadResult as any).applied : undefined;
       const applied = normalizeObject(appliedRaw);
-      
-      const bestFitProjectType = (uploadResult as any)?.best_fit_project_type ?? null;
-      
-      const parseResultObjRaw = (parseResult as any)?.result;
+
+      const bestFitProjectType = uploadResult && typeof uploadResult === 'object' ? (uploadResult as any).best_fit_project_type ?? null : null;
+
+      const parseResultObjRaw = parseResult && typeof parseResult === 'object' ? (parseResult as any).result : undefined;
       const parseResultObj = normalizeObject(parseResultObjRaw);
 
       console.log("Extracted data:", { applied, bestFitProjectType, parseResultObj });
