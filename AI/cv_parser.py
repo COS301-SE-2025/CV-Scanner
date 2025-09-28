@@ -204,10 +204,16 @@ class AIExtractor:
         return summary
 
     def _determine_professional_level(self, skills: List[str], experience: List, education: List, text: str) -> str:
+       
 
     def _get_highest_education(self, education: List[Dict]) -> str:
+       
 
     def _calculate_experience_years(self, experience: List[Dict]) -> int:
+        try:
+            return min(len(experience), 10)
+        except:
+            return 0
 
     def _determine_specialization(self, skills: List[str], text: str) -> str:
         skill_text_lower = skill_text.lower()
