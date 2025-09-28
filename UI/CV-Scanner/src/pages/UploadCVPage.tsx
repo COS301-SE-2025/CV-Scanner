@@ -356,6 +356,42 @@ const safeEntries = (obj: any): [string, any][] => {
   }
   return Object.entries(obj);
 };
+// Add these helper functions right before handleProcess
+const safeParseResponse = async (response: Response | null): Promise<any> => {
+  if (!response) return null;
+  
+  try {
+    const contentType = response.headers?.get?.('content-type') || '';
+    if (contentType.includes('application/json')) {
+      return await response.json();
+    }
+    return await response.text();
+  } catch (error) {
+    console.error('Error parsing response:', error);
+    return null;
+  }
+};
+
+const normalizeObject = (obj: any): any => {
+  if (obj == null) return {};
+  if (typeof obj !== 'object') return {};
+  if (Array.isArray(obj)) return {};
+  return obj;
+};
+
+const safeString = (value: any): string => {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return '';
+};
+
+const getSafeErrorMessage = (result: any, status: number | undefined, endpoint: string): string => {
+  if (result && typeof result === 'object') {
+    return result.detail || result.message || `${endpoint} failed (${status || 'unknown status'})`;
+  }
+  return `${endpoint} failed (${status || 'unknown status'})`;
+};
 const handleProcess = async () => {
   if (!file) return;
   if (!candidateName || !candidateSurname || !candidateEmail) {
@@ -368,12 +404,10 @@ const handleProcess = async () => {
 
   const formForUpload = new FormData();
   formForUpload.append("file", file);
-
   const formForParse = new FormData();
   formForParse.append("file", file);
 
   try {
-    // Force AI calls to localhost for local testing
     const AI_BASE = "http://localhost:5000";
     const uploadEndpoint = `${AI_BASE.replace(/\/+$/, "")}/upload_cv?top_k=3`;
     const parseEndpoint = `${AI_BASE.replace(/\/+$/, "")}/parse_resume`;
@@ -383,75 +417,82 @@ const handleProcess = async () => {
       aiFetch(parseEndpoint, { method: "POST", body: formForParse }),
     ]);
 
+    // Handle cases where responses might be null
     if (!uploadResp && !parseResp) {
       setErrorPopup({ open: true, message: "Backend unavailable." });
       return;
     }
 
-    const uploadResultRaw = await getJsonOrText(uploadResp).catch(() => null);
-    const parseResultRaw = await getJsonOrText(parseResp).catch(() => null);
+    // Safe response parsing
+    const uploadResultRaw = await safeParseResponse(uploadResp);
+    const parseResultRaw = await safeParseResponse(parseResp);
 
+    // Check if both requests failed
     if ((!uploadResp || !uploadResp.ok) && (!parseResp || !parseResp.ok)) {
-      const uploadMsg = getErrorMessage(uploadResultRaw, uploadResp?.status, "upload_cv");
-      const parseMsg = getErrorMessage(parseResultRaw, parseResp?.status, "parse_resume");
+      const uploadMsg = getSafeErrorMessage(uploadResultRaw, uploadResp?.status, "upload_cv");
+      const parseMsg = getSafeErrorMessage(parseResultRaw, parseResp?.status, "parse_resume");
       setErrorPopup({ open: true, message: `${uploadMsg}; ${parseMsg}` });
       return;
     }
 
-    // Safer data normalization
-    const uploadResult = uploadResp?.ok && isObject(uploadResultRaw) ? uploadResultRaw : {};
-    const parseResult = parseResp?.ok && isObject(parseResultRaw) ? parseResultRaw : {};
+    // Safe data normalization with extensive null checks
+    const uploadResult = uploadResp?.ok ? normalizeObject(uploadResultRaw) : {};
+    const parseResult = parseResp?.ok ? normalizeObject(parseResultRaw) : {};
 
-    // Ensure nested objects exist
-    const appliedRaw = (uploadResult as any)?.applied;
-    const applied = isObject(appliedRaw) ? appliedRaw : {};
+    // Extract nested data safely
+    const appliedRaw = uploadResult?.applied;
+    const applied = normalizeObject(appliedRaw);
     
-    const bestFitProjectType = (uploadResult as any)?.best_fit_project_type ?? null;
+    const bestFitProjectType = uploadResult?.best_fit_project_type ?? null;
     
-    const parseResultObjRaw = (parseResult as any)?.result;
-    const parseResultObj = isObject(parseResultObjRaw) ? parseResultObjRaw : {};
+    const parseResultObjRaw = parseResult?.result;
+    const parseResultObj = normalizeObject(parseResultObjRaw);
 
+    // Build processed data with fallbacks
     const mergedProcessedData = {
-      profile: safe(parseResultObj.profile, ""),
-      education: safe(parseResultObj.education, ""),
-      skills: safe(parseResultObj.skills, ""),
-      experience: safe(parseResultObj.experience, ""),
-      projects: safe(parseResultObj.projects, ""),
-      achievements: safe(parseResultObj.achievements, ""),
-      contact: safe(parseResultObj.contact, ""),
-      languages: safe(parseResultObj.languages, ""),
-      other: safe(parseResultObj.other, ""),
+      profile: safeString(parseResultObj?.profile),
+      education: safeString(parseResultObj?.education),
+      skills: safeString(parseResultObj?.skills),
+      experience: safeString(parseResultObj?.experience),
+      projects: safeString(parseResultObj?.projects),
+      achievements: safeString(parseResultObj?.achievements),
+      contact: safeString(parseResultObj?.contact),
+      languages: safeString(parseResultObj?.languages),
+      other: safeString(parseResultObj?.other),
     };
 
     setProcessedData(mergedProcessedData);
 
     const fileUrl = URL.createObjectURL(file);
 
-    // Ensure we're passing safe objects to navigate
+    // Prepare navigation data with guaranteed object structure
     const safeAiUpload = {
       ...uploadResult,
-      applied: isObject(applied) ? applied : {},
+      applied: applied || {},
       best_fit_project_type: bestFitProjectType,
     };
     
     const safeAiParse = {
       ...parseResult,
-      result: isObject(parseResultObj) ? parseResultObj : {},
+      result: parseResultObj || {},
     };
 
-    navigate("/parsed-cv", {
-      state: {
-        aiUpload: safeAiUpload,
-        aiParse: safeAiParse,
-        fileUrl,
-        fileType: file.type,
-        candidate: {
-          firstName: candidateName,
-          lastName: candidateSurname,
-          email: candidateEmail,
-        },
+    // Final safety check before navigation
+    const navigationState = {
+      aiUpload: safeAiUpload || {},
+      aiParse: safeAiParse || {},
+      fileUrl,
+      fileType: file.type,
+      candidate: {
+        firstName: candidateName,
+        lastName: candidateSurname,
+        email: candidateEmail,
       },
-    });
+    };
+
+    console.log("DEBUG: Navigation state:", navigationState);
+    navigate("/parsed-cv", { state: navigationState });
+
   } catch (error) {
     console.error("Process CV error:", error);
     setErrorPopup({
@@ -460,18 +501,17 @@ const handleProcess = async () => {
     });
   }
 };
-
 // Helper functions
-const isObject = (value: any): boolean => {
-  return value && typeof value === 'object' && !Array.isArray(value);
-};
+// const isObject = (value: any): boolean => {
+//   return value && typeof value === 'object' && !Array.isArray(value);
+// };
 
-const getErrorMessage = (result: any, status: number | undefined, endpoint: string): string => {
-  if (result && (result.detail || result.message)) {
-    return result.detail || result.message;
-  }
-  return `${endpoint} failed (${status || 'unknown status'})`;
-};
+// const getErrorMessage = (result: any, status: number | undefined, endpoint: string): string => {
+//   if (result && (result.detail || result.message)) {
+//     return result.detail || result.message;
+//   }
+//   return `${endpoint} failed (${status || 'unknown status'})`;
+// };
 
   const handleCloseModal = () => setIsModalOpen(false);
   const handleBrowseClick = () => {
