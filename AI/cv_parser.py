@@ -88,6 +88,11 @@ class Education(BaseModel):
     gpa: Optional[str] = Field(default=None, description="GPA if mentioned")
     location: Optional[str] = Field(default=None, description="Institution location")
 
+class PersonalInfo(BaseModel):
+    name: str = Field(description="Full name")
+    email: Optional[str] = Field(default=None, description="Email address")
+    phone: Optional[str] = Field(default=None, description="Phone number")
+
 
 def extract_with_ai_prompting(self, cv_text:str) -> Dict[str,any]:
     """
