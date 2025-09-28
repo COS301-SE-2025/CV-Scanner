@@ -4,6 +4,8 @@ FROM python:3.10-slim
 # Prevent Python from writing .pyc files / buffering stdout
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+# Default port environment variable (Azure provides WEBSITES_PORT)
+ENV PORT=80
 
 # Set working directory
 WORKDIR /app
@@ -27,7 +29,7 @@ RUN python -m spacy download en_core_web_sm || true
 COPY . .
 
 # Expose port 80 (Azure requirement)
-EXPOSE 80
+EXPOSE ${PORT}
 
-# Use gunicorn on port 80 with more tolerant settings
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:80", "--workers", "2", "--threads", "4", "--timeout", "300"]
+# Use gunicorn binding to the runtime PORT
+CMD ["sh", "-c", "exec gunicorn --bind 0.0.0.0:${PORT} --workers 2 --threads 4 --timeout 300 app:app"]
