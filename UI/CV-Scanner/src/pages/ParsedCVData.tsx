@@ -537,72 +537,97 @@ const ParsedCVData: React.FC = () => {
                 },
               }}
             >
-              {Object.entries(safeObject(fields)).map(([key, value]) => {
-                if (key === "probabilities" && value) {
-                  const probs = String(value || "")
-                    .split("\n")
-                    .filter(Boolean);
+              {(() => {
+                try {
+                  return Object.entries(safeObject(fields)).map(
+                    ([key, value]) => {
+                      if (key === "probabilities" && value) {
+                        const probs = String(value || "")
+                          .split("\n")
+                          .filter(Boolean);
+                        return (
+                          <Box
+                            key={key}
+                            sx={{
+                              gridColumn: "1 / -1",
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              gap: 2,
+                            }}
+                          >
+                            <Typography
+                              variant="h6"
+                              sx={{ fontWeight: "bold", textAlign: "center" }}
+                            >
+                              Skill Value
+                            </Typography>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                justifyContent: "center",
+                                gap: 3,
+                              }}
+                            >
+                              {probs.map((p, i) => {
+                                const [labelRaw, percentRaw] = p.split(":");
+                                const label = (labelRaw || "").trim();
+                                const valueNum = Number(
+                                  parseFloat((percentRaw || "").trim()) || 0
+                                );
+                                return (
+                                  <CircularProgressBar
+                                    key={i}
+                                    label={label || `item ${i + 1}`}
+                                    value={isNaN(valueNum) ? 0 : valueNum}
+                                  />
+                                );
+                              })}
+                            </Box>
+                          </Box>
+                        );
+                      }
 
+                      return (
+                        key !== "other" && (
+                          <EditableField
+                            key={key}
+                            label={key.charAt(0).toUpperCase() + key.slice(1)}
+                            value={value}
+                            onSave={(val) =>
+                              handleUpdate(key as keyof ParsedCVFields, val)
+                            }
+                          />
+                        )
+                      );
+                    }
+                  );
+                } catch (err) {
+                  console.error("ParsedCVData render error", {
+                    err,
+                    fields,
+                    rawData,
+                    parseResumeData,
+                    primaryUpload,
+                  });
                   return (
-                    <Box
-                      key={key}
-                      sx={{
-                        gridColumn: "1 / -1",
-                        display: "flex",
-                        flexDirection: "column", // stack heading + progress bars
-                        alignItems: "center",
-                        gap: 2,
-                      }}
-                    >
-                      {/* Heading */}
-                      <Typography
-                        variant="h6"
-                        sx={{ fontWeight: "bold", textAlign: "center" }}
-                      >
-                        Skill Value
+                    <Box sx={{ gridColumn: "1 / -1", p: 2 }}>
+                      <Typography color="error">
+                        Failed to render parsed fields — see console for
+                        details.
                       </Typography>
-
-                      {/* Progress bars */}
-                      <Box
-                        sx={{
-                          display: "flex",
-                          flexWrap: "wrap",
-                          justifyContent: "center",
-                          gap: 3,
-                        }}
-                      >
-                        {probs.map((p, i) => {
-                          const [labelRaw, percentRaw] = p.split(":");
-                          const label = (labelRaw || "").trim();
-                          const valueNum = Number(
-                            parseFloat((percentRaw || "").trim()) || 0
-                          );
-                          return (
-                            <CircularProgressBar
-                              key={i}
-                              label={label || `item ${i + 1}`}
-                              value={isNaN(valueNum) ? 0 : valueNum}
-                            />
-                          );
-                        })}
-                      </Box>
+                      <pre style={{ whiteSpace: "pre-wrap", marginTop: 8 }}>
+                        {JSON.stringify(
+                          { fields, rawData, parseResumeData },
+                          null,
+                          2
+                        )}
+                      </pre>
                     </Box>
                   );
                 }
-
-                return (
-                  key !== "other" && (
-                    <EditableField
-                      key={key}
-                      label={key.charAt(0).toUpperCase() + key.slice(1)}
-                      value={value}
-                      onSave={(val) =>
-                        handleUpdate(key as keyof ParsedCVFields, val)
-                      }
-                    />
-                  )
-                );
-              })}
+              })()}
             </Box>
 
             <Collapse in={showRaw} unmountOnExit>
