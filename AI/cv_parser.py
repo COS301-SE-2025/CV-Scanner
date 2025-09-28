@@ -115,7 +115,7 @@ class AIExtractor:
         try:
             self.extractor = pipeline(
                 "token-classification",
-                model="facebook/bart-large-cnn",
+                model="dslim/bert-base-NER",
                 device=self.device,
                 aggregation_strategy="simple"
             )
@@ -397,7 +397,7 @@ class AIExtractor:
 
         for entry in entries:
             if len(entry.strip()) > 30:
-                edu_data = self.parse_education_entry(entry)
+                edu_data = self._parse_education_entry(entry)
                 if edu_data and edu_data.get('institution') != 'institution extracted':
                     education.append(edu_data)
         
@@ -688,61 +688,36 @@ class AIExtractor:
 
         return "\n".join(lines[start_section + 1:section_end]) if start_section != -1 else ""
 
-def extract_personal_info(text: str):
+# def extract_personal_info(text: str):
+
+# def extract_sections(text: str) -> Dict[str, str]:
 
 def parse_resume_from_bytes(file_bytes: bytes, filename: str):
     ext = os.path.splitext(filename or "upload.bin")[1].lower()
     if ext not in (".pdf", ".docx", ".txt"):
-        # best-effort as text
-        text_guess = file_bytes.decode("utf-8", errors="ignore")
-        original = text_guess
+        original = file_bytes.decode("utf-8", errors="ignore")
     else:
-        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
-        try:
-            tmp.write(file_bytes); tmp.close()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
+            tmp.write(file_bytes)
+            tmp.close()
             original = extract_text(tmp.name)
-        finally:
-            try: os.unlink(tmp.name)
-            except Exception: pass
+        try: os.unlink(tmp.name)
+        except: pass
 
-    # Use AI-driven extraction instead of regex-heavy approach
-    try:
-        logger.info("Using AI-driven CV extraction")
+    extractor = AIExtractor()
+    ai_result = extractor.extract_with_ai_prompting(original)
 
-        ai_result = AIExtractor.extract_with_ai_prompting(original)
-
-        # Convert to expected format for compatibility
-        return {
-            "personal_info": ai_result["personal_info"],
-            "sections": {
-                "experience": str(ai_result.get("experience", [])),
-                "education": str(ai_result.get("education", [])),
-                "skills": ", ".join(ai_result.get("skills", [])),
-                "projects": str(ai_result.get("projects", []))
-            },
-            "skills": ai_result.get("skills", []),
-            "summary": ai_result.get("summary", "No summary available"),
-            "ai_extracted": True,  # Flag to indicate AI extraction was used
-            "certifications": ai_result.get("certifications", []),
-            "languages": ai_result.get("languages", [])
-        }
-        
-    except Exception as e:
-        logger.warning(f"AI extraction failed, falling back to regex method: {e}")
-        
-        # Fallback to original method if AI extraction fails
-        original_text = original
-        norm_text = re.sub(r'\s+', ' ', original).strip()
-
-        personal_info = extract_personal_info(original_text)
-        sections = extract_sections(norm_text)
-        skills = extract_skills(norm_text)
-        summary = generate_cv_summary(norm_text, personal_info, sections, skills)
-
-        return {
-            "personal_info": personal_info,
-            "sections": sections,
-            "skills": skills,
-            "summary": summary,
-            "ai_extracted": False  # Flag to indicate fallback was used
-        }
+    return {
+        "personal_info": ai_result["personal_info"],
+        "sections": {
+            "experience": str(ai_result.get("experience", [])),
+            "education": str(ai_result.get("education", [])),
+            "skills": ", ".join(ai_result.get("skills", [])),
+            "projects": str(ai_result.get("projects", []))
+        },
+        "skills": ai_result.get("skills", []),
+        "summary": ai_result.get("summary", "No summary available"),
+        "ai_extracted": True,
+        "certifications": ai_result.get("certifications", []),
+        "languages": ai_result.get("languages", [])
+    }
