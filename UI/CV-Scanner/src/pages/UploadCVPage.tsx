@@ -1130,3 +1130,5 @@ const reviewButtonStyle = {
       "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
   },
 };
+
+// Removed unused handleUpload function that referenced undefined variables (uploadEndpoint, setResult) to fix compile errors.
