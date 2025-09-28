@@ -143,7 +143,7 @@ def _extract_personal_info(self, text: str) -> Dict[str, str]:
 
 #endof _extract_personal_info
 
- def _extract_skills(self, text: str) -> List[str]:
+def _extract_skills(self, text: str) -> List[str]:
         """Extract skills using keyword matching and context"""
         text_lower = text.lower()
 
@@ -195,6 +195,29 @@ def _extract_personal_info(self, text: str) -> Dict[str, str]:
         found_skills = []
 
         skill_sections = self._find_section(text, ['skills', 'technical skills', 'competencies', 'strengths'])
+        if skill_sections:
+            section_lower = skill_sections.lower()
+            for skill in all_skills:
+                if skill in section_lower:
+                    found_skills.append(skill)
+
+        context_patterns = ["proficient in", "expertise in", "skilled in",
+            "experience with", "knowledge of", "familiar with"]
+        
+        for skill in all_skills:
+            if skill in text_lower:
+                if any(f"{ctx} {skill}" in text_lower for ctx in context_patterns) \
+                    or any(symbol in text_lower for symbol in [f" {skill},", f" {skill}.", f" {skill};", f" {skill}."]):
+                    found_skills.append(skill.title())
+        
+        seen = set()
+        unique_skills = []
+        for skill in found_skills:
+            if skill not in seen:
+                seen.add(skill)
+                unique_skills.append(skill)
+
+        return unique_skills[:20]
 
 def _find_section(self, text:str, keywords:List[str]) -> str:
     """Find and extract a specific section from CV text"""
