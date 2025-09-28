@@ -110,6 +110,18 @@ class AIExtractor:
         logger.info(f"Using device: {'GPU' if self.device == 0 else 'CPU'}")
 
         try:
+            self.extractor = pipeline(
+                "token-classification",
+                model="facebook/bart-large-cnn",
+                device=self.device,
+                aggregation_strategy="simple"
+            )
+            logger.info("Text extraction model loaded successfully")
+        except Exception as e:
+            logger.error(f"Could not load text extraction model: {e}")
+            self.extractor = None
+
+        try:
             self.generator = pipeline(
                 "text-generation",
                 model="microsoft/DialoGPT-medium",
@@ -214,8 +226,54 @@ class AIExtractor:
         return summary
     
     def _extract_certifications(self, text: str) -> List[str]:
+        
 
     def _extract_projects(self, text: str) -> List[Dict[str, str]]:
+        """
+        Extract project details from CV text using AI token-classification.
+        Returns a list of dictionaries, each representing a project.
+        """
+        projects = []
+
+        if not self.extractor:
+            logger.warning("Extractor not initialized")
+            return projects
+
+        try:
+            # Run the token-classification model
+            results = self.extractor(text)
+
+            # Process results: assuming your model labels project-related tokens as "PROJECT" or similar
+            current_project = {}
+            for token in results:
+                label = token.get('entity_group')
+                word = token.get('word', '').strip()
+
+                if not word:
+                    continue
+
+                # If the token is part of a project name or description
+                if label == "PROJECT_NAME":
+                    if current_project:
+                        # Save previous project
+                        projects.append(current_project)
+                        current_project = {}
+                    current_project['name'] = word
+                elif label == "PROJECT_DESC":
+                    if 'description' not in current_project:
+                        current_project['description'] = word
+                    else:
+                        # Append if multi-token
+                        current_project['description'] += f" {word}"
+
+            # Add last project if exists
+            if current_project:
+                projects.append(current_project)
+
+        except Exception as e:
+            logger.warning(f"Project extraction failed: {e}")
+
+        return projects
 
     def _extract_languages(self, text: str) -> List[str]:
         """Extract spoken languages from CV text"""
