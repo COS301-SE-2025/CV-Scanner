@@ -177,7 +177,7 @@ def _parse_education_entry(self, entry: str) -> Dict[str, str]:
 
 def _extract_institution_degree(self, first_line: str, all_lines: List[str]) -> tuple[str, str]:
         """Extract institution and degree from education entry"""
-
+    
 def _extract_experience(self, text: str) -> List[Dict[str, str]]:
     """Extract work experience information from CV text"""
     experience = []
