@@ -1,5 +1,6 @@
 name: CV-Scanner Deployment
 
+
 on:
   push:
     branches:
