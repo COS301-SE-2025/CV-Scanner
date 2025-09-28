@@ -68,7 +68,9 @@ export default function UserManagementPage() {
   };
 
   // show forbidden warning when current user is not allowed
-  const [forbidden, setForbidden] = useState<boolean>(false);
+  // start as "unknown" until auth check completes
+  const [forbidden, setForbidden] = useState<boolean>(true);
+  const [authChecked, setAuthChecked] = useState<boolean>(false);
 
   const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -156,36 +158,52 @@ export default function UserManagementPage() {
     })();
   };
   useEffect(() => {
-    const email = localStorage.getItem("userEmail") || "admin@email.com";
+    // perform auth check once on mount
     (async () => {
+      const email = localStorage.getItem("userEmail");
       try {
-        const res = await apiFetch(
-          `/auth/me?email=${encodeURIComponent(email)}`
-        );
-        if (!res.ok) {
+        const url = email
+          ? `/auth/me?email=${encodeURIComponent(email)}`
+          : `/auth/me`;
+        const res = await apiFetch(url);
+        if (!res || !res.ok) {
+          // not authenticated or no permission
           setUser(null);
           setForbidden(true);
+          setAuthChecked(true);
           return;
         }
         const data = await res.json().catch(() => null);
         setUser(data);
+        const isAdmin =
+          data &&
+          (String(data.role).toLowerCase() === "admin" ||
+            (Array.isArray(data.roles) && data.roles.includes("admin")));
+        setForbidden(!isAdmin);
       } catch {
         setUser(null);
         setForbidden(true);
+      } finally {
+        setAuthChecked(true);
       }
     })();
   }, []);
 
   useEffect(() => {
-    // show forbidden panel instead of redirecting away
-    if (!user) return;
-    const isAdmin =
-      (user && user.role && String(user.role).toLowerCase() === "admin") ||
-      devUser.role === "Admin";
-    setForbidden(!isAdmin);
+    // no-op: keep forbidden determined by initial auth check.
+    // This effect intentionally left empty to avoid flipping permission based on later user changes.
   }, [user]);
 
   // If forbidden, render a clear warning panel with actions
+  if (!authChecked) {
+    // still verifying auth — show nothing or a small loader
+    return (
+      <Box sx={{ p: 6 }}>
+        <Typography>Checking permissions…</Typography>
+      </Box>
+    );
+  }
+
   if (forbidden) {
     return (
       <Box sx={{ p: 6 }}>
@@ -224,13 +242,14 @@ export default function UserManagementPage() {
                   );
                   if (res.ok) {
                     const data = await res.json().catch(() => null);
-                    setUser(data ?? devUser);
+                    setUser(data ?? null);
                     const isAdmin =
-                      (data &&
-                        data.role &&
-                        String(data.role).toLowerCase() === "admin") ||
-                      devUser.role === "Admin";
+                      data &&
+                      (String(data.role).toLowerCase() === "admin" ||
+                        (Array.isArray(data.roles) &&
+                          data.roles.includes("admin")));
                     setForbidden(!isAdmin);
+                    setAuthChecked(true);
                   }
                 } catch {
                   // keep forbidden true
@@ -245,11 +264,13 @@ export default function UserManagementPage() {
     );
   }
 
+  // Load users only after authChecked and if not forbidden
   useEffect(() => {
+    if (!authChecked || forbidden) return;
     (async () => {
       try {
         const res = await apiFetch("/auth/all-users");
-        if (!res.ok) {
+        if (!res || !res.ok) {
           setUsers([]);
           return;
         }
@@ -259,16 +280,17 @@ export default function UserManagementPage() {
         setUsers([]);
       }
     })();
-  }, []);
+  }, [authChecked, forbidden]);
 
   useEffect(() => {
+    if (!authChecked || forbidden) return;
     const fetchUsers = async () => {
       try {
         const url = search.trim()
           ? `/auth/search-users?query=${encodeURIComponent(search)}`
           : `/auth/all-users`;
         const res = await apiFetch(url);
-        if (!res.ok) {
+        if (!res || !res.ok) {
           setUsers([]);
           return;
         }
@@ -279,9 +301,10 @@ export default function UserManagementPage() {
       }
     };
     fetchUsers();
-  }, [search]);
+  }, [search, authChecked, forbidden]);
 
   useEffect(() => {
+    if (!authChecked || forbidden) return;
     (async () => {
       try {
         const url =
@@ -289,7 +312,7 @@ export default function UserManagementPage() {
             ? `/auth/filter-users?role=${encodeURIComponent(roleFilter)}`
             : `/auth/all-users`;
         const res = await apiFetch(url);
-        if (!res.ok) {
+        if (!res || !res.ok) {
           setUsers([]);
           return;
         }
@@ -299,7 +322,7 @@ export default function UserManagementPage() {
         setUsers([]);
       }
     })();
-  }, [roleFilter]);
+  }, [roleFilter, authChecked, forbidden]);
 
   // Set anchorEl for tutorial popover
   useEffect(() => {
