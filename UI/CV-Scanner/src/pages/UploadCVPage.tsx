@@ -18,6 +18,7 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  Divider,
   Popover,
   Fade,
   Tooltip,
@@ -32,7 +33,7 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import Sidebar from "./Sidebar";
 import ConfigAlert from "./ConfigAlert";
-import { apiFetch, aiFetch } from "../lib/api";
+import { apiFetch } from "../lib/api";
 
 interface ProcessedData {
   profile: string;
@@ -52,10 +53,68 @@ interface ApiResponse {
   error?: string;
 }
 
+// Safe AI fetch workaround - completely bypasses the problematic aiFetch function
+const safeAiFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
+  const AI_BASE = "http://localhost:5000";
+  const fullUrl = url.startsWith('http') ? url : `${AI_BASE}${url.startsWith('/') ? url : '/' + url}`;
+  
+  // Completely bypass any header building logic for FormData
+  // For file uploads, let the browser set Content-Type automatically
+  let headers: Record<string, string> = {};
+  
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
+  
+  // Safely add any existing headers (if provided)
+  if (options.headers && typeof options.headers === 'object') {
+    Object.entries(options.headers).forEach(([key, value]) => {
+      if (key && value != null) {
+        // Don't override Content-Type for FormData
+        if (!(options.body instanceof FormData) || key.toLowerCase() !== 'content-type') {
+          headers[key] = String(value);
+        }
+      }
+    });
+  }
+
+  const config: RequestInit = {
+    method: options.method || 'POST',
+    body: options.body,
+  };
+
+  // Only add headers if we have any (for FormData, this might be empty)
+  if (Object.keys(headers).length > 0) {
+    config.headers = headers;
+  }
+
+  console.log('Making safe AI call to:', fullUrl);
+  
+  try {
+    const response = await fetch(fullUrl, config);
+    console.log('Safe AI response status:', response.status);
+    return response;
+  } catch (error) {
+    console.error('Safe AI fetch error:', error);
+    // Return a mock response that won't break anything
+    return {
+      ok: false,
+      status: 0,
+      statusText: 'Network Error',
+      headers: {
+        get: () => null
+      },
+      json: async () => ({ error: 'Network request failed' }),
+      text: async () => 'Network request failed',
+    } as any;
+  }
+};
+
 export default function UploadCVPage() {
   const [collapsed, setCollapsed] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [processedData, setProcessedData] = useState<ProcessedData | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [candidateName, setCandidateName] = useState("");
   const [candidateSurname, setCandidateSurname] = useState("");
   const [candidateEmail, setCandidateEmail] = useState("");
@@ -86,6 +145,7 @@ export default function UploadCVPage() {
   const [fadeIn, setFadeIn] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [sidebarAnimating, setSidebarAnimating] = useState(false);
 
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -127,6 +187,38 @@ export default function UploadCVPage() {
     };
   };
 
+  // Safe API call function
+  const makeApiCall = async (endpoint: string, formData: FormData): Promise<ApiResponse> => {
+    try {
+      const response = await safeAiFetch(endpoint, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response || !response.ok) {
+        return {
+          success: false,
+          error: `HTTP ${response?.status || 'No response'}`,
+        };
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (contentType?.includes('application/json')) {
+        const data = await response.json();
+        return { success: true, data };
+      } else {
+        const text = await response.text();
+        return { success: true, data: text };
+      }
+    } catch (error) {
+      console.error(`API call failed for ${endpoint}:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  };
+
   // Load user on component mount
   useEffect(() => {
     const loadUser = async () => {
@@ -160,38 +252,6 @@ export default function UploadCVPage() {
       setAnchorEl(null);
     }
   }, [tutorialStep, file]);
-
-  // Safe API call function
-  const makeApiCall = async (endpoint: string, formData: FormData): Promise<ApiResponse> => {
-    try {
-      const response = await aiFetch(endpoint, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response || !response.ok) {
-        return {
-          success: false,
-          error: `HTTP ${response?.status || 'No response'}`,
-        };
-      }
-
-      const contentType = response.headers.get('content-type');
-      if (contentType?.includes('application/json')) {
-        const data = await response.json();
-        return { success: true, data };
-      } else {
-        const text = await response.text();
-        return { success: true, data: text };
-      }
-    } catch (error) {
-      console.error(`API call failed for ${endpoint}:`, error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  };
 
   // Main processing function
   const handleProcess = async () => {
@@ -228,15 +288,20 @@ export default function UploadCVPage() {
       const uploadEndpoint = `${AI_BASE}/upload_cv?top_k=3`;
       const parseEndpoint = `${AI_BASE}/parse_resume`;
 
-      console.log("Starting CV processing...");
+      console.log("Starting CV processing with safe AI fetch...");
 
-      // Make API calls in parallel
+      // Make API calls in parallel using safeAiFetch
       const [uploadResult, parseResult] = await Promise.all([
         makeApiCall(uploadEndpoint, formData),
         makeApiCall(parseEndpoint, formData),
       ]);
 
-      console.log("API Results:", { uploadResult, parseResult });
+      console.log("Safe API Results:", { 
+        uploadSuccess: uploadResult.success,
+        parseSuccess: parseResult.success,
+        uploadError: uploadResult.error,
+        parseError: parseResult.error
+      });
 
       // Check if both calls failed
       if (!uploadResult.success && !parseResult.success) {
@@ -336,6 +401,8 @@ export default function UploadCVPage() {
     if (fileInput) fileInput.click();
   };
 
+  const handleCloseModal = () => setIsModalOpen(false);
+
   // Cleanup
   useEffect(() => {
     return () => {
@@ -344,11 +411,15 @@ export default function UploadCVPage() {
   }, [pdfUrl]);
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#1E1E1E", color: "#fff" }}>
+    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#1E1E1E", color: "#fff", fontFamily: "Helvetica, sans-serif" }}>
       <Sidebar
         userRole={user?.role || "User"}
         collapsed={collapsed}
-        setCollapsed={setCollapsed}
+        setCollapsed={(val) => {
+          setCollapsed(val);
+          setSidebarAnimating(true);
+          setTimeout(() => setSidebarAnimating(false), 300);
+        }}
       />
       
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
@@ -367,7 +438,7 @@ export default function UploadCVPage() {
               </IconButton>
             </Tooltip>
             
-            <Tooltip title="Help" arrow>
+            <Tooltip title="Go to Help Page" arrow>
               <IconButton
                 color="inherit"
                 onClick={() => navigate("/help")}
@@ -378,12 +449,16 @@ export default function UploadCVPage() {
             </Tooltip>
 
             <Box
-              sx={{ display: "flex", alignItems: "center", ml: 2, cursor: "pointer" }}
+              sx={{ display: "flex", alignItems: "center", ml: 2, cursor: "pointer", "&:hover": { opacity: 0.8 } }}
               onClick={() => navigate("/settings")}
             >
               <AccountCircleIcon sx={{ mr: 1 }} />
               <Typography variant="subtitle1">
-                {user ? `${user.first_name || user.email} (${user.role || "User"})` : "User"}
+                {user
+                  ? user.first_name
+                    ? `${user.first_name} ${user.last_name || ""} (${user.role || "User"})`
+                    : (user.username || user.email) + (user.role ? ` (${user.role})` : "")
+                  : "User"}
               </Typography>
             </Box>
 
@@ -394,14 +469,14 @@ export default function UploadCVPage() {
         </AppBar>
 
         <Box sx={{ p: 3 }}>
-          <Typography variant="h5" sx={{ mb: 3, fontWeight: "bold" }}>
+          <Typography variant="h5" sx={{ mb: 3, fontWeight: "bold", fontFamily: "Helvetica, sans-serif" }}>
             Upload Candidate CV
           </Typography>
 
           <ConfigAlert />
           
           <Paper elevation={6} sx={{ p: 4, borderRadius: 3, backgroundColor: "#DEDDEE" }}>
-            <Typography variant="h6" sx={{ fontWeight: "bold", color: "#000", mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: "bold", color: "#000000ff", mb: 2, fontFamily: "Helvetica, sans-serif" }}>
               Upload a candidate's CV to automatically extract skills and project matches
             </Typography>
 
@@ -421,23 +496,25 @@ export default function UploadCVPage() {
               }}
             >
               <CloudUploadIcon fontSize="large" />
-              <Typography variant="body2" sx={{ mb: 2 }}>
+              <Typography variant="body2">
                 Drag and drop CV File here
               </Typography>
-              <input
-                id="file-upload"
-                type="file"
-                accept=".pdf,.doc,.docx"
-                style={{ display: "none" }}
-                onChange={handleFileChange}
-              />
-              <Button
-                variant="contained"
-                sx={reviewButtonStyle}
-                onClick={handleBrowseClick}
-              >
-                Browse Files
-              </Button>
+              <Box>
+                <input
+                  id="file-upload"
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  style={{ display: "none" }}
+                  onChange={handleFileChange}
+                />
+                <Button
+                  variant="contained"
+                  sx={reviewButtonStyle}
+                  onClick={handleBrowseClick}
+                >
+                  Browse Files
+                </Button>
+              </Box>
             </Box>
 
             {/* Candidate Details */}
@@ -446,20 +523,56 @@ export default function UploadCVPage() {
                 label="Candidate Name"
                 fullWidth
                 required
+                variant="outlined"
                 value={candidateName}
                 onChange={(e) => setCandidateName(e.target.value)}
-                sx={{ mb: 3 }}
-                InputLabelProps={{ sx: { color: "#000", fontWeight: "bold" } }}
+                sx={{
+                  fontFamily: "Helvetica, sans-serif",
+                  mb: 3,
+                  "& .MuiOutlinedInput-root": {
+                    "& fieldset": { borderColor: "#000000ff" },
+                    fontFamily: "Helvetica, sans-serif",
+                    fontSize: "1rem",
+                    color: "#000000ff",
+                  },
+                }}
+                InputLabelProps={{
+                  sx: {
+                    color: "#000000ff",
+                    "&.Mui-focused": {
+                      borderColor: "#204E20",
+                      color: "#204E20",
+                    },
+                    fontFamily: "Helvetica, sans-serif",
+                    fontWeight: "bold",
+                  },
+                }}
               />
 
               <TextField
                 label="Candidate Surname"
                 fullWidth
                 required
+                variant="outlined"
                 value={candidateSurname}
                 onChange={(e) => setCandidateSurname(e.target.value)}
-                sx={{ mb: 3 }}
-                InputLabelProps={{ sx: { color: "#000", fontWeight: "bold" } }}
+                sx={{
+                  mb: 3,
+                  "& .MuiOutlinedInput-root": {
+                    "& fieldset": { borderColor: "#000000ff" },
+                    fontFamily: "Helvetica, sans-serif",
+                    fontSize: "1rem",
+                    color: "#000000ff",
+                  },
+                }}
+                InputLabelProps={{
+                  sx: {
+                    "&.Mui-focused": { color: "#204E20" },
+                    fontFamily: "Helvetica, sans-serif",
+                    fontWeight: "bold",
+                    color: "#000000ff",
+                  },
+                }}
               />
 
               <TextField
@@ -467,10 +580,26 @@ export default function UploadCVPage() {
                 fullWidth
                 required
                 type="email"
+                variant="outlined"
                 value={candidateEmail}
                 onChange={(e) => setCandidateEmail(e.target.value)}
-                sx={{ mb: 3 }}
-                InputLabelProps={{ sx: { color: "#000", fontWeight: "bold" } }}
+                sx={{
+                  mb: 3,
+                  "& .MuiOutlinedInput-root": {
+                    "& fieldset": { borderColor: "#000000ff" },
+                    fontFamily: "Helvetica, sans-serif",
+                    fontSize: "1rem",
+                    color: "#000000ff",
+                  },
+                }}
+                InputLabelProps={{
+                  sx: {
+                    "&.Mui-focused": { color: "#204E20" },
+                    fontFamily: "Helvetica, sans-serif",
+                    fontWeight: "bold",
+                    color: "#000000ff",
+                  },
+                }}
               />
             </Box>
 
@@ -478,7 +607,15 @@ export default function UploadCVPage() {
             {file && (
               <Box ref={cvTableRef}>
                 <TableContainer sx={{ mb: 3 }}>
-                  <Table>
+                  <Table
+                    sx={{
+                      "& td, & th": {
+                        color: "#000000ff",
+                        fontFamily: "Helvetica, sans-serif",
+                        fontSize: "1rem",
+                      },
+                    }}
+                  >
                     <TableHead>
                       <TableRow>
                         <TableCell sx={{ fontWeight: "bold" }}>File Name</TableCell>
@@ -493,17 +630,20 @@ export default function UploadCVPage() {
                             sx={{
                               display: "flex",
                               alignItems: "center",
-                              cursor: pdfUrl ? "pointer" : "default",
-                              color: pdfUrl ? "#003cbd" : "#000",
-                              textDecoration: pdfUrl ? "underline" : "none",
+                              cursor: "pointer",
+                              color: "#003cbdff",
+                              textDecoration: "underline",
+                              "&:hover": { color: "#204E20" },
                             }}
-                            onClick={() => pdfUrl && setPdfPreviewOpen(true)}
+                            onClick={() => setPdfPreviewOpen(true)}
                           >
                             <PictureAsPdfIcon sx={{ mr: 1 }} />
                             {file.name}
                           </Box>
                         </TableCell>
-                        <TableCell>{(file.size / 1024 / 1024).toFixed(2)} MB</TableCell>
+                        <TableCell>
+                          {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </TableCell>
                         <TableCell>
                           <IconButton color="error" onClick={handleRemove}>
                             <DeleteIcon />
@@ -531,32 +671,183 @@ export default function UploadCVPage() {
               )}
             </Box>
 
-            <Typography variant="body2" color="#000">
+            <Typography
+              variant="body2"
+              color="#000000ff"
+              sx={{ fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
+            >
               <strong>Requirements:</strong>
               <br />
               • Accepted formats: PDF, DOC, DOCX
               <br />
               • Maximum file size: 5MB
-              <br />
-              • Ensure CV contains clear section headings
+              <br />• Ensure CV contains clear section headings
             </Typography>
           </Paper>
         </Box>
       </Box>
 
       {/* Error Dialog */}
-      <Dialog open={errorPopup.open} onClose={() => setErrorPopup({ ...errorPopup, open: false })}>
+      <Dialog
+        open={errorPopup.open}
+        onClose={() => setErrorPopup({ ...errorPopup, open: false })}
+      >
         <DialogTitle>Error</DialogTitle>
         <DialogContent>
           <Typography>{errorPopup.message}</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setErrorPopup({ ...errorPopup, open: false })}>OK</Button>
+          <Button onClick={() => setErrorPopup({ ...errorPopup, open: false })}>
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Processed Data Modal */}
+      <Dialog
+        open={isModalOpen}
+        onClose={handleCloseModal}
+        PaperProps={{
+          sx: {
+            backgroundColor: "#5a88ad",
+            maxWidth: "60vw",
+            width: "60vw",
+            height: "60vw",
+            maxHeight: "90vh",
+            minHeight: "40vh",
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            bgcolor: "#181c2f",
+            color: "#fff",
+            fontWeight: "bold",
+            fontSize: "1.3rem",
+          }}
+        >
+          Processed CV Data
+        </DialogTitle>
+        <Divider sx={{ mb: 2 }} />
+        <DialogContent>
+          {processedData && (
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 6,
+                px: 2,
+                py: 1,
+              }}
+            >
+              <Box>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    color: "#232a3b",
+                    mb: 2,
+                    fontWeight: "bold",
+                    letterSpacing: 1,
+                  }}
+                >
+                  Profile
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.profile || "N/A"}
+                </Typography>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                  Education:
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.education || "N/A"}
+                </Typography>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                  Skills:
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.skills || "N/A"}
+                </Typography>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                  Experience:
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.experience || "N/A"}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    color: "#232a3b",
+                    mb: 2,
+                    fontWeight: "bold",
+                    letterSpacing: 1,
+                  }}
+                >
+                  Other Information
+                </Typography>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                  Projects:
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.projects || "N/A"}
+                </Typography>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                  Achievements:
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.achievements || "N/A"}
+                </Typography>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                  Contact:
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.contact || "N/A"}
+                </Typography>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                  Languages:
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.languages || "N/A"}
+                </Typography>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                  Other:
+                </Typography>
+                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                  {processedData.other || "N/A"}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ bgcolor: "#181c2f", justifyContent: "flex-end" }}>
+          <Button
+            onClick={handleCloseModal}
+            sx={{
+              bgcolor: "#e0e0e0",
+              color: "#333",
+              fontWeight: "bold",
+              textTransform: "none",
+              boxShadow: "none",
+              "&:hover": {
+                bgcolor: "#cccccc",
+                color: "#222",
+              },
+            }}
+            variant="contained"
+          >
+            Close
+          </Button>
         </DialogActions>
       </Dialog>
 
       {/* PDF Preview Dialog */}
-      <Dialog open={pdfPreviewOpen} onClose={() => setPdfPreviewOpen(false)} maxWidth="lg" fullWidth>
+      <Dialog
+        open={pdfPreviewOpen}
+        onClose={() => setPdfPreviewOpen(false)}
+        maxWidth="lg"
+        fullWidth
+      >
         <DialogTitle>Preview: {file?.name}</DialogTitle>
         <DialogContent sx={{ p: 0 }}>
           {pdfUrl && (
@@ -576,27 +867,53 @@ export default function UploadCVPage() {
 
       {/* Tutorial Popover */}
       <Popover
-        open={showTutorial && tutorialStep >= 0 && tutorialStep <= 3 && Boolean(anchorEl)}
+        open={
+          showTutorial &&
+          tutorialStep >= 0 &&
+          tutorialStep <= 3 &&
+          Boolean(anchorEl)
+        }
         anchorEl={anchorEl}
         onClose={handleCloseTutorial}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        transformOrigin={{ vertical: "bottom", horizontal: "center" }}
+        anchorOrigin={{
+          vertical: "top",
+          horizontal: "center",
+        }}
+        transformOrigin={{
+          vertical: "bottom",
+          horizontal: "center",
+        }}
         componentsProps={{
-          root: { onMouseDown: (e: React.MouseEvent) => e.preventDefault() }
+          root: {
+            onMouseDown: (e: React.MouseEvent) => e.preventDefault(),
+          }
         }}
         disableRestoreFocus={false}
         disableAutoFocus={true}
         disableEnforceFocus={true}
+        PaperProps={{
+          sx: {
+            p: 2,
+            bgcolor: "#fff",
+            color: "#181c2f",
+            borderRadius: 2,
+            boxShadow: 6,
+            minWidth: 280,
+            zIndex: 1502,
+            textAlign: "center",
+          },
+        }}
       >
         <Fade in={fadeIn} timeout={250}>
-          <Box sx={{ p: 2, minWidth: 280, textAlign: "center" }}>
+          <Box sx={{ position: "relative" }}>
             {tutorialStep === 0 && (
               <>
                 <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
                   Step 1: Upload a CV
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
-                  Start by uploading a candidate's CV here. You can drag and drop or browse for a file.
+                  Start by uploading a candidate's CV here. You can drag and
+                  drop or browse for a file.
                 </Typography>
               </>
             )}
@@ -606,7 +923,8 @@ export default function UploadCVPage() {
                   Step 2: Candidate Details
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
-                  Enter the candidate's name, surname, and email address in these fields.
+                  Enter the candidate's name, surname, and email address in
+                  these fields.
                 </Typography>
               </>
             )}
@@ -616,7 +934,8 @@ export default function UploadCVPage() {
                   Step 3: CV Table
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
-                  Here you can see the uploaded CV file. You can remove it if needed before processing.
+                  Here you can see the uploaded CV file. You can remove it if
+                  needed before processing.
                 </Typography>
               </>
             )}
@@ -626,26 +945,76 @@ export default function UploadCVPage() {
                   Step 4: Process the CV
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
-                  When you're ready, click <b>Process CV</b> to extract skills and information from the uploaded file.
+                  When you're ready, click <b>Process CV</b> to extract skills
+                  and information from the uploaded file.
                 </Typography>
               </>
             )}
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 3, gap: 2 }}>
-              <Button variant="text" size="small" onClick={handleCloseTutorial}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mt: 3,
+                gap: 2,
+              }}
+            >
+              <Button
+                variant="text"
+                size="small"
+                onClick={handleCloseTutorial}
+                sx={{
+                  color: "#888",
+                  fontSize: "0.85rem",
+                  textTransform: "none",
+                  minWidth: "auto",
+                  p: 0,
+                }}
+              >
                 End Tutorial
               </Button>
               <Box sx={{ display: "flex", gap: 2 }}>
                 {tutorialStep > 0 && (
-                  <Button variant="outlined" onClick={() => handleStepChange(tutorialStep - 1)}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => handleStepChange(tutorialStep - 1)}
+                    sx={{
+                      color: "#5a88ad",
+                      borderColor: "#5a88ad",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": { borderColor: "#487DA6", color: "#487DA6" },
+                    }}
+                  >
                     Previous
                   </Button>
                 )}
                 {tutorialStep < 3 ? (
-                  <Button variant="contained" onClick={() => handleStepChange(tutorialStep + 1)}>
+                  <Button
+                    variant="contained"
+                    onClick={() => handleStepChange(tutorialStep + 1)}
+                    sx={{
+                      bgcolor: "#5a88ad",
+                      color: "#fff",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": { bgcolor: "#487DA6" },
+                    }}
+                  >
                     Next
                   </Button>
                 ) : (
-                  <Button variant="contained" onClick={handleCloseTutorial}>
+                  <Button
+                    variant="contained"
+                    onClick={handleCloseTutorial}
+                    sx={{
+                      bgcolor: "#5a88ad",
+                      color: "#fff",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      "&:hover": { bgcolor: "#487DA6" },
+                    }}
+                  >
                     Finish
                   </Button>
                 )}
@@ -658,12 +1027,14 @@ export default function UploadCVPage() {
   );
 }
 
+// Review button style
 const reviewButtonStyle = {
   background: "#232A3B",
   color: "#DEDDEE",
   fontWeight: "bold",
   padding: "8px 20px",
   borderRadius: "4px",
+  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
   "&:hover": {
     background: "#2d3748",
     transform: "translateY(-1px)",
@@ -673,4 +1044,16 @@ const reviewButtonStyle = {
   },
   textTransform: "none",
   transition: "all 0.3s ease",
+  position: "relative",
+  overflow: "hidden",
+  "&::after": {
+    content: '""',
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    background:
+      "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
+  },
 };
