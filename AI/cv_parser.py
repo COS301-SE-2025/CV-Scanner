@@ -211,6 +211,9 @@ class AIExtractor:
 
     def _determine_specialization(self, skills: List[str], text: str) -> str:
 
+    def _clean_sentence(self, s: str) -> str:
+       
+
     def _extract_education(self, text: str) -> List[Dict[str, str]]:
         """Extract education information from CV text"""
         education = []
