@@ -121,7 +121,26 @@ def _extract_education(self, text: str) -> List[Dict[str, str]]:
     """Extract education information from CV text"""
     education = []
 
+    edu_section = self._find_section(text, ['education', 'academic background', 'qualifications', 'educational background', 'degrees'])
+    if not edu_section:
+        return education
     
+    entries = re.split(
+    r'\n(?=\s*(?:[A-Z][a-z]+\.?\s+)?'
+    r'(?:University|College|School|Institute|Academy|Polytechnic|High School|'
+    r'B\.?Sc|B\.?A|B\.?Eng|M\.?Sc|M\.?A|MBA|LLB|Ph\.?D|Diploma|Certificate)'
+    r'|\n(?:EDUCATION|ACADEMIC BACKGROUND|QUALIFICATIONS|EDUCATIONAL BACKGROUND)\n)',
+    edu_section,
+    flags=re.IGNORECASE
+    )
+
+    for entry in entries:
+        if len(entry.strip()) > 30:
+            edu_data = self.parse_education_entry(entry)
+            if edu_data and edu_data.get('institution') != 'institution extracted':
+                education.append(edu_data)
+    
+    return education
 
 def _extract_experience(self, text: str) -> List[Dict[str, str]]:
     """Extract work experience information from CV text"""
