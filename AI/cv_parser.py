@@ -209,6 +209,8 @@ class AIExtractor:
 
     def _calculate_experience_years(self, experience: List[Dict]) -> int:
 
+    def _determine_specialization(self, skills: List[str], text: str) -> str:
+
     def _extract_education(self, text: str) -> List[Dict[str, str]]:
         """Extract education information from CV text"""
         education = []
