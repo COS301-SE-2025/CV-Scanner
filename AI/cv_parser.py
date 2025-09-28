@@ -215,6 +215,10 @@ class AIExtractor:
     
     def _extract_certifications(self, text: str) -> List[str]:
 
+    def _extract_projects(self, text: str) -> List[Dict[str, str]]:
+
+    
+
     def _determine_professional_level(self, skills: List[str], experience: List, education: List, text: str) -> str:
         text_lower = text.lower()
 
