@@ -3,7 +3,7 @@ import re
 import logging
 import tempfile
 
-from pyparsing import Dict
+from typing import Dict
 import torch
 import spacy
 try:
@@ -688,6 +688,8 @@ class AIExtractor:
 
         return "\n".join(lines[start_section + 1:section_end]) if start_section != -1 else ""
 
+def extract_personal_info(text: str):
+
 def parse_resume_from_bytes(file_bytes: bytes, filename: str):
     ext = os.path.splitext(filename or "upload.bin")[1].lower()
     if ext not in (".pdf", ".docx", ".txt"):
@@ -705,7 +707,6 @@ def parse_resume_from_bytes(file_bytes: bytes, filename: str):
 
     # Use AI-driven extraction instead of regex-heavy approach
     try:
-        from ai_cv_extractor import ai_extractor
         logger.info("Using AI-driven CV extraction")
 
         ai_result = AIExtractor.extract_with_ai_prompting(original)
