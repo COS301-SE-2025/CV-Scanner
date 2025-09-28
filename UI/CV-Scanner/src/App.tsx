@@ -23,8 +23,6 @@ import { BrandLoaderProvider, useBrandLoader } from "./hooks/brandLoader";
 import CompareCandidates from "./pages/CompareCandidates";
 import ErrorBoundary from "./components/ErrorBoundary";
 
-//const UploadCVPage       = lazy(() => import("./pages/UploadCVPage"));
-
 function BrandLoaderOverlay() {
   const loader = useBrandLoader();
   return loader.open ? <BrandLoading /> : null;
@@ -35,40 +33,36 @@ function App() {
     <BrandLoaderProvider>
       <BrandLoaderOverlay />
       <BrowserRouter>
-        <Suspense fallback={<BrandLoading />}>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/dashboard" element={<CandidatesDashboard />} />
-            <Route path="/upload" element={<UploadCVPage />} />
-            <ErrorBoundary>
+        <ErrorBoundary>
+          <Suspense fallback={<BrandLoading />}>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/dashboard" element={<CandidatesDashboard />} />
+              <Route path="/upload" element={<UploadCVPage />} />
               <Route path="/candidates" element={<CandidatesPage />} />
-            </ErrorBoundary>
-            <Route path="/compare" element={<CompareCandidates />} />
-            <Route path="/search" element={<Search />} />
-            <Route
-              path="/candidate/:id/summary"
-              element={<CandidateReviewSummary />}
-            />
-            <Route
-              path="/candidate/:id/:section"
-              element={<CandidateReviewSummary />}
-            />
-  
-
-       {/*  <Route path="/candidate/:id/notes" element={<CandidateNotesPage />} />*/}
-
-            <Route path="/user-management" element={<UserManagementPage />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/add-user" element={<AddUserPage />} />
-            <Route path="/landing-page" element={<LandingPage />} />
-            <Route path="/help" element={<Help />} />
-            <Route path="/system-settings" element={<SystemSettingsPage />} />
-            <Route path="/parsed-cv" element={<ParsedCVData />} />
-            <Route path="*" element={<LandingPage />} />
-          </Routes>
-        </Suspense>
+              <Route path="/compare" element={<CompareCandidates />} />
+              <Route path="/search" element={<Search />} />
+              <Route
+                path="/candidate/:id/summary"
+                element={<CandidateReviewSummary />}
+              />
+              <Route
+                path="/candidate/:id/:section"
+                element={<CandidateReviewSummary />}
+              />
+              <Route path="/user-management" element={<UserManagementPage />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/add-user" element={<AddUserPage />} />
+              <Route path="/landing-page" element={<LandingPage />} />
+              <Route path="/help" element={<Help />} />
+              <Route path="/system-settings" element={<SystemSettingsPage />} />
+              <Route path="/parsed-cv" element={<ParsedCVData />} />
+              <Route path="*" element={<LandingPage />} />
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
       </BrowserRouter>
     </BrandLoaderProvider>
   );
