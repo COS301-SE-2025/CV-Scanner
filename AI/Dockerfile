@@ -9,7 +9,7 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 # Install system deps (needed for pdfminer, spacy, docx etc.)
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     poppler-utils \
     && rm -rf /var/lib/apt/lists/*
@@ -26,8 +26,8 @@ RUN python -m spacy download en_core_web_sm || true
 # Copy app source
 COPY . .
 
-# Expose port
-EXPOSE 5000
+# Expose port 80 (Azure requirement)
+EXPOSE 80
 
-# Use more tolerant gunicorn settings: longer timeout, threads, more workers
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "4", "--timeout", "300"]
+# Use gunicorn on port 80 with more tolerant settings
+CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:80", "--workers", "2", "--threads", "4", "--timeout", "300"]
