@@ -151,37 +151,33 @@ class AIExtractor:
             logger.error(f"Could not load summarization model: {e}")
             self.summerizer = None
 
-    def extract_with_ai_prompting(self, cv_text:str) -> Dict[str,any]:
-        """
-            Use AI prompting to extract structured data from CV text
-            Focus on candidate qualifications, not project descriptions
-        """
+    def extract_with_ai_prompting(self, cv_text: str) -> Dict[str, any]:
+        """Use AI prompting to extract structured data from CV text"""
         clean_text = self._clean_text(cv_text)
 
         personal_info = self._extract_personal_info(clean_text)
         skills = self._extract_skills(clean_text)
         experience = self._extract_experience(clean_text)
-        education = self._extract_education(clean_text)
+        education = self._extract_education(clean_text)  # Now returns simple array
 
         summary = self._generate_professional_candidate_summary(
-                personal_info, skills, experience, education, clean_text
-            )
+        personal_info, skills, experience, education, clean_text
+    )
 
         return {
-            "personal_info": personal_info,
-            "skills": skills,
-            "experience": experience,
-            "education": education,
-            "summary": summary,
-            "projects": self._extract_projects(clean_text),
-            "languages": self._extract_languages(clean_text)
-        }
-    #endof extract_with_ai_prompting
+        "personal_info": personal_info,
+        "skills": skills,
+        "experience": experience,
+        "education": education,  # Simple array format
+        "summary": summary,
+        "projects": self._extract_projects(clean_text),
+        "languages": self._extract_languages(clean_text)
+    } 
 
     def _generate_professional_candidate_summary(self, personal_info: Dict, skills: List, 
-                                                   experience: List, education: List, text: str) -> str:
+                                           experience: List, education: List, text: str) -> str:
         """Generate a fluid sentence describing the CV and the person using AI summarization."""
-
+    
         if self.summerizer:
             try:
                 clean_text = text[:2000] if len(text) > 2000 else text
@@ -209,9 +205,8 @@ class AIExtractor:
         parts.append(professional_level)
 
         if education:
-            highest_edu = self._get_highest_education(education)
-            if highest_edu:
-                parts.append(f"with a {highest_edu}")
+            highest_edu = education[0]
+            parts.append(f"with education from {highest_edu}")
 
         if experience:
             exp_years = self._calculate_experience_years(experience)
@@ -315,23 +310,12 @@ class AIExtractor:
 
         return "Professional"
 
-    def _get_highest_education(self, education: List[Dict]) -> str:
+    def _get_highest_education(self, education: List[str]) -> str:
+        """Get highest education level from simple education array"""
         if not education:
             return ""
-        
-        for edu in education:
-            degree_str = str(edu.get('degree', '')).lower()
-            if 'phd' in degree_str or 'doctorate' in degree_str:
-                return "PhD"
-            elif 'master' in degree_str or 'msc' in degree_str or 'mba' in degree_str:
-                return "Master's degree"
-            elif 'llb' in degree_str or 'law' in degree_str:
-                return "Law degree"
-            elif 'bachelor' in degree_str or 'bsc' in degree_str or 'ba' in degree_str:
-                return "Bachelor's degree"
-            elif 'diploma' in degree_str or 'certificate' in degree_str:
-                return "Diploma"
-        return "Educational qualification"
+    
+        return education[0] if education else ""
 
     def _calculate_experience_years(self, experience: List[Dict]) -> int:
         try:
@@ -405,34 +389,31 @@ class AIExtractor:
     
         return education_entries[:10]  # Limit to 10 entries
 
-def _clean_education_entry(self, entry: str) -> str:
-    """Clean and format education entry"""
-    # Remove common prefixes and suffixes
-    entry = re.sub(r'^(?:•|\-|\*|\d+\.?)\s*', '', entry)  # Remove bullets/numbers
-    entry = re.sub(r'\s*[\(\[].*?[\)\]]', '', entry)  # Remove content in brackets
-    entry = re.sub(r'\b(?:Duration|Dates?|Year):.*$', '', entry, flags=re.IGNORECASE)
-    entry = re.sub(r'\bGPA:.*$', '', entry, flags=re.IGNORECASE)
-    
-    # Clean up whitespace
-    entry = re.sub(r'\s+', ' ', entry).strip()
-    
-    # Remove standalone dates and locations
-    words = entry.split()
-    filtered_words = []
-    for word in words:
-        # Keep words that are not just years or locations
-        if not (re.match(r'^\d{4}$', word) or 
+    def _clean_education_entry(self, entry: str) -> str:
+        """Clean and format education entry"""
+
+        entry = re.sub(r'^(?:•|\-|\*|\d+\.?)\s*', '', entry)
+        entry = re.sub(r'\s*[\(\[].*?[\)\]]', '', entry)  
+        entry = re.sub(r'\b(?:Duration|Dates?|Year):.*$', '', entry, flags=re.IGNORECASE)
+        entry = re.sub(r'\bGPA:.*$', '', entry, flags=re.IGNORECASE)
+
+        entry = re.sub(r'\s+', ' ', entry).strip()
+
+        words = entry.split()
+        filtered_words = []
+        for word in words:
+            if not (re.match(r'^\d{4}$', word) or 
                 re.match(r'^\d{4}[-–]\d{4}$', word) or
                 word.lower() in ['present', 'current']):
-            filtered_words.append(word)
+                filtered_words.append(word)
     
-    clean_entry = ' '.join(filtered_words).strip()
+        clean_entry = ' '.join(filtered_words).strip()
     
-    # Final cleanup
-    clean_entry = re.sub(r',\s*,', ',', clean_entry)  # Fix double commas
-    clean_entry = re.sub(r'\s+$', '', clean_entry)  # Remove trailing whitespace
+
+        clean_entry = re.sub(r',\s*,', ',', clean_entry)  
+        clean_entry = re.sub(r'\s+$', '', clean_entry)  
     
-    return clean_entry if len(clean_entry) > 5 else None  # Return only if meaningful
+        return clean_entry if len(clean_entry) > 5 else None
 
     def _parse_education_entry(self, entry: str) -> Dict[str, str]:
         """Parse individual education entry"""
@@ -484,34 +465,51 @@ def _clean_education_entry(self, entry: str) -> str:
         
         return None, first_line.strip()
 
-    def _extract_experience(self, text: str) -> List[Dict[str, str]]:
-        """Extract work experience information from CV text"""
-        experience = []
+    def _extract_experience(self, text: str) -> List[str]:
+        """Extract work experience information as simple array of strings"""
+        experience_entries = []
 
         exp_section = self._find_section(text, ['experience', 'work experience', 'professional experience', 'employment history', 'employment'])
         if not exp_section:
-            return experience
-        
-        entries = re.split(
-        r'\n(?=(?:(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|'
-        r'May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|'
-        r'Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?|\d{4})'
-        r'(?:\s*[-–—to]+\s*'
-        r'(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|'
-        r'May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|'
-        r'Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?|\d{4}|Present|Current))?)'
-        r'|(?:\b(?:WORK EXPERIENCE|EMPLOYMENT HISTORY|PROFESSIONAL EXPERIENCE|CAREER HISTORY)\b))',
-        exp_section,
-        flags=re.IGNORECASE
-        )
+            return experience_entries
+    
+        entries = re.split(r'\n\s*\n', exp_section)
 
         for entry in entries:
             if len(entry.strip()) > 30:
-                exp_data = self._parse_experience_entry(entry)
-                if exp_data and exp_data.get('company') != 'company extracted':
-                    experience.append(exp_data)
+                lines = [line.strip() for line in entry.split('\n') if line.strip()]
+                if lines:
+                    # Take the most meaningful line (usually first line)
+                    main_line = lines[0]
+                
+                    # Clean up the line
+                    clean_entry = self._clean_experience_entry(main_line)
+                    if clean_entry and len(clean_entry) > 15:  # Ensure it's meaningful
+                        experience_entries.append(clean_entry)
+    
+        return experience_entries[:15]  # Limit to 15 entries
 
-        return experience
+    def _clean_experience_entry(self, entry: str) -> str:
+        """Clean and format experience entry"""
+        entry = re.sub(r'^(?:•|\-|\*|\d+\.?)\s*', '', entry) 
+        entry = re.sub(r'\s*[\(\[].*?[\)\]]', '', entry) 
+    
+        entry = re.sub(r'\s+', ' ', entry).strip()
+    
+        words = entry.split()
+        filtered_words = []
+        for word in words:
+            if not (re.match(r'^\d{4}$', word) or 
+                re.match(r'^\d{4}[-–]\d{4}$', word) or
+                word.lower() in ['present', 'current', 'duration', 'dates']):
+                filtered_words.append(word)
+    
+        clean_entry = ' '.join(filtered_words).strip()
+    
+        clean_entry = re.sub(r',\s*,', ',', clean_entry) 
+        clean_entry = re.sub(r'\s+$', '', clean_entry)  
+    
+        return clean_entry if len(clean_entry) > 10 else None 
 
     def _parse_experience_entry(self, entry: str) -> Dict[str, str]:
 
@@ -600,9 +598,9 @@ def _clean_education_entry(self, entry: str) -> str:
                         exclude_keywords = [
                             'experience', 'education', 'skills', 'projects', 'certifications',
                                 'summary', 'objective', 'references', 'awards', 'publications'
-                    ]
-                    if not any(kw in line.lower() for kw in exclude_keywords):
-                        candidate_names.append(line.strip())
+                        ]
+                        if not any(kw in line.lower() for kw in exclude_keywords):
+                            candidate_names.append(line.strip())
         if candidate_names:
             info['name'] = candidate_names[0]
 
