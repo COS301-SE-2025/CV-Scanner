@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { apiFetch, aiFetch } from "../lib/api";
 
 import {
   Box,
@@ -34,8 +35,7 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import Sidebar from "./Sidebar";
-
-const CONFIG_BASE = "http://localhost:8081"; // Spring Boot base (AuthController)
+import ConfigAlert from "./ConfigAlert";
 
 export default function UploadCVPage() {
   const [collapsed, setCollapsed] = useState(false);
@@ -97,10 +97,21 @@ export default function UploadCVPage() {
 
   useEffect(() => {
     const email = localStorage.getItem("userEmail") || "admin@email.com";
-    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
-      .then((res) => res.json())
-      .then((data) => setUser(data))
-      .catch(() => setUser(null));
+    (async () => {
+      try {
+        const res = await apiFetch(
+          `/auth/me?email=${encodeURIComponent(email)}`
+        );
+        if (!res.ok) {
+          setUser(null);
+          return;
+        }
+        const data = await res.json().catch(() => null);
+        setUser(data);
+      } catch {
+        setUser(null);
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -139,7 +150,7 @@ export default function UploadCVPage() {
 
   const loadConfig = async () => {
     try {
-      const res = await fetch(`${CONFIG_BASE}/auth/config/categories`);
+      const res = await apiFetch("/auth/config/categories");
       if (!res.ok) {
         let msg = `Failed to load configuration (${res.status})`;
         try {
@@ -172,9 +183,8 @@ export default function UploadCVPage() {
     }
 
     try {
-      const res = await fetch(`${CONFIG_BASE}/auth/config/categories`, {
+      const res = await apiFetch("/auth/config/categories", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(parsed),
       });
       if (!res.ok) {
@@ -219,9 +229,25 @@ export default function UploadCVPage() {
     }
   };
 
+  const getJsonOrText = async (res: Response | null) => {
+    if (!res) return null;
+    const ct = res.headers?.get?.("content-type") ?? "";
+    try {
+      if (ct.includes("application/json")) {
+        return await res.json().catch(() => null);
+      }
+      return await res.text().catch(() => null);
+    } catch {
+      return null;
+    }
+  };
+
+  // Reusable null/undefined guard
+  const safe = <T, F>(v: T | null | undefined, fallback: F): T | F =>
+    v == null ? fallback : v;
+
   const handleProcess = async () => {
     if (!file) return;
-    // Require candidate fields
     if (!candidateName || !candidateSurname || !candidateEmail) {
       setErrorPopup({
         open: true,
@@ -237,68 +263,73 @@ export default function UploadCVPage() {
     formForParse.append("file", file);
 
     try {
-      // Call both AI endpoints in parallel
-      const uploadPromise = fetch("http://localhost:5000/upload_cv?top_k=3", {
-        method: "POST",
-        body: formForUpload,
-      });
-
-      const parsePromise = fetch("http://localhost:5000/parse_resume", {
-        method: "POST",
-        body: formForParse,
-      });
-
       const [uploadResp, parseResp] = await Promise.all([
-        uploadPromise,
-        parsePromise,
+        aiFetch("/upload_cv?top_k=3", { method: "POST", body: formForUpload }),
+        aiFetch("/parse_resume", { method: "POST", body: formForParse }),
       ]);
 
-      // Try to parse JSON responses (fallback to text)
-      const uploadResult = await (async () => {
-        try {
-          return await uploadResp.json();
-        } catch {
-          try {
-            return await uploadResp.text();
-          } catch {
-            return null;
-          }
-        }
-      })();
+      if (!uploadResp && !parseResp) {
+        setErrorPopup({ open: true, message: "Backend unavailable." });
+        return;
+      }
 
-      const parseResult = await (async () => {
-        try {
-          return await parseResp.json();
-        } catch {
-          try {
-            return await parseResp.text();
-          } catch {
-            return null;
-          }
-        }
-      })();
+      const uploadResultRaw = await getJsonOrText(uploadResp).catch(() => null);
+      const parseResultRaw = await getJsonOrText(parseResp).catch(() => null);
 
-      // If both calls failed, show an error
       if ((!uploadResp || !uploadResp.ok) && (!parseResp || !parseResp.ok)) {
         const uploadMsg =
-          uploadResult?.detail ||
-          uploadResult?.message ||
+          (uploadResultRaw &&
+            (uploadResultRaw.detail || uploadResultRaw.message)) ||
           `upload_cv failed (${uploadResp?.status})`;
         const parseMsg =
-          parseResult?.detail ||
-          parseResult?.message ||
+          (parseResultRaw &&
+            (parseResultRaw.detail || parseResultRaw.message)) ||
           `parse_resume failed (${parseResp?.status})`;
         setErrorPopup({ open: true, message: `${uploadMsg}; ${parseMsg}` });
         return;
       }
 
+      // Simplified normalization using safe()
+      const uploadResult =
+        uploadResp?.ok && typeof uploadResultRaw === "object" && uploadResultRaw
+          ? uploadResultRaw
+          : {};
+      const applied = safe((uploadResult as any).applied, {});
+      const bestFitProjectType = safe(
+        (uploadResult as any).best_fit_project_type,
+        null
+      );
+
+      const parseResult =
+        parseResp?.ok && typeof parseResultRaw === "object" && parseResultRaw
+          ? parseResultRaw
+          : {};
+      const parseResultObj = safe((parseResult as any).result, {});
+
+      const mergedProcessedData = {
+        profile: safe(parseResultObj.profile, ""),
+        education: safe(parseResultObj.education, ""),
+        skills: safe(parseResultObj.skills, ""),
+        experience: safe(parseResultObj.experience, ""),
+        projects: safe(parseResultObj.projects, ""),
+        achievements: safe(parseResultObj.achievements, ""),
+        contact: safe(parseResultObj.contact, ""),
+        languages: safe(parseResultObj.languages, ""),
+        other: safe(parseResultObj.other, ""),
+      };
+
+      setProcessedData(mergedProcessedData);
+
       const fileUrl = URL.createObjectURL(file);
 
-      // Navigate to parsed page with both AI results
       navigate("/parsed-cv", {
         state: {
-          aiUpload: uploadResult,
-          aiParse: parseResult,
+          aiUpload: {
+            ...uploadResult,
+            applied,
+            best_fit_project_type: bestFitProjectType,
+          },
+          aiParse: { ...parseResult, result: parseResultObj },
           fileUrl,
           fileType: file.type,
           candidate: {
@@ -423,6 +454,8 @@ export default function UploadCVPage() {
             Upload Candidate CV
           </Typography>
 
+          {/* Config Alert */}
+          <ConfigAlert />
           <Paper
             elevation={6}
             sx={{ p: 4, borderRadius: 3, backgroundColor: "#DEDDEE" }}

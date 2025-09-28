@@ -1,88 +1,246 @@
-name: CI
+name: CV-Scanner Deployment
 
 on:
   push:
-    branches: [main, dev, API-3]
-  pull_request:
-    branches: [main, dev, API-3]
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   api:
-    name: Build API (Java/Maven)
+    name: Build, Test, Deploy API (Java 21)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Cache Maven repo
-        uses: actions/cache@v4
+      - name: Azure login (Service Principal)
+        uses: azure/login@v2
         with:
-          path: ~/.m2/repository
-          key: maven-${{ runner.os }}-${{ hashFiles('API/api/pom.xml') }}
-          restore-keys: maven-${{ runner.os }}-
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: "21"
-          distribution: "temurin"
-
-      - name: Build with Maven
-        run: mvn -B -f API/api/pom.xml package
-
-      - name: Run tests
-        run: mvn -f API/api/pom.xml test
-
-  ai:
-    name: Build AI (Python/FastAPI)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: pip-${{ runner.os }}-${{ hashFiles('AI/requirements*.txt') }}
-          restore-keys: pip-${{ runner.os }}-
-
-      - name: Install dependencies
+      - name: Validate SQL Server exists in SQL RG
         run: |
-          python -m pip install --upgrade pip
-          if [ -f AI/requirements.txt ]; then
-            pip install -r AI/requirements.txt
-          else
-            pip install fastapi uvicorn pydantic pytest
+          SERVER="${{ secrets.SQL_SERVER_NAME }}"
+          RG="${{ secrets.SQL_RESOURCE_GROUP }}"
+          if ! az sql server show -g "$RG" -n "$SERVER" >/dev/null 2>&1; then
+            echo "ERROR: SQL server '$SERVER' not found in resource group '$RG'." >&2
+            echo "Tip: Set secrets SQL_SERVER_NAME (logical server name, no domain) and SQL_RESOURCE_GROUP (e.g. CV_Scanner)." >&2
+            az sql server list --query "[].{name:name, rg:resourceGroup}" -o table || true
+            exit 1
           fi
 
-  ui:
-    name: Build UI (Node/React)
-    runs-on: windows-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      # Temporarily allow the GitHub runner IP to access Azure SQL (remove at end)
+      - name: Open SQL firewall for runner IP
+        id: sql_fw
+        run: |
+          IP=$(curl -s https://api.ipify.org)
+          echo "ip=$IP" >> "$GITHUB_OUTPUT"
+          az sql server firewall-rule create \
+            -g "${{ secrets.SQL_RESOURCE_GROUP }}" \
+            -s "${{ secrets.SQL_SERVER_NAME }}" \
+            -n "gh-${GITHUB_RUN_ID}" \
+            --start-ip-address "$IP" \
+            --end-ip-address "$IP"
 
-      - name: Use Node.js 20
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: API/api/pom.xml
+
+      - name: Make mvnw executable
+        run: chmod +x API/api/mvnw
+
+      - name: Build & Test API against production DB
+        working-directory: API/api
+        env:
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+        run: |
+          ./mvnw -B -ntp -DskipTests=false test
+          ./mvnw -B -ntp -DskipTests package
+
+      - name: Close SQL firewall rule
+        if: always()
+        run: |
+          az sql server firewall-rule delete \
+            -g "${{ secrets.SQL_RESOURCE_GROUP }}" \
+            -s "${{ secrets.SQL_SERVER_NAME }}" \
+            -n "gh-${GITHUB_RUN_ID}"
+
+      - name: Locate API artifact
+        id: api_artifact
+        run: |
+          JAR_PATH=$(ls -1 API/api/target/*.jar | grep -v '\.original$' | head -n 1)
+          echo "jar=$JAR_PATH" >> "$GITHUB_OUTPUT"
+          ls -lh "$JAR_PATH"
+
+      - name: Deploy API (jar)
+        run: |
+          az webapp deploy \
+            --resource-group "rg-cvscanner" \
+            --name "cvscanner-api" \
+            --src-path "${{ steps.api_artifact.outputs.jar }}" \
+            --type jar
+
+      - name: Configure API app settings
+        run: |
+          az webapp config appsettings set \
+            --resource-group "rg-cvscanner" \
+            --name "cvscanner-api" \
+            --settings DB_URL='${{ secrets.DB_URL }}' DB_USER='${{ secrets.DB_USER }}' DB_PASS='${{ secrets.DB_PASS }}'
+  ai:
+    name: Deploy AI (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login (Service Principal)
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Build AI package (prebuilt, slim)
+        run: |
+          set -euo pipefail
+          rm -rf ai_build venv ai.zip
+          python -m venv venv
+          . venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install --no-cache-dir -r AI/requirements.txt -t ai_build
+
+          # Torch verification
+          python - <<'PY'
+          import sys
+          sys.path.insert(0, "ai_build")
+          import torch
+          print("Torch OK", torch.__version__)
+          PY
+
+          # Copy source + start.sh
+          cp AI/*.py ai_build/
+          cp AI/start.sh ai_build/
+          [ -d AI/models ] && cp -r AI/models ai_build/models
+          [ -d AI/config ] && cp -r AI/config ai_build/config
+
+          # Prune junk
+          find ai_build -type d -name "__pycache__" -prune -exec rm -rf {} +
+          find ai_build -type f -name "*.pyc" -delete
+          find ai_build -type d -path "*/tests" -prune -exec rm -rf {} + || true
+          find ai_build -maxdepth 1 -type d -name "*.dist-info" | while read d; do
+            find "$d" -type f ! -name "METADATA" ! -name "WHEEL" -delete || true
+          done
+
+          echo "Artifact size:"
+          du -sh ai_build || true
+          (cd ai_build && zip -qr -9 ../ai.zip .)
+          ls -lh ai.zip
+          SIZE_MB=$(du -m ai.zip | cut -f1)
+          if [ "$SIZE_MB" -gt 300 ]; then
+            echo "Artifact too large (${SIZE_MB}MB > 300MB)." >&2
+            exit 1
+          fi
+
+
+      - name: Configure AI App Service
+        run: |
+          az webapp config set \
+            --resource-group rg-cvscanner \
+            --name cvscanner-ai \
+            --linux-fx-version "PYTHON|3.12" \
+            --always-on true
+          az webapp config appsettings set \
+            --resource-group rg-cvscanner \
+            --name cvscanner-ai \
+            --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+                     WEBSITE_RUN_FROM_PACKAGE=1 \
+                     PYTHONPATH=/home/site/wwwroot \
+                     TRANSFORMERS_CACHE=/home/transformers-cache \
+                     HF_HOME=/home/hf-cache \
+                     WEBSITES_CONTAINER_START_TIME_LIMIT=1800
+          az webapp config set \
+            --resource-group rg-cvscanner \
+            --name cvscanner-ai \
+            --startup-file "bash start.sh"
+          az webapp log config \
+            --resource-group rg-cvscanner \
+            --name cvscanner-ai \
+            --application-logging filesystem \
+            --web-server-logging filesystem \
+            --level information
+            
+
+      - name: Deploy AI (retry once on 504)
+        run: |
+          set -e
+          deploy() {
+            az webapp deploy \
+              --resource-group rg-cvscanner \
+              --name cvscanner-ai \
+              --src-path ai.zip \
+              --type zip
+          }
+          if deploy; then
+            echo "Deploy ok"
+          else
+            echo "Retrying in 25s..."
+            sleep 25
+            deploy
+          fi
+
+      - name: Warm up AI
+        run: |
+          set -e
+          HOST=$(az webapp show -g rg-cvscanner -n cvscanner-ai --query defaultHostName -o tsv)
+          echo "AI host: $HOST"
+          for i in {1..18}; do
+            if curl -fsS -m 5 "https://${HOST}/health"; then
+              echo "Health OK"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Health failed; tailing logs:"
+          az webapp log tail -g rg-cvscanner -n cvscanner-ai --timeout 45 || true
+          exit 1
+
+  ui:
+    name: Deploy React UI (SWA)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "18"
           cache: "npm"
           cache-dependency-path: UI/CV-Scanner/package-lock.json
 
-      - name: Install deps
+      - name: Install UI dependencies
         working-directory: UI/CV-Scanner
-        run: npm ci
+        run: npm ci || npm install --legacy-peer-deps
 
-      - name: Build UI
+      - name: Build React UI
         working-directory: UI/CV-Scanner
-        run: npx vite build
+        env:
+          VITE_API_BASE_URL: ${{ secrets.API_BASE_URL }} # existing
+          VITE_AI_BASE_URL: ${{ secrets.VITE_AI_BASE_URL }} # add this secret (set to https://cvscanner-ai-bxf4ereygse9eqdh.southafricanorth-01.azurewebsites.net)
+        run: npm run build
 
-      - name: Test UI
-        working-directory: UI/CV-Scanner
-        run: npm test --if-present -- --watchAll=false
+      - name: Verify dist exists
+        run: test -f "UI/CV-Scanner/dist/index.html" && echo "dist found" || (echo "dist missing" && exit 1)
+
+      - name: Deploy React UI to Azure Static Web App
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.UI_STATIC_WEBAPP_API_TOKEN }}
+          action: "upload"
+          app_location: "UI/CV-Scanner/dist"
+          skip_app_build: true

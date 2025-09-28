@@ -20,6 +20,7 @@ import SystemSettingsPage from "./pages/SystemSettings";
 import ParsedCVData from "./pages/ParsedCVData";
 import BrandLoading from "./components/BrandLoading";
 import { BrandLoaderProvider, useBrandLoader } from "./hooks/brandLoader";
+import CompareCandidates from "./pages/CompareCandidates";
 
 //const UploadCVPage       = lazy(() => import("./pages/UploadCVPage"));
 
@@ -41,6 +42,7 @@ function App() {
             <Route path="/dashboard" element={<CandidatesDashboard />} />
             <Route path="/upload" element={<UploadCVPage />} />
             <Route path="/candidates" element={<CandidatesPage />} />
+            <Route path="/compare" element={<CompareCandidates />} />
             <Route path="/search" element={<Search />} />
             <Route
               path="/candidate/:id/summary"

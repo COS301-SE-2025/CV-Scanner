@@ -1,4 +1,5 @@
 # 📄 CV-Scanner
+---
 
 ## 📊 Project Metrics
 
@@ -9,6 +10,18 @@
 ![Last Commit](https://img.shields.io/github/last-commit/COS301-SE-2025/CV-Scanner)
 ![Repo Size](https://img.shields.io/github/repo-size/COS301-SE-2025/CV-Scanner)
 
+---
+
+## 🔗 Demo Links
+
+## Project Deliverables
+
+| Deliverable   | Demo 1 | Demo 2 | Demo 3 |
+|---------------|--------|--------|--------|
+| **Video**     | [Demo1 Video](https://drive.google.com/file/d/1BtbS0klLEC0HWkYhbL0k7NyrCFnGpLrS/view?usp=sharing) | [Demo2 Video](https://drive.google.com/file/d/1AOb6-VEAaabk0FddT4uh2BHFEV9V2qOl/view?usp=sharing) | [Demo3 Video](https://drive.google.com/file/d/1ic8ZmDxMWeutkKNAmTZpGo3npDnTKvbE/view?usp=sharing) |
+| **Presentation** | [Demo1 Presentation](https://docs.google.com/presentation/d/1O4b6erR0Uo78WA-xSwWJO_uA2eCvOgGE/edit?usp=sharing&ouid=117709380918548409880&rtpof=true&sd=true) | [Demo2 Presentation](https://docs.google.com/presentation/d/1MdmJ69tKmyojZ8U0JkynMiWDhxMw-9lg/edit?usp=sharing&ouid=117709380918548409880&rtpof=true&sd=true) | [Demo3 Presentation](https://docs.google.com/presentation/d/10JxtIDU4nSvzN5WZbKMFnui-oT29cxBB/edit?usp=sharing&ouid=117709380918548409880&rtpof=true&sd=true) |
+| **SRS**       | [SRS Document v1](https://drive.google.com/file/d/1AruNcFe2mI8f6CEjC8__o1PSpbJJFRpj/view?usp=sharing) | [SRS Document v2](https://drive.google.com/file/d/1iAMg_G9gcY91X5osYbNA5--qdqwbtcWq/view?usp=sharing) | [SRS Document v3](https://drive.google.com/file/d/1nQLy8jcEQjPSFBNH9JaHW6LOXndfNdvT/view?usp=sharing) |
+| **QRS** | N/A | N/A | [QRS Document v3](https://drive.google.com/file/d/1S5L43vqvFdNAobK-nL1oQAtp6S5Aj8Ql/view?usp=sharing) |
 
 ---
 
@@ -20,6 +33,31 @@
 - Project suitability indicators
 
 It supports both **PDF and Word** CV formats and automatically summarizes candidate profiles into a secure, centralized database. These summaries are accessible via a **role-based admin portal**, ensuring efficient and secure HR workflows.
+
+---
+
+## 📄 Architectural Requirements and Design
+
+You can view or download the Architectural Requirements and Design document here:
+[CV Scanner Architectural Requirements and Design](https://drive.google.com/file/d/1VhFjvYFYU73nHl929ZE86LR9yMAGkc_y/view?usp=sharing).
+
+---
+
+## 📄 Technical Installation
+
+You can view how to run the CV Scanner app here:  [CV Scanner Technical Installation](https://drive.google.com/file/d/1GQ_1FtPZSQDWn0eyabKHLnrVWuyNj2ny/view?usp=sharing).
+
+---
+
+## 📄 User Manual
+
+You can view or download the full user manual here:  [CV Scanner User Manual](https://drive.google.com/file/d/1Drewau_SXiIGcay2EIxx9il7a3aqcbnF/view?usp=sharing).
+
+---
+
+## 📑 Coding Standards
+
+You can view our Coding Standards document here: [Coding Standards and Quality](https://drive.google.com/file/d/1K0bpz-3rYhGe7H2q1EAscawLXG1Lyj6L/view?usp=sharing).
 
 ---
 
@@ -36,11 +74,9 @@ We chose **React** for building the user interface due to its component-based ar
 #### ☕ Backend API: Java Spring Boot
 **Spring Boot** was used for our backend REST API. It provides robust tools for building secure and scalable server-side applications, with excellent support for data access, service layers, and integration with enterprise systems. It also aligned well with our hosting and deployment constraints (e.g., Azure App Services).
 
-#### ⚙️ Engine Component: C++
-We implemented the core processing engine in **C++** to leverage its performance benefits and low-level memory control. This was critical for compute-heavy tasks where speed and efficiency were essential.
-
 #### 🧠 AI Service: Python
-**Python** was selected for our AI/CV module due to its extensive machine learning and natural language processing libraries (like spaCy, scikit-learn, and OpenCV). It allowed us to rapidly prototype and integrate intelligent functionality into our system.
+**Python** was selected for our AI/CV module due to its extensive machine learning and natural language processing libraries (like spaCy, scikit-learn, and OpenCV) and with the use of the BART Model in Facebook. It allowed us to rapidly prototype and integrate intelligent functionality into our system.
+
 
 ---
 ## 👨‍💻 Team: Quantum Stack
@@ -103,31 +139,6 @@ Track our development progress here:
 
 ---
 
-## 📄 Access the Manual
-
-You can view or download the full user manual here:  
-[CV Scanner User Manual](https://drive.google.com/file/d/1U7zqDIqY-VYKJQcDi8kkhpHsde9DV53l/view?usp=sharing)
-
----
-
-## 📑 Coding Standards
-
-You can view our Coding Standards document here:
-[Coding Standards and Quality](https://drive.google.com/file/d/1rp8JnNfPehe5iU65XTH6DaiwV4-LpNIT/view?usp=sharing).
-
----
-
-## 🔗 Demo Links
-
-- [**Demo1 Video**](https://drive.google.com/file/d/1BtbS0klLEC0HWkYhbL0k7NyrCFnGpLrS/view?usp=sharing)
-- [**Demo1 Presentation**](https://docs.google.com/presentation/d/1O4b6erR0Uo78WA-xSwWJO_uA2eCvOgGE/edit?usp=sharing&ouid=117709380918548409880&rtpof=true&sd=true)
-- [**Software Requirement Specification Document**](https://drive.google.com/file/d/1AruNcFe2mI8f6CEjC8__o1PSpbJJFRpj/view?usp=sharing)
-- [**Demo2 Video**](https://drive.google.com/file/d/1AOb6-VEAaabk0FddT4uh2BHFEV9V2qOl/view?usp=sharing)
-- [**Demo2 Presentation**](https://docs.google.com/presentation/d/1MdmJ69tKmyojZ8U0JkynMiWDhxMw-9lg/edit?usp=sharing&ouid=117709380918548409880&rtpof=true&sd=true)
-- [**Software Requirement Specification Document Version 2**](https://drive.google.com/file/d/1iAMg_G9gcY91X5osYbNA5--qdqwbtcWq/view?usp=sharing)
-
----
-
 ## Branching Strategies
 
 ```mermaid
@@ -136,9 +147,7 @@ graph TD;
     Dev-->UI;
     Dev-->API;
     Dev-->AI;
-    Dev-->Engine;
     UI-->UIFeatureBranch;
-    Engine-->EngineFeatureBranch;
     API-->APIFeatureBranch;
     AI-->AIFeatureBranch;
 ```

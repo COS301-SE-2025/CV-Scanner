@@ -28,6 +28,7 @@ import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import logo from "../assets/logo.png";
 import logoNavbar from "../assets/logoNavbar.png";
+import { apiFetch } from "../lib/api";
 
 export default function CandidateSkillsPage() {
   const navigate = useNavigate();
@@ -44,10 +45,21 @@ export default function CandidateSkillsPage() {
 
   useEffect(() => {
     const email = localStorage.getItem("userEmail") || "admin@email.com";
-    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
-      .then((res) => res.json())
-      .then((data) => setUser(data))
-      .catch(() => setUser(null));
+    (async () => {
+      try {
+        const res = await apiFetch(
+          `/auth/me?email=${encodeURIComponent(email)}`
+        );
+        if (!res.ok) {
+          setUser(null);
+          return;
+        }
+        const data = await res.json().catch(() => null);
+        setUser(data);
+      } catch {
+        setUser(null);
+      }
+    })();
   }, []);
 
   // Tutorial logic
@@ -113,24 +125,32 @@ export default function CandidateSkillsPage() {
         color: "#fff",
       }}
     >
-
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
 
-        <AppBar position="static" sx={{ bgcolor: "#232A3B ", boxShadow: "none" }}>
+        <AppBar
+          position="static"
+          sx={{ bgcolor: "#232A3B ", boxShadow: "none" }}
+        >
           <Toolbar sx={{ justifyContent: "space-between" }}>
             {/* Left: Logo and heading */}
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
               <img src={logoNavbar} alt="Logo" style={{ width: 80 }} />
-              <Typography variant="h6" sx={{fontFamily: 'Helvetica, sans-serif', ml: 2, fontWeight: 'bold' }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontFamily: "Helvetica, sans-serif",
+                  ml: 2,
+                  fontWeight: "bold",
+                }}
+              >
                 Candidate Skills
               </Typography>
             </Box>
 
-
             {/* Right: Icons */}
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
               {/* Tutorial icon */}
               <Tooltip title="Run Tutorial" arrow>
                 <IconButton
@@ -218,10 +238,17 @@ export default function CandidateSkillsPage() {
         >
           <Fade in={fadeIn} timeout={250}>
             <Box sx={{ position: "relative" }}>
-              <Typography variant="h6" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 1 }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontFamily: "Helvetica, sans-serif",
+                  fontWeight: "bold",
+                  mb: 1,
+                }}
+              >
                 {tutorialStep === 0 ? "Skills List" : "Add Skill"}
               </Typography>
-              <Typography sx={{fontFamily: 'Helvetica, sans-serif', mb: 2 }}>
+              <Typography sx={{ fontFamily: "Helvetica, sans-serif", mb: 2 }}>
                 {tutorialStep === 0
                   ? "This section shows the candidate's technical skills. You can remove skills by clicking the X."
                   : "Use this input to add a new skill to the candidate's profile."}
@@ -317,7 +344,14 @@ export default function CandidateSkillsPage() {
             Back to Candidates
           </Button>
 
-          <Typography variant="h4" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 2 }}>
+          <Typography
+            variant="h4"
+            sx={{
+              fontFamily: "Helvetica, sans-serif",
+              fontWeight: "bold",
+              mb: 2,
+            }}
+          >
             Jane Smith
           </Typography>
           <Typography variant="subtitle1" sx={{ mb: 4 }}>
@@ -355,7 +389,14 @@ export default function CandidateSkillsPage() {
             elevation={6}
             sx={{ p: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
           >
-            <Typography variant="h6" sx={{ fontFamily: 'Helvetica, sans-serif',fontWeight: "bold", mb: 2 }}>
+            <Typography
+              variant="h6"
+              sx={{
+                fontFamily: "Helvetica, sans-serif",
+                fontWeight: "bold",
+                mb: 2,
+              }}
+            >
               Technical Skills
             </Typography>
             <Box
@@ -371,10 +412,7 @@ export default function CandidateSkillsPage() {
                 />
               ))}
             </Box>
-            <Box
-              ref={addSkillRef}
-              sx={{ display: "flex", gap: 2 }}
-            >
+            <Box ref={addSkillRef} sx={{ display: "flex", gap: 2 }}>
               <TextField
                 label="Add new skill"
                 variant="outlined"

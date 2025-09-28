@@ -26,6 +26,7 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import PeopleIcon from "@mui/icons-material/People";
 import SettingsIcon from "@mui/icons-material/Settings";
+import { CircularProgress } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
@@ -37,6 +38,7 @@ import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import Sidebar from "./Sidebar";
 import ConfigViewer from "./ConfigViewer";
+import { apiFetch, aiFetch } from "../lib/api";
 
 export default function Search() {
   const [collapsed, setCollapsed] = useState(false);
@@ -88,9 +90,15 @@ export default function Search() {
     cvFileUrl?: string;
     cvFileType?: string;
     filename?: string | null;
+   score: number; // 0-10
   };
 
+
+
+
   const [candidates, setCandidates] = useState<CandidateCard[]>([]);
+ 
+
 
   // Toggle helper for checkbox filters
   function toggle(list: string[], value: string) {
@@ -98,6 +106,74 @@ export default function Search() {
       ? list.filter((v) => v !== value)
       : [...list, value];
   }
+
+ 
+
+function scoreColor(value: number) {
+  const v = Math.max(0, Math.min(10, value));
+  const hue = (v / 10) * 120; // 0..10 → red..green
+  return `hsl(${hue} 70% 45%)`;
+}
+
+function ScoreRing({ value }: { value: number }) {
+  const clamped = Math.max(0, Math.min(10, value));
+  const pct = clamped * 10;
+  const ringColor = scoreColor(clamped);
+  const isPerfect = clamped === 10;
+
+  return (
+    <Box sx={{ position: "relative", display: "inline-flex" }}>
+      {/* Track */}
+      <CircularProgress
+        variant="determinate"
+        value={100}
+        size={64}
+        thickness={4}
+        sx={{ color: "rgba(255,255,255,0.15)" }}
+      />
+      {/* Progress (colored ring) */}
+      <CircularProgress
+        variant="determinate"
+        value={pct}
+        size={64}
+        thickness={4}
+        sx={{
+          color: ringColor,
+          position: "absolute",
+          left: 0,
+          ...(isPerfect && {
+            filter: "drop-shadow(0 0 6px rgba(0, 255, 0, 0.6))",
+          }),
+        }}
+      />
+      {/* Center label (black text) */}
+      <Box
+        sx={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
+        }}
+      >
+        <Typography
+          variant="subtitle2"
+          sx={{ lineHeight: 1, fontWeight: 800, color: "#000" }}
+        >
+          {clamped}/10
+        </Typography>
+        <Typography variant="caption" sx={{ color: "#000" }}>
+          Score
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
+
+
+
+
 
   // Handler for checkbox groups
   function handleCheckboxChange(
@@ -163,25 +239,29 @@ export default function Search() {
   useEffect(() => {
     document.title = "Search Candidates";
     const email = localStorage.getItem("userEmail") || "admin@email.com";
-    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
-      .then((res) => res.json())
-      .then((data) => setUser(data))
-      .catch(() => setUser(null));
+    (async () => {
+      try {
+        const meRes = await apiFetch(
+          `/auth/me?email=${encodeURIComponent(email)}`
+        );
+        if (meRes.ok) {
+          const meData = await meRes.json().catch(() => null);
+          setUser(meData);
+        } else {
+          setUser(null);
+        }
 
-    // Load candidates & filenames concurrently
-    Promise.all([
-      fetch("http://localhost:8081/cv/candidates").then((r) => {
-        if (!r.ok) throw new Error("Failed candidates");
-        return r.json();
-      }),
-      fetch("http://localhost:8081/cv/filenames")
-        .then((r) => {
-          if (!r.ok) throw new Error("Failed filenames");
-          return r.json();
-        })
-        .catch(() => []), // tolerate filename endpoint failure
-    ])
-      .then(([list, filenames]) => {
+        // Load candidates & filenames concurrently
+        const [candRes, fnRes] = await Promise.all([
+          apiFetch("/cv/candidates"),
+          apiFetch("/cv/filenames").catch(() => null), // tolerate filename endpoint failure
+        ]);
+
+        const list =
+          candRes && candRes.ok ? await candRes.json().catch(() => []) : [];
+        const filenames =
+          fnRes && fnRes.ok ? await fnRes.json().catch(() => []) : [];
+
         const filenameMap = new Map<number, any>();
         if (Array.isArray(filenames)) {
           for (const f of filenames) {
@@ -227,11 +307,20 @@ export default function Search() {
             cvFileUrl: c.cvFileUrl,
             cvFileType: c.cvFileType,
             filename,
+                   // Hard-coded score out of 10
+       score:
+             //SCORE_MAP[c.email] ??
+             Math.max(0, Math.min(10, (c.id % 11))) // stable fallback 0..10
           };
         });
         setCandidates(mapped);
-      })
-      .catch(() => setCandidates([]));
+      } catch {
+        setUser(null);
+        setCandidates([]);
+      }
+    })();
+    return;
+    // previous Promise.all branch replaced
   }, []);
 
   const searchBarRef = useRef<HTMLInputElement>(null);
@@ -265,12 +354,10 @@ export default function Search() {
     setProcessingCandidates((prev) => [...prev, email]);
 
     try {
-      const res = await fetch(`${CONFIG_BASE}/cv/process`, {
+      const res = await apiFetch("/cv/process", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         alert({
@@ -279,7 +366,6 @@ export default function Search() {
         });
         return;
       }
-
       const processedCV = await res.json();
       navigate("/parsed-cv", { state: { cv: processedCV, candidate } });
     } catch (e) {
@@ -556,7 +642,8 @@ export default function Search() {
                           Match: {candidate.match}
                         </Typography>
                       </Box>
-                      <Box sx={{ mt: 1 }}>
+                     <Box sx={{ mt: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 1.5 }}>
+                     <ScoreRing value={candidate.score} />
                         <Button
                           variant="contained"
                           size="small"
@@ -574,12 +661,16 @@ export default function Search() {
                             ]);
 
                             try {
-                              // Fetch processed data from your backend
-                              const response = await fetch(
-                                `http://localhost:5000/upload_cv_for_candidate?email=${encodeURIComponent(
+                              // Fetch processed data from AI service (use aiFetch)
+                              const response = await aiFetch(
+                                `/upload_cv_for_candidate?email=${encodeURIComponent(
                                   candidate.email
                                 )}&top_k=3`
                               );
+                              if (!response.ok)
+                                throw new Error(
+                                  `AI request failed ${response.status}`
+                                );
                               const data = await response.json();
 
                               // Prepare payload (mimic UploadCVPage)

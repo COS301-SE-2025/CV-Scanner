@@ -32,7 +32,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip as RechartTooltip,
+  Tooltip as RechartsTooltip,
   Legend,
   ResponsiveContainer,
 } from "recharts";
@@ -52,6 +52,8 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import Sidebar from "./Sidebar";
+import ConfigAlert from "./ConfigAlert";
+import { apiFetch } from "../lib/api";
 
 export default function CandidatesDashboard() {
   const [collapsed, setCollapsed] = useState(false);
@@ -88,22 +90,49 @@ export default function CandidatesDashboard() {
     document.title = "Candidates Dashboard";
 
     const email = localStorage.getItem("userEmail") || "admin@email.com";
-    fetch(`http://localhost:8081/auth/me?email=${encodeURIComponent(email)}`)
-      .then((res) => res.json())
-      .then((data) => setUser(data))
-      .catch(() => setUser(null));
 
-    // Load stats (total candidates)
-    fetch("http://localhost:8081/cv/stats")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => setTotalCandidates(data?.totalCandidates ?? 0))
-      .catch(() => setTotalCandidates(0));
+    (async () => {
+      try {
+        // fetch current user
+        const meRes = await apiFetch(
+          `/auth/me?email=${encodeURIComponent(email)}`
+        );
+        if (meRes.ok) {
+          const meData = await meRes.json().catch(() => null);
+          setUser(meData);
+        } else {
+          setUser(null);
+        }
+      } catch {
+        setUser(null);
+      }
 
-    // Load recent candidates (top 3)
-    fetch("http://localhost:8081/cv/recent?limit=3")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((rows) => setRecent(Array.isArray(rows) ? rows.slice(0, 3) : []))
-      .catch(() => setRecent([]));
+      try {
+        // load stats (total candidates)
+        const statsRes = await apiFetch("/cv/stats");
+        if (statsRes.ok) {
+          const statsData = await statsRes.json().catch(() => null);
+          setTotalCandidates(statsData?.totalCandidates ?? 0);
+        } else {
+          setTotalCandidates(0);
+        }
+      } catch {
+        setTotalCandidates(0);
+      }
+
+      try {
+        // load recent candidates (top 3)
+        const recentRes = await apiFetch("/cv/recent?limit=3");
+        if (recentRes.ok) {
+          const rows = await recentRes.json().catch(() => []);
+          setRecent(Array.isArray(rows) ? rows.slice(0, 3) : []);
+        } else {
+          setRecent([]);
+        }
+      } catch {
+        setRecent([]);
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -249,15 +278,15 @@ export default function CandidatesDashboard() {
             Candidates Dashboard
           </Typography>
 
+          {/* Config Alert */}
+          <ConfigAlert />
+
           {/* Stat Cards */}
           <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap", mb: 4 }}>
             {[
               {
                 label: "Candidates",
-                value:
-                  totalCandidates != null
-                    ? String(totalCandidates)
-                    : "—",
+                value: totalCandidates != null ? String(totalCandidates) : "—",
               },
               { label: "Pending Review", value: "24" },
               { label: "Top Technology", value: ".NET" },
@@ -312,7 +341,7 @@ export default function CandidatesDashboard() {
                     tick={{ fill: "#575656ff", fontWeight: "bold" }}
                   />
                   <YAxis tick={{ fill: "#575656ff", fontWeight: "bold" }} />
-                  <Tooltip />
+                  <RechartsTooltip />
                   <Line
                     type="monotone"
                     dataKey="candidates"
@@ -358,7 +387,7 @@ export default function CandidatesDashboard() {
                     stroke="#4a5568"
                     tick={{ fill: "#575656ff", fontWeight: "bold" }}
                   />
-                  <Tooltip
+                  <RechartsTooltip
                     contentStyle={{
                       backgroundColor: "#2b3a55",
                       borderColor: "#4a5568",
@@ -427,7 +456,7 @@ export default function CandidatesDashboard() {
                       />
                     ))}
                   </Pie>
-                  <Tooltip
+                  <RechartsTooltip
                     formatter={(value, name, props) => [
                       value,
                       `${name}: ${(props.payload.percent * 100).toFixed(1)}%`,
@@ -491,7 +520,7 @@ export default function CandidatesDashboard() {
                       />
                     ))}
                   </Pie>
-                  <Tooltip
+                  <RechartsTooltip
                     contentStyle={{
                       backgroundColor: "#2b3a55",
                       borderColor: "#4a5568",
