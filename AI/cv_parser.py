@@ -230,7 +230,22 @@ class AIExtractor:
         return "Professional"
 
     def _get_highest_education(self, education: List[Dict]) -> str:
-       
+        if not education:
+            return ""
+        
+        for edu in education:
+            degree_str = str(edu.get('degree', '')).lower()
+            if 'phd' in degree_str or 'doctorate' in degree_str:
+                return "PhD"
+            elif 'master' in degree_str or 'msc' in degree_str or 'mba' in degree_str:
+                return "Master's degree"
+            elif 'llb' in degree_str or 'law' in degree_str:
+                return "Law degree"
+            elif 'bachelor' in degree_str or 'bsc' in degree_str or 'ba' in degree_str:
+                return "Bachelor's degree"
+            elif 'diploma' in degree_str or 'certificate' in degree_str:
+                return "Diploma"
+        return "Educational qualification"
 
     def _calculate_experience_years(self, experience: List[Dict]) -> int:
         try:
