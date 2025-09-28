@@ -263,19 +263,11 @@ export default function UploadCVPage() {
     formForParse.append("file", file);
 
     try {
-      // Build AI base URL from env if provided (Vite: import.meta.env).
-      // Falls back to relative paths if no AI base is configured.
-      const envAiBase =
-        (typeof import.meta !== "undefined" &&
-          (import.meta as any).env?.VITE_AI_BASE_URL) ||
-        (process.env.REACT_APP_AI_BASE_URL as string | undefined) ||
-        "";
-      const aiBase = envAiBase ? envAiBase.replace(/\/+$/, "") : "";
-
-      const uploadEndpoint = aiBase
-        ? `${aiBase}/upload_cv?top_k=3`
-        : `/upload_cv?top_k=3`;
-      const parseEndpoint = aiBase ? `${aiBase}/parse_resume` : `/parse_resume`;
+      // Hardcoded AI base (temporary). Replace with VITE_AI_BASE_URL for production.
+      const AI_BASE =
+        "https://cv-scanner-ai-cee2d5g9epb0hcg6.southafricanorth-01.azurewebsites.net";
+      const uploadEndpoint = `${AI_BASE.replace(/\/+$/, "")}/upload_cv?top_k=3`;
+      const parseEndpoint = `${AI_BASE.replace(/\/+$/, "")}/parse_resume`;
 
       const [uploadResp, parseResp] = await Promise.all([
         aiFetch(uploadEndpoint, { method: "POST", body: formForUpload }),
