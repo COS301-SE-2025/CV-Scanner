@@ -81,6 +81,13 @@ class Experience(BaseModel):
     description: str = Field(description="Job responsibilities and achievements")
     location: Optional[str] = Field(default=None, description="Job location")
 
+class Education(BaseModel):
+    institution: str = Field(description="School/University name")
+    degree: str = Field(description="Degree type and field (e.g., 'Bachelor of Science in Computer Science')")
+    duration: str = Field(description="Study duration")
+    gpa: Optional[str] = Field(default=None, description="GPA if mentioned")
+    location: Optional[str] = Field(default=None, description="Institution location")
+
 
 def extract_with_ai_prompting(self, cv_text:str) -> Dict[str,any]:
     """
