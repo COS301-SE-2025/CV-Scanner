@@ -390,6 +390,10 @@ export default function SystemSettingsPage() {
     );
   }
 
+  // Helper to safely render category and item values
+  const safeRender = (val: any) =>
+    typeof val === "object" ? JSON.stringify(val) : val ?? "";
+
   return (
     <Box
       sx={{
@@ -562,7 +566,7 @@ export default function SystemSettingsPage() {
                   {editing ? (
                     <input
                       type="text"
-                      value={category}
+                      value={safeRender(category)}
                       onChange={(e) =>
                         handleRenameCategory(category, e.target.value)
                       }
@@ -592,7 +596,7 @@ export default function SystemSettingsPage() {
                         color: "#000",
                       }}
                     >
-                      {category}
+                      {safeRender(category)}
                     </Typography>
                   )}
 
@@ -630,19 +634,19 @@ export default function SystemSettingsPage() {
                     </Typography>
                   )}
 
-                  {configObj[category].map((item: string, idx: number) => (
+                  {configObj[category].map((item: any, idx: number) => (
                     <Box
                       key={idx}
                       sx={{
                         display: "flex",
                         alignItems: "center",
                         gap: 1,
-                        minWidth: 0, // ensures input shrinks if needed
+                        minWidth: 0,
                       }}
                     >
                       <input
                         type="text"
-                        value={item}
+                        value={safeRender(item)}
                         disabled={!editing}
                         onChange={(e) => {
                           const updated = [...configObj[category]];
@@ -669,7 +673,7 @@ export default function SystemSettingsPage() {
                           size="small"
                           onClick={() => {
                             const updated = configObj[category].filter(
-                              (_, i) => i !== idx
+                              (_: any, i: number) => i !== idx
                             );
                             setConfigObj((prev) => ({
                               ...prev,
