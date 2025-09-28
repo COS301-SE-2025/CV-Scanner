@@ -337,6 +337,13 @@ export default function UploadCVPage() {
 
       setProcessedData(mergedProcessedData);
 
+      // Debug: ensure we pass only plain objects / sane shapes to ParsedCVData
+      console.log("DEBUG uploadResult:", uploadResult);
+      console.log("DEBUG applied:", applied);
+      console.log("DEBUG parseResult:", parseResult);
+      console.log("DEBUG parseResultObj:", parseResultObj);
+      console.log("DEBUG mergedProcessedData:", mergedProcessedData);
+
       const fileUrl = URL.createObjectURL(file);
 
       navigate("/parsed-cv", {

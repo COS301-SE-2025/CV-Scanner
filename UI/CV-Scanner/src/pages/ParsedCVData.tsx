@@ -114,6 +114,14 @@ function safeObject(v: any): Record<string, any> {
 
 const renderNormalizedFields = (fields: ParsedCVFields) => {
   const safeFields = safeObject(fields);
+
+  // Normalize values to strings where possible so child components
+  // (e.g., EditableField) never receive null/undefined or raw objects.
+  const entries: [string, any][] = Object.entries(safeFields).map(([k, v]) => [
+    k,
+    toLines(v) ?? v,
+  ]);
+
   return (
     <Box
       sx={{
@@ -122,8 +130,9 @@ const renderNormalizedFields = (fields: ParsedCVFields) => {
         gap: 2,
       }}
     >
-      {Object.entries(safeFields).map(([key, value]) => {
-        if (!value) return null;
+      {entries.map(([key, value]) => {
+        if (value == null || (typeof value === "string" && !value.trim()))
+          return null;
 
         // Skills → keep compact grid
         if (key === "skills") {
@@ -141,7 +150,11 @@ const renderNormalizedFields = (fields: ParsedCVFields) => {
             >
               <EditableField
                 label={key.charAt(0).toUpperCase() + key.slice(1)}
-                value={value}
+                value={
+                  typeof value === "string"
+                    ? value
+                    : JSON.stringify(value, null, 2)
+                }
                 onSave={() => {}}
               />
             </Box>
@@ -160,7 +173,11 @@ const renderNormalizedFields = (fields: ParsedCVFields) => {
           >
             <EditableField
               label={key.charAt(0).toUpperCase() + key.slice(1)}
-              value={value}
+              value={
+                typeof value === "string"
+                  ? value
+                  : JSON.stringify(value, null, 2)
+              }
               onSave={() => {}}
             />
           </Box>
