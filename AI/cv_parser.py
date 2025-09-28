@@ -116,6 +116,13 @@ def extract_with_ai_prompting(self, cv_text:str) -> Dict[str,any]:
     education = self._extract_education(clean_text)
 
 #endof extract_with_ai_prompting
+
+def _extract_education(self, text: str) -> List[Dict[str, str]]:
+    """Extract education information from CV text"""
+    education = []
+
+    
+
 def _extract_experience(self, text: str) -> List[Dict[str, str]]:
     """Extract work experience information from CV text"""
     experience = []
