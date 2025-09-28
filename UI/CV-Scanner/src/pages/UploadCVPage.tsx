@@ -195,6 +195,58 @@ export default function UploadCVPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Helper functions
+  const safeParseResponse = async (response: Response | null): Promise<any> => {
+    if (!response) return null;
+    
+    try {
+      const contentType = response.headers?.get?.('content-type') || '';
+      if (contentType.includes('application/json')) {
+        return await response.json();
+      }
+      return await response.text();
+    } catch (error) {
+      console.error('Error parsing response:', error);
+      return null;
+    }
+  };
+
+  const normalizeObject = (obj: any): any => {
+    if (obj == null) return {};
+    if (typeof obj !== 'object') return {};
+    if (Array.isArray(obj)) return {};
+    return obj;
+  };
+
+  const safeString = (value: any): string => {
+    if (value == null) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    return '';
+  };
+
+  const getSafeErrorMessage = (result: any, status: number | undefined, endpoint: string): string => {
+    if (result && typeof result === 'object') {
+      return result.detail || result.message || `${endpoint} failed (${status || 'unknown status'})`;
+    }
+    return `${endpoint} failed (${status || 'unknown status'})`;
+  };
+
+  const safe = <T, F>(v: T | null | undefined, fallback: F): T | F => {
+    if (v == null) return fallback;
+    if (typeof v === 'object' && !Array.isArray(v)) {
+      return Object.keys(v).length > 0 ? v as T : fallback;
+    }
+    return v;
+  };
+
+  const safeEntries = (obj: any): [string, any][] => {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+      return [];
+    }
+    return Object.entries(obj);
+  };
+
   useEffect(() => {
     const email = localStorage.getItem("userEmail") || "admin@email.com";
     (async () => {
@@ -329,189 +381,130 @@ export default function UploadCVPage() {
     }
   };
 
-  const getJsonOrText = async (res: Response | null) => {
-    if (!res) return null;
-    const ct = res.headers?.get?.("content-type") ?? "";
+  const handleProcess = async () => {
+    if (!file) return;
+    if (!candidateName || !candidateSurname || !candidateEmail) {
+      setErrorPopup({
+        open: true,
+        message: "Please enter candidate name, surname, and email.",
+      });
+      return;
+    }
+
+    const formForUpload = new FormData();
+    formForUpload.append("file", file);
+    const formForParse = new FormData();
+    formForParse.append("file", file);
+
     try {
-      if (ct.includes("application/json")) {
-        return await res.json().catch(() => null);
+      const AI_BASE = "http://localhost:5000";
+      const uploadEndpoint = `${AI_BASE.replace(/\/+$/, "")}/upload_cv?top_k=3`;
+      const parseEndpoint = `${AI_BASE.replace(/\/+$/, "")}/parse_resume`;
+
+      console.log("Making API calls to:", { uploadEndpoint, parseEndpoint });
+
+      const [uploadResp, parseResp] = await Promise.all([
+        aiFetch(uploadEndpoint, { method: "POST", body: formForUpload }),
+        aiFetch(parseEndpoint, { method: "POST", body: formForParse }),
+      ]);
+
+      console.log("API responses:", { uploadResp, parseResp });
+
+      // Handle cases where responses might be null
+      if (!uploadResp && !parseResp) {
+        setErrorPopup({ open: true, message: "Backend unavailable." });
+        return;
       }
-      return await res.text().catch(() => null);
-    } catch {
-      return null;
+
+      // Safe response parsing
+      const uploadResultRaw = await safeParseResponse(uploadResp);
+      const parseResultRaw = await safeParseResponse(parseResp);
+
+      console.log("Parsed responses:", { uploadResultRaw, parseResultRaw });
+
+      // Check if both requests failed
+      if ((!uploadResp || !uploadResp.ok) && (!parseResp || !parseResp.ok)) {
+        const uploadMsg = getSafeErrorMessage(uploadResultRaw, uploadResp?.status, "upload_cv");
+        const parseMsg = getSafeErrorMessage(parseResultRaw, parseResp?.status, "parse_resume");
+        setErrorPopup({ open: true, message: `${uploadMsg}; ${parseMsg}` });
+        return;
+      }
+
+      // Safe data normalization with extensive null checks
+      const uploadResult = uploadResp?.ok ? normalizeObject(uploadResultRaw) : {};
+      const parseResult = parseResp?.ok ? normalizeObject(parseResultRaw) : {};
+
+      console.log("Normalized results:", { uploadResult, parseResult });
+
+      // Extract nested data safely
+      const appliedRaw = (uploadResult as any)?.applied;
+      const applied = normalizeObject(appliedRaw);
+      
+      const bestFitProjectType = (uploadResult as any)?.best_fit_project_type ?? null;
+      
+      const parseResultObjRaw = (parseResult as any)?.result;
+      const parseResultObj = normalizeObject(parseResultObjRaw);
+
+      console.log("Extracted data:", { applied, bestFitProjectType, parseResultObj });
+
+      // Build processed data with fallbacks
+      const mergedProcessedData = {
+        profile: safeString(parseResultObj?.profile),
+        education: safeString(parseResultObj?.education),
+        skills: safeString(parseResultObj?.skills),
+        experience: safeString(parseResultObj?.experience),
+        projects: safeString(parseResultObj?.projects),
+        achievements: safeString(parseResultObj?.achievements),
+        contact: safeString(parseResultObj?.contact),
+        languages: safeString(parseResultObj?.languages),
+        other: safeString(parseResultObj?.other),
+      };
+
+      console.log("Merged processed data:", mergedProcessedData);
+      setProcessedData(mergedProcessedData);
+
+      const fileUrl = URL.createObjectURL(file);
+
+      // Prepare navigation data with guaranteed object structure
+      const safeAiUpload = {
+        ...uploadResult,
+        applied: applied || {},
+        best_fit_project_type: bestFitProjectType,
+      };
+      
+      const safeAiParse = {
+        ...parseResult,
+        result: parseResultObj || {},
+      };
+
+      // Final safety check before navigation - ensure no undefined/null values
+      const navigationState = {
+        aiUpload: safeAiUpload || {},
+        aiParse: safeAiParse || {},
+        fileUrl,
+        fileType: file.type || 'application/pdf',
+        candidate: {
+          firstName: candidateName || '',
+          lastName: candidateSurname || '',
+          email: candidateEmail || '',
+        },
+      };
+
+      console.log("DEBUG: Final navigation state:", navigationState);
+      
+      // Use setTimeout to ensure state is properly set before navigation
+      setTimeout(() => {
+        navigate("/parsed-cv", { state: navigationState });
+      }, 100);
+
+    } catch (error) {
+      console.error("Process CV error:", error);
+      setErrorPopup({
+        open: true,
+        message: "An error occurred while processing the CV.",
+      });
     }
   };
-
-  // Reusable null/undefined guard
-const safe = <T, F>(v: T | null | undefined, fallback: F): T | F => {
-  if (v == null) return fallback;
-  if (typeof v === 'object' && !Array.isArray(v)) {
-    return Object.keys(v).length > 0 ? v as T : fallback;
-  }
-  return v;
-};
-const safeEntries = (obj: any): [string, any][] => {
-  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
-    return [];
-  }
-  return Object.entries(obj);
-};
-// Add these helper functions right before handleProcess
-const safeParseResponse = async (response: Response | null): Promise<any> => {
-  if (!response) return null;
-  
-  try {
-    const contentType = response.headers?.get?.('content-type') || '';
-    if (contentType.includes('application/json')) {
-      return await response.json();
-    }
-    return await response.text();
-  } catch (error) {
-    console.error('Error parsing response:', error);
-    return null;
-  }
-};
-
-const normalizeObject = (obj: any): any => {
-  if (obj == null) return {};
-  if (typeof obj !== 'object') return {};
-  if (Array.isArray(obj)) return {};
-  return obj;
-};
-
-const safeString = (value: any): string => {
-  if (value == null) return '';
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
-  return '';
-};
-
-const getSafeErrorMessage = (result: any, status: number | undefined, endpoint: string): string => {
-  if (result && typeof result === 'object') {
-    return result.detail || result.message || `${endpoint} failed (${status || 'unknown status'})`;
-  }
-  return `${endpoint} failed (${status || 'unknown status'})`;
-};
-const handleProcess = async () => {
-  if (!file) return;
-  if (!candidateName || !candidateSurname || !candidateEmail) {
-    setErrorPopup({
-      open: true,
-      message: "Please enter candidate name, surname, and email.",
-    });
-    return;
-  }
-
-  const formForUpload = new FormData();
-  formForUpload.append("file", file);
-  const formForParse = new FormData();
-  formForParse.append("file", file);
-
-  try {
-    const AI_BASE = "http://localhost:5000";
-    const uploadEndpoint = `${AI_BASE.replace(/\/+$/, "")}/upload_cv?top_k=3`;
-    const parseEndpoint = `${AI_BASE.replace(/\/+$/, "")}/parse_resume`;
-
-    const [uploadResp, parseResp] = await Promise.all([
-      aiFetch(uploadEndpoint, { method: "POST", body: formForUpload }),
-      aiFetch(parseEndpoint, { method: "POST", body: formForParse }),
-    ]);
-
-    // Handle cases where responses might be null
-    if (!uploadResp && !parseResp) {
-      setErrorPopup({ open: true, message: "Backend unavailable." });
-      return;
-    }
-
-    // Safe response parsing
-    const uploadResultRaw = await safeParseResponse(uploadResp);
-    const parseResultRaw = await safeParseResponse(parseResp);
-
-    // Check if both requests failed
-    if ((!uploadResp || !uploadResp.ok) && (!parseResp || !parseResp.ok)) {
-      const uploadMsg = getSafeErrorMessage(uploadResultRaw, uploadResp?.status, "upload_cv");
-      const parseMsg = getSafeErrorMessage(parseResultRaw, parseResp?.status, "parse_resume");
-      setErrorPopup({ open: true, message: `${uploadMsg}; ${parseMsg}` });
-      return;
-    }
-
-    // Safe data normalization with extensive null checks
-    const uploadResult = uploadResp?.ok ? normalizeObject(uploadResultRaw) : {};
-    const parseResult = parseResp?.ok ? normalizeObject(parseResultRaw) : {};
-
-    // Extract nested data safely
-    const appliedRaw = uploadResult?.applied;
-    const applied = normalizeObject(appliedRaw);
-    
-    const bestFitProjectType = uploadResult?.best_fit_project_type ?? null;
-    
-    const parseResultObjRaw = parseResult?.result;
-    const parseResultObj = normalizeObject(parseResultObjRaw);
-
-    // Build processed data with fallbacks
-    const mergedProcessedData = {
-      profile: safeString(parseResultObj?.profile),
-      education: safeString(parseResultObj?.education),
-      skills: safeString(parseResultObj?.skills),
-      experience: safeString(parseResultObj?.experience),
-      projects: safeString(parseResultObj?.projects),
-      achievements: safeString(parseResultObj?.achievements),
-      contact: safeString(parseResultObj?.contact),
-      languages: safeString(parseResultObj?.languages),
-      other: safeString(parseResultObj?.other),
-    };
-
-    setProcessedData(mergedProcessedData);
-
-    const fileUrl = URL.createObjectURL(file);
-
-    // Prepare navigation data with guaranteed object structure
-    const safeAiUpload = {
-      ...uploadResult,
-      applied: applied || {},
-      best_fit_project_type: bestFitProjectType,
-    };
-    
-    const safeAiParse = {
-      ...parseResult,
-      result: parseResultObj || {},
-    };
-
-    // Final safety check before navigation
-    const navigationState = {
-      aiUpload: safeAiUpload || {},
-      aiParse: safeAiParse || {},
-      fileUrl,
-      fileType: file.type,
-      candidate: {
-        firstName: candidateName,
-        lastName: candidateSurname,
-        email: candidateEmail,
-      },
-    };
-
-    console.log("DEBUG: Navigation state:", navigationState);
-    navigate("/parsed-cv", { state: navigationState });
-
-  } catch (error) {
-    console.error("Process CV error:", error);
-    setErrorPopup({
-      open: true,
-      message: "An error occurred while processing the CV.",
-    });
-  }
-};
-// Helper functions
-// const isObject = (value: any): boolean => {
-//   return value && typeof value === 'object' && !Array.isArray(value);
-// };
-
-// const getErrorMessage = (result: any, status: number | undefined, endpoint: string): string => {
-//   if (result && (result.detail || result.message)) {
-//     return result.detail || result.message;
-//   }
-//   return `${endpoint} failed (${status || 'unknown status'})`;
-// };
 
   const handleCloseModal = () => setIsModalOpen(false);
   const handleBrowseClick = () => {
@@ -529,6 +522,15 @@ const handleProcess = async () => {
   };
   const handleCloseTutorial = () => setShowTutorial(false);
 
+  // Cleanup effect
+  useEffect(() => {
+    return () => {
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+      }
+    };
+  }, [pdfUrl]);
+
   return (
     <Box
       sx={{
@@ -545,7 +547,7 @@ const handleProcess = async () => {
         setCollapsed={(val) => {
           setCollapsed(val);
           setSidebarAnimating(true);
-          setTimeout(() => setSidebarAnimating(false), 300); // match sidebar animation duration
+          setTimeout(() => setSidebarAnimating(false), 300);
         }}
       />
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
@@ -619,7 +621,6 @@ const handleProcess = async () => {
             Upload Candidate CV
           </Typography>
 
-          {/* Config Alert */}
           <ConfigAlert />
           <Paper
             elevation={6}
@@ -674,7 +675,6 @@ const handleProcess = async () => {
               </Box>
             </Box>
 
-            {/* Candidate Details Section */}
             <Box ref={candidateDetailsRef}>
               <TextField
                 label="Candidate Name"
@@ -760,7 +760,6 @@ const handleProcess = async () => {
               />
             </Box>
 
-            {/* CV Table Section */}
             {file && (
               <Box ref={cvTableRef}>
                 <TableContainer sx={{ mb: 3 }}>
@@ -861,7 +860,6 @@ const handleProcess = async () => {
         </DialogActions>
       </Dialog>
 
-      {/* Config saved confirmation */}
       <Dialog
         open={configSavedPopup}
         onClose={() => setConfigSavedPopup(false)}
@@ -1014,7 +1012,6 @@ const handleProcess = async () => {
         </DialogActions>
       </Dialog>
 
-      {/* PDF Preview Dialog */}
       <Dialog
         open={pdfPreviewOpen}
         onClose={() => setPdfPreviewOpen(false)}
@@ -1055,6 +1052,14 @@ const handleProcess = async () => {
           vertical: "bottom",
           horizontal: "center",
         }}
+        componentsProps={{
+          root: {
+            onMouseDown: (e: React.MouseEvent) => e.preventDefault(),
+          }
+        }}
+        disableRestoreFocus={false}
+        disableAutoFocus={true}
+        disableEnforceFocus={true}
         PaperProps={{
           sx: {
             p: 2,
@@ -1063,7 +1068,7 @@ const handleProcess = async () => {
             borderRadius: 2,
             boxShadow: 6,
             minWidth: 280,
-            zIndex: 1502, // higher than overlay and focused box
+            zIndex: 1502,
             textAlign: "center",
           },
         }}
@@ -1213,7 +1218,6 @@ const handleProcess = async () => {
   );
 }
 
-// Review button style
 const reviewButtonStyle = {
   background: "#232A3B",
   color: "DEDDEE",
