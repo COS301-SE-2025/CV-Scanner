@@ -551,14 +551,7 @@ export default function UploadCVPage() {
             </Box>
 
             {/* Candidate Details Section */}
-            <Box
-              ref={candidateDetailsRef}
-              sx={
-                {
-                  // No highlight/focus styles
-                }
-              }
-            >
+            <Box ref={candidateDetailsRef}>
               <TextField
                 label="Candidate Name"
                 fullWidth
@@ -645,14 +638,7 @@ export default function UploadCVPage() {
 
             {/* CV Table Section */}
             {file && (
-              <Box
-                ref={cvTableRef}
-                sx={
-                  {
-                    // No highlight/focus styles
-                  }
-                }
-              >
+              <Box ref={cvTableRef}>
                 <TableContainer sx={{ mb: 3 }}>
                   <Table
                     sx={{
@@ -904,6 +890,7 @@ export default function UploadCVPage() {
         </DialogActions>
       </Dialog>
 
+      {/* PDF Preview Dialog */}
       <Dialog
         open={pdfPreviewOpen}
         onClose={() => setPdfPreviewOpen(false)}
@@ -1130,5 +1117,3 @@ const reviewButtonStyle = {
       "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
   },
 };
-
-// Removed unused handleUpload function that referenced undefined variables (uploadEndpoint, setResult) to fix compile errors.
