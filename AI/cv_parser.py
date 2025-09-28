@@ -218,6 +218,18 @@ class AIExtractor:
     def _extract_projects(self, text: str) -> List[Dict[str, str]]:
 
     def _extract_languages(self, text: str) -> List[str]:
+        """Extract spoken languages from CV text"""
+        spoken_languages = [
+        'english', 'afrikaans', 'zulu', 'xhosa', 'sotho', 
+        'french', 'german', 'spanish', 'portuguese', 'italian',
+        'mandarin', 'hindi', 'arabic', 'swahili'
+        ]
+    
+        text_lower = text.lower()
+        found_languages = [lang.title() for lang in spoken_languages if lang in text_lower]
+    
+        return list(set(found_languages))
+
 
     def _determine_professional_level(self, skills: List[str], experience: List, education: List, text: str) -> str:
         text_lower = text.lower()
