@@ -29,5 +29,5 @@ COPY . .
 # Expose port
 EXPOSE 5000
 
-# Run with uvicorn
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5000"]
+# Use more tolerant gunicorn settings: longer timeout, threads, more workers
+CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "4", "--timeout", "300"]
