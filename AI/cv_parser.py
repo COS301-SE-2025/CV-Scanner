@@ -82,11 +82,70 @@ def extract_with_ai_prompting(self, cv_text:str) -> Dict[str,any]:
     """
     clean_text = self._clean_text(cv_text)
 
-def _clean_text (self,text:str) ->str:
+    personal_info = self._extract_personal_info(clean_text)
+    skills = self._extract_skills(clean_text)
+    experience = self._extract_experience(clean_text)
+    education = self._extract_education(clean_text)
+
+def _clean_text(self,text:str) ->str:
     """Clean and normalize CV text"""
     text = re.sub(r'\n\s*\n', '\n\n',text)
     text = re.sub(r'[ \t]+', ' ', text)
     return text
+
+def _extract_personal_info(self, text: str) -> Dict[str, str]:
+    """Extract personal information with improved name detection"""
+
+    info = {
+        'name':'Name not found',
+        'email': None,
+        'phone': None,
+    }
+
+    email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+    email_match = re.saerch(email_pattern, text)
+    if email_match:
+        info['email'] = email_match.group()
+    
+    phone_pattern = r'(\+?27|0)[\s-]?(\d{2,3}[\s-]?\d{3,4}[\s-]?\d{3,4}|\d{2,3}[\s-]?\d{3,4}[\s-]?\d{4})'
+    phone_match = re.search(phone_pattern, text)
+    if phone_match:
+        info['phone'] = phone_match.group().strip()
+    
+    lines  = text.split('\n')
+    candidate_names = []
+    for i, line in enumerate(lines[:10]):
+        if len(line) > 3 and len(line) <50:
+            if any(indicator in line.lower() for indicator in[
+                '@', 'http', 'linkedin', 'github', 'phone', 'mobile', 'tel:', 'email', 'resume', 'cv'
+            ]):
+                continue
+            words=line.split()
+            if 2<=len(words) <=4:
+                capital_words = sum(1 for w in words if w and w[0].isupper())
+            if capital_words >=len(words) *0.8:
+                exclude_keywords = [
+                     'experience', 'education', 'skills', 'projects', 'certifications',
+                            'summary', 'objective', 'references', 'awards', 'publications'
+                ]
+                if not any(kw in line.lower() for kw in exclude_keywords):
+                    candidate_names.append(line.strip())
+    if candidate_names:
+        info['name'] = candidate_names[0]
+
+    if info['name'] in ['Name not found', 'Phone Number'] and info['email']:
+            email_name = info['email'].split('@')[0]
+            clean_name = re.sub(r'[0-9._+-]+', ' ', email_name).title().strip()
+            if len(clean_name) > 3:
+                info['name'] = clean_name
+
+    return info
+
+#endof _extract_personal_info
+
+ def _extract_skills(self, text: str) -> List[str]:
+        """Extract skills using keyword matching and context"""
+        
 
 def parse_resume_from_bytes(file_bytes: bytes, filename: str):
     ext = os.path.splitext(filename or "upload.bin")[1].lower()
