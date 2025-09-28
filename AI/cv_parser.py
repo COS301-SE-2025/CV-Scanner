@@ -205,7 +205,7 @@ class AIExtractor:
 
     def _determine_professional_level(self, skills: List[str], experience: List, education: List, text: str) -> str:
 
-    
+    def _get_highest_education(self, education: List[Dict]) -> str:
 
 
 
