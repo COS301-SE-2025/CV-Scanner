@@ -149,19 +149,7 @@ async def classify(
             raise HTTPException(400, "Empty file.")
         text = extract_text_auto(data, file.filename or "upload.txt")
 
-    cats = load_categories()
-    if not cats:
-        raise HTTPException(409, "No categories configured. Use POST /admin/categories first.")
 
-    result = classify_text_by_categories(text, cats, top_k=top_k)
-    # Also return a compact "applied" mapping: category -> topK labels
-    applied = {cat: [x["label"] for x in info["top_k"]] for cat, info in result.items()}
-    return JSONResponse({
-        "status": "success",
-        "top_k": top_k,
-        "applied": applied,
-        "raw": result
-    })
 
 @app.post("/upload_cv")
 async def upload_cv(file: UploadFile = File(...), top_k: int = 3):
