@@ -135,18 +135,7 @@ async def set_categories(payload: Dict[str, List[str]] = Body(...)):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.post("/classify")
-async def classify(
-    text: str = Body(None),
-    file: UploadFile = File(None),
-    top_k: int = Body(3)
-):
-    if file is None and (text is None or not text.strip()):
-        raise HTTPException(400, "Provide `text` or upload `file`.")
-    if file is not None:
-        data = await file.read()
-        if not data:
-            raise HTTPException(400, "Empty file.")
+
         text = extract_text_auto(data, file.filename or "upload.txt")
 
     cats = load_categories()
