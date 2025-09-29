@@ -68,21 +68,7 @@ def infer_project_type(text: str, applied_labels: Dict[str, List[str]] | None = 
     # Label bonuses (from your classifier result)
     label_bonus_basis = []
     if applied_labels:
-        flat = {lbl.lower() for group in applied_labels.values() for lbl in group}
-        if any(x in flat for x in ["data science", "machine learning", "ml engineer"]):
-            scores["Machine Learning / Data Science"] += 2; label_bonus_basis.append("label: ML/DS")
-        if any(x in flat for x in ["backend", "api", "software engineering"]):
-            scores["API Backend / Services"] += 2; label_bonus_basis.append("label: Backend/API")
-        if any(x in flat for x in ["frontend", "ui", "web dev"]):
-            scores["Frontend Web App"] += 2; label_bonus_basis.append("label: Frontend")
-        if "devops" in flat:
-            scores["DevOps / Infrastructure"] += 2; label_bonus_basis.append("label: DevOps")
-        if any(x in flat for x in ["mobile", "android", "ios"]):
-            scores["Mobile App"] += 2; label_bonus_basis.append("label: Mobile")
-        if any(x in flat for x in ["data engineering", "etl", "pipeline"]):
-            scores["Data Engineering / ETL"] += 2; label_bonus_basis.append("label: Data Eng")
-
-    # Pick best
+  
     best_type, best_score = max(scores.items(), key=lambda kv: kv[1])
     sorted_vals = sorted(scores.values(), reverse=True)
     second = sorted_vals[1] if len(sorted_vals) > 1 else 0
