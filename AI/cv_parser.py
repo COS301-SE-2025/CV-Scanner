@@ -57,7 +57,7 @@ def parse_resume_from_bytes(file_bytes: bytes, *args, **kwargs) -> Dict[str,Any]
     """
     Safe resume parser. Attempts a lightweight text extraction and simple regex-based parsing.
     If transformers pipeline is available at runtime and you need advanced parsing, call with
-    `enable_hf=True` and ensure the environment has compatible torch/torchvision installed.
+    enable_hf=True and ensure the environment has compatible torch/torchvision installed.
     """
     enable_hf = kwargs.pop("enable_hf", False)
     text = _text_from_pdf_bytes(file_bytes)
