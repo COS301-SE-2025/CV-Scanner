@@ -54,6 +54,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import Sidebar from "./Sidebar";
 import ConfigAlert from "./ConfigAlert";
 import { apiFetch } from "../lib/api";
+import { useMemo } from "react";
 
 export default function CandidatesDashboard() {
   const [collapsed, setCollapsed] = useState(false);
@@ -65,6 +66,25 @@ export default function CandidatesDashboard() {
     Array<{ id: number; name: string; skills: string; fit: string }>
   >([]);
   const [totalCandidates, setTotalCandidates] = useState<number | null>(null);
+  const [skillDistribution, setSkillDistribution] = useState<
+    Array<{ name: string; value: number }>
+  >(
+    [
+      { name: ".NET", value: 400 },
+      { name: "React", value: 300 },
+      { name: "Java", value: 300 },
+      { name: "Python", value: 200 },
+    ] // initial mock data
+  );
+  const [projectFitData, setProjectFitData] = useState<
+    Array<{ type: string; value: number }>
+  >(
+    [
+      { type: "Technical", value: 50 },
+      { type: "Collaborative", value: 30 },
+      { type: "Autonomous", value: 20 },
+    ] // initial mock data
+  );
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -125,13 +145,75 @@ export default function CandidatesDashboard() {
         const recentRes = await apiFetch("/cv/recent?limit=3");
         if (recentRes.ok) {
           const rows = await recentRes.json().catch(() => []);
-          setRecent(Array.isArray(rows) ? rows.slice(0, 3) : []);
+          const topRows = Array.isArray(rows) ? rows.slice(0, 3) : [];
+          setRecent(topRows);
         } else {
           setRecent([]);
         }
       } catch {
         setRecent([]);
       }
+      // fetch chart data (skill distribution + project-fit) after recent/load
+      (async () => {
+        try {
+          const [skillsRes, pfRes] = await Promise.all([
+            apiFetch("/cv/skill-distribution?limit=10").catch(() => null),
+            apiFetch("/cv/project-fit?limit=200").catch(() => null),
+          ]);
+
+          if (skillsRes && skillsRes.ok) {
+            const skillsJson = await skillsRes.json().catch(() => []);
+            if (Array.isArray(skillsJson) && skillsJson.length) {
+              setSkillDistribution(
+                skillsJson.map((s: any) => ({
+                  name: s.name,
+                  value: Number(s.value),
+                }))
+              );
+            }
+          }
+
+          if (pfRes && pfRes.ok) {
+            const pfJson = await pfRes.json().catch(() => []);
+            // aggregate by project type for chart
+            const counts = new Map<string, number>();
+            const pfMap = new Map<number, any>();
+            if (Array.isArray(pfJson)) {
+              for (const it of pfJson) {
+                const id = Number(it?.candidateId ?? it?.id);
+                const type =
+                  it?.projectFit != null
+                    ? it.projectFit.type ?? it.projectFit
+                    : null;
+                const label = it?.projectFitLabel ?? null;
+                if (!Number.isNaN(id)) pfMap.set(id, it);
+                const key = type || "Unknown";
+                counts.set(key, (counts.get(key) ?? 0) + 1);
+              }
+            }
+            setProjectFitData(
+              Array.from(counts.entries()).map(([type, value]) => ({
+                type,
+                value,
+              }))
+            );
+
+            // merge project fit info into recent list if available
+            setRecent((prev) =>
+              prev.map((r) => {
+                const pf = pfMap.get(Number(r.id));
+                return {
+                  ...r,
+                  fit: pf?.projectFit?.type ?? pf?.projectFitLabel ?? r.fit,
+                  skills: r.skills ?? "—",
+                };
+              })
+            );
+          }
+        } catch (e) {
+          console.warn("Failed to load dashboard charts:", e);
+        }
+      })();
     })();
   }, []);
 
@@ -160,24 +242,12 @@ export default function CandidatesDashboard() {
     { month: "May", candidates: 80 },
   ];
 
-  const skillDistribution = [
-    { name: ".NET", value: 400 },
-    { name: "React", value: 300 },
-    { name: "Java", value: 300 },
-    { name: "Python", value: 200 },
-  ];
-
-  const projectFitData = [
-    { type: "Technical", value: 50 },
-    { type: "Collaborative", value: 30 },
-    { type: "Autonomous", value: 20 },
-  ];
-
+  // Weekly technology usage data for BarChart
   const groupedBarData = [
-    { name: "Week 1", ".NET": 40, React: 24, Python: 24 },
-    { name: "Week 2", ".NET": 30, React: 13, Python: 22 },
-    { name: "Week 3", ".NET": 20, React: 98, Python: 22 },
-    { name: "Week 4", ".NET": 27, React: 39, Python: 20 },
+    { name: "Week 1", ".NET": 12, React: 9, Python: 6 },
+    { name: "Week 2", ".NET": 15, React: 11, Python: 8 },
+    { name: "Week 3", ".NET": 10, React: 14, Python: 9 },
+    { name: "Week 4", ".NET": 18, React: 13, Python: 11 },
   ];
 
   const COLORS = ["#8884D8", "#00C49F", "#FFBB28", "#FF8042"];
@@ -449,7 +519,7 @@ export default function CandidatesDashboard() {
                       `${name}: ${(percent * 100).toFixed(0)}%`
                     }
                   >
-                    {skillDistribution.map((entry, index) => (
+                    {(skillDistribution || []).map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[index % COLORS.length]}
@@ -502,18 +572,21 @@ export default function CandidatesDashboard() {
               <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
                   <Pie
-                    data={projectFitData}
+                    data={projectFitData.map((p) => ({
+                      name: p.type,
+                      value: p.value,
+                    }))}
                     dataKey="value"
                     cx="50%"
                     cy="50%"
                     innerRadius={40}
                     outerRadius={60}
-                    label={({ type, percent }) =>
-                      `${type}: ${(percent * 100).toFixed(0)}%`
+                    label={({ name, percent }) =>
+                      `${name}: ${(percent * 100).toFixed(0)}%`
                     }
                     labelLine={true}
                   >
-                    {projectFitData.map((entry, index) => (
+                    {(projectFitData || []).map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[index % COLORS.length]}
