@@ -208,17 +208,7 @@ def extract_sections_by_headers(lines, section_patterns):
     current_section = None
     current_content = []
 
-    for line in lines:
-        line_clean = line.strip()
-        if not line_clean:
-            continue
-
-        found_section = None
-        for section_name, patterns in section_patterns.items():
-            for pattern in patterns:
-                if re.search(pattern, line_clean) and len(line_clean) < 150:
-                    if not re.search(r'\w+[.,:;]\s+\w+', line_clean):
-                        found_section = section_name
+   
                         break
             if found_section:
                 break
