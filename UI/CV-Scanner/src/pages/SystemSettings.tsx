@@ -46,6 +46,31 @@ export default function SystemSettingsPage() {
   const safeRender = (val: any) =>
     typeof val === "object" ? JSON.stringify(val) : val ?? "";
 
+  // Helper: normalize various category value shapes into an array of strings
+  const normalizeCategoryValue = (v: any): string[] => {
+    if (Array.isArray(v)) return v.map((x) => (x == null ? "" : String(x)));
+    if (v == null) return [];
+    if (typeof v === "string") {
+      // split CSV-ish strings
+      return v
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+    }
+    if (typeof v === "object") {
+      // If object has 'labels' or 'items', prefer those
+      if (Array.isArray((v as any).labels))
+        return (v as any).labels.map(String);
+      if (Array.isArray((v as any).items)) return (v as any).items.map(String);
+      // If values are primitive, return values; otherwise keys
+      const vals = Object.values(v);
+      const allPrimitive = vals.every((x) => typeof x !== "object");
+      if (allPrimitive && vals.length > 0) return vals.map((x) => String(x));
+      return Object.keys(v);
+    }
+    return [String(v)];
+  };
+
   // ---------- Auth check (runs once) ----------
   useEffect(() => {
     let mounted = true;
@@ -98,18 +123,31 @@ export default function SystemSettingsPage() {
       if (!res.ok) throw new Error(`Failed (${res.status})`);
       const json = await res.json();
 
+      // Keep a human-readable copy of the raw JSON for debugging / display
+      try {
+        setConfigContent(JSON.stringify(json, null, 2));
+      } catch {
+        setConfigContent(String(json));
+      }
+
+      // Normalize values into arrays so UI can render tags consistently
+      const normalized: Record<string, any> = {};
+      Object.keys(json || {}).forEach((key) => {
+        normalized[key] = normalizeCategoryValue(json[key]);
+      });
+
       let reordered: Record<string, any> = {};
 
       if (categoryOrder.length > 0) {
         categoryOrder.forEach((key) => {
-          if (json[key] !== undefined) reordered[key] = json[key];
+          if (normalized[key] !== undefined) reordered[key] = normalized[key];
         });
-        Object.keys(json).forEach((key) => {
-          if (!reordered[key]) reordered[key] = json[key];
+        Object.keys(normalized).forEach((key) => {
+          if (!reordered[key]) reordered[key] = normalized[key];
         });
       } else {
-        reordered = { ...json };
-        setCategoryOrder(Object.keys(json));
+        reordered = { ...normalized };
+        setCategoryOrder(Object.keys(normalized));
       }
 
       setConfigObj(reordered);
@@ -127,11 +165,19 @@ export default function SystemSettingsPage() {
         if (!res.ok) throw new Error(`Failed (${res.status})`);
         const json = await res.json();
 
+        // Keep raw JSON visible for the editor
+        try {
+          setConfigContent(JSON.stringify(json, null, 2));
+        } catch {
+          setConfigContent(String(json));
+        }
+
         const newConfig: Record<string, any> = {};
         const newCategoryKeys: Record<string, string> = { ...categoryKeys };
 
+        // normalize values to arrays so editing controls work
         Object.keys(json).forEach((key) => {
-          newConfig[key] = json[key];
+          newConfig[key] = normalizeCategoryValue(json[key]);
           if (!newCategoryKeys[key]) {
             newCategoryKeys[key] = `cat-${Date.now()}-${Math.random()}`;
           }
