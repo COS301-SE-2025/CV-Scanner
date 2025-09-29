@@ -514,7 +514,7 @@ export default function SystemSettingsPage() {
             {/* Categories */}
             {categoryOrder.map((category) => (
               <Box
-                key={categoryKeys[category]}
+                key={categoryKeys[category] ?? category}
                 sx={{ border: "1px solid #ddd", borderRadius: 2, p: 2 }}
               >
                 {/* Parent Heading */}
@@ -604,7 +604,9 @@ export default function SystemSettingsPage() {
                   {Array.isArray(configObj[category])
                     ? configObj[category].map((item: any, idx: number) => (
                         <Box
-                          key={idx}
+                          key={`${category}-${
+                            categoryKeys[category] ?? category
+                          }-${idx}`}
                           sx={{
                             display: "flex",
                             alignItems: "center",
