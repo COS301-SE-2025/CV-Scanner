@@ -7,7 +7,16 @@ from fastapi.responses import JSONResponse, StreamingResponse, PlainTextResponse
 from config_store import load_categories, save_categories
 from bart_model import classify_text_by_categories
 
+# Import CV parser functions
+from cv_parser import parse_resume_from_bytes
 
+# OPTIONAL: simple extractors; replace with your PDF/DOCX code if you like
+def extract_text_auto(file_bytes: bytes, filename: str) -> str:
+    name = (filename or "").lower()
+    if name.endswith(".txt"):
+        return file_bytes.decode("utf-8", errors="ignore")
+    # fallback: treat everything as text (front-end can pre-extract)
+    return file_bytes.decode("utf-8", errors="ignore")
 
 app = FastAPI(title="Dynamic ZSC Classifier (Admin-editable categories)")
 
