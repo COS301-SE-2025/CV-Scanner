@@ -167,7 +167,35 @@ def extract_name_with_context(text: str):
             d[nm] = max(d.get(nm, -1e9), sc)
         best = sorted(d.items(), key=lambda x: x[1], reverse=True)[0][0]
         if len(best.split()) >= 2 and len(best) < 50 and not re.search(r'\d', best):
+            return best
+    return None
 
+# ---------- Sections & skills ----------
+def extract_sections(text: str):
+    text_clean = re.sub(r'\s+', ' ', text)
+    lines = text.split('\n')
+
+    section_patterns = {
+        "education": [
+            r"(?i)\b(education|academic\s+background|qualifications|academics|educational\s+background|degrees?)\b",
+            r"(?i)\b(bachelor|master|phd|doctorate|university|college)\b",
+            r"(?i)\beducation\b"
+        ],
+        "experience": [
+            r"(?i)\b(experience|work\s+history|employment|professional\s+background|work\s+experience|career|professional\s+experience|employment\s+history)\b",
+            r"(?i)\b(worked|employment|professional|career)\b",
+            r"(?i)\bexperience\b"
+        ],
+        "skills": [
+            r"(?i)\b(skills|technical\s+skills|competencies|proficiencies|technologies|expertise|abilities|programming\s+languages)\b",
+            r"(?i)\b(technical|programming|languages)\b",
+            r"(?i)\bskills\b"
+        ],
+        "projects": [
+            r"(?i)\b(projects|personal\s+projects|key\s+projects|project\s+experience|portfolio|notable\s+projects)\b",
+            r"(?i)\bprojects?\b"
+        ]
+    }
 
     sections = {}
     sections.update(extract_sections_by_headers(lines, section_patterns))
