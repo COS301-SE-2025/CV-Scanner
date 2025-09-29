@@ -7,6 +7,8 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.sql.Timestamp;
+import java.util.LinkedHashMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -2123,11 +2125,9 @@ private String truncateSummary(String s) {
 
             for (var row : rows) {
                 String aiJson = row.get("ai");
-                // Try to extract skill lists from ai JSON
                 if (aiJson != null && !aiJson.isBlank()) {
                     try {
                         Map<String, Object> root = mapper.readValue(aiJson, new TypeReference<>() {});
-                        // 1) applied.Skills (array)
                         Object applied = root.get("applied");
                         if (applied instanceof Map<?, ?> appliedMap) {
                             Object skillsObj = appliedMap.get("Skills");
@@ -2138,33 +2138,22 @@ private String truncateSummary(String s) {
                                         if (!skill.isEmpty()) counts.merge(skill, 1, Integer::sum);
                                     }
                                 }
-                                continue; // prefer applied.Skills when present
+                                continue;
                             }
                         }
-
-                        // 2) raw.*.labels (look through raw categories)
                         Object raw = root.get("raw");
                         if (raw instanceof Map<?, ?> rawMap) {
                             for (Object v : rawMap.values()) {
                                 if (v instanceof Map<?, ?> cat) {
                                     Object labels = cat.get("labels");
                                     if (labels instanceof Iterable<?> labIter) {
-                                        for (Object s : labIter) {
-                                            if (s != null) {
-                                                String skill = String.valueOf(s).trim();
-                                                if (!skill.isEmpty()) counts.merge(skill, 1, Integer::sum);
-                                            }
-                                        }
+                                        for (Object s : labIter) if (s != null) counts.merge(String.valueOf(s).trim(), 1, Integer::sum);
                                     }
                                 }
                             }
                         }
-                    } catch (Exception ignore) {
-                        // continue to other sources
-                    }
+                    } catch (Exception ignored) { }
                 }
-
-                // 3) fallback: normalized or resumeResult may be CSV/strings - try simple comma split
                 String normalized = row.get("normalized");
                 String resume = row.get("resume");
                 String fallback = normalized != null && !normalized.isBlank() ? normalized : resume;
@@ -2177,7 +2166,6 @@ private String truncateSummary(String s) {
                 }
             }
 
-            // Convert counts -> sorted list of { name, value }
             List<Map<String, Object>> out = counts.entrySet().stream()
                     .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
                     .limit(top)
@@ -2199,23 +2187,56 @@ private String truncateSummary(String s) {
     public ResponseEntity<?> monthlyUploads(@RequestParam(value = "months", required = false, defaultValue = "6") int months) {
         try {
             int m = Math.max(1, Math.min(months, 36));
-            Instant cutoff = Instant.now().minus(m - 1, ChronoUnit.MONTHS);
+            // compute cutoff at start of oldest month to include full months
+            Instant now = Instant.now();
+            Instant startInstant = now.minus(m - 1, ChronoUnit.MONTHS);
+            Timestamp cutoff = Timestamp.from(startInstant);
+
+            // Group by year/month to avoid locale-specific string conversions
             String sql = """
-                SELECT CONVERT(varchar(7), ReceivedAt, 23) AS month, COUNT(*) AS cnt
+                SELECT YEAR(ReceivedAt) AS y, MONTH(ReceivedAt) AS mo, COUNT(*) AS cnt
                 FROM dbo.CandidateParsedCv
                 WHERE ReceivedAt >= ?
-                GROUP BY CONVERT(varchar(7), ReceivedAt, 23)
-                ORDER BY month ASC
+                GROUP BY YEAR(ReceivedAt), MONTH(ReceivedAt)
+                ORDER BY y ASC, mo ASC
             """;
-            var rows = jdbc.query(sql, new Object[]{ Timestamp.from(cutoff) }, (rs, i) -> {
-                Map<String, Object> out = new HashMap<>();
-                out.put("month", rs.getString("month"));
-                out.put("count", rs.getInt("cnt"));
+
+            var rows = jdbc.query(sql, new Object[]{cutoff}, (rs, i) -> {
+                int y = rs.getInt("y");
+                int mo = rs.getInt("mo");
+                int cnt = rs.getInt("cnt");
+                Map<String, Object> out = new LinkedHashMap<>();
+                out.put("month", String.format("%04d-%02d", y, mo));
+                out.put("count", cnt);
                 return out;
             });
-            return ResponseEntity.ok(rows);
+
+            // Build ordered month list with zeros for missing months
+            LinkedHashMap<String, Integer> map = new LinkedHashMap<>();
+            for (int i = m - 1; i >= 0; i--) {
+                Instant t = now.minus(i, ChronoUnit.MONTHS);
+                java.time.ZonedDateTime z = java.time.ZonedDateTime.ofInstant(t, java.time.ZoneId.systemDefault());
+                String key = String.format("%04d-%02d", z.getYear(), z.getMonthValue());
+                map.put(key, 0);
+            }
+            for (var r : rows) {
+                String k = String.valueOf(r.get("month"));
+                Integer v = r.get("count") instanceof Number ? ((Number) r.get("count")).intValue() : Integer.parseInt(String.valueOf(r.get("count")));
+                if (map.containsKey(k)) map.put(k, v);
+            }
+
+            List<Map<String, Object>> out = map.entrySet().stream()
+                    .map(e -> {
+                        Map<String, Object> row = new HashMap<>();
+                        row.put("month", e.getKey());
+                        row.put("count", e.getValue());
+                        return row;
+                    })
+                    .toList();
+
+            return ResponseEntity.ok(out);
         } catch (Exception ex) {
-            return ResponseEntity.status(500).body(createErrorResponse("Failed to compute monthly uploads: " + ex.getMessage()));
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to compute monthly uploads: " + ex.getMessage()));
         }
     }
 
@@ -2286,7 +2307,7 @@ private String truncateSummary(String s) {
             }
 
             List<Map<String, Object>> out = counts.entrySet().stream()
-                    .sorted((a,b) -> Integer.compare(b.getValue(), a.getValue()))
+                    .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
                     .limit(top)
                     .map(e -> {
                         Map<String, Object> m = new HashMap<>();
