@@ -5,7 +5,15 @@ from transformers import pipeline
 # Load once per process
 _zsc = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
-
+def classify_text_by_categories(
+    text: str,
+    categories: Dict[str, List[str]],
+    top_k: int = 3,
+    hypothesis_template: str = "This candidate has {}.",
+    multi_label: bool = True,
+) -> Dict[str, Dict]:
+    """
+    Returns:
       {
         "Skills": {
           "labels": ["Writer","Coder","Backend",...],
