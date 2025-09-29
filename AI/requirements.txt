@@ -10,7 +10,7 @@ python-docx==1.1.2
 spacy==3.7.5
 python-multipart==0.0.9
 flask
-flask-cors
+flask_cors
 gunicorn
 asgiref>=3.4.1
 

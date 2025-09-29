@@ -90,15 +90,13 @@ export default function Search() {
     cvFileUrl?: string;
     cvFileType?: string;
     filename?: string | null;
-   score: number; // 0-10
+    score: number; // 0-10
+    // new: store project-fit payload & percent if available
+    projectFit?: any;
+    projectFitPercent?: number | null;
   };
 
-
-
-
   const [candidates, setCandidates] = useState<CandidateCard[]>([]);
- 
-
 
   // Toggle helper for checkbox filters
   function toggle(list: string[], value: string) {
@@ -107,73 +105,67 @@ export default function Search() {
       : [...list, value];
   }
 
- 
+  function scoreColor(value: number) {
+    const v = Math.max(0, Math.min(10, value));
+    const hue = (v / 10) * 120; // 0..10 → red..green
+    return `hsl(${hue} 70% 45%)`;
+  }
 
-function scoreColor(value: number) {
-  const v = Math.max(0, Math.min(10, value));
-  const hue = (v / 10) * 120; // 0..10 → red..green
-  return `hsl(${hue} 70% 45%)`;
-}
+  function ScoreRing({ value }: { value: number }) {
+    const clamped = Math.max(0, Math.min(10, value));
+    const pct = clamped * 10;
+    const ringColor = scoreColor(clamped);
+    const isPerfect = clamped === 10;
 
-function ScoreRing({ value }: { value: number }) {
-  const clamped = Math.max(0, Math.min(10, value));
-  const pct = clamped * 10;
-  const ringColor = scoreColor(clamped);
-  const isPerfect = clamped === 10;
-
-  return (
-    <Box sx={{ position: "relative", display: "inline-flex" }}>
-      {/* Track */}
-      <CircularProgress
-        variant="determinate"
-        value={100}
-        size={64}
-        thickness={4}
-        sx={{ color: "rgba(255,255,255,0.15)" }}
-      />
-      {/* Progress (colored ring) */}
-      <CircularProgress
-        variant="determinate"
-        value={pct}
-        size={64}
-        thickness={4}
-        sx={{
-          color: ringColor,
-          position: "absolute",
-          left: 0,
-          ...(isPerfect && {
-            filter: "drop-shadow(0 0 6px rgba(0, 255, 0, 0.6))",
-          }),
-        }}
-      />
-      {/* Center label (black text) */}
-      <Box
-        sx={{
-          position: "absolute",
-          inset: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexDirection: "column",
-        }}
-      >
-        <Typography
-          variant="subtitle2"
-          sx={{ lineHeight: 1, fontWeight: 800, color: "#000" }}
+    return (
+      <Box sx={{ position: "relative", display: "inline-flex" }}>
+        {/* Track */}
+        <CircularProgress
+          variant="determinate"
+          value={100}
+          size={64}
+          thickness={4}
+          sx={{ color: "rgba(255,255,255,0.15)" }}
+        />
+        {/* Progress (colored ring) */}
+        <CircularProgress
+          variant="determinate"
+          value={pct}
+          size={64}
+          thickness={4}
+          sx={{
+            color: ringColor,
+            position: "absolute",
+            left: 0,
+            ...(isPerfect && {
+              filter: "drop-shadow(0 0 6px rgba(0, 255, 0, 0.6))",
+            }),
+          }}
+        />
+        {/* Center label (black text) */}
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexDirection: "column",
+          }}
         >
-          {clamped}/10
-        </Typography>
-        <Typography variant="caption" sx={{ color: "#000" }}>
-          Score
-        </Typography>
+          <Typography
+            variant="subtitle2"
+            sx={{ lineHeight: 1, fontWeight: 800, color: "#000" }}
+          >
+            {clamped}/10
+          </Typography>
+          <Typography variant="caption" sx={{ color: "#000" }}>
+            Score
+          </Typography>
+        </Box>
       </Box>
-    </Box>
-  );
-}
-
-
-
-
+    );
+  }
 
   // Handler for checkbox groups
   function handleCheckboxChange(
@@ -307,49 +299,103 @@ function ScoreRing({ value }: { value: number }) {
             cvFileUrl: c.cvFileUrl,
             cvFileType: c.cvFileType,
             filename,
-                   // Hard-coded score out of 10
-       score:
-             //SCORE_MAP[c.email] ??
-             Math.max(0, Math.min(10, (c.id % 11))) // stable fallback 0..10
+            score: Math.max(0, Math.min(10, c.id % 11)),
+            projectFit: undefined,
+            projectFitPercent: null,
           };
         });
         setCandidates(mapped);
+
         // Fetch average scores from API and merge into candidates
         (async function fetchAndApplyAverages() {
-            try {
-              const avgRes = await apiFetch("/cv/average-scores?limit=100");
-              if (!avgRes || !avgRes.ok) return;
-              const avgJson = await avgRes.json();
-              // avgJson expected as array of { candidateId, averageScoreOutOf10, ... }
-              if (!Array.isArray(avgJson)) return;
-              const avgMap = new Map<number, number>();
-              for (const it of avgJson) {
-                const id = Number(it?.candidateId ?? it?.id);
-                const score = it?.averageScoreOutOf10 ?? it?.averageScore;
-                if (!Number.isNaN(id) && score != null) {
-                  avgMap.set(id, Number(score));
-                }
+          try {
+            const avgRes = await apiFetch("/cv/average-scores?limit=100");
+            if (!avgRes || !avgRes.ok) return;
+            const avgJson = await avgRes.json();
+            if (!Array.isArray(avgJson)) return;
+            const avgMap = new Map<number, number>();
+            for (const it of avgJson) {
+              const id = Number(it?.candidateId ?? it?.id);
+              const score = it?.averageScoreOutOf10 ?? it?.averageScore;
+              if (!Number.isNaN(id) && score != null) {
+                avgMap.set(id, Number(score));
               }
-              // merge into current candidate list
-              setCandidates((prev) =>
-                prev.map((cand) => ({
-                  ...cand,
-                  score: avgMap.has(Number(cand.id)) ? Math.max(0, Math.min(10, Number(avgMap.get(Number(cand.id))))) : cand.score,
-                }))
-              );
-            } catch (e) {
-              // ignore; keep fallback scores
-              console.warn("Failed to fetch average scores:", e);
             }
-          })();
- 
+            setCandidates((prev) =>
+              prev.map((cand) => ({
+                ...cand,
+                score: avgMap.has(Number(cand.id))
+                  ? Math.max(
+                      0,
+                      Math.min(10, Number(avgMap.get(Number(cand.id))))
+                    )
+                  : cand.score,
+              }))
+            );
+          } catch (e) {
+            console.warn("Failed to fetch average scores:", e);
+          }
+        })();
+
+        // NEW: Fetch project-fit data and merge into candidate cards
+        (async function fetchAndApplyProjectFits() {
+          try {
+            const pfRes = await apiFetch("/cv/project-fit?limit=500");
+            if (!pfRes || !pfRes.ok) return;
+            const pfJson = await pfRes.json();
+            if (!Array.isArray(pfJson)) return;
+            const pfMap = new Map<number, any>();
+            for (const it of pfJson) {
+              const id = Number(it?.candidateId ?? it?.id);
+              if (!Number.isNaN(id)) pfMap.set(id, it);
+            }
+            setCandidates((prev) =>
+              prev.map((cand) => {
+                const pf = pfMap.get(Number(cand.id));
+                const pfObj = pf?.projectFit ?? null;
+                const pct =
+                  pf?.projectFitPercent != null
+                    ? Number(pf.projectFitPercent)
+                    : null;
+                const type =
+                  pfObj && typeof pfObj === "object"
+                    ? pfObj.type ?? pfObj?.type
+                    : null;
+
+                // Compose display label: prefer "Type:NN%" when both available,
+                // otherwise fall back to explicit projectFitLabel, percent-only, type-only, or existing match.
+                let combinedLabel: string | null = null;
+                if (type && pct != null) {
+                  combinedLabel = `${type}:${pct}%`;
+                } else if (pf?.projectFitLabel) {
+                  // backend-provided readable label (e.g. "Project Fit: 75%")
+                  // convert to short form if desired, else use as-is
+                  combinedLabel = pf.projectFitLabel;
+                } else if (type) {
+                  combinedLabel = String(type);
+                } else if (pct != null) {
+                  combinedLabel = `${pct}%`;
+                }
+
+                return {
+                  ...cand,
+                  projectFit: pfObj ?? cand.projectFit,
+                  projectFitPercent: pct ?? cand.projectFitPercent,
+                  fit: (type as string) || cand.fit,
+                  match: combinedLabel ?? cand.match,
+                };
+              })
+            );
+          } catch (e) {
+            console.warn("Failed to fetch project-fit:", e);
+          }
+        })();
       } catch {
         setUser(null);
         setCandidates([]);
       }
     })();
     return;
-    // previous Promise.all branch replaced
   }, []);
 
   const searchBarRef = useRef<HTMLInputElement>(null);
@@ -671,8 +717,16 @@ function ScoreRing({ value }: { value: number }) {
                           Match: {candidate.match}
                         </Typography>
                       </Box>
-                     <Box sx={{ mt: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 1.5 }}>
-                     <ScoreRing value={candidate.score} />
+                      <Box
+                        sx={{
+                          mt: 1,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: 1.5,
+                        }}
+                      >
+                        <ScoreRing value={candidate.score} />
                         <Button
                           variant="contained"
                           size="small"
@@ -680,7 +734,9 @@ function ScoreRing({ value }: { value: number }) {
                             e.stopPropagation(); // Prevents triggering the Paper onClick
 
                             // Show loading state if needed
-                            if (processingCandidates.includes(candidate.email)) {
+                            if (
+                              processingCandidates.includes(candidate.email)
+                            ) {
                               return;
                             }
 
