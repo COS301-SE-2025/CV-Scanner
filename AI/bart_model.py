@@ -5,24 +5,7 @@ from transformers import pipeline
 
 _zsc = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
-def classify_text_by_categories(
-    text: str,
-    categories: Dict[str, List[str]],
-    top_k: int = 3,
-    hypothesis_template: str = "This candidate has {}.",
-    multi_label: bool = True,
-) -> Dict[str, Dict]:
-    """
-    Returns:
-      {
-        "Skills": {
-          "labels": ["Writer","Coder","Backend",...],
-          "scores": [0.81, 0.64, 0.33,...],
-          "top_k": [{"label": "Writer", "score": 0.81}, ... up to k]
-        },
-        ...
-      }
-    """
+
     out: Dict[str, Dict] = {}
     for cat, labels in categories.items():
         if not labels:  
