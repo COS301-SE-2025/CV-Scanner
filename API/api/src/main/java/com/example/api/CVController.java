@@ -46,6 +46,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RestController
@@ -1988,6 +1989,113 @@ private String truncateSummary(String s) {
             return null;
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    @GetMapping("/skill-distribution")
+    public ResponseEntity<?> skillDistribution(@RequestParam(value = "limit", required = false, defaultValue = "10") int limit) {
+        try {
+            int top = Math.max(1, Math.min(limit, 1000));
+
+            // Latest parsed row per candidate
+            String sql = """
+                WITH latest AS (
+                  SELECT CandidateId, AiResult, Normalized, ResumeResult, ReceivedAt,
+                         ROW_NUMBER() OVER (PARTITION BY CandidateId ORDER BY ReceivedAt DESC) rn
+                  FROM dbo.CandidateParsedCv
+                )
+                SELECT l.CandidateId, l.AiResult, l.Normalized, l.ResumeResult
+                FROM latest l
+                WHERE l.rn = 1
+            """;
+
+            var rows = jdbc.query(sql, (rs, rowNum) -> {
+                String aiResult = rs.getString("AiResult");
+                String normalized = rs.getString("Normalized");
+                String resumeResult = rs.getString("ResumeResult");
+                Map<String, String> out = new HashMap<>();
+                out.put("ai", aiResult);
+                out.put("normalized", normalized);
+                out.put("resume", resumeResult);
+                return out;
+            });
+
+            ObjectMapper mapper = new ObjectMapper();
+            Map<String, Integer> counts = new HashMap<>();
+
+            for (var row : rows) {
+                String aiJson = row.get("ai");
+                // Try to extract skill lists from ai JSON
+                if (aiJson != null && !aiJson.isBlank()) {
+                    try {
+                        Map<String, Object> root = mapper.readValue(aiJson, new TypeReference<>() {});
+                        // 1) applied.Skills (array)
+                        Object applied = root.get("applied");
+                        if (applied instanceof Map<?, ?> appliedMap) {
+                            Object skillsObj = appliedMap.get("Skills");
+                            if (skillsObj instanceof Iterable<?> skillsIter) {
+                                for (Object s : skillsIter) {
+                                    if (s != null) {
+                                        String skill = String.valueOf(s).trim();
+                                        if (!skill.isEmpty()) counts.merge(skill, 1, Integer::sum);
+                                    }
+                                }
+                                continue; // prefer applied.Skills when present
+                            }
+                        }
+
+                        // 2) raw.*.labels (look through raw categories)
+                        Object raw = root.get("raw");
+                        if (raw instanceof Map<?, ?> rawMap) {
+                            for (Object v : rawMap.values()) {
+                                if (v instanceof Map<?, ?> cat) {
+                                    Object labels = cat.get("labels");
+                                    if (labels instanceof Iterable<?> labIter) {
+                                        for (Object s : labIter) {
+                                            if (s != null) {
+                                                String skill = String.valueOf(s).trim();
+                                                if (!skill.isEmpty()) counts.merge(skill, 1, Integer::sum);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } catch (Exception ignore) {
+                        // continue to other sources
+                    }
+                }
+
+                // 3) fallback: normalized or resumeResult may be CSV/strings - try simple comma split
+                String normalized = row.get("normalized");
+                String resume = row.get("resume");
+                String fallback = normalized != null && !normalized.isBlank() ? normalized : resume;
+                if (fallback != null && !fallback.isBlank()) {
+                    String[] parts = fallback.split("[,;\\n]");
+                    for (String p : parts) {
+                        String s = p.trim();
+                        if (s.length() > 1 && s.length() < 60) {
+                            counts.merge(s, 1, Integer::sum);
+                        }
+                    }
+                }
+            }
+
+            // Convert counts -> sorted list of { name, value }
+            List<Map<String, Object>> out = counts.entrySet().stream()
+                    .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
+                    .limit(top)
+                    .map(e -> {
+                        Map<String, Object> m = new HashMap<>();
+                        m.put("name", e.getKey());
+                        m.put("value", e.getValue());
+                        return m;
+                    })
+                    .toList();
+
+            return ResponseEntity.ok(out);
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to compute skill distribution: " + ex.getMessage()));
         }
     }
 }
