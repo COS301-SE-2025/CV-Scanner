@@ -34,6 +34,7 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import Sidebar from "./Sidebar";
 import ConfigAlert from "./ConfigAlert";
 import { apiFetch } from "../lib/api";
+import { useBrandLoader } from "../hooks/brandLoader";
 
 interface ProcessedData {
   profile: string;
@@ -187,6 +188,7 @@ export default function UploadCVPage() {
 
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const loader = useBrandLoader();
 
   const navigate = useNavigate();
 
@@ -342,8 +344,9 @@ export default function UploadCVPage() {
       });
       return;
     }
-
+    loader.show(); 
     setLoading(true);
+    
 
     try {
       const formData = new FormData();
@@ -441,6 +444,7 @@ export default function UploadCVPage() {
       });
     } finally {
       setLoading(false);
+      loader.hide();
     }
   };
 
