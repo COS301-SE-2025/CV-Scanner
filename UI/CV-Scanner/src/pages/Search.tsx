@@ -674,7 +674,7 @@ export default function Search() {
                           variant="body2"
                           sx={{
                             mb: 1.0,
-                            color: "#204E20",
+                            color: "#000000ff",
                             fontFamily: "Helvetica, sans-serif",
                             fontSize: "0.95rem",
                             fontWeight: "bold",
@@ -700,7 +700,7 @@ export default function Search() {
                                 fontFamily: "Helvetica, sans-serif",
                                 fontSize: "1rem",
                                 fontWeight: "bold",
-                                color: "#204E20",
+                                color: "#0D1B2A",
                               }}
                             />
                           ))}

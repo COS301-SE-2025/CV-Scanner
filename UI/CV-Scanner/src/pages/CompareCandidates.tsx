@@ -496,7 +496,7 @@ export default function CompareCandidates() {
             </Box>
           </Box>
 
-          <Typography sx={{ fontWeight: "bold", color: "#204E20", mb: 1 }}>
+          <Typography sx={{ fontWeight: "bold", color: "#0D1B2A", mb: 1 }}>
             File: {candidate.filename ?? candidate.project}
           </Typography>
 
@@ -508,7 +508,7 @@ export default function CompareCandidates() {
                 size={isMobile ? "small" : "medium"}
                 sx={{
                   bgcolor: "#93AFF7",
-                  color: "#204E20",
+                  color: "#0D1B2A",
                   fontWeight: "bold",
                   textTransform: "lowercase",
                 }}
@@ -519,7 +519,7 @@ export default function CompareCandidates() {
                 label={`+${remainingSkillsCount}`}
                 size={isMobile ? "small" : "medium"}
                 sx={{
-                  bgcolor: "#204E20",
+                  bgcolor: "#0D1B2A",
                   color: "#93AFF7",
                   fontWeight: "bold",
                 }}
@@ -680,7 +680,7 @@ export default function CompareCandidates() {
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <SearchIcon sx={{ color: "#204E20" }} />
+                          <SearchIcon sx={{ color: "#0D1B2A" }} />
                         </InputAdornment>
                       ),
                     }}
@@ -725,12 +725,13 @@ export default function CompareCandidates() {
               <Paper
                 sx={{
                   flex: 1,
-                  p: 2,
-                  borderRadius: 3,
+                  p: 1, // reduced padding for a more compact look
+                  borderRadius: 2, // slightly smaller radius
                   bgcolor: "#DEDDEE",
                   display: "flex",
                   flexDirection: "column",
                   overflow: "hidden",
+                  gap: 1, // small internal gap
                 }}
               >
                 <Typography
@@ -756,7 +757,7 @@ export default function CompareCandidates() {
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <SearchIcon sx={{ color: "#204E20" }} />
+                          <SearchIcon sx={{ color: "#0D1B2A" }} />
                         </InputAdornment>
                       ),
                     }}
@@ -799,7 +800,7 @@ export default function CompareCandidates() {
                   px: 4,
                   py: 1.5,
                   bgcolor: "#93AFF7",
-                  color: "#204E20",
+                  color: "#0D1B2A",
                   fontWeight: "bold",
                 }}
                 onClick={handleCompare}
@@ -813,7 +814,7 @@ export default function CompareCandidates() {
             <Box sx={{ mt: 3 }}>
               <Typography
                 sx={{
-                  color: "#204E20",
+                  color: "#0D1B2A",
                   fontWeight: "bold",
                   bgcolor: "#DEDDEE",
                   p: 2,
@@ -842,7 +843,7 @@ export default function CompareCandidates() {
                   <Chip
                     key={s}
                     label={s}
-                    sx={{ bgcolor: "#93AFF7", color: "#204E20" }}
+                    sx={{ bgcolor: "#93AFF7", color: "#0D1B2A" }}
                   />
                 ))}
               </Box>
@@ -850,7 +851,7 @@ export default function CompareCandidates() {
             <DialogActions sx={{ bgcolor: "#DEDDEE" }}>
               <Button
                 onClick={handleCloseSkillsDialog}
-                sx={{ color: "#204E20" }}
+                sx={{ color: "#0D1B2A" }}
               >
                 Close
               </Button>
