@@ -1694,6 +1694,32 @@ private String truncateSummary(String s) {
         }
     }
 
+    // Helper: coerce arbitrary object (Number/String) to Double or null
+    private Double toDouble(Object v) {
+        if (v == null) return null;
+        if (v instanceof Number n) {
+            double d = n.doubleValue();
+            return Double.isFinite(d) ? d : null;
+        }
+        if (v instanceof String s) {
+            s = s.trim();
+            if (s.isEmpty()) return null;
+            // Try stripping a trailing % (treat as 0-1 if percentage, e.g. 85% -> 0.85)
+            if (s.endsWith("%")) {
+                try {
+                    double pct = Double.parseDouble(s.substring(0, s.length() - 1).trim());
+                    return pct / 100.0;
+                } catch (NumberFormatException ignored) { }
+            }
+            try {
+                return Double.parseDouble(s);
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
     // Computes average score (0..10) from AiResult JSON. Returns null if no numeric scores found.
     private Double computeAverageScoreFromAiResult(String aiResultJson) {
         try {
@@ -1763,14 +1789,206 @@ private String truncateSummary(String s) {
         }
     }
 
-    private Double toDouble(Object o) {
-        if (o == null) return null;
-        if (o instanceof Number) return ((Number) o).doubleValue();
+    // ---------- New: project-fit extraction ----------
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> extractProjectFitFromAiResult(String aiResultJson) {
+        if (isBlank(aiResultJson)) return null;
         try {
-            String s = String.valueOf(o).trim();
-            if (s.isEmpty()) return null;
-            return Double.parseDouble(s);
-        } catch (Exception ignored) { return null; }
+            Map<String, Object> root = parseJsonToMap(aiResultJson);
+            if (root == null) return null;
+
+            // 1) top-level best_fit_project_type
+            Object b = root.get("best_fit_project_type");
+            if (b instanceof Map<?, ?> bm) {
+                Map<String, Object> out = new HashMap<>();
+                Object type = ((Map<?, ?>) bm).get("type");
+                Object confidence = ((Map<?, ?>) bm).get("confidence");
+                Object basis = ((Map<?, ?>) bm).get("basis");
+                if (type != null) out.put("type", String.valueOf(type));
+                if (confidence != null) out.put("confidence", toDouble(confidence));
+                if (basis != null) out.put("basis", basis);
+                return out;
+            }
+
+            // 2) maybe nested under "result" or "applied"
+            Object result = root.get("result");
+            if (result instanceof Map<?, ?> rm) {
+                Object rf = ((Map<?, ?>) rm).get("best_fit_project_type");
+                if (rf instanceof Map<?, ?> rfm) {
+                    Map<String, Object> out = new HashMap<>();
+                    Object type = ((Map<?, ?>) rfm).get("type");
+                    Object confidence = ((Map<?, ?>) rfm).get("confidence");
+                    Object basis = ((Map<?, ?>) rfm).get("basis");
+                    if (type != null) out.put("type", String.valueOf(type));
+                    if (confidence != null) out.put("confidence", toDouble(confidence));
+                    if (basis != null) out.put("basis", basis);
+                    return out;
+                }
+            }
+
+            // 3) fallback: look at ai.applied keys for heuristics (e.g., label presence)
+            Object applied = root.get("applied");
+            if (applied instanceof Map<?, ?> am) {
+                // If applied contains a single strong label for project-type, return it
+                Object project = ((Map<?, ?>) am).get("ProjectType");
+                if (project instanceof String) {
+                    return Map.of("type", project, "confidence", null, "basis", "applied.ProjectType");
+                }
+            }
+
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
+    // ---------- New endpoint: single candidate project fit ----------
+    @GetMapping("/{identifier}/project-fit")
+    public ResponseEntity<?> getCandidateProjectFit(@PathVariable("identifier") String identifier) {
+        try {
+            Long candidateId = null;
+            String email = null;
+            try { candidateId = Long.parseLong(identifier); } catch (NumberFormatException ignored) { email = identifier; }
+
+            String sql;
+            Object[] params;
+            if (candidateId != null) {
+                sql = """
+                    SELECT TOP 1 c.Id, c.FirstName, c.LastName, c.Email, l.AiResult, l.ReceivedAt
+                    FROM dbo.Candidates c
+                    LEFT JOIN dbo.CandidateParsedCv l ON l.CandidateId = c.Id
+                    WHERE c.Id = ?
+                    ORDER BY l.ReceivedAt DESC
+                """;
+                params = new Object[]{candidateId};
+            } else {
+                sql = """
+                    SELECT TOP 1 c.Id, c.FirstName, c.LastName, c.Email, l.AiResult, l.ReceivedAt
+                    FROM dbo.Candidates c
+                    LEFT JOIN dbo.CandidateParsedCv l ON l.CandidateId = c.Id
+                    WHERE c.Email = ?
+                    ORDER BY l.ReceivedAt DESC
+                """;
+                params = new Object[]{email};
+            }
+
+            var rows = jdbc.query(sql, params, (rs, i) -> {
+                long id = rs.getLong("Id");
+                String first = rs.getString("FirstName");
+                String last = rs.getString("LastName");
+                String mail = rs.getString("Email");
+                String aiResult = rs.getString("AiResult");
+                Timestamp ts = rs.getTimestamp("ReceivedAt");
+                Map<String, Object> fit = extractProjectFitFromAiResult(aiResult);
+                Map<String, Object> out = new HashMap<>();
+                Integer pct = projectFitPercentFromAi(aiResult);
+                out.put("candidateId", id);
+                out.put("firstName", first);
+                out.put("lastName", last);
+                out.put("email", mail);
+                out.put("projectFit", fit);
+                out.put("projectFitPercent", pct);
+                out.put("projectFitLabel", pct != null ? ("Project Fit: " + pct + "%") : null);
+                out.put("receivedAt", ts != null ? ts.toInstant().toString() : null);
+                return out;
+            });
+
+            if (rows.isEmpty()) return ResponseEntity.status(404).body(Map.of("message","Candidate not found"));
+            return ResponseEntity.ok(rows.get(0));
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body(createErrorResponse("Failed to load project fit: " + ex.getMessage()));
+        }
+    }
+
+    // ---------- New endpoint: project fit for many candidates ----------
+    @GetMapping("/project-fit")
+    public ResponseEntity<?> listProjectFits(@RequestParam(value = "limit", required = false, defaultValue = "100") int limit) {
+        try {
+            int top = Math.max(1, Math.min(limit, 1000));
+            String sql = """
+                WITH latest AS (
+                  SELECT cpc.CandidateId, cpc.AiResult, cpc.ReceivedAt,
+                         ROW_NUMBER() OVER (PARTITION BY cpc.CandidateId ORDER BY cpc.ReceivedAt DESC) rn
+                  FROM dbo.CandidateParsedCv cpc
+                )
+                SELECT TOP %d
+                       c.Id, c.FirstName, c.LastName, c.Email, l.AiResult, l.ReceivedAt
+                FROM dbo.Candidates c
+                LEFT JOIN latest l ON l.CandidateId = c.Id AND l.rn = 1
+                ORDER BY c.Id DESC
+            """.formatted(top);
+
+            var list = jdbc.query(sql, (rs, i) -> {
+                long id = rs.getLong("Id");
+                String first = rs.getString("FirstName");
+                String last = rs.getString("LastName");
+                String mail = rs.getString("Email");
+                String aiResult = rs.getString("AiResult");
+                Timestamp ts = rs.getTimestamp("ReceivedAt");
+                Map<String, Object> fit = extractProjectFitFromAiResult(aiResult);
+                Map<String, Object> out = new HashMap<>();
+                Integer pct = projectFitPercentFromAi(aiResult);
+                out.put("candidateId", id);
+                out.put("firstName", first);
+                out.put("lastName", last);
+                out.put("email", mail);
+                out.put("projectFit", fit);
+                out.put("projectFitPercent", pct);
+                out.put("projectFitLabel", pct != null ? ("Project Fit: " + pct + "%") : null);
+                out.put("receivedAt", ts != null ? ts.toInstant().toString() : null);
+                return out;
+            });
+
+            return ResponseEntity.ok(list);
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body(createErrorResponse("Failed to list project fits: " + ex.getMessage()));
+        }
+    }
+
+    // Derive a project-fit percent from AI JSON. Prefer explicit best_fit_project_type.confidence,
+    // fall back to computeAverageScoreFromAiResult() (0..10 -> percent).
+    private Integer projectFitPercentFromAi(String aiResultJson) {
+        try {
+            if (isBlank(aiResultJson)) return null;
+            Map<String,Object> root = parseJsonToMap(aiResultJson);
+            if (root == null) return null;
+
+            // 1) top-level best_fit_project_type.confidence
+            Object b = root.get("best_fit_project_type");
+            Double conf = null;
+            if (b instanceof Map<?,?> bm) {
+                conf = toDouble(((Map<?,?>) bm).get("confidence"));
+            }
+            // 2) fallback under result.best_fit_project_type.confidence
+            if (conf == null && root.get("result") instanceof Map<?,?> rm) {
+                Object rf = ((Map<?,?>) rm).get("best_fit_project_type");
+                if (rf instanceof Map<?,?> rfm) conf = toDouble(((Map<?,?>) rfm).get("confidence"));
+            }
+
+            // If we have a confidence value, normalize to 0..100
+            if (conf != null) {
+                if (conf > 1.0 && conf <= 100.0) {
+                    return (int) Math.round(conf); // already percent-like
+                } else if (conf > 100.0) {
+                    // improbable: clamp to 100
+                    return 100;
+                } else {
+                    // 0..1 -> percent
+                    return (int) Math.round(conf * 100.0);
+                }
+            }
+
+            // 3) fallback: compute average score (0..10) and scale to percent
+            Double avgOutOf10 = computeAverageScoreFromAiResult(aiResultJson);
+            if (avgOutOf10 != null) {
+                int pct = (int) Math.round(avgOutOf10 * 10.0);
+                return Math.max(0, Math.min(100, pct));
+            }
+
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 }
 

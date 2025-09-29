@@ -4,7 +4,7 @@ import os
 import sys
 import subprocess
 from flask import Flask, jsonify, request, make_response
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 import torch
 import spacy
 
@@ -28,7 +28,10 @@ logging.info("Runtime device: %s (cuda_available=%s)", DEVICE_ID, torch.cuda.is_
 # ner = pipeline("ner", model=..., tokenizer=..., device=DEVICE_ID)
 
 app = Flask(__name__)
-CORS(app, resources={r"/": {"origins": ""}}, supports_credentials=True)
+
+# For development: allow all origins. In production restrict to exact origins.
+CORS(app, resources={r"/*": {"origins": ["http://localhost", "http://127.0.0.1", "https://jolly-bay-0e45d8b03.2.azurestaticapps.net", "*"]}}, supports_credentials=True)
+
 gunicorn_logger = logging.getLogger("gunicorn.error")
 if gunicorn_logger.handlers:
     app.logger.handlers = gunicorn_logger.handlers
@@ -412,6 +415,7 @@ def classify():
 
 
 @app.route("/upload_cv", methods=["POST"])
+@cross_origin()  # optional when CORS(app) already configured; useful for per-route control
 def upload_cv():
     load_categories, _, classify_text_by_categories, _ = _lazy_import()
 
@@ -469,6 +473,7 @@ def upload_cv():
 
 # -------- NEW: CV/Resume Parsing Endpoint --------
 @app.route("/parse_resume", methods=["POST"])
+@cross_origin()  # optional
 def parse_resume_endpoint():
     _, _, _, parse_resume_from_bytes = _lazy_import()
     file = request.files.get("file")
