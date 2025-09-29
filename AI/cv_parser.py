@@ -114,21 +114,7 @@ def extract_name_basic(text: str):
                 return s
     return None
 
-def extract_name_with_context(text: str):
-    candidates = []
-    first_lines = text.split('\n')[:8]
-    for i, line in enumerate(first_lines):
-        s = line.strip()
-        if not s or '@' in s or PHONE_RE.search(s):
-            continue
-        pats = [
-            r'^([A-Z][A-Z\s]+[A-Z])$',
-            r'^([A-Z][a-z]+ [A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)$',
-            r'^([A-Z][a-z]+\s+[A-Z]\.\s+[A-Z][a-z]+)$',
-            r'^([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})$',
-        ]
-        for p in pats:
-            m = re.search(p, s)
+
             if not m:
                 continue
             cand = m.group(1).strip()
