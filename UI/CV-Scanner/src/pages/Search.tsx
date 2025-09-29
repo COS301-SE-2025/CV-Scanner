@@ -17,6 +17,7 @@ import {
   Popover,
   Fade,
   Tooltip,
+  Pagination,
 } from "@mui/material";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
@@ -60,6 +61,8 @@ export default function Search() {
   const [processingCandidates, setProcessingCandidates] = useState<string[]>(
     []
   ); // use email as ID
+  const [page, setPage] = useState(1);
+  const USERS_PER_PAGE = 5;
 
   // Replace hard-coded candidates with data from API
   type ApiCandidate = {
@@ -203,6 +206,12 @@ export default function Search() {
       return matchesText && matchesSkills && matchesFit && matchesDetails;
     });
   }, [searchText, selectedSkills, selectedFits, selectedDetails, candidates]);
+
+  // PAGINATION: slice filteredCandidates to only show 5 per page
+  const paginatedCandidates = useMemo(() => {
+    const start = (page - 1) * USERS_PER_PAGE;
+    return filteredCandidates.slice(start, start + USERS_PER_PAGE);
+  }, [filteredCandidates, page]);
 
   function initialsOf(first?: string, last?: string) {
     const a = (first || "").trim();
@@ -608,8 +617,8 @@ export default function Search() {
 
             {/* Candidate Cards */}
             <div ref={resultsRef}>
-              {filteredCandidates.length > 0 ? (
-                filteredCandidates.map((candidate, idx) => (
+              {paginatedCandidates.length > 0 ? (
+                paginatedCandidates.map((candidate, idx) => (
                   <Paper
                     key={idx}
                     elevation={3}
@@ -819,7 +828,25 @@ export default function Search() {
               )}
             </div>
 
-            {/* Pagination ... */}
+            {/* Pagination */}
+            <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+              <Pagination
+                count={Math.max(
+                  1,
+                  Math.ceil(filteredCandidates.length / USERS_PER_PAGE)
+                )}
+                page={page}
+                onChange={(_, value) => setPage(value)}
+                color="primary"
+                size="large"
+                sx={{
+                  "& .MuiPaginationItem-root": {
+                    color: "#204E20",
+                    fontWeight: "bold",
+                  },
+                }}
+              />
+            </Box>
           </Paper>
         </Box>
       </Box>
