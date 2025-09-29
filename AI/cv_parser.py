@@ -161,7 +161,17 @@ def extract_name_with_context(text: str):
                 score += 0.5
             candidates.append((t, score))
 
- 
+    if candidates:
+        d = {}
+        for nm, sc in candidates:
+            d[nm] = max(d.get(nm, -1e9), sc)
+        best = sorted(d.items(), key=lambda x: x[1], reverse=True)[0][0]
+        if len(best.split()) >= 2 and len(best) < 50 and not re.search(r'\d', best):
+            return best
+    return None
+
+# ---------- Sections & skills ----------
+def extract_sections(text: str):
     text_clean = re.sub(r'\s+', ' ', text)
     lines = text.split('\n')
 
