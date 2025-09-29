@@ -163,6 +163,57 @@ async def classify(
         "raw": result
     })
 
+@app.post("/upload_cv")
+async def upload_cv(file: UploadFile = File(...), top_k: int = 3):
+    data = await file.read()
+    if not data:
+        raise HTTPException(400, "Empty file.")
+    text = extract_text_auto(data, file.filename or "upload.txt")
+
+    cats = load_categories()
+    if not cats:
+        raise HTTPException(409, "No categories configured. Use POST /admin/categories first.")
+
+    result = classify_text_by_categories(text, cats, top_k=top_k)
+    applied = {cat: [x["label"] for x in info["top_k"]] for cat, info in result.items()}
+
+   
+    best_fit = infer_project_type(text, applied)
+
+    return JSONResponse({
+        "status": "success",
+        "top_k": top_k,
+        "applied": applied,
+        "raw": result,
+        "best_fit_project_type": best_fit  # ⬅️ added field
+    })
+
+
+# -------- NEW: CV/Resume Parsing Endpoint --------
+@app.post("/parse_resume")
+async def parse_resume_endpoint(file: UploadFile = File(...)):
+    """
+    Upload a resume/CV file and get comprehensive parsing results.
+    Uses the complete cv_parser module functionality.
+    """
+    try:
+        # Read the uploaded file
+        data = await file.read()
+        if not data:
+            raise HTTPException(400, "Empty file uploaded.")
+        
+        # Parse the resume using the complete cv_parser functionality
+        result = parse_resume_from_bytes(data, file.filename)
+        
+        return JSONResponse({
+            "status": "success",
+            "filename": file.filename,
+            "result": result
+        })
+    
+    except Exception as e:
+        raise HTTPException(500, f"Error parsing resume: {str(e)}")
+
 
 if __name__ == "__main__":
     import uvicorn
