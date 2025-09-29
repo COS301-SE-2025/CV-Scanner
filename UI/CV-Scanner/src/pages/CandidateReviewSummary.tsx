@@ -362,13 +362,11 @@ export default function CandidateReviewSummary() {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
   // Refs for tutorial steps
-  const projectFitRef = useRef<HTMLDivElement>(null);
   const techRef = useRef<HTMLDivElement>(null);
 
+  // both tutorial steps now anchor to the Key Technologies area
   useEffect(() => {
-    if (tutorialStep === 0 && projectFitRef.current)
-      setAnchorEl(projectFitRef.current);
-    else if (tutorialStep === 1 && techRef.current)
+    if ((tutorialStep === 0 || tutorialStep === 1) && techRef.current)
       setAnchorEl(techRef.current);
     else setAnchorEl(null);
   }, [tutorialStep]);
@@ -695,127 +693,7 @@ export default function CandidateReviewSummary() {
           {/* Project Fit & Summary-only sections */}
           {activeSection === "summary" && (
             <>
-              {/* Project Fit Section (unchanged) */}
-              <Paper
-                elevation={6}
-                sx={{ p: 3, mb: 4, borderRadius: 3, bgcolor: "#DEDDEE" }}
-                ref={projectFitRef}
-              >
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontFamily: "Helvetica, sans-serif",
-                    fontWeight: "bold",
-                    mb: 2,
-                  }}
-                >
-                  Project Fit
-                </Typography>
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(2, 1fr)",
-                    gap: 3,
-                  }}
-                >
-                  {/* Technical Projects */}
-                  <Box>
-                    <Typography
-                      variant="body1"
-                      sx={{
-                        fontFamily: "Helvetica, sans-serif",
-                        fontWeight: "bold",
-                        mb: 1,
-                      }}
-                    >
-                      Technical Projects
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: "#555", mb: 1 }}>
-                      High proficiency in complex technical environments
-                    </Typography>
-                    <Box
-                      sx={{
-                        position: "relative",
-                        height: 20,
-                        bgcolor: "#ccc",
-                        borderRadius: 10,
-                        overflow: "hidden",
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          width: "80%", // Adjust percentage here
-                          bgcolor: "#19a056ff",
-                          height: "100%",
-                          borderRadius: 10,
-                        }}
-                      />
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          position: "absolute",
-                          top: "50%",
-                          left: "50%",
-                          transform: "translate(-50%, -50%)",
-                          color: "#fff",
-                          fontWeight: "bold",
-                        }}
-                      >
-                        80%
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  {/* Collaborative Projects */}
-                  <Box>
-                    <Typography
-                      variant="body1"
-                      sx={{
-                        fontFamily: "Helvetica, sans-serif",
-                        fontWeight: "bold",
-                        mb: 1,
-                      }}
-                    >
-                      Collaborative Projects
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: "#555", mb: 1 }}>
-                      Works well in team settings
-                    </Typography>
-                    <Box
-                      sx={{
-                        position: "relative",
-                        height: 20,
-                        bgcolor: "#ccc",
-                        borderRadius: 10,
-                        overflow: "hidden",
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          width: "60%", // Adjust percentage here
-                          bgcolor: "#19a056ff",
-                          height: "100%",
-                          borderRadius: 10,
-                        }}
-                      />
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          position: "absolute",
-                          top: "50%",
-                          left: "50%",
-                          transform: "translate(-50%, -50%)",
-                          color: "#fff",
-                          fontWeight: "bold",
-                        }}
-                      >
-                        60%
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Box>
-              </Paper>
-
+              {/* Project Fit removed — layout directly shows Resume & Contact Details below */}
               {/* Resume & Links / CV Summary Section */}
               <Paper
                 elevation={6}
