@@ -54,7 +54,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import Sidebar from "./Sidebar";
 import ConfigAlert from "./ConfigAlert";
 import { apiFetch } from "../lib/api";
-import { useMemo } from "react";
+import React from "react";
 
 export default function CandidatesDashboard() {
   const [collapsed, setCollapsed] = useState(false);
@@ -68,14 +68,9 @@ export default function CandidatesDashboard() {
   const [totalCandidates, setTotalCandidates] = useState<number | null>(null);
   const [skillDistribution, setSkillDistribution] = useState<
     Array<{ name: string; value: number }>
-  >(
-    [
-      { name: ".NET", value: 400 },
-      { name: "React", value: 300 },
-      { name: "Java", value: 300 },
-      { name: "Python", value: 200 },
-    ] // initial mock data
-  );
+  >([]);
+  const [skillError, setSkillError] = useState<string | null>(null);
+  const [rawSkillResponse, setRawSkillResponse] = useState<any>(null);
   const [projectFitData, setProjectFitData] = useState<
     Array<{ type: string; value: number }>
   >(
@@ -156,13 +151,14 @@ export default function CandidatesDashboard() {
       // fetch chart data (skill distribution + project-fit) after recent/load
       (async () => {
         try {
-          const API_BASE = process.env.REACT_APP_API_BASE || ""; // set in .env if needed
+          const API_BASE = process.env.REACT_APP_API_BASE || "";
+          setSkillError(null);
+          setRawSkillResponse(null);
 
           async function safeFetchApi(path: string) {
             try {
               let res = await apiFetch(path).catch(() => null);
               if (res && res.status === 404 && API_BASE) {
-                // retry with explicit base if apiFetch routed to wrong host
                 console.debug(
                   `Retrying ${path} with explicit base ${API_BASE}`
                 );
@@ -192,6 +188,11 @@ export default function CandidatesDashboard() {
             try {
               const skillsJson = await skillsRes.json().catch(() => null);
               console.debug("skill-distribution response:", skillsJson);
+              setRawSkillResponse({
+                url: skillsRes.url ?? null,
+                body: skillsJson,
+                status: skillsRes.status,
+              });
 
               let parsed: Array<{ name: string; value: number }> = [];
 
@@ -217,14 +218,19 @@ export default function CandidatesDashboard() {
               } else {
                 console.debug("skill-distribution: no usable data");
                 setSkillDistribution([]);
+                setSkillError(
+                  "No usable data returned from /cv/skill-distribution"
+                );
               }
             } catch (e) {
               console.debug("Failed to parse skill-distribution response", e);
               setSkillDistribution([]);
+              setSkillError(String(e));
             }
           } else {
             console.debug("skill-distribution response missing");
             setSkillDistribution([]);
+            setSkillError("No response (fetch failed)");
           }
 
           // --- Project fit (unchanged logic but keep logging) ---
