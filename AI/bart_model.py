@@ -32,10 +32,3 @@ def classify_text_by_categories(
 
         # Top-k by score (descending)
         top = sorted(pairs, key=lambda p: p[1], reverse=True)[:max(0, top_k)]
-
-        out[cat] = {
-            "labels": [lbl for lbl, _ in pairs],
-            "scores": [score for _, score in pairs],
-            "top_k": [{"label": lbl, "score": score} for lbl, score in top],
-        }
-    return out
