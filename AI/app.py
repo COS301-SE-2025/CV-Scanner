@@ -40,7 +40,22 @@ def infer_project_type(text: str, applied_labels: Dict[str, List[str]] | None = 
         "Frontend Web App": [
             "react", "next.js", "typescript", "javascript", "spa", "redux", "tailwind",
             "vue", "angular", "ui", "ux"
-     
+        ],
+        "DevOps / Infrastructure": [
+            "docker", "kubernetes", "terraform", "ci/cd", "jenkins", "github actions",
+            "helm", "prometheus", "grafana", "aws", "azure", "gcp"
+        ],
+        "Mobile App": [
+            "android", "ios", "react native", "flutter", "kotlin", "swift", "xcode"
+        ],
+        "Data Engineering / ETL": [
+            "airflow", "spark", "databricks", "etl", "elt", "data pipeline", "kafka",
+            "bigquery", "snowflake", "redshift"
+        ],
+        "General Web Application": [
+            "full-stack", "web application", "crud", "authentication", "authorization"
+        ]
+    }
 
     scores = {k: 0 for k in RULES}
 
