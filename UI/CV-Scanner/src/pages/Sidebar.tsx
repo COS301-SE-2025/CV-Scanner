@@ -211,7 +211,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           Dashboard
         </span>
       </Button>
-
+          {(userRole === "Editor" || userRole === "Admin") && (
       <Button
         fullWidth
         sx={getButtonStyle("/upload")}
@@ -232,7 +232,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           Upload CV
         </span>
       </Button>
-
+          )}
       <Button
         fullWidth
         sx={getButtonStyle("/search")}
