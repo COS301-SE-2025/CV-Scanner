@@ -275,7 +275,8 @@ export default function UserManagementPage() {
           return;
         }
         const data = await res.json().catch(() => []);
-        setUsers(data);
+        // Guard: ensure users state is always an array
+        setUsers(Array.isArray(data) ? data : []);
       } catch {
         setUsers([]);
       }
@@ -295,7 +296,8 @@ export default function UserManagementPage() {
           return;
         }
         const data = await res.json().catch(() => []);
-        setUsers(data);
+        // Guard: ensure users is array
+        setUsers(Array.isArray(data) ? data : []);
       } catch {
         setUsers([]);
       }
@@ -317,7 +319,8 @@ export default function UserManagementPage() {
           return;
         }
         const data = await res.json().catch(() => []);
-        setUsers(data);
+        // Guard: ensure users is array
+        setUsers(Array.isArray(data) ? data : []);
       } catch {
         setUsers([]);
       }

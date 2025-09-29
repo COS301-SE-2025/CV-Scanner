@@ -628,65 +628,69 @@ export default function SystemSettingsPage() {
                     gap: 1,
                   }}
                 >
-                  {configObj[category].length === 0 && (
+                  {(Array.isArray(configObj[category])
+                    ? configObj[category].length
+                    : 0) === 0 && (
                     <Typography sx={{ fontStyle: "italic", color: "#555" }}>
                       No tags in this list
                     </Typography>
                   )}
 
-                  {configObj[category].map((item: any, idx: number) => (
-                    <Box
-                      key={idx}
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                        minWidth: 0,
-                      }}
-                    >
-                      <input
-                        type="text"
-                        value={safeRender(item)}
-                        disabled={!editing}
-                        onChange={(e) => {
-                          const updated = [...configObj[category]];
-                          updated[idx] = e.target.value;
-                          setConfigObj((prev) => ({
-                            ...prev,
-                            [category]: updated,
-                          }));
-                        }}
-                        style={{
-                          flex: 1,
-                          minWidth: 0,
-                          padding: "6px",
-                          borderRadius: "4px",
-                          border: "1px solid #ccc",
-                          fontFamily: "Helvetica, sans-serif",
-                          fontSize: "0.9rem",
-                        }}
-                      />
-                      {editing && (
-                        <Button
-                          variant="outlined"
-                          color="error"
-                          size="small"
-                          onClick={() => {
-                            const updated = configObj[category].filter(
-                              (_: any, i: number) => i !== idx
-                            );
-                            setConfigObj((prev) => ({
-                              ...prev,
-                              [category]: updated,
-                            }));
+                  {Array.isArray(configObj[category])
+                    ? configObj[category].map((item: any, idx: number) => (
+                        <Box
+                          key={idx}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            minWidth: 0,
                           }}
-                          sx={{ flexShrink: 0 }}
                         >
-                          Remove
-                        </Button>
-                      )}
-                    </Box>
-                  ))}
+                          <input
+                            type="text"
+                            value={safeRender(item)}
+                            disabled={!editing}
+                            onChange={(e) => {
+                              const updated = [...configObj[category]];
+                              updated[idx] = e.target.value;
+                              setConfigObj((prev) => ({
+                                ...prev,
+                                [category]: updated,
+                              }));
+                            }}
+                            style={{
+                              flex: 1,
+                              minWidth: 0,
+                              padding: "6px",
+                              borderRadius: "4px",
+                              border: "1px solid #ccc",
+                              fontFamily: "Helvetica, sans-serif",
+                              fontSize: "0.9rem",
+                            }}
+                          />
+                          {editing && (
+                            <Button
+                              variant="outlined"
+                              color="error"
+                              size="small"
+                              onClick={() => {
+                                const updated = configObj[category].filter(
+                                  (_: any, i: number) => i !== idx
+                                );
+                                setConfigObj((prev) => ({
+                                  ...prev,
+                                  [category]: updated,
+                                }));
+                              }}
+                              sx={{ flexShrink: 0 }}
+                            >
+                              Remove
+                            </Button>
+                          )}
+                        </Box>
+                      ))
+                    : null}
 
                   {editing && (
                     <Button
@@ -695,7 +699,9 @@ export default function SystemSettingsPage() {
                       onClick={() =>
                         setConfigObj((prev) => ({
                           ...prev,
-                          [category]: [...prev[category], ""],
+                          [category]: Array.isArray(prev[category])
+                            ? [...prev[category], ""]
+                            : [""],
                         }))
                       }
                       sx={{ mt: 1 }}
