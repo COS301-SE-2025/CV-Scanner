@@ -12,17 +12,7 @@ def classify_text_by_categories(
     hypothesis_template: str = "This candidate has {}.",
     multi_label: bool = True,
 ) -> Dict[str, Dict]:
-    """
-    Returns:
-      {
-        "Skills": {
-          "labels": ["Writer","Coder","Backend",...],
-          "scores": [0.81, 0.64, 0.33,...],
-          "top_k": [{"label": "Writer", "score": 0.81}, ... up to k]
-        },
-        ...
-      }
-    """
+ 
     out: Dict[str, Dict] = {}
     for cat, labels in categories.items():
         if not labels:  # skip empty categories
