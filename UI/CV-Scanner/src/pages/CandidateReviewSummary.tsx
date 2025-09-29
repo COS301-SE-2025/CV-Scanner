@@ -677,10 +677,6 @@ const [fitError, setFitError] = useState<string | null>(null);
             {candidate.name}
             {candidateId ? ` (ID ${candidateId})` : ""}
           </Typography>
-          <Typography variant="subtitle1" sx={{ mb: 4 }}>
-            {" "}
-            Senior Software Engineer | 5 years experience{" "}
-          </Typography>
 
           {/* Tabs Section */}
           <Box sx={{ display: "flex", gap: 3, mb: 4 }}>
@@ -688,7 +684,6 @@ const [fitError, setFitError] = useState<string | null>(null);
               { label: "Summary", key: "summary" },
               { label: "Skills", key: "skills" },
               { label: "Experience", key: "experience" },
-              { label: "Recruiters Notes", key: "notes" },
             ].map((t) => (
               <Typography
                 key={t.key}

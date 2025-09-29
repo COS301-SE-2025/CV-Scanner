@@ -52,6 +52,7 @@ function App() {
                 path="/candidate/:id/:section"
                 element={<CandidateReviewSummary />}
               />
+              <Route path="/candidate/:id/notes" element={<CandidateReviewSummary />} />
               <Route path="/user-management" element={<UserManagementPage />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/add-user" element={<AddUserPage />} />

@@ -298,13 +298,10 @@ export default function CandidateExperiencePage() {
           >
             Jane Smith
           </Typography>
-          <Typography variant="subtitle1" sx={{ mb: 4 }}>
-            Senior Software Engineer | 5 years experience
-          </Typography>
 
           {/* Tabs Section */}
           <Box sx={{ display: "flex", gap: 3, mb: 4 }}>
-            {["Summary", "Skills", "Experience", "Recruiters Notes"].map(
+            {["Summary", "Skills", "Experience"].map(
               (tab, idx) => (
                 <Typography
                   key={idx}
@@ -318,8 +315,6 @@ export default function CandidateExperiencePage() {
                     if (tab === "Summary") navigate("/candidate-review");
                     if (tab === "Skills") navigate("/candidate-skills");
                     if (tab === "Experience") navigate("/candidate-experience");
-                    if (tab === "Recruiters Notes")
-                      navigate("/candidate-notes");
                   }}
                 >
                   {tab}
