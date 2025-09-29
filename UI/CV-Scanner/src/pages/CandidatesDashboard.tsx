@@ -502,31 +502,34 @@ export default function CandidatesDashboard() {
             {[
               {
                 label: "Candidates",
-                value: totalCandidates != null ? String(totalCandidates) : "—",
-              },
-              {
-                label: "Pending Review",
-                value: "24",
+                value:
+                  totalCandidates != null
+                    ? String(totalCandidates)
+                    : "—",
               },
               {
                 label: "Top Technology",
                 value: topTechnology || "—",
               },
-              {
-                label: "Technical Matches",
-                value: "78%",
-              },
             ].map((item) => (
-              <Paper key={item.label} sx={statCardStyle}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                  {item.label}
-                </Typography>
-                <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+              <Box key={item.label} sx={statCardStyle}>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontFamily: "Helvetica, sans-serif",
+                    fontWeight: "bold",
+                  }}
+                >
                   {item.value}
                 </Typography>
-              </Paper>
+                <Typography
+                  variant="body2"
+                  sx={{ fontFamily: "Helvetica, sans-serif" }}
+                >
+                  {item.label}
+                </Typography>
+              </Box>
             ))}
-            {/* Removed hardcoded stats, now using fetched top technology */}
           </Box>
 
           {/* Dashboard Graphs */}
@@ -786,7 +789,184 @@ export default function CandidatesDashboard() {
             </Paper>
           </Box>
 
-          {/* Recently Processed table removed — UI now uses chart summaries and top-technology data */}
+          {/* Recently Processed */}
+          <Paper
+            elevation={6}
+            sx={{ p: 2, borderRadius: 3, backgroundColor: "#DEDDEE" }}
+          >
+            <Typography
+              variant="h6"
+              sx={{
+                fontFamily: "Helvetica, sans-serif",
+                fontWeight: "bold",
+                color: "#232A3B",
+                mb: 2,
+              }}
+            >
+              Recently Processed
+            </Typography>
+
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell
+                      sx={{
+                        fontFamily: "Helvetica, sans-serif",
+                        fontWeight: "bold",
+                        fontSize: "1.2rem",
+                      }}
+                    >
+                      Candidate
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontFamily: "Helvetica, sans-serif",
+                        fontWeight: "bold",
+                        fontSize: "1.2rem",
+                      }}
+                    >
+                      Top Skills
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontFamily: "Helvetica, sans-serif",
+                        fontWeight: "bold",
+                        fontSize: "1.2rem",
+                      }}
+                    >
+                      Project Fit
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontFamily: "Helvetica, sans-serif",
+                        fontWeight: "bold",
+                        fontSize: "1.2rem",
+                      }}
+                    >
+                      Actions
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {recent.map((candidate, idx) => (
+                    <TableRow key={candidate.id ?? idx}>
+                      <TableCell>{candidate.name}</TableCell>
+                      <TableCell>{candidate.skills || "—"}</TableCell>
+                      <TableCell>{candidate.fit || "N/A"}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="contained"
+                          sx={reviewButtonStyle}
+                          onClick={() =>
+                            navigate("/candidate-review", {
+                              state: { candidateId: candidate.id },
+                            })
+                          }
+                          ref={idx === 0 ? reviewBtnRef : null}
+                        >
+                          Review
+                        </Button>
+
+                        {idx === 0 && (
+                          <Popover
+                            open={showTutorial && Boolean(anchorEl)}
+                            anchorEl={anchorEl}
+                            onClose={handleCloseTutorial}
+                            anchorOrigin={{
+                              vertical: "top",
+                              horizontal: "center",
+                            }}
+                            transformOrigin={{
+                              vertical: "bottom",
+                              horizontal: "center",
+                            }}
+                            PaperProps={{
+                              sx: {
+                                p: 2,
+                                bgcolor: "#fff",
+                                color: "#181c2f",
+                                borderRadius: 2,
+                                boxShadow: 6,
+                                minWidth: 280,
+                                zIndex: 1500,
+                                textAlign: "center",
+                              },
+                            }}
+                          >
+                            <Fade in={fadeIn} timeout={250}>
+                              <Box sx={{ position: "relative" }}>
+                                <Typography
+                                  variant="h6"
+                                  sx={{
+                                    fontFamily: "Helvetica, sans-serif",
+                                    fontWeight: "bold",
+                                    mb: 1,
+                                  }}
+                                >
+                                  Quick Tip
+                                </Typography>
+                                <Typography
+                                  sx={{
+                                    fontFamily: "Helvetica, sans-serif",
+                                    mb: 2,
+                                  }}
+                                >
+                                  Click <b>Review</b> to view and assess this
+                                  candidate's CV.
+                                </Typography>
+
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    mt: 3,
+                                    gap: 2,
+                                  }}
+                                >
+                                  <Button
+                                    variant="text"
+                                    size="small"
+                                    onClick={handleCloseTutorial}
+                                    sx={{
+                                      color: "#888",
+                                      fontSize: "0.85rem",
+                                      textTransform: "none",
+                                      minWidth: "auto",
+                                      p: 0,
+                                    }}
+                                  >
+                                    End Tutorial
+                                  </Button>
+                                  <Box sx={{ display: "flex", gap: 2 }}>
+                                    <Button
+                                      variant="contained"
+                                      onClick={handleCloseTutorial}
+                                      sx={{
+                                        bgcolor: "#5a88ad",
+                                        color: "#fff",
+                                        fontFamily: "Helvetica, sans-serif",
+                                        fontWeight: "bold",
+                                        textTransform: "none",
+                                        "&:hover": { bgcolor: "#487DA6" },
+                                      }}
+                                    >
+                                      Finish
+                                    </Button>
+                                  </Box>
+                                </Box>
+                              </Box>
+                            </Fade>
+                          </Popover>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
         </Box>
       </Box>
     </Box>
