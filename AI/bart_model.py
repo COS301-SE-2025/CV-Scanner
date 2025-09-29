@@ -1,5 +1,9 @@
 
+from typing import Dict, List, Tuple
+from transformers import pipeline
 
+
+_zsc = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
 def classify_text_by_categories(
     text: str,
