@@ -502,10 +502,7 @@ export default function CandidatesDashboard() {
             {[
               {
                 label: "Candidates",
-                value:
-                  totalCandidates != null
-                    ? String(totalCandidates)
-                    : "—",
+                value: totalCandidates != null ? String(totalCandidates) : "—",
               },
               {
                 label: "Top Technology",
@@ -859,7 +856,7 @@ export default function CandidatesDashboard() {
                           variant="contained"
                           sx={reviewButtonStyle}
                           onClick={() =>
-                            navigate("/candidate-review", {
+                            navigate(`/candidate-summary/${candidate.id}`, {
                               state: { candidateId: candidate.id },
                             })
                           }
