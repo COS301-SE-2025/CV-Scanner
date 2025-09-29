@@ -96,23 +96,43 @@ export default function SystemSettingsPage() {
     try {
       const res = await apiFetch("/auth/config/categories");
       if (!res.ok) throw new Error(`Failed (${res.status})`);
-      const json = await res.json();
+      let json: any = await res.json();
 
-      let reordered: Record<string, any> = {};
-
-      if (categoryOrder.length > 0) {
-        categoryOrder.forEach((key) => {
-          if (json[key] !== undefined) reordered[key] = json[key];
-        });
-        Object.keys(json).forEach((key) => {
-          if (!reordered[key]) reordered[key] = json[key];
-        });
-      } else {
-        reordered = { ...json };
-        setCategoryOrder(Object.keys(json));
+      // Defensive: sometimes server returns a JSON string -> parse it
+      if (typeof json === "string") {
+        try {
+          json = JSON.parse(json);
+        } catch (e) {
+          console.error("[SystemSettings] failed parsing config string", e);
+        }
       }
 
+      console.debug("[SystemSettings] loaded config", json);
+
+      // Ensure json is an object
+      if (!json || typeof json !== "object" || Array.isArray(json)) {
+        throw new Error("Invalid config format from server");
+      }
+
+      // build ordered object (use all keys from server response)
+      let reordered: Record<string, any> = {};
+
+      // prefer existing categoryOrder if it already contains keys, else use server keys
+      const serverKeys = Object.keys(json);
+      const useOrder =
+        categoryOrder && categoryOrder.length > 0 ? categoryOrder : serverKeys;
+
+      useOrder.forEach((key) => {
+        if (json[key] !== undefined) reordered[key] = json[key];
+      });
+      // add any missing keys from serverKeys
+      serverKeys.forEach((key) => {
+        if (reordered[key] === undefined) reordered[key] = json[key];
+      });
+
       setConfigObj(reordered);
+      // always sync categoryOrder to include all server keys (preserve previous ordering where possible)
+      setCategoryOrder(Object.keys(reordered));
       setEditing(false);
     } catch (e) {
       alert("Could not load configuration.");
@@ -312,6 +332,11 @@ export default function SystemSettingsPage() {
   }
   // ------------------------------------------------------------------------------------------
 
+  const displayCategories =
+    categoryOrder && categoryOrder.length > 0
+      ? categoryOrder
+      : Object.keys(configObj || {});
+
   return (
     // keep original UI markup here (unchanged). The hooks and helpers above prevent hook-order errors.
     <Box
@@ -466,9 +491,9 @@ export default function SystemSettingsPage() {
             </Box>
 
             {/* Categories */}
-            {categoryOrder.map((category) => (
+            {displayCategories.map((category) => (
               <Box
-                key={categoryKeys[category]}
+                key={categoryKeys[category] || category}
                 sx={{ border: "1px solid #ddd", borderRadius: 2, p: 2 }}
               >
                 {/* Parent Heading */}
