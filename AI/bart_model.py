@@ -1,8 +1,8 @@
-# Thin wrapper around Hugging Face zero-shot BART.
+
 from typing import Dict, List, Tuple
 from transformers import pipeline
 
-# Load once per process
+
 _zsc = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
 def classify_text_by_categories(
@@ -25,11 +25,11 @@ def classify_text_by_categories(
     """
     out: Dict[str, Dict] = {}
     for cat, labels in categories.items():
-        if not labels:  # skip empty categories
+        if not labels:  
             out[cat] = {"labels": [], "scores": [], "top_k": []}
             continue
 
-        # Independent scoring + clearer NLI template
+        
         res = _zsc(
             text,
             candidate_labels=labels,
@@ -37,10 +37,10 @@ def classify_text_by_categories(
             hypothesis_template=hypothesis_template,
         )
 
-        # Pair up labels with scores (already aligned by HF)
+       
         pairs: List[Tuple[str, float]] = list(zip(res["labels"], map(float, res["scores"])))
 
-        # Top-k by score (descending)
+      
         top = sorted(pairs, key=lambda p: p[1], reverse=True)[:max(0, top_k)]
 
         out[cat] = {

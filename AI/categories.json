@@ -5,10 +5,10 @@
   "Certifications" : [ "AWS Certified Cloud Practitioner", "PMP", "Scrum Master" ],
   "Tools" : [ "Git", "Jira", "Postman", "Figma" ],
   "ProgrammingLanguages" : [ "Python", "Java", "C#", "JavaScript" ],
-  "Frameworks" : [ "React", "Angular", "Spring Boot", ".NET" ],
-  "Databases" : [ "PostgreSQL", "MySQL", "MongoDB", "Redis" ],
+    "Databases" : [ "PostgreSQL", "MySQL", "MongoDB", "Redis" ],
   "CloudProviders" : [ "AWS", "Azure", "GCP" ],
   "SoftSkills" : [ "Communication", "Leadership", "Problem Solving", "Teamwork" ],
   "Methodologies" : [ "Agile", "Scrum", "Kanban", "Waterfall" ],
+  "Frameworks" : [ "React", "Angular", "Spring Boot", ".NET" ],
   "Industries" : [ "Finance", "Healthcare", "Retail", "Telecom" ]
 }
