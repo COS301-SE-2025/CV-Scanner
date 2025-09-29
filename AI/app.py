@@ -122,17 +122,6 @@ async def health():
     return {"status": "ok", "ts": time.time()}
 
 
-@app.get("/admin/categories")
-async def get_categories():
-    return load_categories()
-
-@app.post("/admin/categories")
-async def set_categories(payload: Dict[str, List[str]] = Body(...)):
-    try:
-        save_categories(payload)
-        return {"status": "saved", "categories": load_categories()}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.post("/classify")
