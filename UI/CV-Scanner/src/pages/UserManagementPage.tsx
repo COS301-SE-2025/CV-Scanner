@@ -275,7 +275,8 @@ export default function UserManagementPage() {
           return;
         }
         const data = await res.json().catch(() => []);
-        setUsers(data);
+        // Guard: ensure users state is always an array
+        setUsers(Array.isArray(data) ? data : []);
       } catch {
         setUsers([]);
       }
@@ -295,7 +296,8 @@ export default function UserManagementPage() {
           return;
         }
         const data = await res.json().catch(() => []);
-        setUsers(data);
+        // Guard: ensure users is array
+        setUsers(Array.isArray(data) ? data : []);
       } catch {
         setUsers([]);
       }
@@ -317,7 +319,8 @@ export default function UserManagementPage() {
           return;
         }
         const data = await res.json().catch(() => []);
-        setUsers(data);
+        // Guard: ensure users is array
+        setUsers(Array.isArray(data) ? data : []);
       } catch {
         setUsers([]);
       }
@@ -351,6 +354,10 @@ export default function UserManagementPage() {
   );
 
   const totalPages = Math.ceil(users.length / usersPerPage);
+
+  // Safe render helper to avoid rendering objects directly (prevents React #310)
+  const safeRender = (val: any) =>
+    typeof val === "object" ? JSON.stringify(val) : val ?? "";
 
   return (
     <Box
@@ -523,29 +530,30 @@ export default function UserManagementPage() {
                 {/* 3. Update the table rows: */}
                 <TableBody sx={{ "& td": { fontSize: 18, fontWeight: 400 } }}>
                   {paginatedUsers.map((user, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell>{user.username || ""}</TableCell>
-                      <TableCell>{user.first_name || ""}</TableCell>
-                      <TableCell>{user.last_name || ""}</TableCell>
-
+                    <TableRow key={user.email || idx}>
+                      <TableCell>{safeRender(user.username)}</TableCell>
+                      <TableCell>{safeRender(user.first_name)}</TableCell>
+                      <TableCell>{safeRender(user.last_name)}</TableCell>
                       <TableCell
                         sx={{
-                          maxWidth: 200, // adjust to your preferred width
+                          maxWidth: 200,
                           whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                         }}
                       >
-                        {user.email}
+                        {safeRender(user.email)}
                       </TableCell>
                       <TableCell>
                         <Button
                           variant="contained"
                           sx={{
                             bgcolor:
-                              user.role === "Admin"
+                              typeof user.role === "string" &&
+                              user.role.toLowerCase() === "admin"
                                 ? "#f44336"
-                                : user.role === "Editor"
+                                : typeof user.role === "string" &&
+                                  user.role.toLowerCase() === "editor"
                                 ? "#ff9800"
                                 : "#10B981",
                             color: "#fff",
@@ -555,15 +563,17 @@ export default function UserManagementPage() {
                             width: 30,
                           }}
                         >
-                          {user.role}
+                          {safeRender(user.role)}
                         </Button>
                       </TableCell>
-                      <TableCell>{user.lastActive || "N/A"}</TableCell>
+                      <TableCell>
+                        {safeRender(user.lastActive) || "N/A"}
+                      </TableCell>
                       <TableCell>
                         <Button
                           variant="contained"
                           sx={{
-                            minWidth: 40, // fixed size for consistency
+                            minWidth: 40,
                             width: 40,
                             height: 40,
                             bgcolor: "#0073c1",
