@@ -28,7 +28,7 @@ logging.info("Runtime device: %s (cuda_available=%s)", DEVICE_ID, torch.cuda.is_
 # ner = pipeline("ner", model=..., tokenizer=..., device=DEVICE_ID)
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+CORS(app, resources={r"/": {"origins": ""}}, supports_credentials=True)
 gunicorn_logger = logging.getLogger("gunicorn.error")
 if gunicorn_logger.handlers:
     app.logger.handlers = gunicorn_logger.handlers
@@ -388,7 +388,6 @@ def classify():
                 "top_k": [{"label": l, "score": float(s)} for l, s in zip(labels, scores)][:top_k] if labels and scores else topk[:top_k]
             }
     elif isinstance(result, list):
-        # If classifier returned a single list of top_k predictions, map it to each requested category
         for cat in cats:
             labels, scores, topk = _info_from_item(result)
             resp_applied[cat] = labels[:top_k]
@@ -398,13 +397,18 @@ def classify():
             resp_applied[cat] = []
             resp_raw[cat] = {"labels": [], "scores": [], "top_k": []}
 
+    # ✅ Add best fit project type here
+    best_fit = infer_project_type(text, resp_applied)
+
     response_payload = {
         "status": "success",
         "top_k": top_k,
         "applied": resp_applied,
-        "raw": resp_raw
+        "raw": resp_raw,
+        "best_fit_project_type": best_fit
     }
-    return response_payload
+    return jsonify(response_payload)
+
 
 
 @app.route("/upload_cv", methods=["POST"])
@@ -431,29 +435,37 @@ def upload_cv():
         return make_response(jsonify({"status": "error", "detail": "No categories configured. Use POST /admin/categories first."}), 409)
 
     result = classify_text_by_categories(text, cats, top_k=top_k)
-    # normalize result to a mapping with "top_k" lists so downstream code is stable
-    if isinstance(result, dict):
-        normalized = result
-    elif isinstance(result, list):
-        # list assumed to be [{"label":..., "score":...}, ...] for top_k results
-        normalized = {"_predictions": {"top_k": result}}
-    else:
-        normalized = {"_predictions": {"top_k": []}}
 
-    applied = {cat: [x.get("label") for x in info.get("top_k", [])] for cat, info in normalized.items()}
+    # Normalize: ensure no score == 0.0
+    def fix_scores(info):
+        labels = info.get("labels", [])
+        scores = [max(float(s), 0.01) for s in info.get("scores", [])]  # replace 0 with 0.01
+        top_k_list = [{"label": lbl, "score": max(float(sc), 0.01)} for lbl, sc in zip(labels, scores)]
+        return {"labels": labels, "scores": scores, "top_k": top_k_list[:top_k]}
+
+    applied = {}
+    raw_fixed = {}
+    if isinstance(result, dict):
+        for cat, info in result.items():
+            fixed = fix_scores(info)
+            applied[cat] = [x["label"] for x in fixed["top_k"]]
+            raw_fixed[cat] = fixed
+    else:
+        raw_fixed = {"_predictions": {"top_k": result}}
+        applied = {"_predictions": [x["label"] for x in result]}
 
     best_fit = infer_project_type(text, applied)
 
-    return jsonify({
+    # Build final response ensuring best_fit_project_type is last
+    response_payload = {
         "status": "success",
         "top_k": top_k,
         "applied": applied,
-        "raw": result,
+        "raw": raw_fixed,
+    }
+    response_payload["best_fit_project_type"] = best_fit  # append last
 
-        "best_fit_project_type": best_fit  # ⬅️ added field
-
-    })
-
+    return jsonify(response_payload)
 
 # -------- NEW: CV/Resume Parsing Endpoint --------
 @app.route("/parse_resume", methods=["POST"])
@@ -515,4 +527,3 @@ except Exception:
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "5000"))
     app.run(host="0.0.0.0", port=port)
-
