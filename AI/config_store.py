@@ -30,10 +30,3 @@ def save_categories(payload: Dict[str, List[str]]) -> None:
             seen.add(xx.lower())
             out.append(xx)
         norm[str(cat).strip()] = out
-    with _lock:
-        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-            json.dump(norm, f, indent=2, ensure_ascii=False)
-
-def last_modified() -> float:
-    _ensure_file()
-    return os.path.getmtime(CONFIG_PATH)
