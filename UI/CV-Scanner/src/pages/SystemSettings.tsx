@@ -46,6 +46,31 @@ export default function SystemSettingsPage() {
   const safeRender = (val: any) =>
     typeof val === "object" ? JSON.stringify(val) : val ?? "";
 
+  // Helper: normalize various category value shapes into an array of strings
+  const normalizeCategoryValue = (v: any): string[] => {
+    if (Array.isArray(v)) return v.map((x) => (x == null ? "" : String(x)));
+    if (v == null) return [];
+    if (typeof v === "string") {
+      // split CSV-ish strings
+      return v
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+    }
+    if (typeof v === "object") {
+      // If object has 'labels' or 'items', prefer those
+      if (Array.isArray((v as any).labels))
+        return (v as any).labels.map(String);
+      if (Array.isArray((v as any).items)) return (v as any).items.map(String);
+      // If values are primitive, return values; otherwise keys
+      const vals = Object.values(v);
+      const allPrimitive = vals.every((x) => typeof x !== "object");
+      if (allPrimitive && vals.length > 0) return vals.map((x) => String(x));
+      return Object.keys(v);
+    }
+    return [String(v)];
+  };
+
   // ---------- Auth check (runs once) ----------
   useEffect(() => {
     let mounted = true;
@@ -96,43 +121,36 @@ export default function SystemSettingsPage() {
     try {
       const res = await apiFetch("/auth/config/categories");
       if (!res.ok) throw new Error(`Failed (${res.status})`);
-      let json: any = await res.json();
+      const json = await res.json();
 
-      // Defensive: sometimes server returns a JSON string -> parse it
-      if (typeof json === "string") {
-        try {
-          json = JSON.parse(json);
-        } catch (e) {
-          console.error("[SystemSettings] failed parsing config string", e);
-        }
+      // Keep a human-readable copy of the raw JSON for debugging / display
+      try {
+        setConfigContent(JSON.stringify(json, null, 2));
+      } catch {
+        setConfigContent(String(json));
       }
 
-      console.debug("[SystemSettings] loaded config", json);
+      // Normalize values into arrays so UI can render tags consistently
+      const normalized: Record<string, any> = {};
+      Object.keys(json || {}).forEach((key) => {
+        normalized[key] = normalizeCategoryValue(json[key]);
+      });
 
-      // Ensure json is an object
-      if (!json || typeof json !== "object" || Array.isArray(json)) {
-        throw new Error("Invalid config format from server");
-      }
-
-      // build ordered object (use all keys from server response)
       let reordered: Record<string, any> = {};
 
-      // prefer existing categoryOrder if it already contains keys, else use server keys
-      const serverKeys = Object.keys(json);
-      const useOrder =
-        categoryOrder && categoryOrder.length > 0 ? categoryOrder : serverKeys;
-
-      useOrder.forEach((key) => {
-        if (json[key] !== undefined) reordered[key] = json[key];
-      });
-      // add any missing keys from serverKeys
-      serverKeys.forEach((key) => {
-        if (reordered[key] === undefined) reordered[key] = json[key];
-      });
+      if (categoryOrder.length > 0) {
+        categoryOrder.forEach((key) => {
+          if (normalized[key] !== undefined) reordered[key] = normalized[key];
+        });
+        Object.keys(normalized).forEach((key) => {
+          if (!reordered[key]) reordered[key] = normalized[key];
+        });
+      } else {
+        reordered = { ...normalized };
+        setCategoryOrder(Object.keys(normalized));
+      }
 
       setConfigObj(reordered);
-      // always sync categoryOrder to include all server keys (preserve previous ordering where possible)
-      setCategoryOrder(Object.keys(reordered));
       setEditing(false);
     } catch (e) {
       alert("Could not load configuration.");
@@ -147,11 +165,19 @@ export default function SystemSettingsPage() {
         if (!res.ok) throw new Error(`Failed (${res.status})`);
         const json = await res.json();
 
+        // Keep raw JSON visible for the editor
+        try {
+          setConfigContent(JSON.stringify(json, null, 2));
+        } catch {
+          setConfigContent(String(json));
+        }
+
         const newConfig: Record<string, any> = {};
         const newCategoryKeys: Record<string, string> = { ...categoryKeys };
 
+        // normalize values to arrays so editing controls work
         Object.keys(json).forEach((key) => {
-          newConfig[key] = json[key];
+          newConfig[key] = normalizeCategoryValue(json[key]);
           if (!newCategoryKeys[key]) {
             newCategoryKeys[key] = `cat-${Date.now()}-${Math.random()}`;
           }
@@ -332,11 +358,6 @@ export default function SystemSettingsPage() {
   }
   // ------------------------------------------------------------------------------------------
 
-  const displayCategories =
-    categoryOrder && categoryOrder.length > 0
-      ? categoryOrder
-      : Object.keys(configObj || {});
-
   return (
     // keep original UI markup here (unchanged). The hooks and helpers above prevent hook-order errors.
     <Box
@@ -491,9 +512,9 @@ export default function SystemSettingsPage() {
             </Box>
 
             {/* Categories */}
-            {displayCategories.map((category) => (
+            {categoryOrder.map((category) => (
               <Box
-                key={categoryKeys[category] || category}
+                key={categoryKeys[category] ?? category}
                 sx={{ border: "1px solid #ddd", borderRadius: 2, p: 2 }}
               >
                 {/* Parent Heading */}
@@ -583,7 +604,9 @@ export default function SystemSettingsPage() {
                   {Array.isArray(configObj[category])
                     ? configObj[category].map((item: any, idx: number) => (
                         <Box
-                          key={idx}
+                          key={`${category}-${
+                            categoryKeys[category] ?? category
+                          }-${idx}`}
                           sx={{
                             display: "flex",
                             alignItems: "center",
