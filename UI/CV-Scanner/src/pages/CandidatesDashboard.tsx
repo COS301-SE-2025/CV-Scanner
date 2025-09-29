@@ -151,31 +151,13 @@ export default function CandidatesDashboard() {
       // fetch chart data (skill distribution + project-fit) after recent/load
       (async () => {
         try {
-          const API_BASE = process.env.REACT_APP_API_BASE || "";
           setSkillError(null);
           setRawSkillResponse(null);
 
-          async function safeFetchApi(path: string) {
-            try {
-              let res = await apiFetch(path).catch(() => null);
-              if (res && res.status === 404 && API_BASE) {
-                console.debug(
-                  `Retrying ${path} with explicit base ${API_BASE}`
-                );
-                res = await fetch(`${API_BASE}${path}`, {
-                  credentials: "include",
-                });
-              }
-              return res;
-            } catch (err) {
-              console.debug("safeFetchApi error", err);
-              return null;
-            }
-          }
-
+          // Use apiFetch consistently (it should honor REACT_APP_API_BASE)
           const [skillsRes, pfRes] = await Promise.all([
-            safeFetchApi("/cv/skill-distribution?limit=10"),
-            safeFetchApi("/cv/project-fit?limit=200"),
+            apiFetch("/cv/skill-distribution?limit=10").catch(() => null),
+            apiFetch("/cv/project-fit?limit=200").catch(() => null),
           ]);
 
           console.debug("Dashboard fetch statuses:", {
