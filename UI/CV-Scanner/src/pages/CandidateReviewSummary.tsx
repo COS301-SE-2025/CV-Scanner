@@ -52,7 +52,18 @@ export default function CandidateReviewSummary() {
   const [searchParams] = useSearchParams();
 
   const passedCandidate = (location.state as any)?.candidate;
-
+  const [projectFit, setProjectFit] = useState<{
+  type?: string;
+  confidence?: number;
+  basis?: string[];
+  personal_info?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+  };
+} | null>(null);
+const [fitLoading, setFitLoading] = useState<boolean>(true);
+const [fitError, setFitError] = useState<string | null>(null);
   // Fallback chain: route param -> navigation state -> ?id= query -> localStorage
   const queryId = searchParams.get("id") || undefined;
   const storedId = localStorage.getItem("lastCandidateId") || undefined;
@@ -209,6 +220,36 @@ export default function CandidateReviewSummary() {
       ctrl.abort();
     };
   }, [candidateId, navigate, activeSection]);
+  useEffect(() => {
+  if (activeSection !== "summary") return;
+  if (!candidateId) {
+    setFitLoading(false);
+    setFitError("No candidate id.");
+    return;
+  }
+
+  let aborted = false;
+  (async () => {
+    setFitLoading(true);
+    setFitError(null);
+    try {
+      const res = await apiFetch(`/cv/${candidateId}/project-fit`, {
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+      const data = await res.json();
+      if (!aborted) setProjectFit(data);
+    } catch (e: any) {
+      if (!aborted) setFitError(e.message || "Failed to load project fit");
+    } finally {
+      if (!aborted) setFitLoading(false);
+    }
+  })();
+
+  return () => {
+    aborted = true;
+  };
+}, [candidateId, activeSection]);
 
   // --- skills fetch state ---
   const [skillsData, setSkillsData] = useState<string[]>([]);
@@ -693,66 +734,96 @@ export default function CandidateReviewSummary() {
           {/* Project Fit & Summary-only sections */}
           {activeSection === "summary" && (
             <>
-              {/* Project Fit removed — layout directly shows Resume & Contact Details below */}
+              {/* Project Fit now displays contact info */}
+              <Paper
+                elevation={6}
+                sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
+              >
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
+                  Project Fit & Contact Info
+                </Typography>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  {projectFit?.type && (
+                    <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+                      Best Fit Project Type: {projectFit.type}
+                      {projectFit.confidence && (
+                        <span
+                          style={{
+                            color: "#08726a",
+                            fontWeight: "normal",
+                            marginLeft: 8,
+                          }}
+                        >
+                          ({Math.round(projectFit.confidence * 100)}%
+                          confidence)
+                        </span>
+                      )}
+                    </Typography>
+                  )}
+                  {projectFit?.basis && projectFit.basis.length > 0 && (
+                    <Typography variant="body2" sx={{ color: "#555" }}>
+                      Basis: {projectFit.basis.join(", ")}
+                    </Typography>
+                  )}
+                  <Divider sx={{ my: 1 }} />
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ fontWeight: "bold", mb: 1 }}
+                  >
+                    Contact Details
+                  </Typography>
+                  <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                    <Fact
+                      label="Name"
+                      value={
+                        projectFit?.personal_info?.name || candidate.name || "-"
+                      }
+                    />
+                    <Fact
+                      label="Email"
+                      value={
+                        projectFit?.personal_info?.email ||
+                        candidate.email ||
+                        "-"
+                      }
+                    />
+                    <Fact
+                      label="Phone"
+                      value={
+                        projectFit?.personal_info?.phone ||
+                        candidate.phone ||
+                        "-"
+                      }
+                    />
+                  </Box>
+                </Box>
+              </Paper>
               {/* Resume & Links / CV Summary Section */}
               <Paper
                 elevation={6}
                 sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
               >
                 <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
-                  Resume & Contact Details
+                  CV Summary
                 </Typography>
-
-                {/* Attach actual summary (your own write-up) + hard-coded AI summary */}
-                <Box
+                <TextField
+                  value={
+                    summaryLoading
+                      ? "Loading summary..."
+                      : summaryError
+                      ? `Error: ${summaryError}`
+                      : summaryData?.summary
+                      ? summaryData.summary
+                      : "No summary available."
+                  }
+                  multiline
+                  minRows={6}
+                  fullWidth
+                  InputProps={{ readOnly: true }}
                   sx={{
-                    display: "grid",
-                    gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-                    gap: 2,
-                    alignItems: "start",
+                    "& .MuiOutlinedInput-root": { bgcolor: "#edededff" },
                   }}
-                >
-                  {/* Hard-coded AI summary (read-only) + link to full CV */}
-                  <Box sx={{ p: 2, bgcolor: "DEDEDE", borderRadius: 2 }}>
-                    <Typography
-                      variant="subtitle2"
-                      sx={{ fontWeight: "bold", mb: 1 }}
-                    >
-                      CV Summary
-                    </Typography>
-
-                    <TextField
-                      value={
-                        summaryLoading
-                          ? "Loading summary..."
-                          : summaryError
-                          ? `Error: ${summaryError}`
-                          : summaryData?.summary
-                          ? summaryData.summary
-                          : "No summary available."
-                      }
-                      multiline
-                      minRows={6}
-                      fullWidth
-                      InputProps={{ readOnly: true }}
-                      sx={{
-                        "& .MuiOutlinedInput-root": { bgcolor: "#edededff" },
-                      }}
-                    />
-
-                    <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                      <Button
-                        variant="contained"
-                        sx={reviewButtonStyle}
-                        onClick={() =>
-                          window.open(candidate.links.cv, "_blank")
-                        }
-                      >
-                        View Full CV
-                      </Button>
-                    </Stack>
-                  </Box>
-                </Box>
+                />
               </Paper>
             </>
           )}
