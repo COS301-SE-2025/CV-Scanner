@@ -31,18 +31,22 @@ export default function SystemSettingsPage() {
   const [user, setUser] = useState<any>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [configContent, setConfigContent] = useState("");
-  //const [editing, setEditing] = useState(false);
   const [configObj, setConfigObj] = useState<any>({});
-  const [editing, setEditing] = useState<boolean>(false); // which category is being edited
+  const [editing, setEditing] = useState<boolean>(false);
   const [tempCategoryName, setTempCategoryName] = useState<string | null>(null);
   const [tempItems, setTempItems] = useState<string[]>([]);
   const [categoryOrder, setCategoryOrder] = useState<string[]>([]);
   const [categoryKeys, setCategoryKeys] = useState<Record<string, string>>({});
 
-  // Permission guard: require auth check then forbid non-admins (mirrors UserManagement behavior)
+  // Permission guard
   const [forbidden, setForbidden] = useState<boolean>(true);
   const [authChecked, setAuthChecked] = useState<boolean>(false);
 
+  // Helper to safely render category and item values (prevents rendering objects)
+  const safeRender = (val: any) =>
+    typeof val === "object" ? JSON.stringify(val) : val ?? "";
+
+  // ---------- Auth check (runs once) ----------
   useEffect(() => {
     let mounted = true;
     const controller = new AbortController();
@@ -69,6 +73,7 @@ export default function SystemSettingsPage() {
           (String(data.role).toLowerCase() === "admin" ||
             (Array.isArray(data.roles) && data.roles.includes("admin")));
         setForbidden(!isAdmin);
+        setUser(data ?? null);
       } catch (err: any) {
         console.warn("[SystemSettings] auth check error", err && err.message);
         setForbidden(true);
@@ -84,7 +89,168 @@ export default function SystemSettingsPage() {
       clearTimeout(timeoutId);
     };
   }, []);
+  // --------------------------------------------
 
+  // ---------- Config load / editing helpers (declared BEFORE any conditional returns) ----------
+  const loadConfig = async () => {
+    try {
+      const res = await apiFetch("/auth/config/categories");
+      if (!res.ok) throw new Error(`Failed (${res.status})`);
+      const json = await res.json();
+
+      let reordered: Record<string, any> = {};
+
+      if (categoryOrder.length > 0) {
+        categoryOrder.forEach((key) => {
+          if (json[key] !== undefined) reordered[key] = json[key];
+        });
+        Object.keys(json).forEach((key) => {
+          if (!reordered[key]) reordered[key] = json[key];
+        });
+      } else {
+        reordered = { ...json };
+        setCategoryOrder(Object.keys(json));
+      }
+
+      setConfigObj(reordered);
+      setEditing(false);
+    } catch (e) {
+      alert("Could not load configuration.");
+      console.error(e);
+    }
+  };
+
+  const startEditing = () => {
+    (async () => {
+      try {
+        const res = await apiFetch("/auth/config/categories");
+        if (!res.ok) throw new Error(`Failed (${res.status})`);
+        const json = await res.json();
+
+        const newConfig: Record<string, any> = {};
+        const newCategoryKeys: Record<string, string> = { ...categoryKeys };
+
+        Object.keys(json).forEach((key) => {
+          newConfig[key] = json[key];
+          if (!newCategoryKeys[key]) {
+            newCategoryKeys[key] = `cat-${Date.now()}-${Math.random()}`;
+          }
+        });
+
+        const newCategoryOrder = Object.keys(newConfig);
+
+        setConfigObj(newConfig);
+        setCategoryKeys(newCategoryKeys);
+        setCategoryOrder(newCategoryOrder);
+        setEditing(true);
+      } catch (err) {
+        console.error(err);
+        alert("Could not load configuration.");
+      }
+    })();
+  };
+
+  useEffect(() => {
+    // Only load config when auth status known and user is allowed
+    if (!authChecked || forbidden) return;
+    loadConfig();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authChecked, forbidden]);
+
+  // Keep categoryKeys in sync whenever configObj or categoryOrder changes
+  useEffect(() => {
+    const keys: Record<string, string> = {};
+    categoryOrder.forEach((cat) => {
+      keys[cat] = categoryKeys[cat] || `cat-${Date.now()}-${Math.random()}`;
+    });
+    setCategoryKeys(keys);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [configObj, categoryOrder]);
+
+  const handleSaveConfig = async () => {
+    try {
+      const orderedObj: Record<string, any> = {};
+      categoryOrder.forEach((key) => {
+        if (configObj[key] !== undefined) orderedObj[key] = configObj[key];
+      });
+
+      const res = await apiFetch("/auth/config/categories", {
+        method: "PUT",
+        body: JSON.stringify(orderedObj),
+      });
+
+      if (!res.ok) {
+        let msg = `Failed to save configuration (${res.status})`;
+        try {
+          const j = await res.json().catch(() => null);
+          msg = j?.detail || msg;
+        } catch {}
+        alert(msg);
+        return;
+      }
+
+      alert("Config saved successfully!");
+      setEditing(false);
+      setConfigObj(orderedObj);
+    } catch (err: any) {
+      console.error("Save error:", err);
+      alert("Could not save configuration: " + (err.message || err));
+    }
+  };
+
+  const handleAddCategory = () => {
+    let newKey = "NewCategory";
+    let counter = 1;
+    const updated = { ...configObj };
+    while (updated[newKey]) {
+      newKey = `NewCategory${counter++}`;
+    }
+    updated[newKey] = [];
+    setConfigObj(updated);
+    setCategoryOrder((prev) => [newKey, ...prev]);
+    setCategoryKeys((prev) => ({
+      ...prev,
+      [newKey]: `cat-${Date.now()}-${Math.random()}`,
+    }));
+  };
+
+  const handleRenameCategory = (oldKey: string, newKeyRaw: string) => {
+    const newKey = (newKeyRaw || "").trim();
+    if (newKey === oldKey) return;
+    if (!newKey) return alert("Category name cannot be empty.");
+    if (configObj[newKey]) return alert("Category name already exists.");
+
+    setConfigObj((prev) => {
+      const updated: any = { ...prev };
+      updated[newKey] = updated[oldKey];
+      delete updated[oldKey];
+      return updated;
+    });
+
+    setCategoryOrder((prev) => prev.map((k) => (k === oldKey ? newKey : k)));
+
+    setCategoryKeys((prev) => {
+      const updated: any = { ...prev };
+      updated[newKey] = prev[oldKey];
+      delete updated[oldKey];
+      return updated;
+    });
+  };
+
+  const handleRemoveCategory = (key: string) => {
+    if (!window.confirm(`Remove category "${key}" and all its items?`)) return;
+
+    setConfigObj((prev) => {
+      const updated: any = { ...prev };
+      delete updated[key];
+      return updated;
+    });
+
+    setCategoryOrder((prev) => prev.filter((k) => k !== key));
+  };
+  // ------------------------------------------------------------------------------------------
+
+  // ---------- CONDITIONAL UI (placed AFTER hooks) ----------
   if (!authChecked) {
     return <div style={{ padding: 24 }}>Checking permissions…</div>;
   }
@@ -116,7 +282,6 @@ export default function SystemSettingsPage() {
             </button>
             <button
               onClick={async () => {
-                // retry permission check
                 try {
                   const email = localStorage.getItem("userEmail");
                   const url = email
@@ -145,256 +310,10 @@ export default function SystemSettingsPage() {
       </div>
     );
   }
-
-  const loadConfig = async () => {
-    try {
-      const res = await apiFetch("/auth/config/categories");
-      if (!res.ok) throw new Error(`Failed (${res.status})`);
-      const json = await res.json();
-
-      let reordered: Record<string, any> = {};
-
-      if (categoryOrder.length > 0) {
-        // Respect existing order (for edits)
-        categoryOrder.forEach((key) => {
-          if (json[key] !== undefined) reordered[key] = json[key];
-        });
-        // Add any new keys not in categoryOrder
-        Object.keys(json).forEach((key) => {
-          if (!reordered[key]) reordered[key] = json[key];
-        });
-      } else {
-        // First load, just use JSON as is
-        reordered = { ...json };
-        // Initialize categoryOrder
-        setCategoryOrder(Object.keys(json));
-      }
-
-      setConfigObj(reordered);
-      setEditing(false);
-    } catch (e) {
-      alert("Could not load configuration.");
-      console.error(e);
-    }
-  };
-
-  const startEditing = () => {
-    (async () => {
-      try {
-        const res = await apiFetch("/auth/config/categories");
-        if (!res.ok) throw new Error(`Failed (${res.status})`);
-        const json = await res.json();
-
-        // Build new configObj
-        const newConfig: Record<string, any> = {};
-        const newCategoryKeys: Record<string, string> = { ...categoryKeys };
-
-        // Put new categories first
-        Object.keys(json).forEach((key) => {
-          newConfig[key] = json[key];
-          // Keep existing React key or generate a new one
-          if (!newCategoryKeys[key]) {
-            newCategoryKeys[key] = `cat-${Date.now()}-${Math.random()}`;
-          }
-        });
-
-        // Update categoryOrder: new/external categories first, existing ones after
-        const newCategoryOrder = Object.keys(newConfig);
-
-        setConfigObj(newConfig);
-        setCategoryKeys(newCategoryKeys);
-        setCategoryOrder(newCategoryOrder);
-        setEditing(true);
-      } catch (err) {
-        console.error(err);
-        alert("Could not load configuration.");
-      }
-    })();
-  };
-
-  useEffect(() => {
-    loadConfig();
-  }, []);
-  // This runs whenever configObj changes
-  useEffect(() => {
-    const keys: Record<string, string> = {};
-    categoryOrder.forEach((cat) => {
-      keys[cat] = categoryKeys[cat] || `cat-${Date.now()}-${Math.random()}`;
-    });
-    setCategoryKeys(keys);
-  }, [configObj, categoryOrder]);
-
-  const handleSaveConfig = async () => {
-    try {
-      // Reorder configObj to match categoryOrder
-      const orderedObj: Record<string, any> = {};
-      categoryOrder.forEach((key) => {
-        if (configObj[key] !== undefined) orderedObj[key] = configObj[key];
-      });
-
-      const res = await apiFetch("/auth/config/categories", {
-        method: "PUT",
-        body: JSON.stringify(orderedObj),
-      });
-
-      if (!res.ok) {
-        let msg = `Failed to save configuration (${res.status})`;
-        try {
-          const j = await res.json().catch(() => null);
-          msg = j?.detail || msg;
-        } catch {}
-        alert(msg);
-        return;
-      }
-
-      alert("Config saved successfully!");
-      setEditing(false);
-
-      // Keep local state in sync
-      setConfigObj(orderedObj);
-    } catch (err) {
-      console.error("Save error:", err);
-      alert("Could not save configuration: " + err.message);
-    }
-  };
-  const handleAddCategory = () => {
-    let newKey = "NewCategory";
-    let counter = 1;
-    const updated = { ...configObj };
-    while (updated[newKey]) {
-      newKey = `NewCategory${counter++}`;
-    }
-    updated[newKey] = [];
-    setConfigObj(updated);
-
-    // Prepend to categoryOrder
-    setCategoryOrder((prev) => [newKey, ...prev]);
-
-    // Generate a unique React key for this category
-    setCategoryKeys((prev) => ({
-      ...prev,
-      [newKey]: `cat-${Date.now()}-${Math.random()}`,
-    }));
-  };
-
-  // --- helpers for rename / remove (place above return)
-  const handleRenameCategory = (oldKey: string, newKeyRaw: string) => {
-    const newKey = (newKeyRaw || "").trim();
-    if (newKey === oldKey) return;
-    if (!newKey) return alert("Category name cannot be empty.");
-    if (configObj[newKey]) return alert("Category name already exists.");
-
-    // Update config object
-    setConfigObj((prev) => {
-      const updated: any = { ...prev };
-      updated[newKey] = updated[oldKey];
-      delete updated[oldKey];
-      return updated;
-    });
-
-    // Keep the same position in order
-    setCategoryOrder((prev) => prev.map((k) => (k === oldKey ? newKey : k)));
-
-    // Keep React keys consistent
-    setCategoryKeys((prev) => {
-      const updated: any = { ...prev };
-      updated[newKey] = prev[oldKey];
-      delete updated[oldKey];
-      return updated;
-    });
-  };
-
-  const handleRemoveCategory = (key: string) => {
-    if (!window.confirm(`Remove category "${key}" and all its items?`)) return;
-
-    setConfigObj((prev) => {
-      const updated: any = { ...prev };
-      delete updated[key];
-      return updated;
-    });
-
-    setCategoryOrder((prev) => prev.filter((k) => k !== key));
-  };
-
-  // --- small inner component for editing a category header
-  function CategoryHeaderEditor({
-    originalKey,
-    editing,
-    onRename,
-    onRemove,
-  }: {
-    originalKey: string;
-    editing: boolean;
-    onRename: (oldKey: string, newKey: string) => void;
-    onRemove: (key: string) => void;
-  }) {
-    const [localName, setLocalName] = useState(originalKey);
-
-    // Sync when parent key changes (rename committed from elsewhere)
-    useEffect(() => {
-      setLocalName(originalKey);
-    }, [originalKey]);
-
-    const commit = () => {
-      if (localName.trim() === originalKey) {
-        // no change
-        return;
-      }
-      onRename(originalKey, localName);
-    };
-
-    if (!editing)
-      return (
-        <Typography variant="h6" sx={{ color: "#000", mb: 1 }}>
-          {originalKey}
-        </Typography>
-      );
-
-    return (
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-        <input
-          // keep input key tied to originalKey so it's stable while editing
-          key={`hdr-${originalKey}`}
-          type="text"
-          value={localName}
-          onChange={(e) => setLocalName(e.target.value)}
-          onBlur={commit}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              // commit on Enter
-              (e.target as HTMLInputElement).blur();
-            }
-            if (e.key === "Escape") {
-              // cancel editing the name and restore
-              setLocalName(originalKey);
-              (e.target as HTMLInputElement).blur();
-            }
-          }}
-          style={{
-            flex: 1,
-            padding: "8px",
-            borderRadius: "4px",
-            border: "1px solid #ccc",
-            fontFamily: "Helvetica, sans-serif",
-            fontSize: "1rem",
-          }}
-        />
-        <Button
-          variant="outlined"
-          color="error"
-          onClick={() => onRemove(originalKey)}
-        >
-          Remove
-        </Button>
-      </Box>
-    );
-  }
-
-  // Helper to safely render category and item values
-  const safeRender = (val: any) =>
-    typeof val === "object" ? JSON.stringify(val) : val ?? "";
+  // ------------------------------------------------------------------------------------------
 
   return (
+    // keep original UI markup here (unchanged). The hooks and helpers above prevent hook-order errors.
     <Box
       sx={{
         display: "flex",

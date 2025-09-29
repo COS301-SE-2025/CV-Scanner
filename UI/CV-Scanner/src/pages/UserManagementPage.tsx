@@ -58,7 +58,6 @@ export default function UserManagementPage() {
     role?: string;
     email?: string;
   } | null>(null);
-
   const devUser = {
     email: "dev@example.com",
     password: "Password123",
@@ -66,18 +65,15 @@ export default function UserManagementPage() {
     last_name: "Doe",
     role: "Admin",
   };
-
-  // show forbidden warning when current user is not allowed
-  // start as "unknown" until auth check completes
   const [forbidden, setForbidden] = useState<boolean>(true);
   const [authChecked, setAuthChecked] = useState<boolean>(false);
 
+  // data + ui state
   const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All Roles");
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 10;
-
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [editFormData, setEditFormData] = useState({
@@ -88,7 +84,7 @@ export default function UserManagementPage() {
     role: "",
   });
 
-  const [tutorialStep, setTutorialStep] = useState(-1); // -1 means not showing
+  const [tutorialStep, setTutorialStep] = useState(-1);
   const [fadeIn, setFadeIn] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
@@ -98,65 +94,11 @@ export default function UserManagementPage() {
   const addUserRef = useRef<HTMLButtonElement>(null);
   const firstEditRef = useRef<HTMLButtonElement>(null);
 
-  const handleEditClick = (user) => {
-    setEditingUser(user);
-    setEditFormData({
-      username: user.username || "",
-      first_name: user.first_name || "",
-      last_name: user.last_name || "",
-      email: user.email || "",
-      role: user.role || "",
-    });
-    setOpenEditDialog(true);
-  };
+  // Safe render helper to avoid rendering objects directly (prevents React #310)
+  const safeRender = (val: any) =>
+    typeof val === "object" ? JSON.stringify(val) : val ?? "";
 
-  const handleEditClose = () => {
-    setOpenEditDialog(false);
-    setEditingUser(null);
-  };
-
-  const handleEditSave = async () => {
-    try {
-      const res = await apiFetch("/auth/edit-user", {
-        method: "PUT",
-        body: JSON.stringify(editFormData),
-      });
-      const text = await res.text().catch(() => "");
-      if (res.ok) {
-        // update local list
-        setUsers((prev) =>
-          prev.map((u) =>
-            u.email === editFormData.email ? { ...u, ...editFormData } : u
-          )
-        );
-        handleEditClose();
-      } else {
-        console.error("Edit user failed:", res.status, text);
-      }
-    } catch (err) {
-      console.error("Network error editing user:", err);
-    }
-  };
-  const handleDeleteUser = (user) => {
-    if (!window.confirm(`Are you sure you want to delete ${user.email}?`))
-      return;
-    (async () => {
-      try {
-        const res = await apiFetch(
-          `/auth/delete-user?email=${encodeURIComponent(user.email)}`,
-          { method: "DELETE" }
-        );
-        const text = await res.text().catch(() => "");
-        if (res.ok) {
-          setUsers((prev) => prev.filter((u) => u.email !== user.email));
-        } else {
-          console.error("Delete user failed:", res.status, text);
-        }
-      } catch (err) {
-        console.error("Network error deleting user:", err);
-      }
-    })();
-  };
+  // ---------- Auth check (runs once) ----------
   useEffect(() => {
     // perform auth check once on mount
     (async () => {
@@ -188,15 +130,148 @@ export default function UserManagementPage() {
       }
     })();
   }, []);
+  // --------------------------------------------
 
+  // ========= MOVED HOOKS: always declared (stable order) =========
+  // Load users only after authChecked and if not forbidden
   useEffect(() => {
-    // no-op: keep forbidden determined by initial auth check.
-    // This effect intentionally left empty to avoid flipping permission based on later user changes.
-  }, [user]);
+    if (!authChecked || forbidden) return;
+    (async () => {
+      try {
+        const res = await apiFetch("/auth/all-users");
+        if (!res || !res.ok) {
+          setUsers([]);
+          return;
+        }
+        const data = await res.json().catch(() => []);
+        setUsers(Array.isArray(data) ? data : []);
+      } catch {
+        setUsers([]);
+      }
+    })();
+  }, [authChecked, forbidden]);
 
-  // If forbidden, render a clear warning panel with actions
+  // Search effect
+  useEffect(() => {
+    if (!authChecked || forbidden) return;
+    const fetchUsers = async () => {
+      try {
+        const url = search.trim()
+          ? `/auth/search-users?query=${encodeURIComponent(search)}`
+          : `/auth/all-users`;
+        const res = await apiFetch(url);
+        if (!res || !res.ok) {
+          setUsers([]);
+          return;
+        }
+        const data = await res.json().catch(() => []);
+        setUsers(Array.isArray(data) ? data : []);
+      } catch {
+        setUsers([]);
+      }
+    };
+    fetchUsers();
+  }, [search, authChecked, forbidden]);
+
+  // Role filter effect
+  useEffect(() => {
+    if (!authChecked || forbidden) return;
+    (async () => {
+      try {
+        const url =
+          roleFilter !== "All Roles"
+            ? `/auth/filter-users?role=${encodeURIComponent(roleFilter)}`
+            : `/auth/all-users`;
+        const res = await apiFetch(url);
+        if (!res || !res.ok) {
+          setUsers([]);
+          return;
+        }
+        const data = await res.json().catch(() => []);
+        setUsers(Array.isArray(data) ? data : []);
+      } catch {
+        setUsers([]);
+      }
+    })();
+  }, [roleFilter, authChecked, forbidden]);
+
+  // Tutorial anchor effect (stable)
+  useEffect(() => {
+    if (tutorialStep === 0 && searchRef.current) setAnchorEl(searchRef.current);
+    else if (tutorialStep === 1 && filterBoxRef.current)
+      setAnchorEl(filterBoxRef.current);
+    else if (tutorialStep === 2 && addUserRef.current)
+      setAnchorEl(addUserRef.current);
+    else if (tutorialStep === 3 && firstEditRef.current)
+      setAnchorEl(firstEditRef.current);
+    else setAnchorEl(null);
+  }, [tutorialStep]);
+  // ===============================================================
+
+  // ---------- remaining handlers (unchanged) ----------
+  const handleEditClick = (userItem: any) => {
+    setEditingUser(userItem);
+    setEditFormData({
+      username: userItem.username || "",
+      first_name: userItem.first_name || "",
+      last_name: userItem.last_name || "",
+      email: userItem.email || "",
+      role: userItem.role || "",
+    });
+    setOpenEditDialog(true);
+  };
+
+  const handleEditClose = () => {
+    setOpenEditDialog(false);
+    setEditingUser(null);
+  };
+
+  const handleEditSave = async () => {
+    try {
+      const res = await apiFetch("/auth/edit-user", {
+        method: "PUT",
+        body: JSON.stringify(editFormData),
+      });
+      const text = await res.text().catch(() => "");
+      if (res.ok) {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.email === editFormData.email ? { ...u, ...editFormData } : u
+          )
+        );
+        handleEditClose();
+      } else {
+        console.error("Edit user failed:", res.status, text);
+      }
+    } catch (err) {
+      console.error("Network error editing user:", err);
+    }
+  };
+
+  const handleDeleteUser = (userItem: any) => {
+    if (!window.confirm(`Are you sure you want to delete ${userItem.email}?`))
+      return;
+    (async () => {
+      try {
+        const res = await apiFetch(
+          `/auth/delete-user?email=${encodeURIComponent(userItem.email)}`,
+          { method: "DELETE" }
+        );
+        const text = await res.text().catch(() => "");
+        if (res.ok) {
+          setUsers((prev) => prev.filter((u) => u.email !== userItem.email));
+        } else {
+          console.error("Delete user failed:", res.status, text);
+        }
+      } catch (err) {
+        console.error("Network error deleting user:", err);
+      }
+    })();
+  };
+  // ------------------------------------------------------
+
+  // If still checking auth, show loader
   if (!authChecked) {
-    // still verifying auth — show nothing or a small loader
     return (
       <Box sx={{ p: 6 }}>
         <Typography>Checking permissions…</Typography>
@@ -204,6 +279,7 @@ export default function UserManagementPage() {
     );
   }
 
+  // Forbidden UI
   if (forbidden) {
     return (
       <Box sx={{ p: 6 }}>
@@ -264,100 +340,25 @@ export default function UserManagementPage() {
     );
   }
 
-  // Load users only after authChecked and if not forbidden
-  useEffect(() => {
-    if (!authChecked || forbidden) return;
-    (async () => {
-      try {
-        const res = await apiFetch("/auth/all-users");
-        if (!res || !res.ok) {
-          setUsers([]);
-          return;
-        }
-        const data = await res.json().catch(() => []);
-        // Guard: ensure users state is always an array
-        setUsers(Array.isArray(data) ? data : []);
-      } catch {
-        setUsers([]);
-      }
-    })();
-  }, [authChecked, forbidden]);
-
-  useEffect(() => {
-    if (!authChecked || forbidden) return;
-    const fetchUsers = async () => {
-      try {
-        const url = search.trim()
-          ? `/auth/search-users?query=${encodeURIComponent(search)}`
-          : `/auth/all-users`;
-        const res = await apiFetch(url);
-        if (!res || !res.ok) {
-          setUsers([]);
-          return;
-        }
-        const data = await res.json().catch(() => []);
-        // Guard: ensure users is array
-        setUsers(Array.isArray(data) ? data : []);
-      } catch {
-        setUsers([]);
-      }
-    };
-    fetchUsers();
-  }, [search, authChecked, forbidden]);
-
-  useEffect(() => {
-    if (!authChecked || forbidden) return;
-    (async () => {
-      try {
-        const url =
-          roleFilter !== "All Roles"
-            ? `/auth/filter-users?role=${encodeURIComponent(roleFilter)}`
-            : `/auth/all-users`;
-        const res = await apiFetch(url);
-        if (!res || !res.ok) {
-          setUsers([]);
-          return;
-        }
-        const data = await res.json().catch(() => []);
-        // Guard: ensure users is array
-        setUsers(Array.isArray(data) ? data : []);
-      } catch {
-        setUsers([]);
-      }
-    })();
-  }, [roleFilter, authChecked, forbidden]);
-
-  // Set anchorEl for tutorial popover
-  useEffect(() => {
-    if (tutorialStep === 0 && searchRef.current) setAnchorEl(searchRef.current);
-    else if (tutorialStep === 1 && filterBoxRef.current)
-      setAnchorEl(filterBoxRef.current);
-    else if (tutorialStep === 2 && addUserRef.current)
-      setAnchorEl(addUserRef.current);
-    else if (tutorialStep === 3 && firstEditRef.current)
-      setAnchorEl(firstEditRef.current);
-    else setAnchorEl(null);
-  }, [tutorialStep]);
-
-  const handleStepChange = (nextStep: number) => {
-    setFadeIn(false);
-    setTimeout(() => {
-      setTutorialStep(nextStep);
-      setFadeIn(true);
-    }, 250);
-  };
-  const handleCloseTutorial = () => setTutorialStep(-1);
-
+  // ---------- rest of render (unchanged) ----------
   const paginatedUsers = users.slice(
     (currentPage - 1) * usersPerPage,
     currentPage * usersPerPage
   );
+  const totalPages = Math.max(1, Math.ceil(users.length / usersPerPage));
 
-  const totalPages = Math.ceil(users.length / usersPerPage);
+  function handleCloseTutorial(): void {
+    setTutorialStep(-1);
+    setAnchorEl(null);
+  }
 
-  // Safe render helper to avoid rendering objects directly (prevents React #310)
-  const safeRender = (val: any) =>
-    typeof val === "object" ? JSON.stringify(val) : val ?? "";
+  function handleStepChange(step: number): void {
+    setFadeIn(false);
+    setTimeout(() => {
+      setTutorialStep(step);
+      setFadeIn(true);
+    }, 250);
+  }
 
   return (
     <Box
