@@ -299,8 +299,12 @@ const ParsedCVData: React.FC = () => {
     [aiParse, parsedResume]
   );
 
-  // prefer processedData (old name) or aiUpload (new name) as the primary upload_cv response
-  const primaryUpload = processedData ?? aiUpload ?? null;
+  // Prefer aiUpload (raw upload_cv JSON) first so upload classification displays.
+  // processedData (normalized) falls back if aiUpload is empty.
+  const primaryUpload =
+    aiUpload && Object.keys(aiUpload ?? {}).length
+      ? aiUpload
+      : processedData ?? null;
 
   const fieldsInitial = useMemo(
     () => normalizeToParsedFields(primaryUpload ?? parseResumeData) ?? {},
@@ -738,6 +742,41 @@ const ParsedCVData: React.FC = () => {
                     );
                   }
                 })()}
+              </Box>
+            )}
+
+            {/* Always show upload_cv applied classifications (if present) */}
+            {aiUpload && aiUpload.applied && (
+              <Box sx={{ mt: 2, p: 1.5 }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{ mb: 1, fontWeight: "bold" }}
+                >
+                  Upload Classification (upload_cv - applied)
+                </Typography>
+                <Box sx={{ display: "grid", gap: 1 }}>
+                  {Object.entries(aiUpload.applied).map(([cat, vals]) => (
+                    <Box
+                      key={cat}
+                      sx={{ p: 1, backgroundColor: "#f5f5f5", borderRadius: 1 }}
+                    >
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: "bold" }}
+                      >
+                        {cat}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ whiteSpace: "pre-wrap" }}
+                      >
+                        {Array.isArray(vals)
+                          ? vals.join(", ")
+                          : JSON.stringify(vals)}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
               </Box>
             )}
 

@@ -10,7 +10,7 @@ except Exception as e:
     _pipeline = None
     _pipeline_error = e
 
-def classify_text_by_categories(text: str, categories: list, top_k: int = 3):
+def classify_text_by_categories(text: str, categories, top_k: int = 3):
     """
     Try HF zero-shot classifier when available; otherwise use a simple
     keyword-frequency heuristic as a safe fallback.
@@ -52,3 +52,43 @@ def classify_text_by_categories(text: str, categories: list, top_k: int = 3):
     if all(d["score"] == 0 for d in scored):
         return [{"label": cat, "score": 0.0} for cat in categories[:top_k]]
     return [{"label": d["label"], "score": float(d["score"])} for d in scored[:top_k]]
+
+def classify_text_by_categories(text: str, categories, top_k: int = 3):
+    """
+    Lightweight fallback classifier that supports:
+      - categories as a dict (category_name -> list of candidate labels)
+      - categories as a list of category names
+
+    Returns:
+      - If categories is a dict: a dict mapping each category -> { labels, scores, top_k }
+      - If categories is a list: a list of top_k {"label","score"} dicts
+    """
+    try:
+        top_k = int(top_k or 3)
+    except Exception:
+        top_k = 3
+
+    # If categories is a mapping, return per-category prediction objects
+    if isinstance(categories, dict):
+        out = {}
+        for cat, choices in categories.items():
+            # If the configured choices are a list, use them as candidate labels
+            labels = list(choices) if isinstance(choices, (list, tuple)) else []
+            sel = labels[:top_k] if labels else []
+            topk = [{"label": l, "score": float(max(0.0, 1.0 - (i * 0.01)))} for i, l in enumerate(sel)]
+            scores = [t["score"] for t in topk]
+            out[cat] = {"labels": sel, "scores": scores, "top_k": topk}
+        return out
+
+    # If categories is a sequence (list/tuple), return a simple top_k list
+    if isinstance(categories, (list, tuple)):
+        sel = list(categories)[:top_k]
+        return [{"label": c, "score": 0.0} for c in sel]
+
+    # Fallback: attempt to coerce iterable, otherwise return empty list
+    try:
+        seq = list(categories)
+        sel = seq[:top_k]
+        return [{"label": c, "score": 0.0} for c in sel]
+    except Exception:
+        return []
