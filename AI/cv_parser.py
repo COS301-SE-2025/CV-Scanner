@@ -54,7 +54,21 @@ def extract_text_from_docx(docx_path: str) -> str:
     d = docx.Document(docx_path)
     return "\n".join(p.text for p in d.paragraphs)
 
+def extract_text(file_path: str) -> str:
+    lower = file_path.lower()
+    if lower.endswith(".pdf"):
+        return extract_text_from_pdf(file_path)
+    elif lower.endswith(".docx"):
+        return extract_text_from_docx(file_path)
+    elif lower.endswith(".txt"):
+        with open(file_path, "rb") as f:
+            return f.read().decode("utf-8", errors="ignore")
+    else:
+        raise ValueError(f"Unsupported file format: {file_path}")
 
+# ---------- Personal info extraction ----------
+EMAIL_RE = re.compile(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", re.I)
+PHONE_RE = re.compile(r"(\+?\d{1,3}[-\.\s]?)?\(?\d{3}\)?[-\.\s]?\d{3}[-\.\s]?\d{4}")
 
 def extract_personal_info(text: str):
     email = EMAIL_RE.search(text)
