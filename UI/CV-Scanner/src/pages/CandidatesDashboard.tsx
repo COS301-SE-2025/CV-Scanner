@@ -156,59 +156,121 @@ export default function CandidatesDashboard() {
       // fetch chart data (skill distribution + project-fit) after recent/load
       (async () => {
         try {
-          const [skillsRes, pfRes] = await Promise.all([
-            apiFetch("/cv/skill-distribution?limit=10").catch(() => null),
-            apiFetch("/cv/project-fit?limit=200").catch(() => null),
-          ]);
+          const API_BASE = process.env.REACT_APP_API_BASE || ""; // set in .env if needed
 
-          if (skillsRes && skillsRes.ok) {
-            const skillsJson = await skillsRes.json().catch(() => []);
-            if (Array.isArray(skillsJson) && skillsJson.length) {
-              setSkillDistribution(
-                skillsJson.map((s: any) => ({
-                  name: s.name,
-                  value: Number(s.value),
-                }))
-              );
+          async function safeFetchApi(path: string) {
+            try {
+              let res = await apiFetch(path).catch(() => null);
+              if (res && res.status === 404 && API_BASE) {
+                // retry with explicit base if apiFetch routed to wrong host
+                console.debug(
+                  `Retrying ${path} with explicit base ${API_BASE}`
+                );
+                res = await fetch(`${API_BASE}${path}`, {
+                  credentials: "include",
+                });
+              }
+              return res;
+            } catch (err) {
+              console.debug("safeFetchApi error", err);
+              return null;
             }
           }
 
-          if (pfRes && pfRes.ok) {
-            const pfJson = await pfRes.json().catch(() => []);
-            // aggregate by project type for chart
-            const counts = new Map<string, number>();
-            const pfMap = new Map<number, any>();
-            if (Array.isArray(pfJson)) {
-              for (const it of pfJson) {
-                const id = Number(it?.candidateId ?? it?.id);
-                const type =
-                  it?.projectFit != null
-                    ? it.projectFit.type ?? it.projectFit
-                    : null;
-                const label = it?.projectFitLabel ?? null;
-                if (!Number.isNaN(id)) pfMap.set(id, it);
-                const key = type || "Unknown";
-                counts.set(key, (counts.get(key) ?? 0) + 1);
-              }
-            }
-            setProjectFitData(
-              Array.from(counts.entries()).map(([type, value]) => ({
-                type,
-                value,
-              }))
-            );
+          const [skillsRes, pfRes] = await Promise.all([
+            safeFetchApi("/cv/skill-distribution?limit=10"),
+            safeFetchApi("/cv/project-fit?limit=200"),
+          ]);
 
-            // merge project fit info into recent list if available
-            setRecent((prev) =>
-              prev.map((r) => {
-                const pf = pfMap.get(Number(r.id));
-                return {
-                  ...r,
-                  fit: pf?.projectFit?.type ?? pf?.projectFitLabel ?? r.fit,
-                  skills: r.skills ?? "—",
-                };
-              })
-            );
+          console.debug("Dashboard fetch statuses:", {
+            skills: skillsRes?.status ?? null,
+            projectFit: pfRes?.status ?? null,
+          });
+
+          // --- Skill distribution ---
+          if (skillsRes) {
+            try {
+              const skillsJson = await skillsRes.json().catch(() => null);
+              console.debug("skill-distribution response:", skillsJson);
+
+              let parsed: Array<{ name: string; value: number }> = [];
+
+              if (Array.isArray(skillsJson)) {
+                // expected shape: [{ name, value }, ...]
+                parsed = skillsJson
+                  .map((s: any) => ({
+                    name: s?.name ?? s?.label ?? String(s),
+                    value: Number(s?.value ?? s?.count ?? 0),
+                  }))
+                  .filter((it) => it.name && !Number.isNaN(it.value));
+              } else if (skillsJson && typeof skillsJson === "object") {
+                // object map: { skill: count, ... }
+                parsed = Object.entries(skillsJson).map(([k, v]) => ({
+                  name: k,
+                  value: Number(v ?? 0),
+                }));
+              }
+
+              if (parsed.length) {
+                parsed.sort((a, b) => b.value - a.value);
+                setSkillDistribution(parsed.slice(0, 10));
+              } else {
+                console.debug("skill-distribution: no usable data");
+                setSkillDistribution([]);
+              }
+            } catch (e) {
+              console.debug("Failed to parse skill-distribution response", e);
+              setSkillDistribution([]);
+            }
+          } else {
+            console.debug("skill-distribution response missing");
+            setSkillDistribution([]);
+          }
+
+          // --- Project fit (unchanged logic but keep logging) ---
+          if (pfRes) {
+            try {
+              const pfJson = await pfRes.json().catch(() => null);
+              console.debug("project-fit response:", pfJson);
+              if (Array.isArray(pfJson)) {
+                const counts = new Map<string, number>();
+                const pfMap = new Map<number, any>();
+                for (const it of pfJson) {
+                  const id = Number(it?.candidateId ?? it?.id);
+                  const type =
+                    it?.projectFit != null
+                      ? it.projectFit.type ?? it.projectFit
+                      : null;
+                  if (!Number.isNaN(id)) pfMap.set(id, it);
+                  const key = type || "Unknown";
+                  counts.set(key, (counts.get(key) ?? 0) + 1);
+                }
+                setProjectFitData(
+                  Array.from(counts.entries()).map(([type, value]) => ({
+                    type,
+                    value,
+                  }))
+                );
+
+                // merge project fit info into recent list if available
+                setRecent((prev) =>
+                  prev.map((r) => {
+                    const pf = pfMap.get(Number(r.id));
+                    return {
+                      ...r,
+                      fit: pf?.projectFit?.type ?? pf?.projectFitLabel ?? r.fit,
+                      skills: r.skills ?? "—",
+                    };
+                  })
+                );
+              } else {
+                console.debug("project-fit: unexpected response shape", pfJson);
+              }
+            } catch (e) {
+              console.debug("Failed to parse project-fit response", e);
+            }
+          } else {
+            console.debug("project-fit response missing");
           }
         } catch (e) {
           console.warn("Failed to load dashboard charts:", e);
