@@ -352,23 +352,37 @@ export default function Search() {
             setCandidates((prev) =>
               prev.map((cand) => {
                 const pf = pfMap.get(Number(cand.id));
-                const pfObj = pf?.projectFit ?? pf?.projectFit ?? null;
+                const pfObj = pf?.projectFit ?? null;
                 const pct =
                   pf?.projectFitPercent != null
                     ? Number(pf.projectFitPercent)
                     : null;
-                const label =
-                  pf?.projectFitLabel ?? (pct != null ? `${pct}%` : null);
                 const type =
                   pfObj && typeof pfObj === "object"
                     ? pfObj.type ?? pfObj?.type
                     : null;
+
+                // Compose display label: prefer "Type:NN%" when both available,
+                // otherwise fall back to explicit projectFitLabel, percent-only, type-only, or existing match.
+                let combinedLabel: string | null = null;
+                if (type && pct != null) {
+                  combinedLabel = `${type}:${pct}%`;
+                } else if (pf?.projectFitLabel) {
+                  // backend-provided readable label (e.g. "Project Fit: 75%")
+                  // convert to short form if desired, else use as-is
+                  combinedLabel = pf.projectFitLabel;
+                } else if (type) {
+                  combinedLabel = String(type);
+                } else if (pct != null) {
+                  combinedLabel = `${pct}%`;
+                }
+
                 return {
                   ...cand,
                   projectFit: pfObj ?? cand.projectFit,
                   projectFitPercent: pct ?? cand.projectFitPercent,
                   fit: (type as string) || cand.fit,
-                  match: label || cand.match,
+                  match: combinedLabel ?? cand.match,
                 };
               })
             );
