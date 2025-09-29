@@ -1,7 +1,3 @@
-import os, time, logging
-from typing import Dict, List, Any
-from flask import Flask, jsonify, request, make_response
-from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": os.getenv("CORS_ORIGINS", "*")}})
