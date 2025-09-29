@@ -856,7 +856,7 @@ export default function CandidatesDashboard() {
                           variant="contained"
                           sx={reviewButtonStyle}
                           onClick={() =>
-                            navigate(`/candidate-summary/${candidate.id}`, {
+                            navigate(`/candidate/${candidate.id}/summary`, {
                               state: { candidateId: candidate.id },
                             })
                           }
