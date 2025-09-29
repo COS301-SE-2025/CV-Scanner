@@ -80,6 +80,11 @@ export default function CandidatesDashboard() {
       { type: "Autonomous", value: 20 },
     ] // initial mock data
   );
+  // New: top technologies from backend
+  const [topTechnologies, setTopTechnologies] = useState<
+    Array<{ name: string; value: number }>
+  >([]);
+  const [topTechnology, setTopTechnology] = useState<string>("—");
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -148,7 +153,7 @@ export default function CandidatesDashboard() {
       } catch {
         setRecent([]);
       }
-      // fetch chart data (skill distribution + project-fit) after recent/load
+      // fetch chart data (skill distribution + project-fit + charts) after recent/load
       (async () => {
         try {
           setSkillError(null);
@@ -260,6 +265,90 @@ export default function CandidatesDashboard() {
           } else {
             console.debug("project-fit response missing");
           }
+
+          // --- Monthly uploads (line chart) ---
+          try {
+            const monthsRes = await apiFetch(
+              "/cv/monthly-uploads?months=6"
+            ).catch(() => null);
+            if (monthsRes && monthsRes.ok) {
+              const monthsJson = await monthsRes.json().catch(() => []);
+              if (Array.isArray(monthsJson)) {
+                // convert to { month, candidates }
+                const series = monthsJson.map((m: any) => ({
+                  month: m.month,
+                  candidates: Number(m.count ?? m.cnt ?? 0),
+                }));
+                setCandidateTrends(series);
+              }
+            }
+          } catch (e) {
+            console.debug("monthly-uploads fetch failed", e);
+            setCandidateTrends([]);
+          }
+
+          // --- Weekly tech usage (bar chart) ---
+          try {
+            // Prefer top-technologies endpoint for tech counts (simpler single-series chart)
+            const topTechRes = await apiFetch(
+              "/cv/top-technologies?limit=10"
+            ).catch(() => null);
+            if (topTechRes && topTechRes.ok) {
+              const topTechJson = await topTechRes.json().catch(() => []);
+              if (Array.isArray(topTechJson)) {
+                const techList = topTechJson.map((t: any) => ({
+                  name: t.name,
+                  value: Number(t.value ?? 0),
+                }));
+                setGroupedBarData(techList);
+                setTopTechnologies(techList);
+                if (techList.length) setTopTechnology(techList[0].name);
+              }
+            } else {
+              // fallback to weekly-tech-usage if top-technologies missing
+              const techRes = await apiFetch(
+                "/cv/weekly-tech-usage?limit=6"
+              ).catch(() => null);
+              if (techRes && techRes.ok) {
+                const techJson = await techRes.json().catch(() => []);
+                if (Array.isArray(techJson)) {
+                  const bar = techJson.map((t: any) => ({
+                    name: t.name,
+                    value: Number(t.value ?? 0),
+                  }));
+                  setGroupedBarData(bar);
+                  if (bar.length) {
+                    setTopTechnologies(bar);
+                    setTopTechnology(bar[0].name);
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            console.debug("weekly-tech-usage fetch failed", e);
+            setGroupedBarData([]);
+          }
+          // Also fetch top-technologies explicitly if not already set
+          try {
+            if (!topTechnologies.length) {
+              const topRes = await apiFetch(
+                "/cv/top-technologies?limit=5"
+              ).catch(() => null);
+              if (topRes && topRes.ok) {
+                const topJson = await topRes.json().catch(() => []);
+                if (Array.isArray(topJson) && topJson.length) {
+                  const list = topJson.map((t: any) => ({
+                    name: t.name,
+                    value: Number(t.value ?? 0),
+                  }));
+                  setTopTechnologies(list);
+                  setTopTechnology(list[0]?.name ?? "—");
+                }
+              }
+            }
+          } catch (e) {
+            console.debug("top-technologies fetch failed", e);
+          }
         } catch (e) {
           console.warn("Failed to load dashboard charts:", e);
         }
@@ -282,8 +371,14 @@ export default function CandidatesDashboard() {
   };
   const handleCloseTutorial = () => setShowTutorial(false);
 
-  //Mock data for graphs
+  // real data for graphs (fetched)
+  const [candidateTrends, setCandidateTrends] = useState<
+    Array<{ month: string; candidates: number }>
+  >([]);
+  const [groupedBarData, setGroupedBarData] = useState<any[]>([]);
 
+  //Mock data for graphs
+  /*
   const candidateTrends = [
     { month: "Jan", candidates: 30 },
     { month: "Feb", candidates: 45 },
@@ -299,6 +394,7 @@ export default function CandidatesDashboard() {
     { name: "Week 3", ".NET": 10, React: 14, Python: 9 },
     { name: "Week 4", ".NET": 18, React: 13, Python: 11 },
   ];
+  */
 
   const COLORS = ["#8884D8", "#00C49F", "#FFBB28", "#FF8042"];
 
@@ -408,15 +504,29 @@ export default function CandidatesDashboard() {
                 label: "Candidates",
                 value: totalCandidates != null ? String(totalCandidates) : "—",
               },
-              { label: "Pending Review", value: "24" },
-              { label: "Top Technology", value: ".NET" },
-              { label: "Technical Matches", value: "78%" },
-            ].map((stat, i) => (
-              <Paper key={i} elevation={6} sx={statCardStyle}>
-                <Typography variant="h4">{stat.value}</Typography>
-                <Typography variant="subtitle1">{stat.label}</Typography>
+              {
+                label: "Pending Review",
+                value: "24",
+              },
+              {
+                label: "Top Technology",
+                value: topTechnology || "—",
+              },
+              {
+                label: "Technical Matches",
+                value: "78%",
+              },
+            ].map((item) => (
+              <Paper key={item.label} sx={statCardStyle}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                  {item.label}
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+                  {item.value}
+                </Typography>
               </Paper>
             ))}
+            {/* Removed hardcoded stats, now using fetched top technology */}
           </Box>
 
           {/* Dashboard Graphs */}
@@ -454,7 +564,13 @@ export default function CandidatesDashboard() {
                 Monthly Candidate Uploads
               </Typography>
               <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={candidateTrends}>
+                <LineChart
+                  data={
+                    candidateTrends.length
+                      ? candidateTrends
+                      : [{ month: "N/A", candidates: 0 }]
+                  }
+                >
                   <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
                   <XAxis
                     dataKey="month"
@@ -496,7 +612,13 @@ export default function CandidatesDashboard() {
                 Weekly Tech Usage
               </Typography>
               <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={groupedBarData}>
+                <BarChart
+                  data={
+                    groupedBarData.length
+                      ? groupedBarData
+                      : [{ name: "No Data", value: 0 }]
+                  }
+                >
                   <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
                   <XAxis
                     dataKey="name"
@@ -521,9 +643,15 @@ export default function CandidatesDashboard() {
                       </span>
                     )}
                   />
-                  <Bar dataKey=".NET" fill="#8884d8" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="React" fill="#82ca9d" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Python" fill="#ffc658" radius={[4, 4, 0, 0]} />
+                  {/* single-series bars built from backend top tech counts */}
+                  {groupedBarData.map((d, i) => (
+                    <Bar
+                      key={d.name}
+                      dataKey="value"
+                      name={d.name}
+                      fill={COLORS[i % COLORS.length]}
+                    />
+                  ))}
                 </BarChart>
               </ResponsiveContainer>
             </Paper>
@@ -658,186 +786,7 @@ export default function CandidatesDashboard() {
             </Paper>
           </Box>
 
-          {/* Recent Table */}
-          <Paper
-            elevation={6}
-            sx={{ p: 2, borderRadius: 3, backgroundColor: "#DEDDEE" }}
-          >
-            <Typography
-              variant="h6"
-              sx={{
-                fontFamily: "Helvetica, sans-serif",
-                fontWeight: "bold",
-                color: "#232A3B",
-                mb: 2,
-              }}
-            >
-              Recently Processed
-            </Typography>
-
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell
-                      sx={{
-                        fontFamily: "Helvetica, sans-serif",
-                        fontWeight: "bold",
-                        fontSize: "1.2rem",
-                      }}
-                    >
-                      Candidate
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        fontFamily: "Helvetica, sans-serif",
-                        fontWeight: "bold",
-                        fontSize: "1.2rem",
-                      }}
-                    >
-                      Top Skills
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        fontFamily: "Helvetica, sans-serif",
-                        fontWeight: "bold",
-                        fontSize: "1.2rem",
-                      }}
-                    >
-                      Project Fit
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        fontFamily: "Helvetica, sans-serif",
-                        fontWeight: "bold",
-                        fontSize: "1.2rem",
-                      }}
-                    >
-                      Actions
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {recent.map((candidate, idx) => (
-                    <TableRow key={candidate.id ?? idx}>
-                      <TableCell>{candidate.name}</TableCell>
-                      <TableCell>{candidate.skills || "—"}</TableCell>
-                      <TableCell>{candidate.fit || "N/A"}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="contained"
-                          sx={reviewButtonStyle}
-                          onClick={() =>
-                            navigate("/candidate-review", {
-                              state: { candidateId: candidate.id },
-                            })
-                          }
-                          ref={idx === 0 ? reviewBtnRef : null}
-                        >
-                          Review
-                        </Button>
-
-                        {idx === 0 && (
-                          <Popover
-                            open={showTutorial && Boolean(anchorEl)}
-                            anchorEl={anchorEl}
-                            onClose={handleCloseTutorial}
-                            anchorOrigin={{
-                              vertical: "top",
-                              horizontal: "center",
-                            }}
-                            transformOrigin={{
-                              vertical: "bottom",
-                              horizontal: "center",
-                            }}
-                            PaperProps={{
-                              sx: {
-                                p: 2,
-                                bgcolor: "#fff",
-                                color: "#181c2f",
-                                borderRadius: 2,
-                                boxShadow: 6,
-                                minWidth: 280,
-                                zIndex: 1500,
-                                textAlign: "center",
-                              },
-                            }}
-                          >
-                            <Fade in={fadeIn} timeout={250}>
-                              <Box sx={{ position: "relative" }}>
-                                <Typography
-                                  variant="h6"
-                                  sx={{
-                                    fontFamily: "Helvetica, sans-serif",
-                                    fontWeight: "bold",
-                                    mb: 1,
-                                  }}
-                                >
-                                  Quick Tip
-                                </Typography>
-                                <Typography
-                                  sx={{
-                                    fontFamily: "Helvetica, sans-serif",
-                                    mb: 2,
-                                  }}
-                                >
-                                  Click <b>Review</b> to view and assess this
-                                  candidate's CV.
-                                </Typography>
-
-                                {/* Shared navigation buttons */}
-
-                                <Box
-                                  sx={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                    mt: 3,
-                                    gap: 2,
-                                  }}
-                                >
-                                  <Button
-                                    variant="text"
-                                    size="small"
-                                    onClick={handleCloseTutorial}
-                                    sx={{
-                                      color: "#888",
-                                      fontSize: "0.85rem",
-                                      textTransform: "none",
-                                      minWidth: "auto",
-                                      p: 0,
-                                    }}
-                                  >
-                                    End Tutorial
-                                  </Button>
-                                  <Box sx={{ display: "flex", gap: 2 }}>
-                                    <Button
-                                      variant="contained"
-                                      onClick={handleCloseTutorial}
-                                      sx={{
-                                        bgcolor: "#5a88ad",
-                                        color: "#fff",
-                                        fontFamily: "Helvetica, sans-serif",
-                                        fontWeight: "bold",
-                                        textTransform: "none",
-                                        "&:hover": { bgcolor: "#487DA6" },
-                                      }}
-                                    >
-                                      Finish
-                                    </Button>
-                                  </Box>
-                                </Box>
-                              </Box>
-                            </Fade>
-                          </Popover>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
+          {/* Recently Processed table removed — UI now uses chart summaries and top-technology data */}
         </Box>
       </Box>
     </Box>

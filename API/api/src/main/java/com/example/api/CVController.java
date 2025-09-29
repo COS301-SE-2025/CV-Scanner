@@ -6,6 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -659,6 +660,102 @@ public class CVController {
             return ResponseEntity.ok(items);
         } catch (Exception ex) {
             return ResponseEntity.status(500).body(createErrorResponse("Failed to fetch candidates: " + ex.getMessage()));
+        }
+    }
+
+    /**
+     * New endpoint: /cv/top-technologies
+     * Returns top N technologies aggregated from the latest parsed row per candidate.
+     * Response: [{ name: "<tech>", value: <count> }, ...]
+     */
+    @GetMapping("/top-technologies")
+    public ResponseEntity<?> topTechnologies(@RequestParam(value = "limit", required = false, defaultValue = "10") int limit) {
+        try {
+            int top = Math.max(1, Math.min(limit, 1000));
+
+            // Use the latest parsed row per candidate
+            String sql = """
+                WITH latest AS (
+                  SELECT CandidateId, AiResult, Normalized, ResumeResult, ReceivedAt,
+                         ROW_NUMBER() OVER (PARTITION BY CandidateId ORDER BY ReceivedAt DESC) rn
+                  FROM dbo.CandidateParsedCv
+                )
+                SELECT l.CandidateId, l.AiResult, l.Normalized, l.ResumeResult
+                FROM latest l
+                WHERE l.rn = 1
+            """;
+
+            var rows = jdbc.query(sql, (rs, rowNum) -> {
+                Map<String, String> out = new HashMap<>();
+                out.put("ai", rs.getString("AiResult"));
+                out.put("normalized", rs.getString("Normalized"));
+                out.put("resume", rs.getString("ResumeResult"));
+                return out;
+            });
+
+            ObjectMapper mapper = new ObjectMapper();
+            Map<String, Integer> counts = new HashMap<>();
+
+            for (var row : rows) {
+                String aiJson = row.get("ai");
+                // 1) Try ai.applied.Skills and raw.*.labels
+                if (aiJson != null && !aiJson.isBlank()) {
+                    try {
+                        Map<String, Object> root = mapper.readValue(aiJson, new TypeReference<>() {});
+                        Object applied = root.get("applied");
+                        if (applied instanceof Map<?, ?> appliedMap) {
+                            Object skillsObj = appliedMap.get("Skills");
+                            if (skillsObj instanceof Iterable<?> skillsIter) {
+                                for (Object s : skillsIter) {
+                                    if (s != null) counts.merge(String.valueOf(s).trim(), 1, Integer::sum);
+                                }
+                                continue; // prefer applied.Skills when present
+                            }
+                        }
+
+                        Object raw = root.get("raw");
+                        if (raw instanceof Map<?, ?> rawMap) {
+                            for (Object v : rawMap.values()) {
+                                if (v instanceof Map<?, ?> cat) {
+                                    Object labels = cat.get("labels");
+                                    if (labels instanceof Iterable<?> labIter) {
+                                        for (Object s : labIter) if (s != null) counts.merge(String.valueOf(s).trim(), 1, Integer::sum);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (Exception ignore) {
+                        // fallback to normalized/resume below
+                    }
+                }
+
+                // 2) fallback: normalized or resumeResult may contain CSV / newline separated skills
+                String normalized = row.get("normalized");
+                String resume = row.get("resume");
+                String fallback = normalized != null && !normalized.isBlank() ? normalized : resume;
+                if (fallback != null && !fallback.isBlank()) {
+                    String[] parts = fallback.split("[,;\\n]");
+                    for (String p : parts) {
+                        String s = p.trim();
+                        if (s.length() > 1 && s.length() < 80) counts.merge(s, 1, Integer::sum);
+                    }
+                }
+            }
+
+            List<Map<String, Object>> out = counts.entrySet().stream()
+                    .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
+                    .limit(top)
+                    .map(e -> {
+                        Map<String, Object> m = new HashMap<>();
+                        m.put("name", e.getKey());
+                        m.put("value", e.getValue());
+                        return m;
+                    })
+                    .toList();
+
+            return ResponseEntity.ok(out);
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body(createErrorResponse("Failed to compute top technologies: " + ex.getMessage()));
         }
     }
 
@@ -1864,6 +1961,7 @@ private String truncateSummary(String s) {
                 params = new Object[]{candidateId};
             } else {
                 sql = """
+
                     SELECT TOP 1 c.Id, c.FirstName, c.LastName, c.Email, l.AiResult, l.ReceivedAt
                     FROM dbo.Candidates c
                     LEFT JOIN dbo.CandidateParsedCv l ON l.CandidateId = c.Id
@@ -2074,9 +2172,7 @@ private String truncateSummary(String s) {
                     String[] parts = fallback.split("[,;\\n]");
                     for (String p : parts) {
                         String s = p.trim();
-                        if (s.length() > 1 && s.length() < 60) {
-                            counts.merge(s, 1, Integer::sum);
-                        }
+                        if (s.length() > 1 && s.length() < 60) counts.merge(s, 1, Integer::sum);
                     }
                 }
             }
@@ -2096,6 +2192,113 @@ private String truncateSummary(String s) {
             return ResponseEntity.ok(out);
         } catch (Exception ex) {
             return ResponseEntity.status(500).body(Map.of("error", "Failed to compute skill distribution: " + ex.getMessage()));
+        }
+    }
+
+    @GetMapping("/monthly-uploads")
+    public ResponseEntity<?> monthlyUploads(@RequestParam(value = "months", required = false, defaultValue = "6") int months) {
+        try {
+            int m = Math.max(1, Math.min(months, 36));
+            Instant cutoff = Instant.now().minus(m - 1, ChronoUnit.MONTHS);
+            String sql = """
+                SELECT CONVERT(varchar(7), ReceivedAt, 23) AS month, COUNT(*) AS cnt
+                FROM dbo.CandidateParsedCv
+                WHERE ReceivedAt >= ?
+                GROUP BY CONVERT(varchar(7), ReceivedAt, 23)
+                ORDER BY month ASC
+            """;
+            var rows = jdbc.query(sql, new Object[]{ Timestamp.from(cutoff) }, (rs, i) -> {
+                Map<String, Object> out = new HashMap<>();
+                out.put("month", rs.getString("month"));
+                out.put("count", rs.getInt("cnt"));
+                return out;
+            });
+            return ResponseEntity.ok(rows);
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body(createErrorResponse("Failed to compute monthly uploads: " + ex.getMessage()));
+        }
+    }
+
+    @GetMapping("/weekly-tech-usage")
+    public ResponseEntity<?> weeklyTechUsage(@RequestParam(value = "limit", required = false, defaultValue = "10") int limit) {
+        try {
+            int top = Math.max(1, Math.min(limit, 200));
+            Instant cutoff = Instant.now().minus(28, ChronoUnit.DAYS);
+
+            String sql = """
+                WITH recent AS (
+                  SELECT AiResult, Normalized, ResumeResult
+                  FROM dbo.CandidateParsedCv
+                  WHERE ReceivedAt >= ?
+                )
+                SELECT AiResult, Normalized, ResumeResult FROM recent
+            """;
+
+            var rows = jdbc.query(sql, new Object[]{ Timestamp.from(cutoff) }, (rs, i) -> {
+                Map<String, String> m = new HashMap<>();
+                m.put("ai", rs.getString("AiResult"));
+                m.put("normalized", rs.getString("Normalized"));
+                m.put("resume", rs.getString("ResumeResult"));
+                return m;
+            });
+
+            ObjectMapper mapper = new ObjectMapper();
+            Map<String, Integer> counts = new HashMap<>();
+
+            for (var row : rows) {
+                String aiJson = row.get("ai");
+                if (aiJson != null && !aiJson.isBlank()) {
+                    try {
+                        Map<String, Object> root = mapper.readValue(aiJson, new TypeReference<>() {});
+                        Object applied = root.get("applied");
+                        if (applied instanceof Map<?, ?> appliedMap) {
+                            Object skillsObj = appliedMap.get("Skills");
+                            if (skillsObj instanceof Iterable<?> skillsIter) {
+                                for (Object s : skillsIter) {
+                                    if (s != null) counts.merge(String.valueOf(s).trim(), 1, Integer::sum);
+                                }
+                                continue;
+                            }
+                        }
+                        Object raw = root.get("raw");
+                        if (raw instanceof Map<?, ?> rawMap) {
+                            for (Object v : rawMap.values()) {
+                                if (v instanceof Map<?, ?> cat) {
+                                    Object labels = cat.get("labels");
+                                    if (labels instanceof Iterable<?> labIter) {
+                                        for (Object s : labIter) if (s != null) counts.merge(String.valueOf(s).trim(), 1, Integer::sum);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (Exception ignored) { }
+                }
+                String normalized = row.get("normalized");
+                String resume = row.get("resume");
+                String fallback = normalized != null && !normalized.isBlank() ? normalized : resume;
+                if (fallback != null && !fallback.isBlank()) {
+                    String[] parts = fallback.split("[,;\\n]");
+                    for (String p : parts) {
+                        String s = p.trim();
+                        if (s.length() > 1 && s.length() < 60) counts.merge(s, 1, Integer::sum);
+                    }
+                }
+            }
+
+            List<Map<String, Object>> out = counts.entrySet().stream()
+                    .sorted((a,b) -> Integer.compare(b.getValue(), a.getValue()))
+                    .limit(top)
+                    .map(e -> {
+                        Map<String, Object> m = new HashMap<>();
+                        m.put("name", e.getKey());
+                        m.put("value", e.getValue());
+                        return m;
+                    })
+                    .toList();
+
+            return ResponseEntity.ok(out);
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body(createErrorResponse("Failed to compute weekly tech usage: " + ex.getMessage()));
         }
     }
 }
