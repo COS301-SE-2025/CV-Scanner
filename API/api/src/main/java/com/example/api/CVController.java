@@ -2187,12 +2187,11 @@ private String truncateSummary(String s) {
     public ResponseEntity<?> monthlyUploads(@RequestParam(value = "months", required = false, defaultValue = "6") int months) {
         try {
             int m = Math.max(1, Math.min(months, 36));
-            // compute cutoff at start of oldest month to include full months
-            Instant now = Instant.now();
-            Instant startInstant = now.minus(m - 1, ChronoUnit.MONTHS);
-            Timestamp cutoff = Timestamp.from(startInstant);
+            // compute start = first day of oldest month to include full months
+            java.time.ZonedDateTime nowZ = java.time.ZonedDateTime.now(java.time.ZoneId.systemDefault());
+            java.time.ZonedDateTime startZ = nowZ.withDayOfMonth(1).minusMonths(m - 1);
+            Timestamp cutoff = Timestamp.from(startZ.toInstant());
 
-            // Group by year/month to avoid locale-specific string conversions
             String sql = """
                 SELECT YEAR(ReceivedAt) AS y, MONTH(ReceivedAt) AS mo, COUNT(*) AS cnt
                 FROM dbo.CandidateParsedCv
@@ -2205,38 +2204,32 @@ private String truncateSummary(String s) {
                 int y = rs.getInt("y");
                 int mo = rs.getInt("mo");
                 int cnt = rs.getInt("cnt");
-                Map<String, Object> out = new LinkedHashMap<>();
+                Map<String, Object> out = new java.util.LinkedHashMap<>();
                 out.put("month", String.format("%04d-%02d", y, mo));
                 out.put("count", cnt);
                 return out;
             });
 
-            // Build ordered month list with zeros for missing months
-            LinkedHashMap<String, Integer> map = new LinkedHashMap<>();
-            for (int i = m - 1; i >= 0; i--) {
-                Instant t = now.minus(i, ChronoUnit.MONTHS);
-                java.time.ZonedDateTime z = java.time.ZonedDateTime.ofInstant(t, java.time.ZoneId.systemDefault());
+            // build ordered month list (oldest -> newest) with zero fill
+            java.util.LinkedHashMap<String, Integer> map = new java.util.LinkedHashMap<>();
+            for (int i = 0; i < m; i++) {
+                java.time.ZonedDateTime z = startZ.plusMonths(i);
                 String key = String.format("%04d-%02d", z.getYear(), z.getMonthValue());
                 map.put(key, 0);
             }
             for (var r : rows) {
                 String k = String.valueOf(r.get("month"));
-                Integer v = r.get("count") instanceof Number ? ((Number) r.get("count")).intValue() : Integer.parseInt(String.valueOf(r.get("count")));
+                int v = r.get("count") instanceof Number ? ((Number) r.get("count")).intValue() : Integer.parseInt(String.valueOf(r.get("count")));
                 if (map.containsKey(k)) map.put(k, v);
             }
 
-            List<Map<String, Object>> out = map.entrySet().stream()
-                    .map(e -> {
-                        Map<String, Object> row = new HashMap<>();
-                        row.put("month", e.getKey());
-                        row.put("count", e.getValue());
-                        return row;
-                    })
+            java.util.List<Map<String, Object>> out = map.entrySet().stream()
+                    .map(e -> java.util.Map.<String,Object>of("month", e.getKey(), "count", e.getValue()))
                     .toList();
 
             return ResponseEntity.ok(out);
         } catch (Exception ex) {
-            return ResponseEntity.status(500).body(Map.of("error", "Failed to compute monthly uploads: " + ex.getMessage()));
+            return ResponseEntity.status(500).body(java.util.Map.of("error", "Failed to compute monthly uploads: " + ex.getMessage()));
         }
     }
 

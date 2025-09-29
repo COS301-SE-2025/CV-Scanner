@@ -13,6 +13,6 @@ flask
 flask_cors
 gunicorn
 asgiref>=3.4.1
-
+gunicorn==20.1.0
 
 
