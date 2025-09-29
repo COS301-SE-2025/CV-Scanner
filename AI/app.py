@@ -113,13 +113,6 @@ app.add_middleware(
     allow_methods=["*"], allow_headers=["*"]
 )
 
-@app.get("/", response_class=PlainTextResponse)
-async def root():
-    return "OK. Endpoints: GET/POST /admin/categories, POST /classify, GET /health, POST /upload_cv, POST /parse_resume"
-
-@app.get("/health")
-async def health():
-    return {"status": "ok", "ts": time.time()}
 
 
 @app.get("/admin/categories")
