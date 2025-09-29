@@ -103,7 +103,14 @@ const filteredFaqs = faqs.filter(
         )}
       </Box>
 
-
+        <Button
+        variant="contained"
+        href="/User_Manual_V3.pdf"
+        target="_blank"
+        rel="noopener noreferrer"
+        >
+          View Help Guide (PDF)
+        </Button>
 
       {/* Footer */}
       <Box sx={{ textAlign: 'center', py: 2, bgcolor: '#232A3B', color: '#fff' }}>
