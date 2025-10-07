@@ -267,6 +267,31 @@ export default function UploadCVPage() {
     }
   };
 
+  // Upload helper (call proxy endpoint with FormData)
+  async function handleUpload(file: File) {
+    try {
+      const form = new FormData();
+      form.append("file", file); // backend expects key "file"
+
+      // Use apiFetch which preserves FormData correctly
+      const res = await apiFetch("/cv/proxy-ai", {
+        method: "POST",
+        body: form,
+      } as RequestInit);
+
+      if (!res || !res.ok) {
+        const text = await res?.text().catch(() => "");
+        throw new Error(`Upload failed: ${res?.status ?? "no-res"} ${text}`);
+      }
+
+      const json = await res.json();
+      return { success: true, data: json } as ApiResponse;
+    } catch (err: any) {
+      console.error("Upload/parse error", err);
+      return { success: false, error: err?.message || "Upload error" };
+    }
+  }
+
   // Load user on component mount
   useEffect(() => {
     const loadUser = async () => {
