@@ -344,15 +344,16 @@ export default function UploadCVPage() {
       });
       return;
     }
-    loader.show(); 
+    loader.show();
     setLoading(true);
-    
 
     try {
       const formData = new FormData();
       formData.append("file", file);
 
-      const AI_BASE = "http://localhost:5000";
+      // Use deployed AI service
+      const AI_BASE =
+        "https://cv-scanner-ai-cee2d5g9epb0hcg6.southafricanorth-01.azurewebsites.net";
       const uploadEndpoint = `${AI_BASE}/upload_cv?top_k=3`;
       const parseEndpoint = `${AI_BASE}/parse_resume`;
 

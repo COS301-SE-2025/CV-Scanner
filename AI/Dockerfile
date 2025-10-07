@@ -30,4 +30,5 @@ COPY . .
 EXPOSE 80
 
 # Use gunicorn on port 80 with more tolerant settings
-CMD ["sh", "-c", "exec gunicorn --bind 0.0.0.0:80 -k uvicorn.workers.UvicornWorker --workers 2 --threads 4 --timeout 300 app:app"]
+CMD ["sh", "-c", "exec gunicorn --bind 0.0.0.0:80 --workers 2 --threads 4 --timeout 300 app:app"]
+
