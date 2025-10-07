@@ -1,10 +1,11 @@
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8081";
 
-const AI_BASE_URL = (import.meta.env.VITE_AI_BASE_URL ?? API_BASE_URL).replace(
-  /\/+$/,
-  ""
-);
+// Use deployed AI service by default
+const AI_BASE_URL = (
+  import.meta.env.VITE_AI_BASE_URL ??
+  "https://cv-scanner-ai-cee2d5g9epb0hcg6.southafricanorth-01.azurewebsites.net"
+).replace(/\/+$/, "");
 
 function buildHeaders(init?: RequestInit): HeadersInit {
   const body = (init as any)?.body;
