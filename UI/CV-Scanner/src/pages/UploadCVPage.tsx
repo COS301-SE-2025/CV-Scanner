@@ -60,16 +60,16 @@ const safeAiFetch = async (
   options: RequestInit = {}
 ): Promise<Response> => {
   try {
-    // If target is localhost, call it directly from the browser (avoids backend proxy and 500 from remote proxy)
+    // First, try calling the target directly (works if AI allows CORS)
     try {
-      const parsed = new URL(url);
-      if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
-        console.debug("safeAiFetch: calling local AI directly", url);
-        // Preserve the original options (FormData will be sent correctly)
-        return await fetch(url, options);
-      }
-    } catch {
-      // If URL constructor fails, fallthrough to proxy behavior
+      console.debug("safeAiFetch: attempting direct call to", url);
+      return await fetch(url, options);
+    } catch (directErr) {
+      // direct call failed (network/CORS) -> fallback to proxy below
+      console.debug(
+        "safeAiFetch: direct call failed, falling back to proxy",
+        directErr
+      );
     }
 
     // Fallback: proxy via backend so deployed backend can call external AI endpoints
