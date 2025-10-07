@@ -7,8 +7,8 @@ from flask import Flask, jsonify, request, make_response
 from flask_cors import CORS, cross_origin
 import torch
 import spacy
-import threading
-import uuid
+
+
 
 # Ensure spaCy model is available at startup (safe, idempotent)
 try:
@@ -67,21 +67,89 @@ def get_model():
         _model = load_bart_model()
     return _model
 
-# Ensure model is warmed in background at startup to avoid per-request delay
-def _warm_model_async():
-    try:
-        app.logger.info("Warming model in background...")
-        # call get_model which lazy-loads model into _model
-        get_model()
-        app.logger.info("Model warmup complete.")
-    except Exception:
-        app.logger.exception("Model warmup failed")
+# --- Heuristic best-fit project type from CV text + labels ---
+def infer_project_type(text: str, applied_labels: Dict[str, List[str]] | None = None):
+    """
+    Returns a dict: {"type": <str>, "confidence": <0..1>, "basis": [<keywords/labels>]}
+    """
+    text_l = (text or "").lower()
 
-# Start background warmup thread (non-blocking)
-try:
-    threading.Thread(target=_warm_model_async, daemon=True).start()
-except Exception:
-    app.logger.exception("Failed to start model warmup thread")
+    # Keyword rules (tweak freely)
+    RULES = {
+        "Machine Learning / Data Science": [
+            "machine learning", "deep learning", "data science", "nlp", "computer vision",
+            "pytorch", "tensorflow", "sklearn", "xgboost", "model training", "dataset"
+        ],
+        "API Backend / Services": [
+            "rest api", "graphql", "fastapi", "django", "flask", "express", "spring boot",
+            "microservice", "endpoint", "jwt", "postgres", "mongodb"
+        ],
+        "Frontend Web App": [
+            "react", "next.js", "typescript", "javascript", "spa", "redux", "tailwind",
+            "vue", "angular", "ui", "ux"
+        ],
+        "DevOps / Infrastructure": [
+            "docker", "kubernetes", "terraform", "ci/cd", "jenkins", "github actions",
+            "helm", "prometheus", "grafana", "aws", "azure", "gcp"
+        ],
+        "Mobile App": [
+            "android", "ios", "react native", "flutter", "kotlin", "swift", "xcode"
+        ],
+        "Data Engineering / ETL": [
+            "airflow", "spark", "databricks", "etl", "elt", "data pipeline", "kafka",
+            "bigquery", "snowflake", "redshift"
+        ],
+        "General Web Application": [
+            "full-stack", "web application", "crud", "authentication", "authorization"
+        ]
+    }
+
+    scores = {k: 0 for k in RULES}
+
+    # Keyword scoring
+    for ptype, kws in RULES.items():
+        for kw in kws:
+            if kw in text_l:
+                scores[ptype] += 1
+
+    # Label bonuses (from your classifier result)
+    label_bonus_basis = []
+    if applied_labels:
+        flat = {lbl.lower() for group in applied_labels.values() for lbl in group}
+        if any(x in flat for x in ["data science", "machine learning", "ml engineer"]):
+            scores["Machine Learning / Data Science"] += 2; label_bonus_basis.append("label: ML/DS")
+        if any(x in flat for x in ["backend", "api", "software engineering"]):
+            scores["API Backend / Services"] += 2; label_bonus_basis.append("label: Backend/API")
+        if any(x in flat for x in ["frontend", "ui", "web dev"]):
+            scores["Frontend Web App"] += 2; label_bonus_basis.append("label: Frontend")
+        if "devops" in flat:
+            scores["DevOps / Infrastructure"] += 2; label_bonus_basis.append("label: DevOps")
+        if any(x in flat for x in ["mobile", "android", "ios"]):
+            scores["Mobile App"] += 2; label_bonus_basis.append("label: Mobile")
+        if any(x in flat for x in ["data engineering", "etl", "pipeline"]):
+            scores["Data Engineering / ETL"] += 2; label_bonus_basis.append("label: Data Eng")
+
+    # Pick best
+    best_type, best_score = max(scores.items(), key=lambda kv: kv[1])
+    sorted_vals = sorted(scores.values(), reverse=True)
+    second = sorted_vals[1] if len(sorted_vals) > 1 else 0
+
+    if best_score == 0:
+        return {"type": "General Software Project", "confidence": 0.3, "basis": []}
+
+    # Confidence: base 0.55 + margin bonus (capped)
+    margin = max(0, best_score - second)
+    conf = min(0.9, 0.55 + 0.1 * margin)
+
+    # Basis (top 3 matched keywords + any label reasons)
+    basis = []
+    for kw in RULES[best_type]:
+        if kw in text_l:
+            basis.append(kw)
+        if len(basis) >= 3:
+            break
+    basis.extend(label_bonus_basis)
+    basis = basis[:5]
 
 # --- Heuristic best-fit project type from CV text + labels ---
 def infer_project_type(text: str, applied_labels: Dict[str, List[str]] | None = None):
@@ -349,53 +417,62 @@ def classify():
 
 
 @app.route("/upload_cv", methods=["POST"])
-@cross_origin()
+@cross_origin()  # optional when CORS(app) already configured; useful for per-route control
 def upload_cv():
-    # Do NOT call _lazy_import() here (it performs heavy ML imports).
-    # Read the file and spawn a background thread that will import and process.
+    load_categories, _, classify_text_by_categories, _ = _lazy_import()
+
     file = request.files.get("file")
     if not file:
         return make_response(jsonify({"status": "error", "detail": "No file uploaded."}), 400)
- 
+
     data = file.read()
     if not data:
         return make_response(jsonify({"status": "error", "detail": "Empty file."}), 400)
- 
+
     try:
         top_k = int(request.values.get("top_k", request.args.get("top_k", 3)))
     except Exception:
         top_k = 3
- 
-    filename = file.filename or f"upload-{uuid.uuid4().hex}.bin"
- 
-    # Start background worker to do the heavy processing and log/handle results
-    job_id = uuid.uuid4().hex
- 
-    def _process_and_log(job, fbytes, fname, tk):
-        try:
-            app.logger.info("Job %s: starting processing %s", job, fname)
-            # Import heavy modules inside the worker thread
-            load_categories, save_categories, classify_text_by_categories, parse_resume_from_bytes = _lazy_import()
-            text = extract_text_auto(fbytes, fname)
-            cats = load_categories()
-            if not cats:
-                app.logger.error("Job %s: no categories configured", job)
-                return
-            result = classify_text_by_categories(text, cats, top_k=tk)
-            best_fit = infer_project_type(text, {k: (v.get("labels") if isinstance(v, dict) else []) for k, v in (result.items() if isinstance(result, dict) else [])})
-            # TODO: persist result (DB / blob storage) or notify via webhook / queue
-            app.logger.info("Job %s: finished. top_k=%s, best_fit=%s", job, tk, best_fit.get("type"))
-        except Exception as e:
-            app.logger.exception("Job %s failed: %s", job, e)
- 
-    try:
-        threading.Thread(target=_process_and_log, args=(job_id, data, filename, top_k), daemon=True).start()
-    except Exception:
-        app.logger.exception("Failed to start background processing thread for upload")
-        return make_response(jsonify({"status": "error", "detail": "Failed to start processing"}), 500)
- 
-    # Return immediate acknowledgement so client won't time out
-    return make_response(jsonify({"status": "accepted", "job_id": job_id, "filename": filename}), 202)
+
+    text = extract_text_auto(data, file.filename or "upload.txt")
+
+    cats = load_categories()
+    if not cats:
+        return make_response(jsonify({"status": "error", "detail": "No categories configured. Use POST /admin/categories first."}), 409)
+
+    result = classify_text_by_categories(text, cats, top_k=top_k)
+
+    # Normalize: ensure no score == 0.0
+    def fix_scores(info):
+        labels = info.get("labels", [])
+        scores = [max(float(s), 0.01) for s in info.get("scores", [])]  # replace 0 with 0.01
+        top_k_list = [{"label": lbl, "score": max(float(sc), 0.01)} for lbl, sc in zip(labels, scores)]
+        return {"labels": labels, "scores": scores, "top_k": top_k_list[:top_k]}
+
+    applied = {}
+    raw_fixed = {}
+    if isinstance(result, dict):
+        for cat, info in result.items():
+            fixed = fix_scores(info)
+            applied[cat] = [x["label"] for x in fixed["top_k"]]
+            raw_fixed[cat] = fixed
+    else:
+        raw_fixed = {"_predictions": {"top_k": result}}
+        applied = {"_predictions": [x["label"] for x in result]}
+
+    best_fit = infer_project_type(text, applied)
+
+    # Build final response ensuring best_fit_project_type is last
+    response_payload = {
+        "status": "success",
+        "top_k": top_k,
+        "applied": applied,
+        "raw": raw_fixed,
+    }
+    response_payload["best_fit_project_type"] = best_fit  # append last
+
+    return jsonify(response_payload)
+
 # -------- NEW: CV/Resume Parsing Endpoint --------
 @app.route("/parse_resume", methods=["POST"])
 @cross_origin()  # optional
@@ -456,4 +533,3 @@ except Exception:
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "5000"))
-    app.run(host="0.0.0.0", port=port)
