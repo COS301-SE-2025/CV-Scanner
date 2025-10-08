@@ -9,7 +9,6 @@ import {
   Button,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import { apiFetch } from "../lib/api";
 import { useNavigate } from "react-router-dom";
 
@@ -17,22 +16,6 @@ export default function ConfigAlert() {
   const [open, setOpen] = useState(false);
   const [progress, setProgress] = useState(100);
   const navigate = useNavigate();
-
-  // Logout handler: invalidate server session, clear client state, notify other tabs and redirect
-  async function handleLogout() {
-    try {
-      await apiFetch("/auth/logout", { method: "POST" }).catch(() => null);
-    } catch {
-      // ignore network errors
-    }
-    try {
-      localStorage.removeItem("user");
-      localStorage.removeItem("userEmail");
-      // notify other tabs / ProtectedRoute to re-check auth
-      localStorage.setItem("auth-change", Date.now().toString());
-    } catch {}
-    navigate("/login", { replace: true });
-  }
 
   // Duration settings
   const displayDuration = 5000; // 5 seconds
@@ -95,22 +78,13 @@ export default function ConfigAlert() {
           <Typography variant="h6" sx={{ fontWeight: "bold" }}>
             Config Update
           </Typography>
-          <Box>
-            <IconButton
-              size="small"
-              onClick={handleLogout}
-              sx={{ color: "#fff", mr: 1 }}
-            >
-              <ExitToAppIcon />
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={() => setOpen(false)}
-              sx={{ color: "#fff" }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </Box>
+          <IconButton
+            size="small"
+            onClick={() => setOpen(false)}
+            sx={{ color: "#fff" }}
+          >
+            <CloseIcon />
+          </IconButton>
         </Box>
 
         {/* Message */}
