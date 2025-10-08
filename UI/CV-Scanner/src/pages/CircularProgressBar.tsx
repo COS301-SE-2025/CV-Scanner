@@ -1,11 +1,29 @@
 import React from "react";
 import { Box, Typography } from "@mui/material";
+import { apiFetch } from "../lib/api";
 
 interface CircularProgressBarProps {
   value: number; // 0-100
   label: string;
   colorStart?: string;
   colorEnd?: string;
+}
+
+// Logout helper: call server to invalidate session, clear client state and notify other tabs
+export async function handleLogout(): Promise<void> {
+  try {
+    await apiFetch("/auth/logout", { method: "POST" }).catch(() => null);
+  } catch {
+    // ignore
+  }
+  try {
+    localStorage.removeItem("user");
+    localStorage.removeItem("userEmail");
+    // notify other tabs / ProtectedRoute to re-check auth
+    localStorage.setItem("auth-change", Date.now().toString());
+  } catch {}
+  // redirect to login
+  window.location.href = "/login";
 }
 
 const CircularProgressBar: React.FC<CircularProgressBarProps> = ({
@@ -18,8 +36,7 @@ const CircularProgressBar: React.FC<CircularProgressBarProps> = ({
   const stroke = 9;
   const normalizedRadius = radius - stroke * 2;
   const circumference = normalizedRadius * 2 * Math.PI;
-  const strokeDashoffset =
-    circumference - (value / 100) * circumference;
+  const strokeDashoffset = circumference - (value / 100) * circumference;
 
   // Calculate color interpolation between start and end
   const interpolateColor = (start: string, end: string, factor: number) => {

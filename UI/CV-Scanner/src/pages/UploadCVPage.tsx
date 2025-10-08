@@ -60,16 +60,16 @@ const safeAiFetch = async (
   options: RequestInit = {}
 ): Promise<Response> => {
   try {
-    // If target is localhost, call it directly from the browser (avoids backend proxy and 500 from remote proxy)
+    // First, try calling the target directly (works if AI allows CORS)
     try {
-      const parsed = new URL(url);
-      if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
-        console.debug("safeAiFetch: calling local AI directly", url);
-        // Preserve the original options (FormData will be sent correctly)
-        return await fetch(url, options);
-      }
-    } catch {
-      // If URL constructor fails, fallthrough to proxy behavior
+      console.debug("safeAiFetch: attempting direct call to", url);
+      return await fetch(url, options);
+    } catch (directErr) {
+      // direct call failed (network/CORS) -> fallback to proxy below
+      console.debug(
+        "safeAiFetch: direct call failed, falling back to proxy",
+        directErr
+      );
     }
 
     // Fallback: proxy via backend so deployed backend can call external AI endpoints
@@ -192,6 +192,22 @@ export default function UploadCVPage() {
 
   const navigate = useNavigate();
 
+  // Logout handler: invalidate server session, clear client state and notify other tabs
+  async function handleLogout() {
+    try {
+      await apiFetch("/auth/logout", { method: "POST" }).catch(() => null);
+    } catch {
+      // ignore network errors
+    }
+    try {
+      localStorage.removeItem("user");
+      localStorage.removeItem("userEmail");
+      // notify other tabs / ProtectedRoute to re-check auth
+      localStorage.setItem("auth-change", Date.now().toString());
+    } catch {}
+    navigate("/login", { replace: true });
+  }
+
   // Helper function for safe extraction
   const safeExtract = (obj: any, key: string): string => {
     if (!obj || typeof obj !== "object") return "";
@@ -266,6 +282,31 @@ export default function UploadCVPage() {
       };
     }
   };
+
+  // Upload helper (call proxy endpoint with FormData)
+  async function handleUpload(file: File) {
+    try {
+      const form = new FormData();
+      form.append("file", file); // backend expects key "file"
+
+      // Use apiFetch which preserves FormData correctly
+      const res = await apiFetch("/cv/proxy-ai", {
+        method: "POST",
+        body: form,
+      } as RequestInit);
+
+      if (!res || !res.ok) {
+        const text = await res?.text().catch(() => "");
+        throw new Error(`Upload failed: ${res?.status ?? "no-res"} ${text}`);
+      }
+
+      const json = await res.json();
+      return { success: true, data: json } as ApiResponse;
+    } catch (err: any) {
+      console.error("Upload/parse error", err);
+      return { success: false, error: err?.message || "Upload error" };
+    }
+  }
 
   // Load user on component mount
   useEffect(() => {
@@ -344,15 +385,16 @@ export default function UploadCVPage() {
       });
       return;
     }
-    loader.show(); 
+    loader.show();
     setLoading(true);
-    
 
     try {
       const formData = new FormData();
       formData.append("file", file);
 
-      const AI_BASE = "http://localhost:5000";
+      // Use deployed AI service
+      const AI_BASE =
+        "https://cv-scanner-ai-cee2d5g9epb0hcg6.southafricanorth-01.azurewebsites.net";
       const uploadEndpoint = `${AI_BASE}/upload_cv?top_k=3`;
       const parseEndpoint = `${AI_BASE}/parse_resume`;
 
@@ -592,11 +634,7 @@ export default function UploadCVPage() {
               </Typography>
             </Box>
 
-            <IconButton
-              color="inherit"
-              onClick={() => navigate("/login")}
-              sx={{ ml: 1 }}
-            >
+            <IconButton color="inherit" onClick={handleLogout} sx={{ ml: 1 }}>
               <ExitToAppIcon />
             </IconButton>
           </Toolbar>

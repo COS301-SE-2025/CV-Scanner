@@ -100,6 +100,21 @@ export default function CandidateNotesPage() {
   };
   const handleCloseTutorial = () => setTutorialStep(-1);
 
+  // Logout handler: invalidate server session, clear local state and notify other tabs
+  async function handleLogout() {
+    try {
+      await apiFetch("/auth/logout", { method: "POST" }).catch(() => null);
+    } catch {
+      // ignore network errors
+    }
+    try {
+      localStorage.removeItem("user");
+      localStorage.removeItem("userEmail");
+      localStorage.setItem("auth-change", Date.now().toString());
+    } catch {}
+    navigate("/login", { replace: true });
+  }
+
   // Notes logic
   const [note, setNote] = useState("");
   const [notes, setNotes] = useState([
@@ -201,11 +216,7 @@ export default function CandidateNotesPage() {
                 </Typography>
               </Box>
               {/* Logout */}
-              <IconButton
-                color="inherit"
-                onClick={() => navigate("/login")}
-                sx={{ ml: 1 }}
-              >
+              <IconButton color="inherit" onClick={handleLogout} sx={{ ml: 1 }}>
                 <ExitToAppIcon />
               </IconButton>
             </Box>
@@ -365,26 +376,24 @@ export default function CandidateNotesPage() {
 
           {/* Tabs Section */}
           <Box sx={{ display: "flex", gap: 3, mb: 4 }}>
-            {["Summary", "Skills", "Experience"].map(
-              (tab, idx) => (
-                <Typography
-                  key={idx}
-                  variant="body1"
-                  sx={{
-                    cursor: "pointer",
-                    color: idx === 3 ? "#0073c1" : "#b0b8c1", // Highlight "Recruiters Notes" tab
-                    fontWeight: idx === 3 ? "bold" : "normal",
-                  }}
-                  onClick={() => {
-                    if (tab === "Summary") navigate("/candidate-review");
-                    if (tab === "Skills") navigate("/candidate-skills");
-                    if (tab === "Experience") navigate("/candidate-experience");
-                  }}
-                >
-                  {tab}
-                </Typography>
-              )
-            )}
+            {["Summary", "Skills", "Experience"].map((tab, idx) => (
+              <Typography
+                key={idx}
+                variant="body1"
+                sx={{
+                  cursor: "pointer",
+                  color: idx === 3 ? "#0073c1" : "#b0b8c1", // Highlight "Recruiters Notes" tab
+                  fontWeight: idx === 3 ? "bold" : "normal",
+                }}
+                onClick={() => {
+                  if (tab === "Summary") navigate("/candidate-review");
+                  if (tab === "Skills") navigate("/candidate-skills");
+                  if (tab === "Experience") navigate("/candidate-experience");
+                }}
+              >
+                {tab}
+              </Typography>
+            ))}
           </Box>
 
           {/* Recruiter Notes Section */}

@@ -55,6 +55,7 @@ import Sidebar from "./Sidebar";
 import ConfigAlert from "./ConfigAlert";
 import { apiFetch } from "../lib/api";
 import React from "react";
+import { ValueType } from "recharts/types/component/DefaultTooltipContent";
 
 export default function CandidatesDashboard() {
   const [collapsed, setCollapsed] = useState(false);
@@ -105,6 +106,91 @@ export default function CandidatesDashboard() {
   } | null>(null);
 
   const reviewBtnRef = useRef<HTMLButtonElement>(null);
+
+  // --- helpers: add here (after refs/state, before useEffect) ---
+  function parseSkillFallback(input: string | null | undefined): string[] {
+    if (!input) return [];
+    const s = String(input).trim();
+    try {
+      if (s.startsWith("[") || s.startsWith("{")) {
+        const parsed = JSON.parse(s);
+        if (Array.isArray(parsed))
+          return parsed.map((p) => String(p).trim()).filter(Boolean);
+        if (parsed && typeof parsed === "object")
+          return Object.keys(parsed).map((k) => String(k).trim());
+      }
+    } catch {}
+    const cleaned = s.replace(/^[\[\]\{\}"'`]+|[\[\]\{\}"'`]+$/g, "");
+    return cleaned
+      .split(/[,;|\n]/)
+      .map((p) => p.replace(/[^a-zA-Z0-9 .+#\-\+]/g, "").trim())
+      .filter(Boolean);
+  }
+
+  // Normalize label strings for charts/legends
+  function normalizeSkillName(raw: any): string {
+    if (raw == null) return "—";
+    // Prefer first element for arrays
+    if (Array.isArray(raw) && raw.length) return String(raw[0]).trim();
+
+    const s0 = typeof raw === "string" ? raw.trim() : JSON.stringify(raw);
+
+    // Remove common key wrappers like '"skills":', 'skills:' or leading 'skills '
+    let s = s0
+      .replace(/^"?\s*skills"?\s*[:=]\s*/i, "")
+      .replace(/^\s*skills\s*/i, "");
+
+    // Strip escape slashes and surrounding JSON punctuation
+    s = s
+      .replace(/\\+/g, "")
+      .replace(/^[\[\]\{\}"'`]+|[\[\]\{\}"'`]+$/g, "")
+      .trim();
+
+    // If remaining string is JSON, parse and extract inner value
+    try {
+      const parsed = JSON.parse(s);
+      if (Array.isArray(parsed) && parsed.length)
+        return String(parsed[0]).trim();
+      if (parsed && typeof parsed === "object") {
+        // prefer nested skills array or first value
+        if (
+          Array.isArray((parsed as any).skills) &&
+          (parsed as any).skills.length
+        )
+          return String((parsed as any).skills[0]).trim();
+        const keys = Object.keys(parsed);
+        if (keys.length) {
+          const firstVal = parsed[keys[0]];
+          if (Array.isArray(firstVal) && firstVal.length)
+            return String(firstVal[0]).trim();
+          if (firstVal != null) return String(firstVal).trim();
+          return String(keys[0]).trim();
+        }
+      }
+    } catch {
+      // ignore JSON parse errors
+    }
+
+    // Final cleanup: remove stray punctuation and the word "skills" if still present
+    const cleaned = s
+      .replace(/\bskills\b[:\s-]*/i, "")
+      .replace(/[^a-zA-Z0-9 .+#\-\+]/g, " ")
+      .trim();
+    return cleaned || s0;
+  }
+
+  function toNumberSafe(value: any): number {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function cleanSkillDisplay(raw: any): string {
+    if (!raw) return "—";
+    if (Array.isArray(raw)) return raw.map(String).join(", ");
+    const parts = parseSkillFallback(String(raw));
+    return parts.length ? parts.join(", ") : String(raw);
+  }
+  // --- end helpers ---
 
   useEffect(() => {
     document.title = "Candidates Dashboard";
@@ -184,19 +270,29 @@ export default function CandidatesDashboard() {
               let parsed: Array<{ name: string; value: number }> = [];
 
               if (Array.isArray(skillsJson)) {
-                // expected shape: [{ name, value }, ...]
                 parsed = skillsJson
-                  .map((s: any) => ({
-                    name: s?.name ?? s?.label ?? String(s),
-                    value: Number(s?.value ?? s?.count ?? 0),
-                  }))
-                  .filter((it) => it.name && !Number.isNaN(it.value));
+                  .map((s: any) => {
+                    if (typeof s === "string") return { name: s, value: 1 };
+                    const rawName = s?.name ?? s?.label ?? JSON.stringify(s);
+                    return {
+                      name: normalizeSkillName(rawName),
+                      value: toNumberSafe(s?.value ?? s?.count ?? 0),
+                    };
+                  })
+                  .filter((it) => it.name);
               } else if (skillsJson && typeof skillsJson === "object") {
-                // object map: { skill: count, ... }
                 parsed = Object.entries(skillsJson).map(([k, v]) => ({
-                  name: k,
-                  value: Number(v ?? 0),
+                  name: normalizeSkillName(k),
+                  value: toNumberSafe(v),
                 }));
+              } else if (typeof skillsJson === "string") {
+                const parts = parseSkillFallback(skillsJson);
+                parsed = parts.map((p) => ({
+                  name: normalizeSkillName(p),
+                  value: 1,
+                }));
+              } else {
+                parsed = [];
               }
 
               if (parsed.length) {
@@ -219,6 +315,7 @@ export default function CandidatesDashboard() {
             setSkillDistribution([]);
             setSkillError("No response (fetch failed)");
           }
+          // --- end skill distribution ---
 
           // --- Project fit (unchanged logic but keep logging) ---
           if (pfRes) {
@@ -297,8 +394,8 @@ export default function CandidatesDashboard() {
               const topTechJson = await topTechRes.json().catch(() => []);
               if (Array.isArray(topTechJson)) {
                 const techList = topTechJson.map((t: any) => ({
-                  name: t.name,
-                  value: Number(t.value ?? 0),
+                  name: normalizeSkillName(t.name),
+                  value: toNumberSafe(t.value ?? 0),
                 }));
                 setGroupedBarData(techList);
                 setTopTechnologies(techList);
@@ -313,8 +410,8 @@ export default function CandidatesDashboard() {
                 const techJson = await techRes.json().catch(() => []);
                 if (Array.isArray(techJson)) {
                   const bar = techJson.map((t: any) => ({
-                    name: t.name,
-                    value: Number(t.value ?? 0),
+                    name: normalizeSkillName(t.name),
+                    value: toNumberSafe(t.value ?? 0),
                   }));
                   setGroupedBarData(bar);
                   if (bar.length) {
@@ -338,8 +435,8 @@ export default function CandidatesDashboard() {
                 const topJson = await topRes.json().catch(() => []);
                 if (Array.isArray(topJson) && topJson.length) {
                   const list = topJson.map((t: any) => ({
-                    name: t.name,
-                    value: Number(t.value ?? 0),
+                    name: normalizeSkillName(t.name),
+                    value: toNumberSafe(t.value ?? 0),
                   }));
                   setTopTechnologies(list);
                   setTopTechnology(list[0]?.name ?? "—");
@@ -370,6 +467,24 @@ export default function CandidatesDashboard() {
     }, 250);
   };
   const handleCloseTutorial = () => setShowTutorial(false);
+
+  // Logout handler: call server to invalidate session, clear local state and notify other tabs
+  async function handleLogout() {
+    try {
+      await apiFetch("/auth/logout", { method: "POST" }).catch(() => null);
+    } catch {
+      // ignore network errors
+    }
+    // Clear client-side state
+    try {
+      localStorage.removeItem("user");
+      localStorage.removeItem("userEmail");
+      // notify other tabs / ProtectedRoute to re-check auth
+      localStorage.setItem("auth-change", Date.now().toString());
+    } catch {}
+    // navigate to login
+    navigate("/login", { replace: true });
+  }
 
   // real data for graphs (fetched)
   const [candidateTrends, setCandidateTrends] = useState<
@@ -471,11 +586,7 @@ export default function CandidatesDashboard() {
             </Box>
 
             {/* Logout */}
-            <IconButton
-              color="inherit"
-              onClick={() => navigate("/login")}
-              sx={{ ml: 1 }}
-            >
+            <IconButton color="inherit" onClick={handleLogout} sx={{ ml: 1 }}>
               <ExitToAppIcon />
             </IconButton>
           </Toolbar>
@@ -694,7 +805,11 @@ export default function CandidatesDashboard() {
                     outerRadius={60}
                     labelLine={true}
                     label={({ name, percent }) =>
-                      `${name}: ${(percent * 100).toFixed(0)}%`
+                      `${normalizeSkillName(name)}: ${
+                        Number.isFinite(percent)
+                          ? (percent * 100).toFixed(0)
+                          : "0"
+                      }%`
                     }
                   >
                     {(skillDistribution || []).map((entry, index) => (
@@ -705,10 +820,21 @@ export default function CandidatesDashboard() {
                     ))}
                   </Pie>
                   <RechartsTooltip
-                    formatter={(value, name, props) => [
-                      value,
-                      `${name}: ${(props.payload.percent * 100).toFixed(1)}%`,
-                    ]}
+                    formatter={(value, name, props) => {
+                      const pct =
+                        props &&
+                        props.payload &&
+                        typeof props.payload.percent === "number" &&
+                        Number.isFinite(props.payload.percent)
+                          ? (props.payload.percent * 100).toFixed(1)
+                          : "";
+                      return [
+                        toNumberSafe(value),
+                        pct
+                          ? `${normalizeSkillName(name)}: ${pct}%`
+                          : normalizeSkillName(name),
+                      ];
+                    }}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -760,7 +886,11 @@ export default function CandidatesDashboard() {
                     innerRadius={40}
                     outerRadius={60}
                     label={({ name, percent }) =>
-                      `${name}: ${(percent * 100).toFixed(0)}%`
+                      `${normalizeSkillName(name)}: ${
+                        Number.isFinite(percent)
+                          ? (percent * 100).toFixed(0)
+                          : "0"
+                      }%`
                     }
                     labelLine={true}
                   >
@@ -776,10 +906,21 @@ export default function CandidatesDashboard() {
                       backgroundColor: "#2b3a55",
                       borderColor: "#4a5568",
                     }}
-                    formatter={(value, name, props) => [
-                      value,
-                      `${name}: ${(props.payload.percent * 100).toFixed(1)}%`,
-                    ]}
+                    formatter={(value, name, props) => {
+                      const pct =
+                        props &&
+                        props.payload &&
+                        typeof props.payload.percent === "number" &&
+                        Number.isFinite(props.payload.percent)
+                          ? (props.payload.percent * 100).toFixed(1)
+                          : "";
+                      return [
+                        toNumberSafe(value),
+                        pct
+                          ? `${normalizeSkillName(name)}: ${pct}%`
+                          : normalizeSkillName(name),
+                      ];
+                    }}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -849,7 +990,9 @@ export default function CandidatesDashboard() {
                   {recent.map((candidate, idx) => (
                     <TableRow key={candidate.id ?? idx}>
                       <TableCell>{candidate.name}</TableCell>
-                      <TableCell>{candidate.skills || "—"}</TableCell>
+                      <TableCell>
+                        {cleanSkillDisplay(candidate.skills)}
+                      </TableCell>
                       <TableCell>{candidate.fit || "N/A"}</TableCell>
                       <TableCell>
                         <Button

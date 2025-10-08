@@ -354,6 +354,22 @@ const ParsedCVData: React.FC = () => {
     })();
   }, []);
 
+  // Logout handler: invalidate server session, clear local state and notify other tabs
+  async function handleLogout() {
+    try {
+      await apiFetch("/auth/logout", { method: "POST" }).catch(() => null);
+    } catch {
+      // ignore network errors
+    }
+    try {
+      localStorage.removeItem("user");
+      localStorage.removeItem("userEmail");
+      // notify other tabs / ProtectedRoute to re-check auth
+      localStorage.setItem("auth-change", Date.now().toString());
+    } catch {}
+    navigate("/login", { replace: true });
+  }
+
   const displayName = useMemo(() => {
     if (!user) return "User";
     if (user.first_name) {
@@ -461,11 +477,7 @@ const ParsedCVData: React.FC = () => {
               <Typography variant="subtitle1">{displayName}</Typography>
             </Box>
 
-            <IconButton
-              color="inherit"
-              onClick={() => navigate("/login")}
-              sx={{ ml: 1 }}
-            >
+            <IconButton color="inherit" onClick={handleLogout} sx={{ ml: 1 }}>
               <ExitToAppIcon />
             </IconButton>
           </Box>

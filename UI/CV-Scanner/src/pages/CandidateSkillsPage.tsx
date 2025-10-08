@@ -94,6 +94,22 @@ export default function CandidateSkillsPage() {
   };
   const handleCloseTutorial = () => setTutorialStep(-1);
 
+  // Logout handler: invalidate server session, clear client state, notify other tabs and redirect
+  async function handleLogout() {
+    try {
+      await apiFetch("/auth/logout", { method: "POST" }).catch(() => null);
+    } catch {
+      // ignore network errors
+    }
+    try {
+      localStorage.removeItem("user");
+      localStorage.removeItem("userEmail");
+      // notify other tabs / ProtectedRoute to re-check auth
+      localStorage.setItem("auth-change", Date.now().toString());
+    } catch {}
+    navigate("/login", { replace: true });
+  }
+
   // Skills logic
   const [skills, setSkills] = useState<string[]>([
     ".NET",
@@ -199,11 +215,7 @@ export default function CandidateSkillsPage() {
               </Box>
 
               {/* Logout */}
-              <IconButton
-                color="inherit"
-                onClick={() => navigate("/login")}
-                sx={{ ml: 1 }}
-              >
+              <IconButton color="inherit" onClick={handleLogout} sx={{ ml: 1 }}>
                 <ExitToAppIcon />
               </IconButton>
             </Box>
@@ -357,26 +369,24 @@ export default function CandidateSkillsPage() {
 
           {/* Tabs Section */}
           <Box sx={{ display: "flex", gap: 3, mb: 4 }}>
-            {["Summary", "Skills", "Experience"].map(
-              (tab, idx) => (
-                <Typography
-                  key={idx}
-                  variant="body1"
-                  sx={{
-                    cursor: "pointer",
-                    color: idx === 1 ? "#0073c1" : "#b0b8c1", // Highlight "Skills" tab
-                    fontWeight: idx === 1 ? "bold" : "normal",
-                  }}
-                  onClick={() => {
-                    if (tab === "Summary") navigate("/candidate-review");
-                    if (tab === "Skills") navigate("/candidate-skills");
-                    if (tab === "Experience") navigate("/candidate-experience");
-                  }}
-                >
-                  {tab}
-                </Typography>
-              )
-            )}
+            {["Summary", "Skills", "Experience"].map((tab, idx) => (
+              <Typography
+                key={idx}
+                variant="body1"
+                sx={{
+                  cursor: "pointer",
+                  color: idx === 1 ? "#0073c1" : "#b0b8c1", // Highlight "Skills" tab
+                  fontWeight: idx === 1 ? "bold" : "normal",
+                }}
+                onClick={() => {
+                  if (tab === "Summary") navigate("/candidate-review");
+                  if (tab === "Skills") navigate("/candidate-skills");
+                  if (tab === "Experience") navigate("/candidate-experience");
+                }}
+              >
+                {tab}
+              </Typography>
+            ))}
           </Box>
 
           {/* Skills Section */}

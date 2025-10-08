@@ -28,6 +28,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 
 @RestController
 @CrossOrigin(origins = "*")
@@ -79,7 +81,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
         if (request.email == null || request.password == null) {
             return ResponseEntity.badRequest().body(Collections.singletonMap("message", "Email and password are required."));
         }
@@ -93,6 +95,10 @@ public class AuthController {
                     "UPDATE users SET last_login = GETDATE() WHERE email = ?",
                     request.email
                 );
+                // create server session for cookie-based auth
+                HttpSession session = httpRequest.getSession(true);
+                session.setAttribute("email", request.email);
+                // optional: set other session attributes, or setMaxInactiveInterval(...)
                 return ResponseEntity.ok(Collections.singletonMap("message", "Login successful"));
             } else {
                 return ResponseEntity.status(401).body(Collections.singletonMap("message", "Invalid email or password."));
@@ -102,12 +108,41 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletRequest httpRequest) {
+        try {
+            HttpSession session = httpRequest.getSession(false);
+            if (session != null) {
+                session.invalidate();
+            }
+            return ResponseEntity.ok(Collections.singletonMap("message", "Logged out"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Collections.singletonMap("message", "Failed to logout"));
+        }
+    }
+    
     @GetMapping("/me")
-    public ResponseEntity<?> getCurrentUser(@RequestParam String email) {
+    public ResponseEntity<?> getCurrentUser(@RequestParam(required = false) String email, HttpServletRequest httpRequest) {
+        String emailToUse = email;
+        // If no email param, try session
+        if (emailToUse == null) {
+            HttpSession session = httpRequest.getSession(false);
+            if (session != null) {
+                Object e = session.getAttribute("email");
+                if (e != null) emailToUse = e.toString();
+            }
+        }
+
+        if (emailToUse == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Collections.singletonMap("message", "Unauthenticated"));
+        }
+
         try {
             var user = jdbcTemplate.queryForMap(
                 "SELECT username, email, first_name, last_name, role FROM users WHERE email = ? AND is_active = 1",
-                email
+                emailToUse
             );
             return ResponseEntity.ok(user);
         } catch (Exception e) {

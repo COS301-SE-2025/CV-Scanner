@@ -1,9 +1,11 @@
 import { Box, Typography, Chip, Button } from "@mui/material";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 
 export default function ConfigViewer() {
   const [config, setConfig] = useState<Record<string, string[]>>({});
+  const navigate = useNavigate();
 
   const fetchConfig = async () => {
     try {
@@ -23,6 +25,21 @@ export default function ConfigViewer() {
     fetchConfig();
   }, []);
 
+  // Logout handler: call server to invalidate session, clear client state and notify other tabs
+  async function handleLogout() {
+    try {
+      await apiFetch("/auth/logout", { method: "POST" }).catch(() => null);
+    } catch {
+      // ignore
+    }
+    try {
+      localStorage.removeItem("user");
+      localStorage.removeItem("userEmail");
+      localStorage.setItem("auth-change", Date.now().toString());
+    } catch {}
+    navigate("/login", { replace: true });
+  }
+
   return (
     <Box
       sx={{
@@ -38,19 +55,35 @@ export default function ConfigViewer() {
         <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: "1rem" }}>
           System Search Config
         </Typography>
-        <Button
-          variant="contained"
-          size="small"
-          onClick={fetchConfig}
-          sx={{
-            textTransform: "none",
-            bgcolor: "#5a88ad",
-            fontSize: "0.75rem",
-            "&:hover": { bgcolor: "#487DA6" },
-          }}
-        >
-          Refresh
-        </Button>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={fetchConfig}
+            sx={{
+              textTransform: "none",
+              bgcolor: "#5a88ad",
+              fontSize: "0.75rem",
+              "&:hover": { bgcolor: "#487DA6" },
+            }}
+          >
+            Refresh
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={handleLogout}
+            sx={{
+              textTransform: "none",
+              borderColor: "#b00",
+              color: "#b00",
+              fontSize: "0.75rem",
+              "&:hover": { borderColor: "#900", color: "#900" },
+            }}
+          >
+            Logout
+          </Button>
+        </Box>
       </Box>
 
       {/* Config Columns */}

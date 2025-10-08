@@ -429,6 +429,22 @@ export default function Search() {
     }, 250);
   };
   const handleCloseTutorial = () => setTutorialStep(-1);
+
+  // Logout handler: invalidate server session, clear local state and notify other tabs
+  async function handleLogout() {
+    try {
+      await apiFetch("/auth/logout", { method: "POST" }).catch(() => null);
+    } catch {
+      // ignore network errors
+    }
+    try {
+      localStorage.removeItem("user");
+      localStorage.removeItem("userEmail");
+      // notify other tabs / ProtectedRoute to re-check auth
+      localStorage.setItem("auth-change", Date.now().toString());
+    } catch {}
+    navigate("/login", { replace: true });
+  }
   const reExtractCandidate = async (candidate: CandidateCard) => {
     const email = candidate.email;
     if (!email) return;
@@ -532,11 +548,7 @@ export default function Search() {
             </Box>
 
             {/* Logout */}
-            <IconButton
-              color="inherit"
-              onClick={() => navigate("/login")}
-              sx={{ ml: 1 }}
-            >
+            <IconButton color="inherit" onClick={handleLogout} sx={{ ml: 1 }}>
               <ExitToAppIcon />
             </IconButton>
           </Toolbar>
@@ -1056,12 +1068,37 @@ function makeFriendlyFilename(candidateName: string, original?: string | null) {
       .slice(0, 3)
       .join("_")
       .replace(/[^A-Za-z0-9_]/g, "") || "Candidate";
+
+  // If nothing provided, fabricate a default
   if (!original) return `${safeBase}_CV.pdf`;
-  if (isUuid(original) || !hasExtension(original)) {
-    // Try to extract extension from any hidden pattern, else default .pdf
-    let extMatch = original.match(/\.([A-Za-z0-9]{2,6})$/);
-    const ext = extMatch ? `.${extMatch[1]}` : ".pdf";
-    return `${safeBase}_CV${ext}`;
+
+  // Trim & reduce any accidental URL to its basename
+  let name = (original || "").trim();
+  name = basenameFromUrl(name) || name;
+
+  // Extract extension (if any)
+  let ext = "";
+  let base = name;
+  const extMatch = name.match(/\.([A-Za-z0-9]{2,6})$/);
+  if (extMatch) {
+    ext = `.${extMatch[1]}`;
+    base = name.slice(0, -ext.length);
   }
-  return original;
+
+  // Fallback extension if missing
+  if (!ext) ext = ".pdf";
+
+  // Clean base
+  base = base.replace(/[^A-Za-z0-9_\-]/g, "_").replace(/_+/g, "_").replace(/^_+|_+$/g, "");
+  if (!base) base = safeBase;
+
+  // If the base is just a UUID or a very generic word, replace with candidate-based name
+  if (isUuid(base) || /^(resume|cv|document|file)$/i.test(base)) {
+    base = `${safeBase}_CV`;
+  }
+
+  // Limit length to avoid filesystem issues
+  if (base.length > 60) base = base.slice(0, 60);
+
+  return `${base}${ext}`;
 }
