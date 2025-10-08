@@ -27,15 +27,11 @@ export default function HelpPage() {
 
 
 //const manualHref = new URL("User_Manual_FINAL.pdf", import.meta.env.BASE_URL).toString()
-//const manualHref = new URL("../assets/User_Manual_FINAL.pdf", import.meta.url).href;
+const manualHref = new URL("../assets/User_Manual_FINAL.pdf", import.meta.url).href;
 // inside HelpPage, before return
 //const manualHref = new URL("User_Manual_FINAL.pdf", document.baseURI).toString();
 //const manualHref = `${window.location.origin}/User_Manual_FINAL.pdf`;
-function basePath() {
-  const b = document.querySelector('base')?.getAttribute('href') || '/';
-  return b.endsWith('/') ? b : b + '/';
-}
-const manualHref=new URL(`${basePath()}User_Manual_FINAL.pdf`, window.location.origin).toString();
+
 
 
 
