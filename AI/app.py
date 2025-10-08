@@ -31,8 +31,15 @@ logging.info("Runtime device: %s (cuda_available=%s)", DEVICE_ID, torch.cuda.is_
 
 # Flask app setup
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": ["*", "http://localhost", "https://jolly-bay-0e45d8b03.2.azurestaticapps.net"]}},
-     supports_credentials=True)
+CORS(app,
+     origins=[
+         "http://localhost",
+         "http://localhost:3000",
+         "https://jolly-bay-0e45d8b03.2.azurestaticapps.net"
+     ],
+     methods=["GET", "POST", "OPTIONS"],
+     allow_headers=["Content-Type", "Authorization"],
+     supports_credentials=False)
 
 gunicorn_logger = logging.getLogger("gunicorn.error")
 if gunicorn_logger.handlers:
