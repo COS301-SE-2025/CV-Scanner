@@ -10,28 +10,55 @@ import {
   Button,
   TextField,
   Paper,
+  Tooltip,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useNavigate } from "react-router-dom";
-import logo2 from "../assets/logo2.png";
-import logo from "../assets/logo.png";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import logoNavbar from "../assets/logoNavbar.png";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import { apiFetch } from "../lib/api";
+
+const devUser = {
+  email: "dev@example.com",
+  first_name: "John",
+  last_name: "Doe",
+  role: "Admin",
+};
 
 export default function HelpPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [user, setUser] = useState<any>(null);
 
+  // Load user data
+  useEffect(() => {
+    (async () => {
+      try {
+        const email = localStorage.getItem("userEmail") || devUser.email;
+        try {
+          const meRes = await apiFetch(
+            `/auth/me?email=${encodeURIComponent(email)}`
+          );
+          if (meRes && meRes.ok) {
+            const meJson = await meRes.json().catch(() => null);
+            setUser(meJson);
+          } else {
+            setUser(null);
+          }
+        } catch {
+          setUser(null);
+        }
+      } catch (e) {
+        console.warn("Failed loading user:", e);
+        setUser(null);
+      }
+    })();
+  }, []);
 
-//const manualHref = new URL("User_Manual_FINAL.pdf", import.meta.env.BASE_URL).toString()
-//const manualHref = new URL("User_Manual_FINAL.pdf", document.baseURI).toString();
-const manualHref=new URL("../assets/USER_MANUAL_FINAL.pdf", import.meta.url).href;
-
-
-
+  const manualHref = new URL("../assets/USER_MANUAL_FINAL.pdf", import.meta.url).href;
 
   // Logout handler: invalidate server session, clear client state and notify other tabs
   async function handleLogout() {
@@ -87,124 +114,164 @@ const manualHref=new URL("../assets/USER_MANUAL_FINAL.pdf", import.meta.url).hre
         flexDirection: "column",
       }}
     >
-      {/* Top App Bar */}
-      <AppBar position="static" sx={{ bgcolor: "#232A3B", boxShadow: "none" }}>
-        <Toolbar sx={{ justifyContent: "space-between" }}>
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            <img src={logoNavbar} alt="Logo" style={{ width: 80 }} />
-            <Typography
-              variant="h6"
+      {/* Main content area with header */}
+      <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+        <AppBar
+          position="static"
+          sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
+        >
+          <Toolbar sx={{ justifyContent: "flex-end" }}>
+            <Tooltip title="Go to Help Page" arrow>
+              <IconButton
+                onClick={() => navigate("/help")}
+                sx={{ ml: 1, color: "#90ee90" }}
+              >
+                <HelpOutlineIcon />
+              </IconButton>
+            </Tooltip>
+
+            <Box
+              onClick={() => navigate("/settings")}
               sx={{
-                fontFamily: "Helvetica, sans-serif",
+                display: "flex",
+                alignItems: "center",
                 ml: 2,
-                fontWeight: "bold",
+                cursor: "pointer",
               }}
             >
-              CV Scanner Help
-            </Typography>
-          </Box>
+              <AccountCircleIcon sx={{ mr: 1 }} />
+              <Typography variant="subtitle1">
+                {user
+                  ? user.first_name
+                    ? `${user.first_name} ${user.last_name || ""} (${
+                        user.role || "User"
+                      })`
+                    : (user.username || user.email) +
+                      (user.role ? ` (${user.role})` : "")
+                  : "User"}
+              </Typography>
+            </Box>
 
-          <Box>
-            <IconButton
-              size="small"
-              onClick={() => navigate("/dashboard")}
-              sx={{ color: "#fff", mr: 1 }}
-            >
-              Back
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={handleLogout}
-              sx={{ color: "#fff" }}
-            >
+            <IconButton color="inherit" onClick={handleLogout} sx={{ ml: 1 }}>
               <ExitToAppIcon />
             </IconButton>
-          </Box>
-        </Toolbar>
-      </AppBar>
+          </Toolbar>
+        </AppBar>
 
-      {/* FAQ Section */}
-      <Box sx={{ p: 4, flexGrow: 1 }}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate("/dashboard")}
-          sx={{
-            mb: 2,
-            color: "#0073c1",
-            fontWeight: "bold",
-            textTransform: "none",
-            "&:hover": {
-              backgroundColor: "rgba(0, 115, 193, 0.1)",
-            },
-          }}
-        >
-          Back to Dashboard
-        </Button>
-        <Typography
-          variant="h5"
-          sx={{
-            fontFamily: "Helvetica, sans-serif",
-            fontWeight: "bold",
-            mb: 3,
-          }}
-        >
-          Frequently Asked Questions
-        </Typography>
-
-        {filteredFaqs.length > 0 ? (
-          filteredFaqs.map((faq, index) => (
-            <Accordion
-              key={index}
-              sx={{ mb: 2, bgcolor: "#e1f4ff", color: "#000", borderRadius: 1 }}
-            >
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography
-                  variant="subtitle1"
-                  sx={{
-                    fontFamily: "Helvetica, sans-serif",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {faq.question}
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Typography variant="body1">{faq.answer}</Typography>
-              </AccordionDetails>
-            </Accordion>
-          ))
-        ) : (
-          <Paper
+        {/* FAQ Section */}
+        <Box sx={{ p: 4, flexGrow: 1 }}>
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate("/dashboard")}
             sx={{
-              p: 3,
-              textAlign: "center",
-              bgcolor: "#fefefe",
-              borderRadius: 1,
+              mb: 2,
+              color: "#0073c1",
+              fontWeight: "bold",
+              textTransform: "none",
+              "&:hover": {
+                backgroundColor: "rgba(0, 115, 193, 0.1)",
+              },
             }}
           >
-            <Typography variant="body1" sx={{ color: "#000" }}>
-              No results found for your question.
-            </Typography>
-          </Paper>
-        )}
-      </Box>
+            Back to Dashboard
+          </Button>
+          
+          <Typography
+            variant="h5"
+            sx={{
+              fontFamily: "Helvetica, sans-serif",
+              fontWeight: "bold",
+              mb: 3,
+            }}
+          >
+            Frequently Asked Questions
+          </Typography>
 
-      <Button
-        variant="contained"
-        href={manualHref}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        View Help Guide (PDF)
-      </Button>
+          {/* Search Field */}
+          <TextField
+            fullWidth
+            placeholder="Search FAQs..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            sx={{
+              mb: 3,
+              "& .MuiOutlinedInput-root": { 
+                bgcolor: "white",
+                "& fieldset": { borderColor: "#93AFF7" },
+                "&:hover fieldset": { borderColor: "#93AFF7" },
+                "&.Mui-focused fieldset": { borderColor: "#93AFF7" },
+              },
+            }}
+          />
 
-      {/* Footer */}
-      <Box
-        sx={{ textAlign: "center", py: 2, bgcolor: "#232A3B", color: "#fff" }}
-      >
-        <Typography variant="body2">
-          &copy; {new Date().getFullYear()} Entelect CV Scanner Help Center
-        </Typography>
+          {filteredFaqs.length > 0 ? (
+            filteredFaqs.map((faq, index) => (
+              <Accordion
+                key={index}
+                sx={{ mb: 2, bgcolor: "#e1f4ff", color: "#000", borderRadius: 1 }}
+              >
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{
+                      fontFamily: "Helvetica, sans-serif",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {faq.question}
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Typography variant="body1">{faq.answer}</Typography>
+                </AccordionDetails>
+              </Accordion>
+            ))
+          ) : (
+            <Paper
+              sx={{
+                p: 3,
+                textAlign: "center",
+                bgcolor: "#fefefe",
+                borderRadius: 1,
+              }}
+            >
+              <Typography variant="body1" sx={{ color: "#000" }}>
+                No results found for your question.
+              </Typography>
+            </Paper>
+          )}
+
+          {/* PDF Button */}
+          <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+            <Button
+              variant="contained"
+              href={manualHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{
+                bgcolor: "#93AFF7",
+                color: "#0D1B2A",
+                fontWeight: "bold",
+                px: 4,
+                py: 1.5,
+                "&:hover": {
+                  bgcolor: "#7A9FE8",
+                },
+              }}
+            >
+              View Help Guide (PDF)
+            </Button>
+          </Box>
+        </Box>
+
+        {/* Footer */}
+        <Box
+          sx={{ textAlign: "center", py: 2, bgcolor: "#232A3B", color: "#fff" }}
+        >
+          <Typography variant="body2">
+            &copy; {new Date().getFullYear()} Entelect CV Scanner Help Center
+          </Typography>
+        </Box>
       </Box>
     </Box>
   );
