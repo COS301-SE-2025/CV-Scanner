@@ -151,16 +151,6 @@ const manualHref=new URL("../assets/USER_MANUAL_FINAL.pdf", import.meta.url).hre
           Frequently Asked Questions
         </Typography>
 
-        <TextField
-          fullWidth
-          variant="outlined"
-          placeholder="Ask a question..."
-          size="medium"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          sx={{ mb: 4, bgcolor: "#d1dbe5ff", borderRadius: 1 }}
-        />
-
         {filteredFaqs.length > 0 ? (
           filteredFaqs.map((faq, index) => (
             <Accordion
