@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -24,7 +24,6 @@ import {
   CircularProgress,
   Checkbox,
   FormControlLabel,
-  Grid,
   LinearProgress,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
@@ -47,14 +46,6 @@ type Candidate = {
   cvFileType?: string | null;
   filename?: string | null;
   score?: number;
-  detailedData?: {
-    skills: string[];
-    experience: string[];
-    projects: string[];
-    education?: string[];
-    certifications?: string[];
-    languages?: string[];
-  };
 };
 
 const devUser = {
@@ -69,10 +60,6 @@ interface ComparisonData {
   candidateB: Candidate | null;
   skillsA: { [key: string]: boolean };
   skillsB: { [key: string]: boolean };
-  experienceA: { [key: string]: boolean };
-  experienceB: { [key: string]: boolean };
-  projectsA: { [key: string]: boolean };
-  projectsB: { [key: string]: boolean };
 }
 
 interface ComparisonResult {
@@ -80,8 +67,6 @@ interface ComparisonResult {
   candidateBScore: number;
   breakdown: {
     skills: { a: number; b: number };
-    experience: { a: number; b: number };
-    projects: { a: number; b: number };
     baseScore: { a: number; b: number };
   };
 }
@@ -94,7 +79,7 @@ export default function CompareCandidates() {
   const [collapsed, setCollapsed] = useState(false);
   const [user, setUser] = useState<any>(null);
 
-  // Logout handler: invalidate server session, clear client state, notify other tabs and redirect
+  // Logout handler
   async function handleLogout() {
     try {
       await apiFetch("/auth/logout", { method: "POST" }).catch(() => null);
@@ -104,7 +89,6 @@ export default function CompareCandidates() {
     try {
       localStorage.removeItem("user");
       localStorage.removeItem("userEmail");
-      // notify other tabs / ProtectedRoute to re-check auth
       localStorage.setItem("auth-change", Date.now().toString());
     } catch {}
     navigate("/login", { replace: true });
@@ -115,28 +99,22 @@ export default function CompareCandidates() {
   const [candidateB, setCandidateB] = useState<Candidate | null>(null);
   const [compareResult, setCompareResult] = useState<string | null>(null);
   const [skillsDialogOpen, setSkillsDialogOpen] = useState(false);
-  const [selectedCandidateSkills, setSelectedCandidateSkills] = useState<
-    string[]
-  >([]);
+  const [selectedCandidateSkills, setSelectedCandidateSkills] = useState<string[]>([]);
   const [selectedCandidateName, setSelectedCandidateName] = useState("");
   const [searchTermA, setSearchTermA] = useState("");
   const [searchTermB, setSearchTermB] = useState("");
 
-  // Comparison state
+  // Comparison state - SIMPLIFIED
   const [comparisonData, setComparisonData] = useState<ComparisonData>({
     candidateA: null,
     candidateB: null,
     skillsA: {},
     skillsB: {},
-    experienceA: {},
-    experienceB: {},
-    projectsA: {},
-    projectsB: {},
   });
 
   const [comparisonResult, setComparisonResult] = useState<ComparisonResult | null>(null);
 
-  // Score ring (same visual as Search)
+  // Score ring
   function scoreColor(value: number) {
     const v = Math.max(0, Math.min(10, value));
     const hue = (v / 10) * 120;
@@ -183,7 +161,7 @@ export default function CompareCandidates() {
     );
   }
 
-  // Helpers copied from Search
+  // Helper functions
   function basenameFromUrl(url?: string | null) {
     if (!url) return null;
     try {
@@ -266,157 +244,7 @@ export default function CompareCandidates() {
     return Math.max(0, Math.min(10, p / 10));
   }
 
-  // Load detailed candidate data - IMPROVED PARSING
-  const loadCandidateDetails = async (candidateId: number | string): Promise<Candidate['detailedData']> => {
-    try {
-      const response = await apiFetch(`/cv/candidate/${candidateId}/details`);
-      if (response && response.ok) {
-        const data = await response.json();
-        
-        console.log('Raw candidate details:', data); // Debug log
-
-        // Parse the data structure from your example
-        const skills = Array.isArray(data.skills) ? data.skills : [];
-        const experience = data.sections?.experience 
-          ? parseExperienceSection(data.sections.experience)
-          : [];
-        const projects = data.sections?.projects
-          ? parseProjectsSection(data.sections.projects)
-          : [];
-        const education = data.sections?.education
-          ? parseSection(data.sections.education)
-          : [];
-        const certifications = Array.isArray(data.certifications) ? data.certifications : [];
-        const languages = Array.isArray(data.languages) ? data.languages : [];
-
-        return {
-          skills,
-          experience,
-          projects,
-          education,
-          certifications,
-          languages
-        };
-      }
-    } catch (error) {
-      console.warn(`Failed to load details for candidate ${candidateId}:`, error);
-    }
-    
-    // Fallback to basic skills if detailed data not available
-    const candidate = candidates.find(c => c.id === candidateId);
-    return {
-      skills: candidate?.skills || [],
-      experience: [],
-      projects: [],
-      education: [],
-      certifications: [],
-      languages: []
-    };
-  };
-
-  // Improved parsing for experience section
-  const parseExperienceSection = (experienceData: any): string[] => {
-    if (Array.isArray(experienceData)) {
-      return experienceData;
-    }
-    
-    if (typeof experienceData === 'string') {
-      // Try to parse string as array first
-      try {
-        const parsed = JSON.parse(experienceData);
-        if (Array.isArray(parsed)) return parsed;
-      } catch {
-        // If not JSON, parse the complex string structure
-        return parseComplexExperienceString(experienceData);
-      }
-    }
-    
-    return [];
-  };
-
-  // Parse complex experience string like in your example
-  const parseComplexExperienceString = (experienceString: string): string[] => {
-    const experiences: string[] = [];
-    
-    // Split by common job title indicators
-    const jobSections = experienceString.split(/(?=\w+ — \w+ \(\d+ years?\))/);
-    
-    jobSections.forEach(section => {
-      if (section.trim()) {
-        // Extract job title and company
-        const titleMatch = section.match(/(.+?) — (.+?) \(\d+ years?\)/);
-        if (titleMatch) {
-          const [, title, company] = titleMatch;
-          experiences.push(`${title.trim()} — ${company.trim()}`);
-          
-          // Extract responsibilities (lines that don't start with job titles)
-          const responsibilities = section.split('\n')
-            .filter(line => line.trim() && !line.match(/^(.+?) — (.+?) \(\d+ years?\)/))
-            .filter(line => !line.toLowerCase().includes('education') && 
-                          !line.toLowerCase().includes('selected projects') &&
-                          !line.toLowerCase().includes('certifications'));
-          
-          responsibilities.forEach(resp => {
-            if (resp.trim() && resp.trim().length > 10) { // Minimum length filter
-              experiences.push(`  • ${resp.trim()}`);
-            }
-          });
-        } else {
-          // If no job title pattern, add as individual items
-          const items = section.split(/[•\-\n]/)
-            .filter(item => item.trim().length > 10) // Filter out very short items
-            .map(item => item.trim());
-          
-          experiences.push(...items);
-        }
-      }
-    });
-    
-    return experiences.filter(exp => exp.trim().length > 0);
-  };
-
-  // Improved parsing for projects section
-  const parseProjectsSection = (projectsData: any): string[] => {
-    if (Array.isArray(projectsData)) {
-      return projectsData;
-    }
-    
-    if (typeof projectsData === 'string') {
-      try {
-        const parsed = JSON.parse(projectsData);
-        if (Array.isArray(parsed)) return parsed;
-      } catch {
-        // Parse project string
-        return projectsData.split(/[•\-\n]/)
-          .filter(project => project.trim().length > 10) // Filter out very short items
-          .map(project => project.trim())
-          .filter(project => !project.toLowerCase().includes('certifications') && 
-                            !project.toLowerCase().includes('generated on'));
-      }
-    }
-    
-    return [];
-  };
-
-  // Generic section parser for education
-  const parseSection = (sectionData: any): string[] => {
-    if (Array.isArray(sectionData)) {
-      return sectionData;
-    }
-    
-    if (typeof sectionData === 'string') {
-      try {
-        const parsed = JSON.parse(sectionData);
-        if (Array.isArray(parsed)) return parsed;
-      } catch {
-        return sectionData.split(/[•\-\n]/).filter((item: string) => item.trim().length > 0);
-      }
-    }
-    
-    return [];
-  };
-
-  // Load user and integrated candidate data
+  // Load user and candidate data
   useEffect(() => {
     (async () => {
       try {
@@ -573,49 +401,21 @@ export default function CompareCandidates() {
     })();
   }, []);
 
-  // Load detailed data when candidates are selected
-  useEffect(() => {
-    const loadDetailedData = async () => {
-      if (candidateA && !candidateA.detailedData) {
-        const detailedData = await loadCandidateDetails(candidateA.id);
-        setCandidateA(prev => prev ? { ...prev, detailedData } : null);
-      }
-      if (candidateB && !candidateB.detailedData) {
-        const detailedData = await loadCandidateDetails(candidateB.id);
-        setCandidateB(prev => prev ? { ...prev, detailedData } : null);
-      }
-    };
-
-    loadDetailedData();
-  }, [candidateA, candidateB]);
-
   // Initialize comparison data when candidates are selected
   useEffect(() => {
     if (candidateA && candidateB) {
       const skillsA: { [key: string]: boolean } = {};
       const skillsB: { [key: string]: boolean } = {};
-      const experienceA: { [key: string]: boolean } = {};
-      const experienceB: { [key: string]: boolean } = {};
-      const projectsA: { [key: string]: boolean } = {};
-      const projectsB: { [key: string]: boolean } = {};
 
       // Initialize all checkboxes as unchecked
-      candidateA.detailedData?.skills?.forEach(skill => { skillsA[skill] = false; });
-      candidateB.detailedData?.skills?.forEach(skill => { skillsB[skill] = false; });
-      candidateA.detailedData?.experience?.forEach(exp => { experienceA[exp] = false; });
-      candidateB.detailedData?.experience?.forEach(exp => { experienceB[exp] = false; });
-      candidateA.detailedData?.projects?.forEach(project => { projectsA[project] = false; });
-      candidateB.detailedData?.projects?.forEach(project => { projectsB[project] = false; });
+      candidateA.skills?.forEach(skill => { skillsA[skill] = false; });
+      candidateB.skills?.forEach(skill => { skillsB[skill] = false; });
 
       setComparisonData({
         candidateA,
         candidateB,
         skillsA,
         skillsB,
-        experienceA,
-        experienceB,
-        projectsA,
-        projectsB,
       });
     }
   }, [candidateA, candidateB]);
@@ -661,64 +461,42 @@ export default function CompareCandidates() {
     setSelectedCandidateName("");
   };
 
-  // Handle checkbox changes
-  const handleCheckboxChange = (section: 'skills' | 'experience' | 'projects', candidate: 'A' | 'B', item: string) => {
+  // Handle checkbox changes - SIMPLIFIED
+  const handleCheckboxChange = (candidate: 'A' | 'B', skill: string) => {
     setComparisonData(prev => ({
       ...prev,
-      [`${section}${candidate}`]: {
-        ...prev[`${section}${candidate}` as keyof Omit<ComparisonData, 'candidateA' | 'candidateB'>],
-        [item]: !prev[`${section}${candidate}` as keyof Omit<ComparisonData, 'candidateA' | 'candidateB'>][item]
+      [`skills${candidate}`]: {
+        ...prev[`skills${candidate}`],
+        [skill]: !prev[`skills${candidate}`][skill]
       }
     }));
   };
 
-  // Calculate comparison results - UPDATED SCORING
+  // Calculate comparison results - UPDATED WEIGHTS
   const calculateComparison = () => {
     if (!candidateA || !candidateB) return;
 
-    // Skills (50% of total)
+    // Skills (25% of total)
     const skillsACount = Object.keys(comparisonData.skillsA).length;
     const skillsBCount = Object.keys(comparisonData.skillsB).length;
     const skillsASelected = Object.values(comparisonData.skillsA).filter(Boolean).length;
     const skillsBSelected = Object.values(comparisonData.skillsB).filter(Boolean).length;
     
-    const skillsAScore = skillsACount > 0 ? (skillsASelected / skillsACount) * 50 : 0;
-    const skillsBScore = skillsBCount > 0 ? (skillsBSelected / skillsBCount) * 50 : 0;
+    const skillsAScore = skillsACount > 0 ? (skillsASelected / skillsACount) * 25 : 0;
+    const skillsBScore = skillsBCount > 0 ? (skillsBSelected / skillsBCount) * 25 : 0;
 
-    // Projects & Experience COMBINED (25% of total)
-    const projectsACount = Object.keys(comparisonData.projectsA).length;
-    const projectsBCount = Object.keys(comparisonData.projectsB).length;
-    const projectsASelected = Object.values(comparisonData.projectsA).filter(Boolean).length;
-    const projectsBSelected = Object.values(comparisonData.projectsB).filter(Boolean).length;
-    
-    const experienceACount = Object.keys(comparisonData.experienceA).length;
-    const experienceBCount = Object.keys(comparisonData.experienceB).length;
-    const experienceASelected = Object.values(comparisonData.experienceA).filter(Boolean).length;
-    const experienceBSelected = Object.values(comparisonData.experienceB).filter(Boolean).length;
+    // Base score from AI model (75% of total)
+    const baseAScore = ((candidateA.score || 0) / 10) * 75;
+    const baseBScore = ((candidateB.score || 0) / 10) * 75;
 
-    // Combined projects + experience score (25% total)
-    const totalItemsA = projectsACount + experienceACount;
-    const totalItemsB = projectsBCount + experienceBCount;
-    const totalSelectedA = projectsASelected + experienceASelected;
-    const totalSelectedB = projectsBSelected + experienceBSelected;
-    
-    const projectsExpAScore = totalItemsA > 0 ? (totalSelectedA / totalItemsA) * 25 : 0;
-    const projectsExpBScore = totalItemsB > 0 ? (totalSelectedB / totalItemsB) * 25 : 0;
-
-    // Base score from search display (25% of total)
-    const baseAScore = ((candidateA.score || 0) / 10) * 25;
-    const baseBScore = ((candidateB.score || 0) / 10) * 25;
-
-    const totalAScore = skillsAScore + projectsExpAScore + baseAScore;
-    const totalBScore = skillsBScore + projectsExpBScore + baseBScore;
+    const totalAScore = skillsAScore + baseAScore;
+    const totalBScore = skillsBScore + baseBScore;
 
     const result: ComparisonResult = {
       candidateAScore: totalAScore,
       candidateBScore: totalBScore,
       breakdown: {
         skills: { a: skillsAScore, b: skillsBScore },
-        experience: { a: projectsExpAScore, b: projectsExpBScore }, // Combined projects + experience
-        projects: { a: 0, b: 0 }, // Not used separately anymore
         baseScore: { a: baseAScore, b: baseBScore },
       }
     };
@@ -739,7 +517,7 @@ export default function CompareCandidates() {
     }
   };
 
-  // Filtering similar to Search
+  // Filtering
   const getFilteredCandidates = (side: "A" | "B") => {
     const searchTerm = (side === "A" ? searchTermA : searchTermB)
       .trim()
@@ -870,15 +648,9 @@ export default function CompareCandidates() {
     );
   };
 
-  // Render comparison breakdown section - UPDATED
+  // Render comparison breakdown section - SIMPLIFIED
   const renderComparisonBreakdown = () => {
     if (!candidateA || !candidateB || !comparisonResult) return null;
-
-    // Calculate combined projects + experience counts
-    const projectsExpACount = Object.keys(comparisonData.projectsA).length + Object.keys(comparisonData.experienceA).length;
-    const projectsExpBCount = Object.keys(comparisonData.projectsB).length + Object.keys(comparisonData.experienceB).length;
-    const projectsExpASelected = Object.values(comparisonData.projectsA).filter(Boolean).length + Object.values(comparisonData.experienceA).filter(Boolean).length;
-    const projectsExpBSelected = Object.values(comparisonData.projectsB).filter(Boolean).length + Object.values(comparisonData.experienceB).filter(Boolean).length;
 
     return (
       <Paper sx={{ p: 3, mt: 3, bgcolor: "#DEDDEE" }}>
@@ -886,11 +658,11 @@ export default function CompareCandidates() {
           Detailed Comparison Breakdown
         </Typography>
 
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center' }}>
           {/* Skills Section */}
-          <Box sx={{ flex: '1 1 300px' }}>
+          <Box sx={{ flex: '1 1 300px', maxWidth: 400 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 2, color: "#000" }}>
-              Skills (50% of total)
+              Skills (25% of total)
             </Typography>
             <Box sx={{ mb: 2 }}>
               <Typography variant="body2" sx={{ color: "#000" }}>
@@ -914,35 +686,10 @@ export default function CompareCandidates() {
             </Box>
           </Box>
 
-          {/* Projects & Experience COMBINED Section */}
-          <Box sx={{ flex: '1 1 300px' }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 2, color: "#000" }}>
-              Projects & Experience (25% of total)
-            </Typography>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" sx={{ color: "#000" }}>
-                {candidateA.firstName}: {projectsExpASelected}/{projectsExpACount} selected
-              </Typography>
-              <LinearProgress 
-                variant="determinate" 
-                value={(projectsExpASelected / Math.max(1, projectsExpACount)) * 100}
-                sx={{ height: 8, borderRadius: 4, mb: 1 }}
-              />
-              <Typography variant="body2" sx={{ color: "#000" }}>
-                {candidateB.firstName}: {projectsExpBSelected}/{projectsExpBCount} selected
-              </Typography>
-              <LinearProgress 
-                variant="determinate" 
-                value={(projectsExpBSelected / Math.max(1, projectsExpBCount)) * 100}
-                sx={{ height: 8, borderRadius: 4 }}
-              />
-            </Box>
-          </Box>
-
           {/* Base Score Section */}
-          <Box sx={{ flex: '1 1 300px' }}>
+          <Box sx={{ flex: '1 1 300px', maxWidth: 400 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 2, color: "#000" }}>
-              Base Score (25% of total)
+              AI Score (75% of total)
             </Typography>
             <Box sx={{ mb: 2 }}>
               <Typography variant="body2" sx={{ color: "#000" }}>
@@ -993,35 +740,35 @@ export default function CompareCandidates() {
     );
   };
 
-  // Render detailed comparison sections with checkboxes
+  // Render detailed comparison sections with checkboxes - SIMPLIFIED
   const renderDetailedComparison = () => {
     if (!candidateA || !candidateB) return null;
 
     return (
       <Paper sx={{ p: 3, mt: 3, bgcolor: "#DEDDEE" }}>
         <Typography variant="h6" sx={{ mb: 3, textAlign: "center", color: "#000" }}>
-          Detailed Comparison - Select Relevant Items
+          Select Relevant Skills (25% of total score)
         </Typography>
 
         {/* Skills Comparison */}
         <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 3, mb: 3 }}>
           <Box sx={{ flex: 1 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 2, color: "#000" }}>
-              {candidateA.firstName}'s Skills (50%)
+              {candidateA.firstName}'s Skills
             </Typography>
-            <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
+            <Box sx={{ maxHeight: 300, overflow: 'auto', p: 1, border: '1px solid #ccc', borderRadius: 1 }}>
               {Object.entries(comparisonData.skillsA).map(([skill, checked]) => (
                 <FormControlLabel
                   key={skill}
                   control={
                     <Checkbox
                       checked={checked}
-                      onChange={() => handleCheckboxChange('skills', 'A', skill)}
+                      onChange={() => handleCheckboxChange('A', skill)}
                       sx={{ color: "#232A3B" }}
                     />
                   }
                   label={skill}
-                  sx={{ display: 'block', color: "#000" }}
+                  sx={{ display: 'block', color: "#000", mb: 1 }}
                 />
               ))}
             </Box>
@@ -1029,115 +776,21 @@ export default function CompareCandidates() {
 
           <Box sx={{ flex: 1 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 2, color: "#000" }}>
-              {candidateB.firstName}'s Skills (50%)
+              {candidateB.firstName}'s Skills
             </Typography>
-            <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
+            <Box sx={{ maxHeight: 300, overflow: 'auto', p: 1, border: '1px solid #ccc', borderRadius: 1 }}>
               {Object.entries(comparisonData.skillsB).map(([skill, checked]) => (
                 <FormControlLabel
                   key={skill}
                   control={
                     <Checkbox
                       checked={checked}
-                      onChange={() => handleCheckboxChange('skills', 'B', skill)}
+                      onChange={() => handleCheckboxChange('B', skill)}
                       sx={{ color: "#232A3B" }}
                     />
                   }
                   label={skill}
-                  sx={{ display: 'block', color: "#000" }}
-                />
-              ))}
-            </Box>
-          </Box>
-        </Box>
-
-        {/* Experience Comparison */}
-        <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 3, mb: 3 }}>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 2, color: "#000" }}>
-              {candidateA.firstName}'s Experience (25%)
-            </Typography>
-            <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
-              {Object.entries(comparisonData.experienceA).map(([experience, checked]) => (
-                <FormControlLabel
-                  key={experience}
-                  control={
-                    <Checkbox
-                      checked={checked}
-                      onChange={() => handleCheckboxChange('experience', 'A', experience)}
-                      sx={{ color: "#232A3B" }}
-                    />
-                  }
-                  label={experience}
-                  sx={{ display: 'block', color: "#000", fontSize: '0.9rem' }}
-                />
-              ))}
-            </Box>
-          </Box>
-
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 2, color: "#000" }}>
-              {candidateB.firstName}'s Experience (25%)
-            </Typography>
-            <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
-              {Object.entries(comparisonData.experienceB).map(([experience, checked]) => (
-                <FormControlLabel
-                  key={experience}
-                  control={
-                    <Checkbox
-                      checked={checked}
-                      onChange={() => handleCheckboxChange('experience', 'B', experience)}
-                      sx={{ color: "#232A3B" }}
-                    />
-                  }
-                  label={experience}
-                  sx={{ display: 'block', color: "#000", fontSize: '0.9rem' }}
-                />
-              ))}
-            </Box>
-          </Box>
-        </Box>
-
-        {/* Projects Comparison */}
-        <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 3, mb: 3 }}>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 2, color: "#000" }}>
-              {candidateA.firstName}'s Projects (25%)
-            </Typography>
-            <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
-              {Object.entries(comparisonData.projectsA).map(([project, checked]) => (
-                <FormControlLabel
-                  key={project}
-                  control={
-                    <Checkbox
-                      checked={checked}
-                      onChange={() => handleCheckboxChange('projects', 'A', project)}
-                      sx={{ color: "#232A3B" }}
-                    />
-                  }
-                  label={project}
-                  sx={{ display: 'block', color: "#000", fontSize: '0.9rem' }}
-                />
-              ))}
-            </Box>
-          </Box>
-
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 2, color: "#000" }}>
-              {candidateB.firstName}'s Projects (25%)
-            </Typography>
-            <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
-              {Object.entries(comparisonData.projectsB).map(([project, checked]) => (
-                <FormControlLabel
-                  key={project}
-                  control={
-                    <Checkbox
-                      checked={checked}
-                      onChange={() => handleCheckboxChange('projects', 'B', project)}
-                      sx={{ color: "#232A3B" }}
-                    />
-                  }
-                  label={project}
-                  sx={{ display: 'block', color: "#000", fontSize: '0.9rem' }}
+                  sx={{ display: 'block', color: "#000", mb: 1 }}
                 />
               ))}
             </Box>
