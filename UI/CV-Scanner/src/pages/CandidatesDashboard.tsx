@@ -55,6 +55,7 @@ import Sidebar from "./Sidebar";
 import ConfigAlert from "./ConfigAlert";
 import { apiFetch } from "../lib/api";
 import React from "react";
+import { ValueType } from "recharts/types/component/DefaultTooltipContent";
 
 export default function CandidatesDashboard() {
   const [collapsed, setCollapsed] = useState(false);
@@ -160,7 +161,7 @@ export default function CandidatesDashboard() {
           setRawSkillResponse(null);
 
           // Use apiFetch consistently (it should honor REACT_APP_API_BASE)
-          const [skillsRes, pfRes] = await Promise.all([
+            const [skillsRes, pfRes] = await Promise.all([
             apiFetch("/cv/skill-distribution?limit=10").catch(() => null),
             apiFetch("/cv/project-fit?limit=200").catch(() => null),
           ]);
@@ -197,6 +198,14 @@ export default function CandidatesDashboard() {
                   name: k,
                   value: Number(v ?? 0),
                 }));
+              } else if (skillsJson && typeof skillsJson === "string") {
+                const parts = skillsJson
+                  .split("[,;\\n]")
+                  .map((p: string) =>
+                    p.replace(/[^a-zA-Z0-9 +#.+-]/g, "").trim()
+                  )
+                  .filter(Boolean);
+                parsed = parts.map((p: string) => ({ name: p, value: 1 }));
               }
 
               if (parsed.length) {
@@ -219,6 +228,7 @@ export default function CandidatesDashboard() {
             setSkillDistribution([]);
             setSkillError("No response (fetch failed)");
           }
+          // --- end skill distribution ---
 
           // --- Project fit (unchanged logic but keep logging) ---
           if (pfRes) {
@@ -694,7 +704,11 @@ export default function CandidatesDashboard() {
                     outerRadius={60}
                     labelLine={true}
                     label={({ name, percent }) =>
-                      `${name}: ${(percent * 100).toFixed(0)}%`
+                      `${name}: ${
+                        Number.isFinite(percent)
+                          ? (percent * 100).toFixed(0)
+                          : "0"
+                      }%`
                     }
                   >
                     {(skillDistribution || []).map((entry, index) => (
@@ -705,10 +719,22 @@ export default function CandidatesDashboard() {
                     ))}
                   </Pie>
                   <RechartsTooltip
-                    formatter={(value, name, props) => [
-                      value,
-                      `${name}: ${(props.payload.percent * 100).toFixed(1)}%`,
-                    ]}
+                    formatter={(value, name, props) => {
+                      const pct =
+                        props &&
+                        props.payload &&
+                        typeof props.payload.percent === "number"
+                          ? (props.payload.percent * 100).toFixed(1)
+                          : "";
+                      function toNumberSafe(value: ValueType): React.ReactNode {
+                        throw new Error("Function not implemented.");
+                      }
+
+                      return [
+                        toNumberSafe(value),
+                        pct ? `${name}: ${pct}%` : name,
+                      ];
+                    }}
                   />
                 </PieChart>
               </ResponsiveContainer>
