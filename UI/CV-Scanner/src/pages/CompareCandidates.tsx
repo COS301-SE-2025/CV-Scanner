@@ -103,6 +103,7 @@ export default function CompareCandidates() {
   const [selectedCandidateName, setSelectedCandidateName] = useState("");
   const [searchTermA, setSearchTermA] = useState("");
   const [searchTermB, setSearchTermB] = useState("");
+  const [globalSearchTerm, setGlobalSearchTerm] = useState("");
 
   // Comparison state - SIMPLIFIED
   const [comparisonData, setComparisonData] = useState<ComparisonData>({
@@ -523,7 +524,23 @@ export default function CompareCandidates() {
       .trim()
       .toLowerCase();
     const other = side === "A" ? candidateB : candidateA;
-    return candidates.filter((c) => {
+    
+    // Apply global search if present
+    let filtered = candidates;
+    if (globalSearchTerm.trim()) {
+      const globalTerm = globalSearchTerm.trim().toLowerCase();
+      filtered = candidates.filter((c) => {
+        return (
+          String(c.firstName ?? "").toLowerCase().includes(globalTerm) ||
+          String(c.lastName ?? "").toLowerCase().includes(globalTerm) ||
+          String(c.email ?? "").toLowerCase().includes(globalTerm) ||
+          (Array.isArray(c.skills) &&
+            c.skills.some((s) => s.toLowerCase().includes(globalTerm)))
+        );
+      });
+    }
+
+    return filtered.filter((c) => {
       if (other && String(c.id) === String(other.id)) return false;
       if (!searchTerm) return true;
       return (
@@ -652,6 +669,9 @@ export default function CompareCandidates() {
   const renderComparisonBreakdown = () => {
     if (!candidateA || !candidateB || !comparisonResult) return null;
 
+    const isABetter = comparisonResult.candidateAScore > comparisonResult.candidateBScore;
+    const isBBetter = comparisonResult.candidateBScore > comparisonResult.candidateAScore;
+
     return (
       <Paper sx={{ p: 3, mt: 3, bgcolor: "#DEDDEE" }}>
         <Typography variant="h6" sx={{ mb: 3, textAlign: "center", color: "#000" }}>
@@ -713,25 +733,45 @@ export default function CompareCandidates() {
         </Box>
 
         {/* Final Scores */}
-        <Box sx={{ mt: 3, p: 2, bgcolor: "#232A3B", borderRadius: 2 }}>
-          <Typography variant="h6" sx={{ textAlign: "center", color: "#fff", mb: 2 }}>
+        <Box sx={{ mt: 3, p: 2, borderRadius: 2 }}>
+          <Typography variant="h6" sx={{ textAlign: "center", color: "#000", mb: 2 }}>
             Final Scores
           </Typography>
           <Box sx={{ display: 'flex', gap: 2 }}>
-            <Box sx={{ flex: 1, textAlign: "center" }}>
-              <Typography variant="h4" sx={{ color: "#93AFF7" }}>
+            <Box 
+              sx={{ 
+                flex: 1, 
+                textAlign: "center",
+                p: 2,
+                borderRadius: 2,
+                bgcolor: isABetter ? "#4CAF50" : "#232A3B",
+                color: isABetter ? "#000" : "#fff"
+              }}
+            >
+              <Typography variant="h4" sx={{ color: isABetter ? "#000" : "#93AFF7" }}>
                 {comparisonResult.candidateAScore.toFixed(1)}%
               </Typography>
-              <Typography variant="body2" sx={{ textAlign: "center", color: "#fff" }}>
+              <Typography variant="body2" sx={{ textAlign: "center", fontWeight: "bold" }}>
                 {candidateA.firstName}
+                {isABetter && " (Best Candidate)"}
               </Typography>
             </Box>
-            <Box sx={{ flex: 1, textAlign: "center" }}>
-              <Typography variant="h4" sx={{ color: "#93AFF7" }}>
+            <Box 
+              sx={{ 
+                flex: 1, 
+                textAlign: "center",
+                p: 2,
+                borderRadius: 2,
+                bgcolor: isBBetter ? "#4CAF50" : "#232A3B",
+                color: isBBetter ? "#000" : "#fff"
+              }}
+            >
+              <Typography variant="h4" sx={{ color: isBBetter ? "#000" : "#93AFF7" }}>
                 {comparisonResult.candidateBScore.toFixed(1)}%
               </Typography>
-              <Typography variant="body2" sx={{ textAlign: "center", color: "#fff" }}>
+              <Typography variant="body2" sx={{ textAlign: "center", fontWeight: "bold" }}>
                 {candidateB.firstName}
+                {isBBetter && " (Best Candidate)"}
               </Typography>
             </Box>
           </Box>
@@ -888,6 +928,26 @@ export default function CompareCandidates() {
             Compare Candidates
           </Typography>
 
+          {/* Global Search Bar */}
+          <Paper sx={{ p: 2, mb: 3, bgcolor: "#DEDDEE" }}>
+            <TextField
+              fullWidth
+              placeholder="Search all candidates by name, email, or skills..."
+              value={globalSearchTerm}
+              onChange={(e) => setGlobalSearchTerm(e.target.value)}
+              sx={{
+                "& .MuiOutlinedInput-root": { bgcolor: "white" },
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: "#0D1B2A" }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Paper>
+
           <Box
             sx={{
               display: "flex",
@@ -950,7 +1010,7 @@ export default function CompareCandidates() {
                     <Typography
                       sx={{ textAlign: "center", color: "#666", mt: 2 }}
                     >
-                      {searchTermA
+                      {searchTermA || globalSearchTerm
                         ? "No candidates match your search"
                         : "No candidates available"}
                     </Typography>
@@ -1027,7 +1087,7 @@ export default function CompareCandidates() {
                     <Typography
                       sx={{ textAlign: "center", color: "#666", mt: 2 }}
                     >
-                      {searchTermB
+                      {searchTermB || globalSearchTerm
                         ? "No candidates match your search"
                         : "No candidates available"}
                     </Typography>
