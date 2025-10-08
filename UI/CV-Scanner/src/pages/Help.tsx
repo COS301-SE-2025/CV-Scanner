@@ -26,9 +26,11 @@ export default function HelpPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
 
-//const manualHref = new URL("User_Manual_FINAL.pdf", import.meta.env.BASE_URL).toString();
 
-const manualHref = new URL("../assets/User_Manual_FINAL.pdf", import.meta.url).href;
+//const manualHref = new URL("User_Manual_FINAL.pdf", import.meta.env.BASE_URL).toString()
+//const manualHref = new URL("../assets/User_Manual_FINAL.pdf", import.meta.url).href;
+// inside HelpPage, before return
+const manualHref = new URL("User_Manual_FINAL.pdf", document.baseURI).toString();
 
 
   // Logout handler: invalidate server session, clear client state and notify other tabs
