@@ -65,6 +65,10 @@ export default function LoginPage() {
 
       if (res.ok) {
         localStorage.setItem("userEmail", email);
+        // Save token if API returned it
+        if (body && typeof body === "object" && body.token) {
+          localStorage.setItem("token", String(body.token));
+        }
         if (body && typeof body === "object") {
           localStorage.setItem("user", JSON.stringify(body));
         }

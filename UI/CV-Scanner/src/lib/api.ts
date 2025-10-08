@@ -29,13 +29,12 @@ export async function apiFetch(path: string, opts: RequestInit = {}) {
   const isFormData =
     typeof FormData !== "undefined" && (opts as any).body instanceof FormData;
 
-  // build headers but do NOT set Content-Type for FormData
   const headers: HeadersInit = {
     ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...((opts.headers as HeadersInit) || {}),
   };
 
-  // Attach bearer token if present
+  // attach token if present
   try {
     const token = localStorage.getItem("token");
     if (token) headers["Authorization"] = `Bearer ${token}`;
