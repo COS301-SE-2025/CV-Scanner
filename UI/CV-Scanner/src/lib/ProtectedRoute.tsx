@@ -21,10 +21,10 @@ export default function ProtectedRoute({ children }: Props) {
       try {
         const res = await apiFetch("/auth/me").catch(() => null);
         if (!mounted) return;
-        // any non-OK -> redirect to login
         if (res && res.ok) {
           setOk(true);
         } else {
+          // any non-OK (401/400) -> redirect to login
           navigate("/login", { replace: true });
         }
       } catch {

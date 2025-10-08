@@ -29,16 +29,11 @@ export async function apiFetch(path: string, opts: RequestInit = {}) {
   const isFormData =
     typeof FormData !== "undefined" && (opts as any).body instanceof FormData;
 
+  // Do NOT attach Authorization header — use cookie-based sessions. Keep credentials included.
   const headers: HeadersInit = {
     ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...((opts.headers as HeadersInit) || {}),
   };
-
-  // attach token if present
-  try {
-    const token = localStorage.getItem("token");
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-  } catch {}
 
   const res = await fetch(url, { credentials: "include", ...opts, headers });
   return res;
