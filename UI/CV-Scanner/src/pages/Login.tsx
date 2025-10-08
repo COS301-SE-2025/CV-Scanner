@@ -49,32 +49,84 @@ export default function LoginPage() {
       return;
     }
 
+    // helper: sleep between retries
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    const maxAttempts = 2;
+    let attempt = 0;
+    let lastRes: Response | null = null;
+    let lastErr: any = null;
+
     try {
-      const res = await apiFetch("/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
-      });
+      // retry loop for transient 5xx/network errors
+      while (attempt < maxAttempts) {
+        attempt++;
+        try {
+          const res = await apiFetch("/auth/login", {
+            method: "POST",
+            body: JSON.stringify({ email, password }),
+          });
+          lastRes = res;
 
-      // try JSON first, fallback to text
-      let body: any = null;
-      try {
-        body = await res.json();
-      } catch {
-        body = await res.text().catch(() => null);
-      }
+          // parse response body safely
+          let body: any = null;
+          try {
+            body = await res
+              .clone()
+              .json()
+              .catch(() => null);
+          } catch {
+            body = await res
+              .clone()
+              .text()
+              .catch(() => null);
+          }
 
-      if (res.ok) {
-        localStorage.setItem("userEmail", email);
-        if (body && typeof body === "object") {
-          localStorage.setItem("user", JSON.stringify(body));
+          if (res.ok) {
+            localStorage.setItem("userEmail", email);
+            if (body && typeof body === "object") {
+              localStorage.setItem("user", JSON.stringify(body));
+            }
+            navigate("/dashboard");
+            lastErr = null;
+            break;
+          }
+
+          // If server error (5xx) or network-like 0/undefined, retry once
+          if ((res.status >= 500 && attempt < maxAttempts) || !res) {
+            // small exponential backoff
+            await sleep(attempt === 1 ? 600 : 1200);
+            continue;
+          }
+
+          // non-retriable error — show message
+          const errMsg =
+            (body && (body.message || body.error)) ||
+            (typeof body === "string" ? body : null) ||
+            `Login failed (${res.status})`;
+          setError(errMsg);
+          lastErr = errMsg;
+          break;
+        } catch (err) {
+          // network error -> retry once
+          lastErr = err;
+          if (attempt < maxAttempts) {
+            await sleep(attempt === 1 ? 600 : 1200);
+            continue;
+          }
+          break;
         }
-        navigate("/dashboard");
-      } else {
-        const errMsg =
-          (body && (body.message || body.error)) ||
-          (typeof body === "string" ? body : null) ||
-          `Login failed (${res.status})`;
-        setError(errMsg);
+      } // end while
+
+      // final fallback: if we exited due to persistent server/network error
+      if (
+        !lastRes ||
+        (lastRes && !lastRes.ok && attempt >= maxAttempts && !error)
+      ) {
+        setError(
+          lastErr && typeof lastErr === "string"
+            ? lastErr
+            : "Server error. Please try again. If the problem persists, contact support."
+        );
       }
     } catch (err) {
       setError("Login failed. Please try again.");
