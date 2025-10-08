@@ -127,6 +127,36 @@ export default function CandidatesDashboard() {
       .filter(Boolean);
   }
 
+  // Normalize label strings for charts/legends
+  function normalizeSkillName(raw: any): string {
+    if (raw == null) return "—";
+    // If already an array, prefer first element
+    if (Array.isArray(raw) && raw.length) return String(raw[0]).trim();
+    const s = typeof raw === "string" ? raw.trim() : JSON.stringify(raw);
+    // Try JSON parse for embedded arrays/objects like '["python"]' or '{"skills":["python"]}'
+    try {
+      const parsed = JSON.parse(s);
+      if (Array.isArray(parsed) && parsed.length)
+        return String(parsed[0]).trim();
+      if (parsed && typeof parsed === "object") {
+        if (
+          Array.isArray((parsed as any).skills) &&
+          (parsed as any).skills.length
+        )
+          return String((parsed as any).skills[0]).trim();
+        const keys = Object.keys(parsed);
+        if (keys.length) return String(keys[0]).trim();
+      }
+    } catch {}
+    // Remove escape slashes, surrounding brackets/braces/quotes and stray punctuation
+    const cleaned = s
+      .replace(/\\+/g, "")
+      .replace(/^[\[\]\{\}"'`]+|[\[\]\{\}"'`]+$/g, "")
+      .replace(/[^a-zA-Z0-9 .+#\-\+]/g, " ")
+      .trim();
+    return cleaned || s;
+  }
+
   function toNumberSafe(value: any): number {
     const n = Number(value);
     return Number.isFinite(n) ? n : 0;
@@ -221,20 +251,24 @@ export default function CandidatesDashboard() {
                 parsed = skillsJson
                   .map((s: any) => {
                     if (typeof s === "string") return { name: s, value: 1 };
+                    const rawName = s?.name ?? s?.label ?? JSON.stringify(s);
                     return {
-                      name: String(s?.name ?? s?.label ?? JSON.stringify(s)),
+                      name: normalizeSkillName(rawName),
                       value: toNumberSafe(s?.value ?? s?.count ?? 0),
                     };
                   })
                   .filter((it) => it.name);
               } else if (skillsJson && typeof skillsJson === "object") {
                 parsed = Object.entries(skillsJson).map(([k, v]) => ({
-                  name: String(k),
+                  name: normalizeSkillName(k),
                   value: toNumberSafe(v),
                 }));
               } else if (typeof skillsJson === "string") {
                 const parts = parseSkillFallback(skillsJson);
-                parsed = parts.map((p) => ({ name: p, value: 1 }));
+                parsed = parts.map((p) => ({
+                  name: normalizeSkillName(p),
+                  value: 1,
+                }));
               } else {
                 parsed = [];
               }
@@ -338,8 +372,8 @@ export default function CandidatesDashboard() {
               const topTechJson = await topTechRes.json().catch(() => []);
               if (Array.isArray(topTechJson)) {
                 const techList = topTechJson.map((t: any) => ({
-                  name: t.name,
-                  value: Number(t.value ?? 0),
+                  name: normalizeSkillName(t.name),
+                  value: toNumberSafe(t.value ?? 0),
                 }));
                 setGroupedBarData(techList);
                 setTopTechnologies(techList);
@@ -354,8 +388,8 @@ export default function CandidatesDashboard() {
                 const techJson = await techRes.json().catch(() => []);
                 if (Array.isArray(techJson)) {
                   const bar = techJson.map((t: any) => ({
-                    name: t.name,
-                    value: Number(t.value ?? 0),
+                    name: normalizeSkillName(t.name),
+                    value: toNumberSafe(t.value ?? 0),
                   }));
                   setGroupedBarData(bar);
                   if (bar.length) {
@@ -379,8 +413,8 @@ export default function CandidatesDashboard() {
                 const topJson = await topRes.json().catch(() => []);
                 if (Array.isArray(topJson) && topJson.length) {
                   const list = topJson.map((t: any) => ({
-                    name: t.name,
-                    value: Number(t.value ?? 0),
+                    name: normalizeSkillName(t.name),
+                    value: toNumberSafe(t.value ?? 0),
                   }));
                   setTopTechnologies(list);
                   setTopTechnology(list[0]?.name ?? "—");
@@ -735,7 +769,7 @@ export default function CandidatesDashboard() {
                     outerRadius={60}
                     labelLine={true}
                     label={({ name, percent }) =>
-                      `${name}: ${
+                      `${normalizeSkillName(name)}: ${
                         Number.isFinite(percent)
                           ? (percent * 100).toFixed(0)
                           : "0"
