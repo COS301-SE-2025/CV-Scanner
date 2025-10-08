@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import React, { Suspense, lazy } from "react";
 import LoginPage from "./pages/Login";
 import RegisterPage from "./pages/Register";
@@ -22,6 +22,7 @@ import BrandLoading from "./components/BrandLoading";
 import { BrandLoaderProvider, useBrandLoader } from "./hooks/brandLoader";
 import CompareCandidates from "./pages/CompareCandidates";
 import ErrorBoundary from "./components/ErrorBoundary";
+import ProtectedRoute from "./lib/ProtectedRoute";
 
 function BrandLoaderOverlay() {
   const loader = useBrandLoader();
@@ -39,20 +40,38 @@ function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/dashboard" element={<CandidatesDashboard />} />
-              <Route path="/upload" element={<UploadCVPage />} />
-              <Route path="/candidates" element={<CandidatesPage />} />
-              <Route path="/compare" element={<CompareCandidates />} />
-              <Route path="/search" element={<Search />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <CandidatesDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/upload"
+                element={
+                  <ProtectedRoute>
+                    <UploadCVPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/candidate/:id/summary"
-                element={<CandidateReviewSummary />}
+                element={
+                  <ProtectedRoute>
+                    <CandidateReviewSummary />
+                  </ProtectedRoute>
+                }
               />
               <Route
                 path="/candidate/:id/:section"
                 element={<CandidateReviewSummary />}
               />
-              <Route path="/candidate/:id/notes" element={<CandidateReviewSummary />} />
+              <Route
+                path="/candidate/:id/notes"
+                element={<CandidateReviewSummary />}
+              />
               <Route path="/user-management" element={<UserManagementPage />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/add-user" element={<AddUserPage />} />
