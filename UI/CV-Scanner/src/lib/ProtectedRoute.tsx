@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 
 interface Props {
-  children: JSX.Element;
+  children: React.ReactNode;
 }
 
 /**
