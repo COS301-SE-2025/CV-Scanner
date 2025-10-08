@@ -810,12 +810,15 @@ export default function CandidatesDashboard() {
                       const pct =
                         props &&
                         props.payload &&
-                        typeof props.payload.percent === "number"
+                        typeof props.payload.percent === "number" &&
+                        Number.isFinite(props.payload.percent)
                           ? (props.payload.percent * 100).toFixed(1)
                           : "";
                       return [
                         toNumberSafe(value),
-                        pct ? `${name}: ${pct}%` : name,
+                        pct
+                          ? `${normalizeSkillName(name)}: ${pct}%`
+                          : normalizeSkillName(name),
                       ];
                     }}
                   />
@@ -869,7 +872,11 @@ export default function CandidatesDashboard() {
                     innerRadius={40}
                     outerRadius={60}
                     label={({ name, percent }) =>
-                      `${name}: ${(percent * 100).toFixed(0)}%`
+                      `${normalizeSkillName(name)}: ${
+                        Number.isFinite(percent)
+                          ? (percent * 100).toFixed(0)
+                          : "0"
+                      }%`
                     }
                     labelLine={true}
                   >
@@ -885,10 +892,21 @@ export default function CandidatesDashboard() {
                       backgroundColor: "#2b3a55",
                       borderColor: "#4a5568",
                     }}
-                    formatter={(value, name, props) => [
-                      value,
-                      `${name}: ${(props.payload.percent * 100).toFixed(1)}%`,
-                    ]}
+                    formatter={(value, name, props) => {
+                      const pct =
+                        props &&
+                        props.payload &&
+                        typeof props.payload.percent === "number" &&
+                        Number.isFinite(props.payload.percent)
+                          ? (props.payload.percent * 100).toFixed(1)
+                          : "";
+                      return [
+                        toNumberSafe(value),
+                        pct
+                          ? `${normalizeSkillName(name)}: ${pct}%`
+                          : normalizeSkillName(name),
+                      ];
+                    }}
                   />
                 </PieChart>
               </ResponsiveContainer>

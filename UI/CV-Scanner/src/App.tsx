@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import React, { Suspense, lazy } from "react";
 import LoginPage from "./pages/Login";
 import RegisterPage from "./pages/Register";
@@ -37,9 +37,13 @@ function App() {
         <ErrorBoundary>
           <Suspense fallback={<BrandLoading />}>
             <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+
+              {/* Protected routes - wrap each with ProtectedRoute */}
               <Route
                 path="/dashboard"
                 element={
@@ -57,6 +61,22 @@ function App() {
                 }
               />
               <Route
+                path="/candidates"
+                element={
+                  <ProtectedRoute>
+                    <CandidatesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/search"
+                element={
+                  <ProtectedRoute>
+                    <Search />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/candidate/:id/summary"
                 element={
                   <ProtectedRoute>
@@ -65,21 +85,88 @@ function App() {
                 }
               />
               <Route
-                path="/candidate/:id/:section"
-                element={<CandidateReviewSummary />}
+                path="/candidate/:id/skills"
+                element={
+                  <ProtectedRoute>
+                    <CandidateSkillsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/candidate/:id/experience"
+                element={
+                  <ProtectedRoute>
+                    <CandidateExperiencePage />
+                  </ProtectedRoute>
+                }
               />
               <Route
                 path="/candidate/:id/notes"
-                element={<CandidateReviewSummary />}
+                element={
+                  <ProtectedRoute>
+                    <CandidateNotesPage />
+                  </ProtectedRoute>
+                }
               />
-              <Route path="/user-management" element={<UserManagementPage />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/add-user" element={<AddUserPage />} />
-              <Route path="/landing-page" element={<LandingPage />} />
-              <Route path="/help" element={<Help />} />
-              <Route path="/system-settings" element={<SystemSettingsPage />} />
-              <Route path="/parsed-cv" element={<ParsedCVData />} />
-              <Route path="*" element={<LandingPage />} />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/system-settings"
+                element={
+                  <ProtectedRoute>
+                    <SystemSettingsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/compare"
+                element={
+                  <ProtectedRoute>
+                    <CompareCandidates />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/user-management"
+                element={
+                  <ProtectedRoute>
+                    <UserManagementPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/add-user"
+                element={
+                  <ProtectedRoute>
+                    <AddUserPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/parsed-cv"
+                element={
+                  <ProtectedRoute>
+                    <ParsedCVData />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/help"
+                element={
+                  <ProtectedRoute>
+                    <Help />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
         </ErrorBoundary>
