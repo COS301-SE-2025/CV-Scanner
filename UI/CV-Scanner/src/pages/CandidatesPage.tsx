@@ -134,6 +134,21 @@ export default function CandidatesPage() {
   };
   const handleCloseTutorial = () => setTutorialStep(-1);
 
+  // Logout handler: invalidate server session, clear client state and notify other tabs
+  async function handleLogout() {
+    try {
+      await apiFetch("/auth/logout", { method: "POST" }).catch(() => null);
+    } catch {
+      // ignore network errors
+    }
+    try {
+      localStorage.removeItem("user");
+      localStorage.removeItem("userEmail");
+      // notify other tabs / ProtectedRoute to re-check auth
+      localStorage.setItem("auth-change", Date.now().toString());
+    } catch {}
+    navigate("/login", { replace: true });
+  }
   return (
     <Box
       sx={{
@@ -206,11 +221,7 @@ export default function CandidatesPage() {
             </Box>
 
             {/* Logout */}
-            <IconButton
-              color="inherit"
-              onClick={() => navigate("/login")}
-              sx={{ ml: 1 }}
-            >
+            <IconButton color="inherit" onClick={handleLogout} sx={{ ml: 1 }}>
               <ExitToAppIcon />
             </IconButton>
           </Toolbar>

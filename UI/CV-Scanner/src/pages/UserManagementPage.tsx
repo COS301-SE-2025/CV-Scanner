@@ -132,6 +132,22 @@ export default function UserManagementPage() {
   }, []);
   // --------------------------------------------
 
+  // Logout handler: invalidate server session, clear client-side auth state and notify other tabs
+  async function handleLogout() {
+    try {
+      await apiFetch("/auth/logout", { method: "POST" }).catch(() => null);
+    } catch {
+      // ignore network errors
+    }
+    try {
+      localStorage.removeItem("user");
+      localStorage.removeItem("userEmail");
+      // notify other tabs / ProtectedRoute to re-check auth
+      localStorage.setItem("auth-change", Date.now().toString());
+    } catch {}
+    navigate("/login", { replace: true });
+  }
+
   // ========= MOVED HOOKS: always declared (stable order) =========
   // Load users only after authChecked and if not forbidden
   useEffect(() => {
@@ -432,11 +448,7 @@ export default function UserManagementPage() {
             </Box>
 
             {/* Logout */}
-            <IconButton
-              color="inherit"
-              onClick={() => navigate("/login")}
-              sx={{ ml: 1 }}
-            >
+            <IconButton color="inherit" onClick={handleLogout} sx={{ ml: 1 }}>
               <ExitToAppIcon />
             </IconButton>
           </Toolbar>

@@ -11,6 +11,8 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import Typography from "@mui/material/Typography";
+import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import { apiFetch } from "../lib/api";
 
 interface SidebarProps {
   userRole?: string;
@@ -37,6 +39,22 @@ const Sidebar: React.FC<SidebarProps> = ({
   const location = useLocation();
   const [isAnimating, setIsAnimating] = useState(false);
   const [isCollapsing, setIsCollapsing] = useState(false);
+
+  // Logout handler: invalidate server session, clear client state and notify other tabs
+  async function handleLogout() {
+    try {
+      await apiFetch("/auth/logout", { method: "POST" }).catch(() => null);
+    } catch {
+      // ignore
+    }
+    try {
+      localStorage.removeItem("user");
+      localStorage.removeItem("userEmail");
+      // notify other tabs / ProtectedRoute to re-check auth
+      localStorage.setItem("auth-change", Date.now().toString());
+    } catch {}
+    navigate("/login", { replace: true });
+  }
 
   const handleCollapse = () => {
     setIsCollapsing(true);
@@ -211,28 +229,28 @@ const Sidebar: React.FC<SidebarProps> = ({
           Dashboard
         </span>
       </Button>
-          {(userRole === "Editor" || userRole === "Admin") && (
-      <Button
-        fullWidth
-        sx={getButtonStyle("/upload")}
-        className={isActive("/upload") ? "active" : ""}
-        startIcon={<UploadFileIcon />}
-        onClick={() => navigate("/upload")}
-      >
-        <span
-          style={{
-            display: "inline-block",
-            overflow: "hidden",
-            whiteSpace: "nowrap",
-            transition: "width 0.3s, opacity 0.3s",
-            width: isCollapsing ? 0 : "auto",
-            opacity: isCollapsing ? 0 : 1,
-          }}
+      {(userRole === "Editor" || userRole === "Admin") && (
+        <Button
+          fullWidth
+          sx={getButtonStyle("/upload")}
+          className={isActive("/upload") ? "active" : ""}
+          startIcon={<UploadFileIcon />}
+          onClick={() => navigate("/upload")}
         >
-          Upload CV
-        </span>
-      </Button>
-          )}
+          <span
+            style={{
+              display: "inline-block",
+              overflow: "hidden",
+              whiteSpace: "nowrap",
+              transition: "width 0.3s, opacity 0.3s",
+              width: isCollapsing ? 0 : "auto",
+              opacity: isCollapsing ? 0 : 1,
+            }}
+          >
+            Upload CV
+          </span>
+        </Button>
+      )}
       <Button
         fullWidth
         sx={getButtonStyle("/search")}
@@ -317,6 +335,28 @@ const Sidebar: React.FC<SidebarProps> = ({
             </span>
           </Button>
         </>
+      )}
+
+      {/* Logout button placed at the bottom of the expanded sidebar */}
+      {!collapsed && (
+        <Box sx={{ mt: "auto", pt: 1 }}>
+          <Button
+            fullWidth
+            sx={{
+              justifyContent: "flex-start",
+              mb: 1,
+              color: "#fff",
+              backgroundColor: "transparent",
+              "&:hover": { backgroundColor: "#487DA6" },
+              textTransform: "none",
+              fontWeight: "bold",
+            }}
+            startIcon={<ExitToAppIcon />}
+            onClick={handleLogout}
+          >
+            Logout
+          </Button>
+        </Box>
       )}
     </Box>
   );

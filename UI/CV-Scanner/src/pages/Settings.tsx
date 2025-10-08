@@ -190,10 +190,19 @@ export default function SettingsPage() {
   };
 
   // Handle logout
-  const handleLogout = () => {
-    // Clear any user data from storage
-    localStorage.removeItem("authToken");
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      await apiFetch("/auth/logout", { method: "POST" }).catch(() => null);
+    } catch {}
+    try {
+      // Clear client-side auth state
+      localStorage.removeItem("user");
+      localStorage.removeItem("userEmail");
+      localStorage.removeItem("authToken");
+      // notify other tabs/components to re-check auth
+      localStorage.setItem("auth-change", Date.now().toString());
+    } catch {}
+    navigate("/login", { replace: true });
   };
 
   // Handle form changes
@@ -268,11 +277,7 @@ export default function SettingsPage() {
             </Box>
 
             {/* Logout */}
-            <IconButton
-              color="inherit"
-              onClick={() => navigate("/login")}
-              sx={{ ml: 1 }}
-            >
+            <IconButton color="inherit" onClick={handleLogout} sx={{ ml: 1 }}>
               <ExitToAppIcon />
             </IconButton>
           </Toolbar>

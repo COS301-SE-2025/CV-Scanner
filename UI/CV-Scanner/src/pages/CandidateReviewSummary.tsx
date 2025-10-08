@@ -53,17 +53,17 @@ export default function CandidateReviewSummary() {
 
   const passedCandidate = (location.state as any)?.candidate;
   const [projectFit, setProjectFit] = useState<{
-  type?: string;
-  confidence?: number;
-  basis?: string[];
-  personal_info?: {
-    name?: string;
-    email?: string;
-    phone?: string;
-  };
-} | null>(null);
-const [fitLoading, setFitLoading] = useState<boolean>(true);
-const [fitError, setFitError] = useState<string | null>(null);
+    type?: string;
+    confidence?: number;
+    basis?: string[];
+    personal_info?: {
+      name?: string;
+      email?: string;
+      phone?: string;
+    };
+  } | null>(null);
+  const [fitLoading, setFitLoading] = useState<boolean>(true);
+  const [fitError, setFitError] = useState<string | null>(null);
   // Fallback chain: route param -> navigation state -> ?id= query -> localStorage
   const queryId = searchParams.get("id") || undefined;
   const storedId = localStorage.getItem("lastCandidateId") || undefined;
@@ -109,6 +109,22 @@ const [fitError, setFitError] = useState<string | null>(null);
       }
     })();
   }, []);
+
+  // Logout handler: invalidate server session, clear local client state and notify other tabs
+  async function handleLogout() {
+    try {
+      await apiFetch("/auth/logout", { method: "POST" }).catch(() => null);
+    } catch {
+      // ignore network errors
+    }
+    try {
+      localStorage.removeItem("user");
+      localStorage.removeItem("userEmail");
+      // notify other tabs / ProtectedRoute to re-check auth
+      localStorage.setItem("auth-change", Date.now().toString());
+    } catch {}
+    navigate("/login", { replace: true });
+  }
 
   // Candidate meta (replace with real data from your API later)
   const [candidate, setCandidate] = useState({
@@ -221,35 +237,36 @@ const [fitError, setFitError] = useState<string | null>(null);
     };
   }, [candidateId, navigate, activeSection]);
   useEffect(() => {
-  if (activeSection !== "summary") return;
-  if (!candidateId) {
-    setFitLoading(false);
-    setFitError("No candidate id.");
-    return;
-  }
-
-  let aborted = false;
-  (async () => {
-    setFitLoading(true);
-    setFitError(null);
-    try {
-      const res = await apiFetch(`/cv/${candidateId}/project-fit`, {
-        headers: { Accept: "application/json" },
-      });
-      if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
-      const data = await res.json();
-      if (!aborted) setProjectFit(data);
-    } catch (e: any) {
-      if (!aborted) setFitError(e.message || "Failed to load project fit");
-    } finally {
-      if (!aborted) setFitLoading(false);
+    if (activeSection !== "summary") return;
+    if (!candidateId) {
+      setFitLoading(false);
+      setFitError("No candidate id.");
+      return;
     }
-  })();
 
-  return () => {
-    aborted = true;
-  };
-}, [candidateId, activeSection]);
+    let aborted = false;
+    (async () => {
+      setFitLoading(true);
+      setFitError(null);
+      try {
+        const res = await apiFetch(`/cv/${candidateId}/project-fit`, {
+          headers: { Accept: "application/json" },
+        });
+        if (!res.ok)
+          throw new Error((await res.text()) || `HTTP ${res.status}`);
+        const data = await res.json();
+        if (!aborted) setProjectFit(data);
+      } catch (e: any) {
+        if (!aborted) setFitError(e.message || "Failed to load project fit");
+      } finally {
+        if (!aborted) setFitLoading(false);
+      }
+    })();
+
+    return () => {
+      aborted = true;
+    };
+  }, [candidateId, activeSection]);
 
   // --- skills fetch state ---
   const [skillsData, setSkillsData] = useState<string[]>([]);
@@ -522,11 +539,7 @@ const [fitError, setFitError] = useState<string | null>(null);
                 </Typography>
               </Box>
               {/* Logout */}
-              <IconButton
-                color="inherit"
-                onClick={() => navigate("/login")}
-                sx={{ ml: 1 }}
-              >
+              <IconButton color="inherit" onClick={handleLogout} sx={{ ml: 1 }}>
                 <ExitToAppIcon />
               </IconButton>
             </Box>

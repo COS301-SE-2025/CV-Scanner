@@ -31,7 +31,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import logo from "../assets/logoNavbar.png";
 import Sidebar from "./Sidebar";
-import { API_BASE_URL } from "../lib/api";
+import { API_BASE_URL, apiFetch } from "../lib/api";
 
 export default function AddUserPage() {
   const navigate = useNavigate();
@@ -192,6 +192,22 @@ export default function AddUserPage() {
       .catch(() => setUser(null));
   }, []);
 
+  // Logout handler: invalidate server session, clear local state and notify other tabs
+  async function handleLogout() {
+    try {
+      await apiFetch("/auth/logout", { method: "POST" }).catch(() => null);
+    } catch {
+      // ignore network errors
+    }
+    try {
+      localStorage.removeItem("user");
+      localStorage.removeItem("userEmail");
+      // notify other tabs / ProtectedRoute to re-check auth
+      localStorage.setItem("auth-change", Date.now().toString());
+    } catch {}
+    navigate("/login", { replace: true });
+  }
+
   return (
     <Box
       sx={{
@@ -252,11 +268,7 @@ export default function AddUserPage() {
             </Box>
 
             {/* Logout */}
-            <IconButton
-              color="inherit"
-              onClick={() => navigate("/login")}
-              sx={{ ml: 1 }}
-            >
+            <IconButton color="inherit" onClick={handleLogout} sx={{ ml: 1 }}>
               <ExitToAppIcon />
             </IconButton>
           </Toolbar>
