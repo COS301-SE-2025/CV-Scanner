@@ -273,6 +273,8 @@ export default function CompareCandidates() {
       if (response && response.ok) {
         const data = await response.json();
         
+        console.log('Raw candidate details:', data); // Debug log
+
         // Parse the data structure from your example
         const skills = Array.isArray(data.skills) ? data.skills : [];
         const experience = data.sections?.experience 
