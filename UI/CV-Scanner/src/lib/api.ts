@@ -26,8 +26,30 @@ export async function apiFetch(path: string, opts: RequestInit = {}) {
       ? path
       : `${BASE}${path.startsWith("/") ? "" : "/"}${path}`;
 
-  const headers = buildHeaders(opts);
-  const res = await fetch(url, { credentials: "include", ...opts, headers });
+  const isFormData =
+    typeof FormData !== "undefined" && (opts as any).body instanceof FormData;
+
+  // build base headers but do NOT set Content-Type for FormData
+  const baseHeaders: HeadersInit = {
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
+    ...((opts.headers as HeadersInit) || {}),
+  };
+
+  // attach token if available (localStorage 'token') and not sending FormData
+  try {
+    const token = localStorage.getItem("token");
+    if (token) {
+      baseHeaders["Authorization"] = `Bearer ${token}`;
+    }
+  } catch {
+    // ignore localStorage errors
+  }
+
+  const res = await fetch(url, {
+    credentials: "include",
+    ...opts,
+    headers: baseHeaders,
+  });
   return res;
 }
 

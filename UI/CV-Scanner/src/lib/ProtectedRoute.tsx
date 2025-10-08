@@ -21,13 +21,15 @@ export default function ProtectedRoute({ children }: Props) {
       try {
         const res = await apiFetch("/auth/me").catch(() => null);
         if (!mounted) return;
+        // any non-OK -> redirect to login
         if (res && res.ok) {
           setOk(true);
         } else {
-          // not authorized -> redirect to login
+          console.debug("ProtectedRoute: /auth/me not ok", res?.status);
           navigate("/login", { replace: true });
         }
-      } catch {
+      } catch (err) {
+        console.debug("ProtectedRoute error", err);
         navigate("/login", { replace: true });
       } finally {
         if (mounted) setLoading(false);

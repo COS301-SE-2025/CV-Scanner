@@ -82,6 +82,14 @@ function App() {
               <Route path="/help" element={<Help />} />
               <Route path="/system-settings" element={<SystemSettingsPage />} />
               <Route path="/parsed-cv" element={<ParsedCVData />} />
+              <Route
+                path="/compare"
+                element={
+                  <ProtectedRoute>
+                    <CompareCandidates />
+                  </ProtectedRoute>
+                }
+              />
               {/* Redirect unknown routes to landing */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
