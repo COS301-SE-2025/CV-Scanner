@@ -54,6 +54,12 @@ interface ApiResponse {
   error?: string;
 }
 
+interface ValidationErrors {
+  candidateName?: string;
+  candidateSurname?: string;
+  candidateEmail?: string;
+}
+
 // safeAiFetch: calls local AI directly for localhost targets, otherwise routes through backend proxy
 const safeAiFetch = async (
   url: string,
@@ -145,6 +151,53 @@ const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
+// Validation functions
+const validateName = (name: string): string => {
+  if (!name.trim()) {
+    return "Name is required";
+  }
+  if (name.length < 2) {
+    return "Name must be at least 2 characters long";
+  }
+  if (name.length > 50) {
+    return "Name must be less than 50 characters";
+  }
+  if (!/^[a-zA-Z\s\-'\.]+$/.test(name)) {
+    return "Name can only contain letters, spaces, hyphens, apostrophes, and periods";
+  }
+  return "";
+};
+
+const validateSurname = (surname: string): string => {
+  if (!surname.trim()) {
+    return "Surname is required";
+  }
+  if (surname.length < 2) {
+    return "Surname must be at least 2 characters long";
+  }
+  if (surname.length > 50) {
+    return "Surname must be less than 50 characters";
+  }
+  if (!/^[a-zA-Z\s\-'\.]+$/.test(surname)) {
+    return "Surname can only contain letters, spaces, hyphens, apostrophes, and periods";
+  }
+  return "";
+};
+
+const validateEmail = (email: string): string => {
+  if (!email.trim()) {
+    return "Email is required";
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return "Please enter a valid email address";
+  }
+  if (email.length > 100) {
+    return "Email must be less than 100 characters";
+  }
+  return "";
+};
+
 export default function UploadCVPage() {
   const [collapsed, setCollapsed] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -158,6 +211,7 @@ export default function UploadCVPage() {
   const [loading, setLoading] = useState(false);
   const [aiUploadData, setAiUploadData] = useState<any | null>(null);
   const [aiParseData, setAiParseData] = useState<any | null>(null);
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
   const candidateDetailsRef = useRef<HTMLDivElement>(null);
   const cvTableRef = useRef<HTMLDivElement>(null);
@@ -191,6 +245,64 @@ export default function UploadCVPage() {
   const loader = useBrandLoader();
 
   const navigate = useNavigate();
+
+  // Validate individual field
+  const validateField = (field: string, value: string): string => {
+    switch (field) {
+      case 'candidateName':
+        return validateName(value);
+      case 'candidateSurname':
+        return validateSurname(value);
+      case 'candidateEmail':
+        return validateEmail(value);
+      default:
+        return '';
+    }
+  };
+
+  // Validate all fields
+  const validateAllFields = (): boolean => {
+    const errors: ValidationErrors = {
+      candidateName: validateName(candidateName),
+      candidateSurname: validateSurname(candidateSurname),
+      candidateEmail: validateEmail(candidateEmail),
+    };
+
+    setValidationErrors(errors);
+    return !errors.candidateName && !errors.candidateSurname && !errors.candidateEmail;
+  };
+
+  // Handle field change with validation
+  const handleFieldChange = (field: string, value: string) => {
+    switch (field) {
+      case 'candidateName':
+        setCandidateName(value);
+        break;
+      case 'candidateSurname':
+        setCandidateSurname(value);
+        break;
+      case 'candidateEmail':
+        setCandidateEmail(value);
+        break;
+    }
+
+    // Clear validation error for this field when user starts typing
+    if (validationErrors[field as keyof ValidationErrors]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+  };
+
+  // Validate field on blur
+  const handleFieldBlur = (field: string, value: string) => {
+    const error = validateField(field, value);
+    setValidationErrors(prev => ({
+      ...prev,
+      [field]: error
+    }));
+  };
 
   // Logout handler: invalidate server session, clear client state and notify other tabs
   async function handleLogout() {
@@ -351,14 +463,11 @@ export default function UploadCVPage() {
       return;
     }
 
-    if (
-      !candidateName.trim() ||
-      !candidateSurname.trim() ||
-      !candidateEmail.trim()
-    ) {
+    // Validate all fields before processing
+    if (!validateAllFields()) {
       setErrorPopup({
         open: true,
-        message: "Please fill in all candidate details.",
+        message: "Please fix the validation errors before processing.",
       });
       return;
     }
@@ -716,12 +825,17 @@ export default function UploadCVPage() {
                 required
                 variant="outlined"
                 value={candidateName}
-                onChange={(e) => setCandidateName(e.target.value)}
+                onChange={(e) => handleFieldChange('candidateName', e.target.value)}
+                onBlur={(e) => handleFieldBlur('candidateName', e.target.value)}
+                error={!!validationErrors.candidateName}
+                helperText={validationErrors.candidateName}
                 sx={{
                   fontFamily: "Helvetica, sans-serif",
                   mb: 3,
                   "& .MuiOutlinedInput-root": {
-                    "& fieldset": { borderColor: "#000000ff" },
+                    "& fieldset": { 
+                      borderColor: validationErrors.candidateName ? "#d32f2f" : "#000000ff" 
+                    },
                     fontFamily: "Helvetica, sans-serif",
                     fontSize: "1rem",
                     color: "#000000ff",
@@ -729,10 +843,10 @@ export default function UploadCVPage() {
                 }}
                 InputLabelProps={{
                   sx: {
-                    color: "#000000ff",
+                    color: validationErrors.candidateName ? "#d32f2f" : "#000000ff",
                     "&.Mui-focused": {
-                      borderColor: "#204E20",
-                      color: "#204E20",
+                      borderColor: validationErrors.candidateName ? "#d32f2f" : "#204E20",
+                      color: validationErrors.candidateName ? "#d32f2f" : "#204E20",
                     },
                     fontFamily: "Helvetica, sans-serif",
                     fontWeight: "bold",
@@ -746,11 +860,16 @@ export default function UploadCVPage() {
                 required
                 variant="outlined"
                 value={candidateSurname}
-                onChange={(e) => setCandidateSurname(e.target.value)}
+                onChange={(e) => handleFieldChange('candidateSurname', e.target.value)}
+                onBlur={(e) => handleFieldBlur('candidateSurname', e.target.value)}
+                error={!!validationErrors.candidateSurname}
+                helperText={validationErrors.candidateSurname}
                 sx={{
                   mb: 3,
                   "& .MuiOutlinedInput-root": {
-                    "& fieldset": { borderColor: "#000000ff" },
+                    "& fieldset": { 
+                      borderColor: validationErrors.candidateSurname ? "#d32f2f" : "#000000ff" 
+                    },
                     fontFamily: "Helvetica, sans-serif",
                     fontSize: "1rem",
                     color: "#000000ff",
@@ -758,10 +877,12 @@ export default function UploadCVPage() {
                 }}
                 InputLabelProps={{
                   sx: {
-                    "&.Mui-focused": { color: "#204E20" },
+                    color: validationErrors.candidateSurname ? "#d32f2f" : "#000000ff",
+                    "&.Mui-focused": { 
+                      color: validationErrors.candidateSurname ? "#d32f2f" : "#204E20" 
+                    },
                     fontFamily: "Helvetica, sans-serif",
                     fontWeight: "bold",
-                    color: "#000000ff",
                   },
                 }}
               />
@@ -773,11 +894,16 @@ export default function UploadCVPage() {
                 type="email"
                 variant="outlined"
                 value={candidateEmail}
-                onChange={(e) => setCandidateEmail(e.target.value)}
+                onChange={(e) => handleFieldChange('candidateEmail', e.target.value)}
+                onBlur={(e) => handleFieldBlur('candidateEmail', e.target.value)}
+                error={!!validationErrors.candidateEmail}
+                helperText={validationErrors.candidateEmail}
                 sx={{
                   mb: 3,
                   "& .MuiOutlinedInput-root": {
-                    "& fieldset": { borderColor: "#000000ff" },
+                    "& fieldset": { 
+                      borderColor: validationErrors.candidateEmail ? "#d32f2f" : "#000000ff" 
+                    },
                     fontFamily: "Helvetica, sans-serif",
                     fontSize: "1rem",
                     color: "#000000ff",
@@ -785,10 +911,12 @@ export default function UploadCVPage() {
                 }}
                 InputLabelProps={{
                   sx: {
-                    "&.Mui-focused": { color: "#204E20" },
+                    color: validationErrors.candidateEmail ? "#d32f2f" : "#000000ff",
+                    "&.Mui-focused": { 
+                      color: validationErrors.candidateEmail ? "#d32f2f" : "#204E20" 
+                    },
                     fontFamily: "Helvetica, sans-serif",
                     fontWeight: "bold",
-                    color: "#000000ff",
                   },
                 }}
               />
