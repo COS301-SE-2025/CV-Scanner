@@ -266,7 +266,7 @@ export default function CompareCandidates() {
     return Math.max(0, Math.min(10, p / 10));
   }
 
-  // Load detailed candidate data
+  // Load detailed candidate data - IMPROVED PARSING
   const loadCandidateDetails = async (candidateId: number | string): Promise<Candidate['detailedData']> => {
     try {
       const response = await apiFetch(`/cv/candidate/${candidateId}/details`);
@@ -276,10 +276,10 @@ export default function CompareCandidates() {
         // Parse the data structure from your example
         const skills = Array.isArray(data.skills) ? data.skills : [];
         const experience = data.sections?.experience 
-          ? parseSection(data.sections.experience)
+          ? parseExperienceSection(data.sections.experience)
           : [];
         const projects = data.sections?.projects
-          ? parseSection(data.sections.projects)
+          ? parseProjectsSection(data.sections.projects)
           : [];
         const education = data.sections?.education
           ? parseSection(data.sections.education)
@@ -312,19 +312,101 @@ export default function CompareCandidates() {
     };
   };
 
-  // Helper to parse section data (experience, projects, education)
+  // Improved parsing for experience section
+  const parseExperienceSection = (experienceData: any): string[] => {
+    if (Array.isArray(experienceData)) {
+      return experienceData;
+    }
+    
+    if (typeof experienceData === 'string') {
+      // Try to parse string as array first
+      try {
+        const parsed = JSON.parse(experienceData);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        // If not JSON, parse the complex string structure
+        return parseComplexExperienceString(experienceData);
+      }
+    }
+    
+    return [];
+  };
+
+  // Parse complex experience string like in your example
+  const parseComplexExperienceString = (experienceString: string): string[] => {
+    const experiences: string[] = [];
+    
+    // Split by common job title indicators
+    const jobSections = experienceString.split(/(?=\w+ — \w+ \(\d+ years?\))/);
+    
+    jobSections.forEach(section => {
+      if (section.trim()) {
+        // Extract job title and company
+        const titleMatch = section.match(/(.+?) — (.+?) \(\d+ years?\)/);
+        if (titleMatch) {
+          const [, title, company] = titleMatch;
+          experiences.push(`${title.trim()} — ${company.trim()}`);
+          
+          // Extract responsibilities (lines that don't start with job titles)
+          const responsibilities = section.split('\n')
+            .filter(line => line.trim() && !line.match(/^(.+?) — (.+?) \(\d+ years?\)/))
+            .filter(line => !line.toLowerCase().includes('education') && 
+                          !line.toLowerCase().includes('selected projects') &&
+                          !line.toLowerCase().includes('certifications'));
+          
+          responsibilities.forEach(resp => {
+            if (resp.trim() && resp.trim().length > 10) { // Minimum length filter
+              experiences.push(`  • ${resp.trim()}`);
+            }
+          });
+        } else {
+          // If no job title pattern, add as individual items
+          const items = section.split(/[•\-\n]/)
+            .filter(item => item.trim().length > 10) // Filter out very short items
+            .map(item => item.trim());
+          
+          experiences.push(...items);
+        }
+      }
+    });
+    
+    return experiences.filter(exp => exp.trim().length > 0);
+  };
+
+  // Improved parsing for projects section
+  const parseProjectsSection = (projectsData: any): string[] => {
+    if (Array.isArray(projectsData)) {
+      return projectsData;
+    }
+    
+    if (typeof projectsData === 'string') {
+      try {
+        const parsed = JSON.parse(projectsData);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        // Parse project string
+        return projectsData.split(/[•\-\n]/)
+          .filter(project => project.trim().length > 10) // Filter out very short items
+          .map(project => project.trim())
+          .filter(project => !project.toLowerCase().includes('certifications') && 
+                            !project.toLowerCase().includes('generated on'));
+      }
+    }
+    
+    return [];
+  };
+
+  // Generic section parser for education
   const parseSection = (sectionData: any): string[] => {
     if (Array.isArray(sectionData)) {
       return sectionData;
     }
     
     if (typeof sectionData === 'string') {
-      // Try to parse string as array
       try {
         const parsed = JSON.parse(sectionData);
         if (Array.isArray(parsed)) return parsed;
       } catch {
-        // If not JSON, split by common delimiters
         return sectionData.split(/[•\-\n]/).filter((item: string) => item.trim().length > 0);
       }
     }
@@ -588,7 +670,7 @@ export default function CompareCandidates() {
     }));
   };
 
-  // Calculate comparison results
+  // Calculate comparison results - UPDATED SCORING
   const calculateComparison = () => {
     if (!candidateA || !candidateB) return;
 
@@ -601,38 +683,40 @@ export default function CompareCandidates() {
     const skillsAScore = skillsACount > 0 ? (skillsASelected / skillsACount) * 50 : 0;
     const skillsBScore = skillsBCount > 0 ? (skillsBSelected / skillsBCount) * 50 : 0;
 
-    // Experience (25% of total)
-    const experienceACount = Object.keys(comparisonData.experienceA).length;
-    const experienceBCount = Object.keys(comparisonData.experienceB).length;
-    const experienceASelected = Object.values(comparisonData.experienceA).filter(Boolean).length;
-    const experienceBSelected = Object.values(comparisonData.experienceB).filter(Boolean).length;
-    
-    const experienceAScore = experienceACount > 0 ? (experienceASelected / experienceACount) * 25 : 0;
-    const experienceBScore = experienceBCount > 0 ? (experienceBSelected / experienceBCount) * 25 : 0;
-
-    // Projects (25% of total)
+    // Projects & Experience COMBINED (25% of total)
     const projectsACount = Object.keys(comparisonData.projectsA).length;
     const projectsBCount = Object.keys(comparisonData.projectsB).length;
     const projectsASelected = Object.values(comparisonData.projectsA).filter(Boolean).length;
     const projectsBSelected = Object.values(comparisonData.projectsB).filter(Boolean).length;
     
-    const projectsAScore = projectsACount > 0 ? (projectsASelected / projectsACount) * 25 : 0;
-    const projectsBScore = projectsBCount > 0 ? (projectsBSelected / projectsBCount) * 25 : 0;
+    const experienceACount = Object.keys(comparisonData.experienceA).length;
+    const experienceBCount = Object.keys(comparisonData.experienceB).length;
+    const experienceASelected = Object.values(comparisonData.experienceA).filter(Boolean).length;
+    const experienceBSelected = Object.values(comparisonData.experienceB).filter(Boolean).length;
 
-    // Base score (25% of total) - using the existing score out of 10
+    // Combined projects + experience score (25% total)
+    const totalItemsA = projectsACount + experienceACount;
+    const totalItemsB = projectsBCount + experienceBCount;
+    const totalSelectedA = projectsASelected + experienceASelected;
+    const totalSelectedB = projectsBSelected + experienceBSelected;
+    
+    const projectsExpAScore = totalItemsA > 0 ? (totalSelectedA / totalItemsA) * 25 : 0;
+    const projectsExpBScore = totalItemsB > 0 ? (totalSelectedB / totalItemsB) * 25 : 0;
+
+    // Base score from search display (25% of total)
     const baseAScore = ((candidateA.score || 0) / 10) * 25;
     const baseBScore = ((candidateB.score || 0) / 10) * 25;
 
-    const totalAScore = skillsAScore + experienceAScore + projectsAScore + baseAScore;
-    const totalBScore = skillsBScore + experienceBScore + projectsBScore + baseBScore;
+    const totalAScore = skillsAScore + projectsExpAScore + baseAScore;
+    const totalBScore = skillsBScore + projectsExpBScore + baseBScore;
 
     const result: ComparisonResult = {
       candidateAScore: totalAScore,
       candidateBScore: totalBScore,
       breakdown: {
         skills: { a: skillsAScore, b: skillsBScore },
-        experience: { a: experienceAScore, b: experienceBScore },
-        projects: { a: projectsAScore, b: projectsBScore },
+        experience: { a: projectsExpAScore, b: projectsExpBScore }, // Combined projects + experience
+        projects: { a: 0, b: 0 }, // Not used separately anymore
         baseScore: { a: baseAScore, b: baseBScore },
       }
     };
@@ -784,9 +868,15 @@ export default function CompareCandidates() {
     );
   };
 
-  // Render comparison breakdown section
+  // Render comparison breakdown section - UPDATED
   const renderComparisonBreakdown = () => {
     if (!candidateA || !candidateB || !comparisonResult) return null;
+
+    // Calculate combined projects + experience counts
+    const projectsExpACount = Object.keys(comparisonData.projectsA).length + Object.keys(comparisonData.experienceA).length;
+    const projectsExpBCount = Object.keys(comparisonData.projectsB).length + Object.keys(comparisonData.experienceB).length;
+    const projectsExpASelected = Object.values(comparisonData.projectsA).filter(Boolean).length + Object.values(comparisonData.experienceA).filter(Boolean).length;
+    const projectsExpBSelected = Object.values(comparisonData.projectsB).filter(Boolean).length + Object.values(comparisonData.experienceB).filter(Boolean).length;
 
     return (
       <Paper sx={{ p: 3, mt: 3, bgcolor: "#DEDDEE" }}>
@@ -822,55 +912,26 @@ export default function CompareCandidates() {
             </Box>
           </Box>
 
-          {/* Experience Section */}
+          {/* Projects & Experience COMBINED Section */}
           <Box sx={{ flex: '1 1 300px' }}>
             <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 2, color: "#000" }}>
-              Experience (25% of total)
+              Projects & Experience (25% of total)
             </Typography>
             <Box sx={{ mb: 2 }}>
               <Typography variant="body2" sx={{ color: "#000" }}>
-                {candidateA.firstName}: {Object.values(comparisonData.experienceA).filter(Boolean).length}/
-                {Object.keys(comparisonData.experienceA).length} selected
+                {candidateA.firstName}: {projectsExpASelected}/{projectsExpACount} selected
               </Typography>
               <LinearProgress 
                 variant="determinate" 
-                value={(Object.values(comparisonData.experienceA).filter(Boolean).length / Math.max(1, Object.keys(comparisonData.experienceA).length)) * 100}
+                value={(projectsExpASelected / Math.max(1, projectsExpACount)) * 100}
                 sx={{ height: 8, borderRadius: 4, mb: 1 }}
               />
               <Typography variant="body2" sx={{ color: "#000" }}>
-                {candidateB.firstName}: {Object.values(comparisonData.experienceB).filter(Boolean).length}/
-                {Object.keys(comparisonData.experienceB).length} selected
+                {candidateB.firstName}: {projectsExpBSelected}/{projectsExpBCount} selected
               </Typography>
               <LinearProgress 
                 variant="determinate" 
-                value={(Object.values(comparisonData.experienceB).filter(Boolean).length / Math.max(1, Object.keys(comparisonData.experienceB).length)) * 100}
-                sx={{ height: 8, borderRadius: 4 }}
-              />
-            </Box>
-          </Box>
-
-          {/* Projects Section */}
-          <Box sx={{ flex: '1 1 300px' }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 2, color: "#000" }}>
-              Projects (25% of total)
-            </Typography>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" sx={{ color: "#000" }}>
-                {candidateA.firstName}: {Object.values(comparisonData.projectsA).filter(Boolean).length}/
-                {Object.keys(comparisonData.projectsA).length} selected
-              </Typography>
-              <LinearProgress 
-                variant="determinate" 
-                value={(Object.values(comparisonData.projectsA).filter(Boolean).length / Math.max(1, Object.keys(comparisonData.projectsA).length)) * 100}
-                sx={{ height: 8, borderRadius: 4, mb: 1 }}
-              />
-              <Typography variant="body2" sx={{ color: "#000" }}>
-                {candidateB.firstName}: {Object.values(comparisonData.projectsB).filter(Boolean).length}/
-                {Object.keys(comparisonData.projectsB).length} selected
-              </Typography>
-              <LinearProgress 
-                variant="determinate" 
-                value={(Object.values(comparisonData.projectsB).filter(Boolean).length / Math.max(1, Object.keys(comparisonData.projectsB).length)) * 100}
+                value={(projectsExpBSelected / Math.max(1, projectsExpBCount)) * 100}
                 sx={{ height: 8, borderRadius: 4 }}
               />
             </Box>
