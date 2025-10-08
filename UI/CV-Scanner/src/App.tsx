@@ -69,19 +69,60 @@ function App() {
               />
               <Route
                 path="/candidate/:id/:section"
-                element={<CandidateReviewSummary />}
+                element={
+                  <ProtectedRoute>
+                    <CandidateReviewSummary />
+                  </ProtectedRoute>
+                }
               />
               <Route
                 path="/candidate/:id/notes"
-                element={<CandidateReviewSummary />}
+                element={
+                  <ProtectedRoute>
+                    <CandidateReviewSummary />
+                  </ProtectedRoute>
+                }
               />
-              <Route path="/user-management" element={<UserManagementPage />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/add-user" element={<AddUserPage />} />
-              <Route path="/landing-page" element={<LandingPage />} />
-              <Route path="/help" element={<Help />} />
-              <Route path="/system-settings" element={<SystemSettingsPage />} />
-              <Route path="/parsed-cv" element={<ParsedCVData />} />
+              <Route
+                path="/user-management"
+                element={
+                  <ProtectedRoute>
+                    <UserManagementPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/add-user"
+                element={
+                  <ProtectedRoute>
+                    <AddUserPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/system-settings"
+                element={
+                  <ProtectedRoute>
+                    <SystemSettingsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/parsed-cv"
+                element={
+                  <ProtectedRoute>
+                    <ParsedCVData />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/compare"
                 element={

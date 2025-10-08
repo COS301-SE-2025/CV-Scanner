@@ -25,11 +25,9 @@ export default function ProtectedRoute({ children }: Props) {
         if (res && res.ok) {
           setOk(true);
         } else {
-          console.debug("ProtectedRoute: /auth/me not ok", res?.status);
           navigate("/login", { replace: true });
         }
-      } catch (err) {
-        console.debug("ProtectedRoute error", err);
+      } catch {
         navigate("/login", { replace: true });
       } finally {
         if (mounted) setLoading(false);
