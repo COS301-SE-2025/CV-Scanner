@@ -108,6 +108,20 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletRequest httpRequest) {
+        try {
+            HttpSession session = httpRequest.getSession(false);
+            if (session != null) {
+                session.invalidate();
+            }
+            return ResponseEntity.ok(Collections.singletonMap("message", "Logged out"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Collections.singletonMap("message", "Failed to logout"));
+        }
+    }
+    
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(@RequestParam(required = false) String email, HttpServletRequest httpRequest) {
         String emailToUse = email;

@@ -468,6 +468,24 @@ export default function CandidatesDashboard() {
   };
   const handleCloseTutorial = () => setShowTutorial(false);
 
+  // Logout handler: call server to invalidate session, clear local state and notify other tabs
+  async function handleLogout() {
+    try {
+      await apiFetch("/auth/logout", { method: "POST" }).catch(() => null);
+    } catch {
+      // ignore network errors
+    }
+    // Clear client-side state
+    try {
+      localStorage.removeItem("user");
+      localStorage.removeItem("userEmail");
+      // notify other tabs / ProtectedRoute to re-check auth
+      localStorage.setItem("auth-change", Date.now().toString());
+    } catch {}
+    // navigate to login
+    navigate("/login", { replace: true });
+  }
+
   // real data for graphs (fetched)
   const [candidateTrends, setCandidateTrends] = useState<
     Array<{ month: string; candidates: number }>
@@ -568,11 +586,7 @@ export default function CandidatesDashboard() {
             </Box>
 
             {/* Logout */}
-            <IconButton
-              color="inherit"
-              onClick={() => navigate("/login")}
-              sx={{ ml: 1 }}
-            >
+            <IconButton color="inherit" onClick={handleLogout} sx={{ ml: 1 }}>
               <ExitToAppIcon />
             </IconButton>
           </Toolbar>
