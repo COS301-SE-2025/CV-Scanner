@@ -107,6 +107,39 @@ export default function CandidatesDashboard() {
 
   const reviewBtnRef = useRef<HTMLButtonElement>(null);
 
+  // --- helpers: add here (after refs/state, before useEffect) ---
+  function parseSkillFallback(input: string | null | undefined): string[] {
+    if (!input) return [];
+    const s = String(input).trim();
+    try {
+      if (s.startsWith("[") || s.startsWith("{")) {
+        const parsed = JSON.parse(s);
+        if (Array.isArray(parsed))
+          return parsed.map((p) => String(p).trim()).filter(Boolean);
+        if (parsed && typeof parsed === "object")
+          return Object.keys(parsed).map((k) => String(k).trim());
+      }
+    } catch {}
+    const cleaned = s.replace(/^[\[\]\{\}"'`]+|[\[\]\{\}"'`]+$/g, "");
+    return cleaned
+      .split(/[,;|\n]/)
+      .map((p) => p.replace(/[^a-zA-Z0-9 .+#\-\+]/g, "").trim())
+      .filter(Boolean);
+  }
+
+  function toNumberSafe(value: any): number {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function cleanSkillDisplay(raw: any): string {
+    if (!raw) return "—";
+    if (Array.isArray(raw)) return raw.map(String).join(", ");
+    const parts = parseSkillFallback(String(raw));
+    return parts.length ? parts.join(", ") : String(raw);
+  }
+  // --- end helpers ---
+
   useEffect(() => {
     document.title = "Candidates Dashboard";
 
@@ -161,7 +194,7 @@ export default function CandidatesDashboard() {
           setRawSkillResponse(null);
 
           // Use apiFetch consistently (it should honor REACT_APP_API_BASE)
-            const [skillsRes, pfRes] = await Promise.all([
+          const [skillsRes, pfRes] = await Promise.all([
             apiFetch("/cv/skill-distribution?limit=10").catch(() => null),
             apiFetch("/cv/project-fit?limit=200").catch(() => null),
           ]);
@@ -185,27 +218,25 @@ export default function CandidatesDashboard() {
               let parsed: Array<{ name: string; value: number }> = [];
 
               if (Array.isArray(skillsJson)) {
-                // expected shape: [{ name, value }, ...]
                 parsed = skillsJson
-                  .map((s: any) => ({
-                    name: s?.name ?? s?.label ?? String(s),
-                    value: Number(s?.value ?? s?.count ?? 0),
-                  }))
-                  .filter((it) => it.name && !Number.isNaN(it.value));
+                  .map((s: any) => {
+                    if (typeof s === "string") return { name: s, value: 1 };
+                    return {
+                      name: String(s?.name ?? s?.label ?? JSON.stringify(s)),
+                      value: toNumberSafe(s?.value ?? s?.count ?? 0),
+                    };
+                  })
+                  .filter((it) => it.name);
               } else if (skillsJson && typeof skillsJson === "object") {
-                // object map: { skill: count, ... }
                 parsed = Object.entries(skillsJson).map(([k, v]) => ({
-                  name: k,
-                  value: Number(v ?? 0),
+                  name: String(k),
+                  value: toNumberSafe(v),
                 }));
-              } else if (skillsJson && typeof skillsJson === "string") {
-                const parts = skillsJson
-                  .split("[,;\\n]")
-                  .map((p: string) =>
-                    p.replace(/[^a-zA-Z0-9 +#.+-]/g, "").trim()
-                  )
-                  .filter(Boolean);
-                parsed = parts.map((p: string) => ({ name: p, value: 1 }));
+              } else if (typeof skillsJson === "string") {
+                const parts = parseSkillFallback(skillsJson);
+                parsed = parts.map((p) => ({ name: p, value: 1 }));
+              } else {
+                parsed = [];
               }
 
               if (parsed.length) {
@@ -726,10 +757,6 @@ export default function CandidatesDashboard() {
                         typeof props.payload.percent === "number"
                           ? (props.payload.percent * 100).toFixed(1)
                           : "";
-                      function toNumberSafe(value: ValueType): React.ReactNode {
-                        throw new Error("Function not implemented.");
-                      }
-
                       return [
                         toNumberSafe(value),
                         pct ? `${name}: ${pct}%` : name,
@@ -875,7 +902,9 @@ export default function CandidatesDashboard() {
                   {recent.map((candidate, idx) => (
                     <TableRow key={candidate.id ?? idx}>
                       <TableCell>{candidate.name}</TableCell>
-                      <TableCell>{candidate.skills || "—"}</TableCell>
+                      <TableCell>
+                        {cleanSkillDisplay(candidate.skills)}
+                      </TableCell>
                       <TableCell>{candidate.fit || "N/A"}</TableCell>
                       <TableCell>
                         <Button
