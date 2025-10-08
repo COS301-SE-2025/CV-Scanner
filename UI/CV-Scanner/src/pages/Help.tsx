@@ -193,7 +193,7 @@ export default function HelpPage() {
 
       <Button
         variant="contained"
-        href="/User_Manual_V3.pdf"
+        href="/User_Manual_FINAL.pdf"
         target="_blank"
         rel="noopener noreferrer"
       >
