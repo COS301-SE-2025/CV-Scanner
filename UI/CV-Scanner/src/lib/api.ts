@@ -26,15 +26,7 @@ export async function apiFetch(path: string, opts: RequestInit = {}) {
       ? path
       : `${BASE}${path.startsWith("/") ? "" : "/"}${path}`;
 
-  const isFormData =
-    typeof FormData !== "undefined" && (opts as any).body instanceof FormData;
-
-  // Do NOT attach Authorization header — use cookie-based sessions. Keep credentials included.
-  const headers: HeadersInit = {
-    ...(isFormData ? {} : { "Content-Type": "application/json" }),
-    ...((opts.headers as HeadersInit) || {}),
-  };
-
+  const headers = buildHeaders(opts);
   const res = await fetch(url, { credentials: "include", ...opts, headers });
   return res;
 }

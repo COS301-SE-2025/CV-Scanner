@@ -64,7 +64,6 @@ export default function LoginPage() {
       }
 
       if (res.ok) {
-        // rely on server-set session cookie; do NOT store any token locally
         localStorage.setItem("userEmail", email);
         if (body && typeof body === "object") {
           localStorage.setItem("user", JSON.stringify(body));

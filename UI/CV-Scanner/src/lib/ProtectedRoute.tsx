@@ -19,13 +19,12 @@ export default function ProtectedRoute({ children }: Props) {
     let mounted = true;
     (async () => {
       try {
-        // rely on cookie-based session: call /auth/me (server must read session cookie)
         const res = await apiFetch("/auth/me").catch(() => null);
         if (!mounted) return;
         if (res && res.ok) {
           setOk(true);
         } else {
-          // any non-OK (401/400) -> redirect to login
+          // not authorized -> redirect to login
           navigate("/login", { replace: true });
         }
       } catch {
@@ -47,5 +46,5 @@ export default function ProtectedRoute({ children }: Props) {
     );
   }
 
-  return ok ? <>{children}</> : null;
+  return ok ? children : null;
 }
