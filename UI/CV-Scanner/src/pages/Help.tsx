@@ -19,7 +19,6 @@ import { useState } from "react";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import logoNavbar from "../assets/logoNavbar.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
-import manualPdf from "../assets/User_Manual_FINAL.pdf";
 import { apiFetch } from "../lib/api";
 
 export default function HelpPage() {
