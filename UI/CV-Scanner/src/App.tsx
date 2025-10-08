@@ -1,5 +1,5 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
 import React, { Suspense, lazy } from "react";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import LoginPage from "./pages/Login";
 import RegisterPage from "./pages/Register";
 import ResetPassword from "./pages/ResetPassword";
@@ -37,9 +37,12 @@ function App() {
         <ErrorBoundary>
           <Suspense fallback={<BrandLoading />}>
             <Routes>
+              {/* Public */}
+              <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              {/* Protected */}
               <Route
                 path="/dashboard"
                 element={
@@ -79,7 +82,8 @@ function App() {
               <Route path="/help" element={<Help />} />
               <Route path="/system-settings" element={<SystemSettingsPage />} />
               <Route path="/parsed-cv" element={<ParsedCVData />} />
-              <Route path="*" element={<LandingPage />} />
+              {/* Redirect unknown routes to landing */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
         </ErrorBoundary>
