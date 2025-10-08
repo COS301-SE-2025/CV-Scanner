@@ -28,6 +28,9 @@ export default function HelpPage() {
 
 //const manualHref = new URL("User_Manual_FINAL.pdf", import.meta.env.BASE_URL).toString();
 
+const manualHref = new URL("../assets/User_Manual_FINAL.pdf", import.meta.url).href;
+
+
   // Logout handler: invalidate server session, clear client state and notify other tabs
   async function handleLogout() {
     try {
@@ -196,7 +199,7 @@ export default function HelpPage() {
 
       <Button
         variant="contained"
-        href={manualPdf}
+        href={manualHref}
         target="_blank"
         rel="noopener noreferrer"
       >
