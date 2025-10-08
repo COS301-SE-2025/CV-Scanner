@@ -130,31 +130,53 @@ export default function CandidatesDashboard() {
   // Normalize label strings for charts/legends
   function normalizeSkillName(raw: any): string {
     if (raw == null) return "—";
-    // If already an array, prefer first element
+    // Prefer first element for arrays
     if (Array.isArray(raw) && raw.length) return String(raw[0]).trim();
-    const s = typeof raw === "string" ? raw.trim() : JSON.stringify(raw);
-    // Try JSON parse for embedded arrays/objects like '["python"]' or '{"skills":["python"]}'
+
+    const s0 = typeof raw === "string" ? raw.trim() : JSON.stringify(raw);
+
+    // Remove common key wrappers like '"skills":', 'skills:' or leading 'skills '
+    let s = s0
+      .replace(/^"?\s*skills"?\s*[:=]\s*/i, "")
+      .replace(/^\s*skills\s*/i, "");
+
+    // Strip escape slashes and surrounding JSON punctuation
+    s = s
+      .replace(/\\+/g, "")
+      .replace(/^[\[\]\{\}"'`]+|[\[\]\{\}"'`]+$/g, "")
+      .trim();
+
+    // If remaining string is JSON, parse and extract inner value
     try {
       const parsed = JSON.parse(s);
       if (Array.isArray(parsed) && parsed.length)
         return String(parsed[0]).trim();
       if (parsed && typeof parsed === "object") {
+        // prefer nested skills array or first value
         if (
           Array.isArray((parsed as any).skills) &&
           (parsed as any).skills.length
         )
           return String((parsed as any).skills[0]).trim();
         const keys = Object.keys(parsed);
-        if (keys.length) return String(keys[0]).trim();
+        if (keys.length) {
+          const firstVal = parsed[keys[0]];
+          if (Array.isArray(firstVal) && firstVal.length)
+            return String(firstVal[0]).trim();
+          if (firstVal != null) return String(firstVal).trim();
+          return String(keys[0]).trim();
+        }
       }
-    } catch {}
-    // Remove escape slashes, surrounding brackets/braces/quotes and stray punctuation
+    } catch {
+      // ignore JSON parse errors
+    }
+
+    // Final cleanup: remove stray punctuation and the word "skills" if still present
     const cleaned = s
-      .replace(/\\+/g, "")
-      .replace(/^[\[\]\{\}"'`]+|[\[\]\{\}"'`]+$/g, "")
+      .replace(/\bskills\b[:\s-]*/i, "")
       .replace(/[^a-zA-Z0-9 .+#\-\+]/g, " ")
       .trim();
-    return cleaned || s;
+    return cleaned || s0;
   }
 
   function toNumberSafe(value: any): number {
