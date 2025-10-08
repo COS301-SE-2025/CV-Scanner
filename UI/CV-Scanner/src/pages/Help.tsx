@@ -27,10 +27,9 @@ export default function HelpPage() {
 
 
 //const manualHref = new URL("User_Manual_FINAL.pdf", import.meta.env.BASE_URL).toString()
-const manualHref=new URL("../assets/USER_MANUAL_FINAL.pdf", import.meta.url).href;
-// inside HelpPage, before return
 //const manualHref = new URL("User_Manual_FINAL.pdf", document.baseURI).toString();
 //const manualHref = `${window.location.origin}/USER_Manual_FINAL.pdf`;
+const manualHref=new URL("../assets/USER_MANUAL_FINAL.pdf", import.meta.url).href;
 
 
 
