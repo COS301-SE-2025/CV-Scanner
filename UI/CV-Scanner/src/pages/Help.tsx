@@ -19,11 +19,14 @@ import { useState } from "react";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import logoNavbar from "../assets/logoNavbar.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import manualPdf from "../assets/User_Manual_FINAL.pdf";
 import { apiFetch } from "../lib/api";
 
 export default function HelpPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+
+//const manualHref = new URL("User_Manual_FINAL.pdf", import.meta.env.BASE_URL).toString();
 
   // Logout handler: invalidate server session, clear client state and notify other tabs
   async function handleLogout() {
@@ -193,7 +196,7 @@ export default function HelpPage() {
 
       <Button
         variant="contained"
-        href="/User_Manual_FINAL.pdf"
+        href={manualPdf}
         target="_blank"
         rel="noopener noreferrer"
       >
