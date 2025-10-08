@@ -284,6 +284,7 @@ const ParsedCVData: React.FC = () => {
   const { processedData, fileUrl, candidate } = location.state || {};
 
   const [user, setUser] = useState<any>(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const [pdfSticky, setPdfSticky] = useState(false);
   const [showRaw, setShowRaw] = useState(false);
   const [showResumeRaw, setShowResumeRaw] = useState(false);
@@ -344,12 +345,23 @@ const ParsedCVData: React.FC = () => {
     if (!ue) return;
     (async () => {
       try {
-        const res = await apiFetch(`/auth/me?email=${encodeURIComponent(ue)}`);
+        // Use fetch directly here with credentials to avoid any global apiFetch behavior
+        const res = await fetch(`/auth/me?email=${encodeURIComponent(ue)}`, {
+          method: "GET",
+          credentials: "include",
+          headers: { Accept: "application/json" },
+        });
+        if (res.status === 401) {
+          // session expired — surface to user rather than allowing a sudden full redirect
+          console.warn("Auth expired when checking /auth/me");
+          setSessionExpired(true);
+          return;
+        }
         if (!res.ok) return;
         const d = await res.json().catch(() => null);
         if (d) setUser(d);
-      } catch {
-        // ignore
+      } catch (err) {
+        console.warn("Failed to call /auth/me", err);
       }
     })();
   }, []);
@@ -400,11 +412,22 @@ const ParsedCVData: React.FC = () => {
       receivedAt: new Date().toISOString(),
     };
     try {
-      const res = await apiFetch("/cv/save", {
+      // use fetch directly here so we can handle 401 explicitly and avoid unexpected global redirects
+      const res = await fetch("/cv/save", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
         body: JSON.stringify(payload),
       });
+      if (res.status === 401) {
+        // session expired — inform user and set flag
+        setSessionExpired(true);
+        alert("Session expired. Please sign in again.");
+        return;
+      }
       const text = await res.text().catch(() => "");
       if (!res.ok) throw new Error(text || "Failed to save CV");
       alert("CV saved successfully!");
@@ -432,6 +455,16 @@ const ParsedCVData: React.FC = () => {
         bgcolor: "#1E1E1E",
       }}
     >
+      {/* Session expired banner */}
+      {sessionExpired && (
+        <Box
+          sx={{ bgcolor: "#b00020", color: "#fff", p: 1, textAlign: "center" }}
+        >
+          Session expired — please{" "}
+          <Button onClick={() => navigate("/login")}>sign in</Button>
+        </Box>
+      )}
+
       {/* Top App Bar */}
       <AppBar position="static" sx={{ bgcolor: "#232A3B", boxShadow: "none" }}>
         <Toolbar sx={{ justifyContent: "space-between" }}>
