@@ -685,22 +685,23 @@ export default function CandidatesDashboard() {
                 color: "#000",
                 transition: "transform 0.2s",
                 "&:hover": { transform: "translateY(-4px)" },
+                height: 300,  
+                boxSizing: "border-box",               // 👈 same height for both
+               display: "flex",
+               flexDirection: "column",
               }}
             >
               <Typography
                 variant="subtitle1"
-                sx={{
-                  fontFamily: "Helvetica, sans-serif",
-                  mb: 1,
-                  fontWeight: 600,
-                }}
+               sx={{ fontFamily: "Helvetica, sans-serif", mb: 1, fontWeight: 600, flexShrink: 0 }}
               >
                 Overall Tech Usage
               </Typography>
-              <ResponsiveContainer width="100%" height={240}>
+              <Box sx={{ flexGrow: 1, minHeight: 0 }}>
+              <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={groupedBarData.length ? groupedBarData : [{ name: "No Data", value: 0 }]}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
+                  margin={{ top: 10, right: 20, left: 10, bottom: 20 }}
                 >
                   <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
                   <XAxis 
@@ -708,8 +709,8 @@ export default function CandidatesDashboard() {
                     tick={{ fill: "#575656ff", fontWeight: "bold", fontSize: 11 }}
                   />
                   <YAxis
-                    domain={[0, 30]}
-                    ticks={[0, 5, 10, 15, 20, 25, 30]}
+                    //domain={[0, 30]}
+                   // ticks={[0, 5, 10, 15, 20, 25, 30]}
                     allowDecimals={false}
                     tick={{ fill: "#575656ff", fontWeight: "bold" }}
                   />
@@ -719,12 +720,13 @@ export default function CandidatesDashboard() {
                     name="Technology Usage"
                     fill="#8884D8"
                   >
-                    {groupedBarData.map((entry, index) => (
+                    {groupedBarData.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
+              </Box>
             </Paper>
 
             {/* Pie Chart: Skill Distribution */}
@@ -1137,4 +1139,16 @@ const graphCardBase = {
   display: "flex",
   flexDirection: "column",
   justifyContent: "space-between",
+};
+
+const chartCardStyle = {
+  p: 2,
+  borderRadius: 3,
+  backgroundColor: "#DEDDEE",
+  color: "#000",
+  transition: "transform 0.2s",
+  "&:hover": { transform: "translateY(-4px)" },
+  height: 300,                // 👈 same height for both
+  display: "flex",
+  flexDirection: "column",
 };
