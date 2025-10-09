@@ -139,13 +139,34 @@ public class AuthController {
         }
 
         try {
-            var user = jdbcTemplate.queryForMap(
-                "SELECT username, email, first_name, last_name, role FROM users WHERE email = ? AND is_active = 1",
-                emailToUse
-            );
+            System.out.println("Fetching user data for email: " + emailToUse);
+            
+            // Query with explicit column aliases to ensure snake_case format
+            String sql = """
+                SELECT 
+                    Username as username,
+                    Email as email,
+                    FirstName as first_name,
+                    LastName as last_name,
+                    Role as role
+                FROM users 
+                WHERE Email = ? AND IsActive = 1
+            """;
+            
+            var user = jdbcTemplate.queryForMap(sql, emailToUse);
+            
+            System.out.println("User data retrieved: " + user);
+            
             return ResponseEntity.ok(user);
+        } catch (EmptyResultDataAccessException e) {
+            System.err.println("User not found for email: " + emailToUse);
+            return ResponseEntity.status(404)
+                .body(Collections.singletonMap("message", "User not found."));
         } catch (Exception e) {
-            return ResponseEntity.status(404).body(Collections.singletonMap("message", "User not found."));
+            System.err.println("Error fetching user: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500)
+                .body(Collections.singletonMap("message", "Internal server error: " + e.getMessage()));
         }
     }
 
