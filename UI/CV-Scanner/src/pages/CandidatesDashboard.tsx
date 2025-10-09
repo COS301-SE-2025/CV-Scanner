@@ -195,45 +195,20 @@ export default function CandidatesDashboard() {
   function extractProjectFitTypes(pfJson: any): Array<{ type: string; value: number }> {
     if (!Array.isArray(pfJson)) return [];
     
-    const typeCounts = new Map<string, number>();
+    const counts = new Map<string, number>();
     
-    for (const item of pfJson) {
-      let fitType = "Other";
-      
-      // Extract project fit type from various possible structures
-      if (item?.projectFit?.type) {
-        fitType = item.projectFit.type;
-      } else if (item?.projectFitLabel) {
-        fitType = item.projectFitLabel;
-      } else if (typeof item?.projectFit === 'string') {
-        fitType = item.projectFit;
-      } else if (item?.type) {
-        fitType = item.type;
-      }
-      
-      // Clean up the type - convert to words and filter out unwanted values
-      fitType = fitType.toString()
-        .replace(/[^a-zA-Z\s]/g, ' ') // Remove special characters but keep spaces
-        .replace(/\s+/g, ' ') // Normalize spaces
-        .trim()
-        .split(' ') // Split into words
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize each word
-        .join(' ');
-      
-      // Filter out "Unknown", empty, and numeric-only values
-      if (fitType && 
-          fitType.toLowerCase() !== 'unknown' && 
-          fitType.trim() !== '' &&
-          !/^\d+$/.test(fitType)) {
-        typeCounts.set(fitType, (typeCounts.get(fitType) || 0) + 1);
-      }
+    for (const it of pfJson) {
+      const type = it?.projectFit != null
+        ? it.projectFit.type ?? it.projectFit
+        : null;
+      const key = type || "Unknown";
+      counts.set(key, (counts.get(key) ?? 0) + 1);
     }
     
-    // Convert to array and sort by count
-    return Array.from(typeCounts.entries())
-      .map(([type, value]) => ({ type, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 4); // Limit to top 4
+    return Array.from(counts.entries()).map(([type, value]) => ({
+      type,
+      value,
+    }));
   }
   // --- end helpers ---
 
@@ -370,11 +345,11 @@ export default function CandidatesDashboard() {
               const pfJson = await pfRes.json().catch(() => null);
               console.debug("project-fit response:", pfJson);
               
-              // Use the new helper function to extract word-based types
+              // Use the restored helper function to extract project fit types
               const projectFitArray = extractProjectFitTypes(pfJson);
               setProjectFitData(projectFitArray);
 
-              // Also update recent candidates with proper fit types
+              // Also update recent candidates with proper fit types (restored logic)
               if (Array.isArray(pfJson)) {
                 const pfMap = new Map<number, any>();
                 for (const it of pfJson) {
@@ -385,28 +360,9 @@ export default function CandidatesDashboard() {
                 setRecent((prev) =>
                   prev.map((r) => {
                     const pf = pfMap.get(Number(r.id));
-                    let fitType = "N/A";
-                    
-                    if (pf?.projectFit?.type) {
-                      fitType = pf.projectFit.type;
-                    } else if (pf?.projectFitLabel) {
-                      fitType = pf.projectFitLabel;
-                    } else if (typeof pf?.projectFit === 'string') {
-                      fitType = pf.projectFit;
-                    }
-                    
-                    // Apply same cleaning to recent candidate fit types
-                    fitType = fitType.toString()
-                      .replace(/[^a-zA-Z\s]/g, ' ')
-                      .replace(/\s+/g, ' ')
-                      .trim()
-                      .split(' ')
-                      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                      .join(' ');
-                    
                     return {
                       ...r,
-                      fit: fitType || "N/A",
+                      fit: pf?.projectFit?.type ?? pf?.projectFitLabel ?? r.fit,
                       skills: r.skills ?? "—",
                     };
                   })
@@ -714,7 +670,7 @@ export default function CandidatesDashboard() {
               </ResponsiveContainer>
             </Paper>
 
-            {/* Bar Chart: Overall Tech Usage - UPDATED */}
+            {/* Bar Chart: Overall Tech Usage - UPDATED with better sizing */}
             <Paper
               sx={{
                 p: 2,
@@ -723,6 +679,9 @@ export default function CandidatesDashboard() {
                 color: "#000",
                 transition: "transform 0.2s",
                 "&:hover": { transform: "translateY(-4px)" },
+                minHeight: 300, // Ensure minimum height
+                display: "flex",
+                flexDirection: "column",
               }}
             >
               <Typography
@@ -735,44 +694,51 @@ export default function CandidatesDashboard() {
               >
                 Overall Tech Usage
               </Typography>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart
-                  data={groupedBarData.length ? groupedBarData : [{ name: "No Data", value: 0 }]}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                >
-                  <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="name" 
-                    angle={-45}
-                    textAnchor="end"
-                    height={60}
-                    tick={{ fill: "#575656ff", fontWeight: "bold", fontSize: 12 }}
-                  />
-                  <YAxis
-                    tick={{ fill: "#575656ff", fontWeight: "bold" }}
-                  />
-                  <RechartsTooltip
-                    contentStyle={{
-                      backgroundColor: "#2b3a55",
-                      borderColor: "#4a5568",
-                      fontFamily: "Helvetica, sans-serif",
-                    }}
-                    formatter={(value, name) => [
-                      toNumberSafe(value),
-                      `Usage Count`
-                    ]}
-                  />
-                  <Bar 
-                    dataKey="value" 
-                    name="Technology Usage"
-                    fill="#8884D8"
+              <Box sx={{ flexGrow: 1, minHeight: 250 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={groupedBarData.length ? groupedBarData : [{ name: "No Data", value: 0 }]}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 80 }} // Increased bottom margin for labels
                   >
-                    {groupedBarData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+                    <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="name" 
+                      angle={-45}
+                      textAnchor="end"
+                      height={80} // Increased height for better label spacing
+                      interval={0} // Show all labels
+                      tick={{ 
+                        fill: "#575656ff", 
+                        fontWeight: "bold", 
+                        fontSize: 11, // Smaller font for long labels
+                      }}
+                    />
+                    <YAxis
+                      tick={{ fill: "#575656ff", fontWeight: "bold" }}
+                    />
+                    <RechartsTooltip
+                      contentStyle={{
+                        backgroundColor: "#2b3a55",
+                        borderColor: "#4a5568",
+                        fontFamily: "Helvetica, sans-serif",
+                      }}
+                      formatter={(value, name) => [
+                        toNumberSafe(value),
+                        `Usage Count`
+                      ]}
+                    />
+                    <Bar 
+                      dataKey="value" 
+                      name="Technology Usage"
+                      fill="#8884D8"
+                    >
+                      {groupedBarData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </Box>
             </Paper>
 
             {/* Pie Chart: Skill Distribution */}
