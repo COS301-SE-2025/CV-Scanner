@@ -685,9 +685,10 @@ export default function CandidatesDashboard() {
                 color: "#000",
                 transition: "transform 0.2s",
                 "&:hover": { transform: "translateY(-4px)" },
-                height: 300,                // 👈 same height for both
-  display: "flex",
-  flexDirection: "column",
+                height: 300,  
+                boxSizing: "border-box",               // 👈 same height for both
+               display: "flex",
+               flexDirection: "column",
               }}
             >
               <Typography
@@ -696,6 +697,7 @@ export default function CandidatesDashboard() {
               >
                 Overall Tech Usage
               </Typography>
+              <Box sx={{ flexGrow: 1, minHeight: 0 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={groupedBarData.length ? groupedBarData : [{ name: "No Data", value: 0 }]}
@@ -718,12 +720,13 @@ export default function CandidatesDashboard() {
                     name="Technology Usage"
                     fill="#8884D8"
                   >
-                    {groupedBarData.map((entry, index) => (
+                    {groupedBarData.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
+              </Box>
             </Paper>
 
             {/* Pie Chart: Skill Distribution */}
