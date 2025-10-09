@@ -247,7 +247,7 @@ export default function CandidatesDashboard() {
 
           // Use apiFetch consistently (it should honor REACT_APP_API_BASE)
           const [skillsRes, pfRes] = await Promise.all([
-            apiFetch("/cv/skill-distribution?limit=10").catch(() => null),
+            apiFetch("/cv/skill-distribution?limit=4").catch(() => null), // CHANGED: limit to 4
             apiFetch("/cv/project-fit?limit=200").catch(() => null),
           ]);
 
@@ -297,7 +297,7 @@ export default function CandidatesDashboard() {
 
               if (parsed.length) {
                 parsed.sort((a, b) => b.value - a.value);
-                setSkillDistribution(parsed.slice(0, 10));
+                setSkillDistribution(parsed.slice(0, 4)); // CHANGED: limit to 4
               } else {
                 console.debug("skill-distribution: no usable data");
                 setSkillDistribution([]);
@@ -317,7 +317,7 @@ export default function CandidatesDashboard() {
           }
           // --- end skill distribution ---
 
-          // --- Project fit (unchanged logic but keep logging) ---
+          // --- Project fit (FIXED: filter out Unknown and limit) ---
           if (pfRes) {
             try {
               const pfJson = await pfRes.json().catch(() => null);
@@ -332,15 +332,24 @@ export default function CandidatesDashboard() {
                       ? it.projectFit.type ?? it.projectFit
                       : null;
                   if (!Number.isNaN(id)) pfMap.set(id, it);
-                  const key = type || "Unknown";
-                  counts.set(key, (counts.get(key) ?? 0) + 1);
+                  
+                  // FIXED: Filter out "Unknown" types and empty/null types
+                  const key = type || "Other";
+                  if (key.toLowerCase() !== "unknown" && key.trim() !== "") {
+                    counts.set(key, (counts.get(key) ?? 0) + 1);
+                  }
                 }
-                setProjectFitData(
-                  Array.from(counts.entries()).map(([type, value]) => ({
+                
+                // Convert to array and limit to top 4
+                const projectFitArray = Array.from(counts.entries())
+                  .map(([type, value]) => ({
                     type,
                     value,
                   }))
-                );
+                  .sort((a, b) => b.value - a.value)
+                  .slice(0, 4); // CHANGED: limit to 4
+                
+                setProjectFitData(projectFitArray);
 
                 // merge project fit info into recent list if available
                 setRecent((prev) =>
@@ -388,7 +397,7 @@ export default function CandidatesDashboard() {
           try {
             // Prefer top-technologies endpoint for tech counts (simpler single-series chart)
             const topTechRes = await apiFetch(
-              "/cv/top-technologies?limit=10"
+              "/cv/top-technologies?limit=4" // CHANGED: limit to 4
             ).catch(() => null);
             if (topTechRes && topTechRes.ok) {
               const topTechJson = await topTechRes.json().catch(() => []);
@@ -404,7 +413,7 @@ export default function CandidatesDashboard() {
             } else {
               // fallback to weekly-tech-usage if top-technologies missing
               const techRes = await apiFetch(
-                "/cv/weekly-tech-usage?limit=6"
+                "/cv/weekly-tech-usage?limit=4" // CHANGED: limit to 4
               ).catch(() => null);
               if (techRes && techRes.ok) {
                 const techJson = await techRes.json().catch(() => []);
@@ -429,7 +438,7 @@ export default function CandidatesDashboard() {
           try {
             if (!topTechnologies.length) {
               const topRes = await apiFetch(
-                "/cv/top-technologies?limit=5"
+                "/cv/top-technologies?limit=4" // CHANGED: limit to 4
               ).catch(() => null);
               if (topRes && topRes.ok) {
                 const topJson = await topRes.json().catch(() => []);
@@ -726,7 +735,7 @@ export default function CandidatesDashboard() {
                 <BarChart
                   data={
                     groupedBarData.length
-                      ? groupedBarData
+                      ? groupedBarData.slice(0, 4) // CHANGED: Ensure only 4 items
                       : [{ name: "No Data", value: 0 }]
                   }
                 >
@@ -755,7 +764,7 @@ export default function CandidatesDashboard() {
                     )}
                   />
                   {/* single-series bars built from backend top tech counts */}
-                  {groupedBarData.map((d, i) => (
+                  {groupedBarData.slice(0, 4).map((d, i) => ( // CHANGED: Ensure only 4 items
                     <Bar
                       key={d.name}
                       dataKey="value"
@@ -798,7 +807,7 @@ export default function CandidatesDashboard() {
               <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
                   <Pie
-                    data={skillDistribution}
+                    data={skillDistribution.slice(0, 4)} // CHANGED: Ensure only 4 items
                     dataKey="value"
                     cx="50%"
                     cy="50%"
@@ -812,7 +821,7 @@ export default function CandidatesDashboard() {
                       }%`
                     }
                   >
-                    {(skillDistribution || []).map((entry, index) => (
+                    {(skillDistribution.slice(0, 4) || []).map((entry, index) => ( // CHANGED: Ensure only 4 items
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[index % COLORS.length]}
@@ -876,10 +885,7 @@ export default function CandidatesDashboard() {
               <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
                   <Pie
-                    data={projectFitData.map((p) => ({
-                      name: p.type,
-                      value: p.value,
-                    }))}
+                    data={projectFitData.slice(0, 4)} // CHANGED: Ensure only 4 items
                     dataKey="value"
                     cx="50%"
                     cy="50%"
@@ -894,7 +900,7 @@ export default function CandidatesDashboard() {
                     }
                     labelLine={true}
                   >
-                    {(projectFitData || []).map((entry, index) => (
+                    {(projectFitData.slice(0, 4) || []).map((entry, index) => ( // CHANGED: Ensure only 4 items
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[index % COLORS.length]}
