@@ -255,7 +255,7 @@ export default function Search() {
         // Load candidates & filenames concurrently
         const [candRes, fnRes] = await Promise.all([
           apiFetch("/cv/candidates"),
-          apiFetch("/cv/filenames").catch(() => null), // tolerate filename endpoint failure
+          apiFetch("/cv/filenames").catch(() => null),
         ]);
 
         const list =
@@ -291,7 +291,6 @@ export default function Search() {
           if (filename && /https?:\/\//i.test(filename))
             filename = basenameFromUrl(filename);
 
-          // Transform ugly GUID / no-extension names into friendly form
           filename = makeFriendlyFilename(name, filename);
 
           return {
@@ -308,95 +307,112 @@ export default function Search() {
             cvFileUrl: c.cvFileUrl,
             cvFileType: c.cvFileType,
             filename,
-            score: Math.max(0, Math.min(10, c.id % 11)),
+            score: 0, // Will be fetched individually
             projectFit: undefined,
             projectFitPercent: null,
           };
         });
         setCandidates(mapped);
 
-        // Fetch average scores from API and merge into candidates
-        (async function fetchAndApplyAverages() {
+        // ✅ NEW: Fetch CV scores and project types individually for each candidate
+        (async function fetchIndividualScoresAndProjectTypes() {
           try {
-            const avgRes = await apiFetch("/cv/average-scores?limit=100");
-            if (!avgRes || !avgRes.ok) return;
-            const avgJson = await avgRes.json();
-            if (!Array.isArray(avgJson)) return;
-            const avgMap = new Map<number, number>();
-            for (const it of avgJson) {
-              const id = Number(it?.candidateId ?? it?.id);
-              const score = it?.averageScoreOutOf10 ?? it?.averageScore;
-              if (!Number.isNaN(id) && score != null) {
-                avgMap.set(id, Number(score));
+            // Fetch all scores and project types in parallel
+            const scorePromises = mapped.map(async (cand) => {
+              try {
+                const scoreRes = await apiFetch(`/cv/${cand.id}/cv-score`);
+                if (scoreRes.ok) {
+                  const scoreData = await scoreRes.json();
+                  return {
+                    id: cand.id,
+                    score: scoreData.cvScore ?? 0,
+                  };
+                }
+              } catch (e) {
+                console.warn(`Failed to fetch cv-score for ${cand.id}:`, e);
               }
-            }
-            setCandidates((prev) =>
-              prev.map((cand) => ({
-                ...cand,
-                score: avgMap.has(Number(cand.id))
-                  ? Math.max(
-                      0,
-                      Math.min(10, Number(avgMap.get(Number(cand.id))))
-                    )
-                  : cand.score,
-              }))
-            );
-          } catch (e) {
-            console.warn("Failed to fetch average scores:", e);
-          }
-        })();
+              return { id: cand.id, score: 0 };
+            });
 
-        // NEW: Fetch project-fit data and merge into candidate cards
-        (async function fetchAndApplyProjectFits() {
-          try {
-            const pfRes = await apiFetch("/cv/project-fit?limit=500");
-            if (!pfRes || !pfRes.ok) return;
-            const pfJson = await pfRes.json();
-            if (!Array.isArray(pfJson)) return;
-            const pfMap = new Map<number, any>();
-            for (const it of pfJson) {
-              const id = Number(it?.candidateId ?? it?.id);
-              if (!Number.isNaN(id)) pfMap.set(id, it);
-            }
+            const projectTypePromises = mapped.map(async (cand) => {
+              try {
+                const ptRes = await apiFetch(`/cv/${cand.id}/project-type`);
+                if (ptRes.ok) {
+                  const ptData = await ptRes.json();
+                  return {
+                    id: cand.id,
+                    projectType: ptData.projectType ?? null,
+                    projectFit: ptData.projectFit ?? null,
+                    projectFitPercent: ptData.projectFitPercent ?? null,
+                    projectFitLabel: ptData.projectFitLabel ?? null,
+                  };
+                }
+              } catch (e) {
+                console.warn(`Failed to fetch project-type for ${cand.id}:`, e);
+              }
+              return {
+                id: cand.id,
+                projectType: null,
+                projectFit: null,
+                projectFitPercent: null,
+                projectFitLabel: null,
+              };
+            });
+
+            // Wait for all requests to complete
+            const [scores, projectTypes] = await Promise.all([
+              Promise.all(scorePromises),
+              Promise.all(projectTypePromises),
+            ]);
+
+            // Create lookup maps
+            const scoreMap = new Map(scores.map((s) => [s.id, s.score]));
+            const projectTypeMap = new Map(
+              projectTypes.map((pt) => [pt.id, pt])
+            );
+
+            // Update candidates with fetched data
             setCandidates((prev) =>
               prev.map((cand) => {
-                const pf = pfMap.get(Number(cand.id));
-                const pfObj = pf?.projectFit ?? null;
-                const pct =
-                  pf?.projectFitPercent != null
-                    ? Number(pf.projectFitPercent)
-                    : null;
-                const type =
-                  pfObj && typeof pfObj === "object"
-                    ? pfObj.type ?? pfObj?.type
-                    : null;
+                const score = scoreMap.get(cand.id) ?? cand.score;
+                const pt = projectTypeMap.get(cand.id);
 
-                // Compose display label: prefer "Type:NN%" when both available,
-                // otherwise fall back to explicit projectFitLabel, percent-only, type-only, or existing match.
-                let combinedLabel: string | null = null;
-                if (type && pct != null) {
-                  combinedLabel = `${type}:${pct}%`;
-                } else if (pf?.projectFitLabel) {
-                  // backend-provided readable label (e.g. "Project Fit: 75%")
-                  // convert to short form if desired, else use as-is
-                  combinedLabel = pf.projectFitLabel;
-                } else if (type) {
-                  combinedLabel = String(type);
-                } else if (pct != null) {
-                  combinedLabel = `${pct}%`;
+                // Build display label for match field
+                let matchLabel = cand.match;
+                if (pt) {
+                  if (pt.projectFitLabel) {
+                    // Use backend-provided label if available
+                    matchLabel = pt.projectFitLabel;
+                  } else if (pt.projectType && pt.projectFitPercent != null) {
+                    // Build label: "Frontend Web App 87%"
+                    matchLabel = `${pt.projectType} ${pt.projectFitPercent}%`;
+                  } else if (pt.projectType) {
+                    matchLabel = pt.projectType;
+                  } else if (pt.projectFitPercent != null) {
+                    matchLabel = `${pt.projectFitPercent}%`;
+                  }
                 }
 
                 return {
                   ...cand,
-                  projectFit: pfObj ?? cand.projectFit,
-                  projectFitPercent: pct ?? cand.projectFitPercent,
-                  fit: (type as string) || cand.fit,
-                  match: combinedLabel ?? cand.match,
+                  score: Math.max(0, Math.min(10, score)),
+                  fit: pt?.projectType ?? cand.fit,
+                  match: matchLabel,
+                  projectFit: pt?.projectFit ?? cand.projectFit,
+                  projectFitPercent:
+                    pt?.projectFitPercent ?? cand.projectFitPercent,
                 };
               })
             );
+
+            console.log(
+              `✅ Fetched scores and project types for ${mapped.length} candidates`
+            );
           } catch (e) {
-            console.warn("Failed to fetch project-fit:", e);
+            console.error(
+              "Failed to fetch individual scores/project types:",
+              e
+            );
           }
         })();
       } catch {
@@ -1089,7 +1105,10 @@ function makeFriendlyFilename(candidateName: string, original?: string | null) {
   if (!ext) ext = ".pdf";
 
   // Clean base
-  base = base.replace(/[^A-Za-z0-9_\-]/g, "_").replace(/_+/g, "_").replace(/^_+|_+$/g, "");
+  base = base
+    .replace(/[^A-Za-z0-9_\-]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
   if (!base) base = safeBase;
 
   // If the base is just a UUID or a very generic word, replace with candidate-based name

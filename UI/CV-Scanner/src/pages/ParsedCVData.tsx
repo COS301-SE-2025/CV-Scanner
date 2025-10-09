@@ -398,28 +398,34 @@ const ParsedCVData: React.FC = () => {
       candidate: { firstName, lastName, email },
       fileUrl,
       normalized: fields,
-      aiResult: parseResumeData, // Only parse data now
+      aiResult: parseResumeData,
       raw: rawData,
       resume: parseResumeData ?? null,
       receivedAt: new Date().toISOString(),
     };
+
     try {
-      const res = await fetch("/cv/save", {
+      // ✅ Use apiFetch with proper configuration
+      const res = await apiFetch("/cv/save", {
         method: "POST",
-        credentials: "include",
+        body: JSON.stringify(payload),
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify(payload),
       });
+
       if (res.status === 401) {
         setSessionExpired(true);
         alert("Session expired. Please sign in again.");
         return;
       }
-      const text = await res.text().catch(() => "");
-      if (!res.ok) throw new Error(text || "Failed to save CV");
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || "Failed to save CV");
+      }
+
       alert("CV saved successfully!");
     } catch (e: any) {
       console.error("Failed to save CV:", e?.message || e);
