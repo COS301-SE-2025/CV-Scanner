@@ -404,7 +404,8 @@ const ParsedCVData: React.FC = () => {
       receivedAt: new Date().toISOString(),
     };
     try {
-      const res = await fetch("/cv/save", {
+      // ✅ FIXED: Use apiFetch instead of raw fetch
+      const res = await apiFetch("/cv/save", {
         method: "POST",
         credentials: "include",
         headers: {
@@ -413,13 +414,16 @@ const ParsedCVData: React.FC = () => {
         },
         body: JSON.stringify(payload),
       });
+
       if (res.status === 401) {
         setSessionExpired(true);
         alert("Session expired. Please sign in again.");
         return;
       }
+
       const text = await res.text().catch(() => "");
       if (!res.ok) throw new Error(text || "Failed to save CV");
+
       alert("CV saved successfully!");
     } catch (e: any) {
       console.error("Failed to save CV:", e?.message || e);
