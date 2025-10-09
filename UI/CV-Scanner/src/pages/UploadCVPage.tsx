@@ -136,7 +136,7 @@ export default function UploadCVPage() {
     message: "",
   });
 
-  // Add user state and session tracking
+  // Add user state with better typing and default
   const [user, setUser] = useState<{
     first_name?: string;
     last_name?: string;
@@ -145,6 +145,7 @@ export default function UploadCVPage() {
     email?: string;
   } | null>(null);
 
+  const [userLoading, setUserLoading] = useState(true); // Track loading state separately
   const [sessionExpired, setSessionExpired] = useState(false);
 
   const [tutorialStep, setTutorialStep] = useState(0);
@@ -273,44 +274,86 @@ export default function UploadCVPage() {
     };
   };
 
-  // Load user data on mount
+  // Load user data on mount - IMPROVED VERSION
   useEffect(() => {
     const loadUser = async () => {
+      setUserLoading(true);
       try {
         const ue = localStorage.getItem("userEmail");
         if (!ue) {
           console.warn("No userEmail in localStorage");
           setSessionExpired(true);
+          setUserLoading(false);
           return;
         }
+
+        console.log("Loading user with email:", ue);
 
         const res = await fetch(`/auth/me?email=${encodeURIComponent(ue)}`, {
           method: "GET",
           credentials: "include",
-          headers: { Accept: "application/json" },
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
         });
+
+        console.log("Auth response status:", res.status);
 
         if (res.status === 401) {
           console.warn("Session expired - 401 response from /auth/me");
           setSessionExpired(true);
-          // Don't redirect immediately - let user see the error
+          setUserLoading(false);
           return;
         }
 
         if (!res.ok) {
           console.error("Failed to load user:", res.status, res.statusText);
+          const errorText = await res.text().catch(() => "");
+          console.error("Error response:", errorText);
+
+          // Set a default user object to avoid showing "Loading..."
+          setUser({
+            username: ue.split("@")[0],
+            email: ue,
+            role: "User",
+          });
+          setUserLoading(false);
           return;
         }
 
-        const userData = await res.json().catch(() => null);
+        const userData = await res.json().catch((err) => {
+          console.error("Failed to parse user JSON:", err);
+          return null;
+        });
+
+        console.log("User data received:", userData);
+
         if (userData) {
-          console.log("User loaded successfully:", userData);
           setUser(userData);
           setSessionExpired(false);
+        } else {
+          // Fallback user object
+          setUser({
+            username: ue.split("@")[0],
+            email: ue,
+            role: "User",
+          });
         }
       } catch (err) {
         console.error("Error loading user:", err);
-        // Don't set session expired on network errors
+
+        // Set fallback user from localStorage
+        const ue = localStorage.getItem("userEmail");
+        if (ue) {
+          setUser({
+            username: ue.split("@")[0],
+            email: ue,
+            role: "User",
+          });
+        }
+      } finally {
+        setUserLoading(false);
       }
     };
 
@@ -337,7 +380,7 @@ export default function UploadCVPage() {
         message: "Your session has expired. Please log in again.",
       });
 
-      // Optionally redirect after 3 seconds
+      // Redirect after 3 seconds
       const timer = setTimeout(() => {
         navigate("/login", { replace: true });
       }, 3000);
@@ -541,6 +584,36 @@ export default function UploadCVPage() {
     };
   }, [pdfUrl]);
 
+  // Helper function to get user display name
+  const getUserDisplayName = () => {
+    if (userLoading) {
+      return "Loading...";
+    }
+
+    if (!user) {
+      return "Guest";
+    }
+
+    // Priority: first_name + last_name > username > email
+    if (user.first_name) {
+      const fullName = user.last_name
+        ? `${user.first_name} ${user.last_name}`
+        : user.first_name;
+      return user.role ? `${fullName} (${user.role})` : fullName;
+    }
+
+    if (user.username) {
+      return user.role ? `${user.username} (${user.role})` : user.username;
+    }
+
+    if (user.email) {
+      const emailName = user.email.split("@")[0];
+      return user.role ? `${emailName} (${user.role})` : emailName;
+    }
+
+    return user.role || "User";
+  };
+
   return (
     <Box
       sx={{
@@ -623,14 +696,7 @@ export default function UploadCVPage() {
             >
               <AccountCircleIcon sx={{ mr: 1 }} />
               <Typography variant="subtitle1">
-                {user
-                  ? user.first_name
-                    ? `${user.first_name} ${user.last_name || ""} (${
-                        user.role || "User"
-                      })`
-                    : (user.username || user.email) +
-                      (user.role ? ` (${user.role})` : "")
-                  : "Loading..."}
+                {getUserDisplayName()}
               </Typography>
             </Box>
 
