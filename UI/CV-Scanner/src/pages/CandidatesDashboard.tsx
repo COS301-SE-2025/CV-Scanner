@@ -670,7 +670,7 @@ export default function CandidatesDashboard() {
               </ResponsiveContainer>
             </Paper>
 
-            {/* Bar Chart: Overall Tech Usage - FIXED Y-axis scale */}
+            {/* Bar Chart: Overall Tech Usage - COMPLETE FIX */}
             <Paper
               sx={{
                 p: 2,
@@ -714,10 +714,10 @@ export default function CandidatesDashboard() {
                       }}
                     />
                     <YAxis
+                      domain={[0, 30]}
+                      ticks={[0, 5, 10, 15, 20, 25, 30]}
+                      allowDecimals={false}
                       tick={{ fill: "#575656ff", fontWeight: "bold" }}
-                      domain={[0, 'dataMax + 5']} // Dynamic domain that adds padding
-                      tickCount={6} // Limit number of ticks
-                      allowDecimals={false} // No decimal values
                     />
                     <RechartsTooltip
                       contentStyle={{
