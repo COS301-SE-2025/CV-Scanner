@@ -713,7 +713,7 @@ export default function UserManagementPage() {
                 sx={{
                   "& .MuiInputBase-input.Mui-disabled": {
                     WebkitTextFillColor: "#000000", // Keep text color black for better readability
-                    backgroundColor: "#f5f5f5", // Light gray background to indicate disabled state
+                    backgroundColor: "#a7a7a7ff", // Light gray background to indicate disabled state
                   },
                 }}
               />
