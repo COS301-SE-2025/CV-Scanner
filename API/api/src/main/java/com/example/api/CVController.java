@@ -287,10 +287,10 @@ public class CVController {
             return ResponseEntity.status(500).body(createErrorResponse("Failed to save parsed CV: " + ex.getMessage()));
         }
     }
-    @PostMapping("/proxy-ai")
+    @PostMapping(value = "/proxy-ai", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> proxyToAi(
-            @RequestParam(value = "file", required = false) MultipartFile file,
-            @RequestParam(value = "targetUrl", required = false) String targetUrl,
+            @RequestParam(value = "file", required = true) MultipartFile file,
+            @RequestParam(value = "targetUrl", required = true) String targetUrl,
             @RequestParam(value = "top_k", required = false, defaultValue = "3") int topK) {
         
         System.out.println("=== PROXY-AI DEBUG ===");
