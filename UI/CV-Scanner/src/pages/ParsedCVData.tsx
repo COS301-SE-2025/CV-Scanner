@@ -327,24 +327,29 @@ const ParsedCVData: React.FC = () => {
     if (match) setEmail(match[0]);
   }, [rawData, fields, email]);
 
+  // Load user on mount - FIXED to use apiFetch
   useEffect(() => {
     const ue = localStorage.getItem("userEmail");
     if (!ue) return;
     (async () => {
       try {
-        // Use fetch directly here with credentials to avoid any global apiFetch behavior
-        const res = await fetch(`/auth/me?email=${encodeURIComponent(ue)}`, {
+        // ✅ FIXED: Use apiFetch instead of raw fetch
+        const res = await apiFetch(`/auth/me?email=${encodeURIComponent(ue)}`, {
           method: "GET",
           credentials: "include",
-          headers: { Accept: "application/json" },
         });
+
         if (res.status === 401) {
-          // session expired — surface to user rather than allowing a sudden full redirect
           console.warn("Auth expired when checking /auth/me");
           setSessionExpired(true);
           return;
         }
-        if (!res.ok) return;
+
+        if (!res.ok) {
+          console.error("Failed to fetch user:", res.status);
+          return;
+        }
+
         const d = await res.json().catch(() => null);
         if (d) setUser(d);
       } catch (err) {
