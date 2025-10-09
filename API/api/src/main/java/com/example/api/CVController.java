@@ -7,7 +7,6 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.sql.Timestamp;
 import java.util.LinkedHashMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,6 +18,10 @@ import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpClient;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.UUID;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -285,92 +288,86 @@ public class CVController {
         }
     }
     @PostMapping("/proxy-ai")
-    public ResponseEntity<String> proxyToAi(@RequestBody ProxyRequest request) {
-        System.out.println("Received proxy-ai POST");
+    public ResponseEntity<String> proxyToAi(@RequestParam(value = "file", required = false) MultipartFile file,
+                                        @RequestParam(value = "targetUrl", required = true) String targetUrl,
+                                        @RequestParam(value = "top_k", required = false, defaultValue = "3") int topK) {
+    System.out.println("Received proxy-ai POST with file: " + (file != null ? file.getOriginalFilename() : "null"));
+    
+    try {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest()
+                .body("{\"status\":\"error\",\"detail\":\"No file uploaded.\"}");
+        }
+
+        // Build the full URL
+        if (!targetUrl.startsWith("http")) {
+            // Use your deployed AI service URL
+            targetUrl = "https://cv-scanner-ai-cee2d5g9epb0hcg6.southafricanorth-01.azurewebsites.net" + 
+                       (targetUrl.startsWith("/") ? targetUrl : "/" + targetUrl);
+        }
+
+        // Add top_k query parameter if needed
+        if (targetUrl.contains("upload_cv")) {
+            targetUrl += "?top_k=" + topK;
+        }
+
+        System.out.println("Proxying to: " + targetUrl);
+
+        // Create temporary file for multipart upload
+        Path tempFile = Files.createTempFile("cv-upload-", file.getOriginalFilename());
+        file.transferTo(tempFile.toFile());
+
         try {
-            // Validate request
-            if (request == null || request.getTargetUrl() == null) {
-                return ResponseEntity.badRequest().body("{\"error\": \"Missing targetUrl\"}");
-            }
-
-            // Build the full URL to the AI server
-            String targetUrl = request.getTargetUrl();
-            if (!targetUrl.startsWith("http")) {
-                targetUrl = "http://localhost:5000" + (targetUrl.startsWith("/") ? targetUrl : "/" + targetUrl);
-            }
-
-            // Create HTTP client
-            HttpClient client = HttpClient.newHttpClient();
+            // Build multipart request
+            String boundary = "----WebKitFormBoundary" + UUID.randomUUID().toString().replace("-", "");
             
-            // Build request to AI server
-            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
-                .uri(URI.create(targetUrl))
-                .method(request.getMethod(), getBodyPublisher(request));
+            StringBuilder multipartBody = new StringBuilder();
+            multipartBody.append("--").append(boundary).append("\r\n");
+            multipartBody.append("Content-Disposition: form-data; name=\"file\"; filename=\"")
+                        .append(file.getOriginalFilename()).append("\"\r\n");
+            multipartBody.append("Content-Type: ").append(file.getContentType()).append("\r\n\r\n");
+            
+            byte[] fileBytes = Files.readAllBytes(tempFile);
+            byte[] headerBytes = multipartBody.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] footerBytes = ("\r\n--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8);
+            
+            // Combine all parts
+            byte[] fullBody = new byte[headerBytes.length + fileBytes.length + footerBytes.length];
+            System.arraycopy(headerBytes, 0, fullBody, 0, headerBytes.length);
+            System.arraycopy(fileBytes, 0, fullBody, headerBytes.length, fileBytes.length);
+            System.arraycopy(footerBytes, 0, fullBody, headerBytes.length + fileBytes.length, footerBytes.length);
 
-            // Add headers
-            if (request.isFormData() && request.getBody() != null) {
-                // Handle FormData - convert base64 back to file
-                byte[] fileBytes = java.util.Base64.getDecoder().decode(request.getBody());
-                requestBuilder.header("Content-Type", "multipart/form-data");
-                HttpRequest.BodyPublisher bodyPublisher = HttpRequest.BodyPublishers.ofByteArray(fileBytes);
-                requestBuilder.method(request.getMethod(), bodyPublisher);
-            } else if (request.getBody() != null && !request.getBody().isEmpty()) {
-                requestBuilder.header("Content-Type", "application/json");
-                HttpRequest.BodyPublisher bodyPublisher = HttpRequest.BodyPublishers.ofString(request.getBody());
-                requestBuilder.method(request.getMethod(), bodyPublisher);
-            } else {
-                requestBuilder.method(request.getMethod(), HttpRequest.BodyPublishers.noBody());
-            }
+            // Create HTTP client and request
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(targetUrl))
+                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                .POST(HttpRequest.BodyPublishers.ofByteArray(fullBody))
+                .build();
 
             // Execute request
-            HttpResponse<String> response = client.send(
-                requestBuilder.build(),
-                HttpResponse.BodyHandlers.ofString()
-            );
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             
-            // Return the AI server's response
+            System.out.println("AI service response status: " + response.statusCode());
+            
             return ResponseEntity.status(response.statusCode())
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(response.body());
                 
-        } catch (Exception e) {
-            System.err.println("Proxy error: " + e.getMessage());
-            return ResponseEntity.status(500)
-                .body("{\"error\": \"Proxy failed: " + e.getMessage() + "\"}");
+        } finally {
+            // Clean up temp file
+            Files.deleteIfExists(tempFile);
         }
-    }
-
-    private HttpRequest.BodyPublisher getBodyPublisher(ProxyRequest request) {
-        if (request.getBody() == null || request.getBody().isEmpty()) {
-            return HttpRequest.BodyPublishers.noBody();
-        }
-        return HttpRequest.BodyPublishers.ofString(request.getBody());
-    }
-
-    // Add this inner class for the proxy request
-    public static class ProxyRequest {
-        private String targetUrl;
-        private String method = "POST";
-        private String body;
-        private boolean isFormData;
-
-        // getters and setters
-        public String getTargetUrl() { return targetUrl; }
-        public void setTargetUrl(String targetUrl) { this.targetUrl = targetUrl; }
         
-        public String getMethod() { return method; }
-        public void setMethod(String method) { this.method = method; }
-        
-        public String getBody() { return body; }
-        public void setBody(String body) { this.body = body; }
-        
-        public boolean isFormData() { return isFormData; }
-        public void setFormData(boolean formData) { isFormData = formData; }
+    } catch (Exception e) {
+        System.err.println("Proxy error: " + e.getMessage());
+        e.printStackTrace();
+        return ResponseEntity.status(500)
+            .body("{\"status\":\"error\",\"detail\":\"Proxy failed: " + e.getMessage() + "\"}");
     }
-    @GetMapping("/proxy-ai")
-    public ResponseEntity<String> testProxyAi() {
-        return ResponseEntity.ok("Proxy AI GET works");
-    }
+}
+
+    // Remove the old ProxyRequest class and related methods - they're not needed anymore
     // Upsert candidate: insert if not exists, else update and return id
     private long upsertCandidate(Candidate candidate) {
         // Try to find candidate by email
