@@ -136,6 +136,7 @@ export default function UploadCVPage() {
     message: "",
   });
 
+  // Add user state and session tracking
   const [user, setUser] = useState<{
     first_name?: string;
     last_name?: string;
@@ -143,6 +144,8 @@ export default function UploadCVPage() {
     role?: string;
     email?: string;
   } | null>(null);
+
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const [tutorialStep, setTutorialStep] = useState(0);
   const [fadeIn, setFadeIn] = useState(true);
@@ -270,8 +273,89 @@ export default function UploadCVPage() {
     };
   };
 
+  // Load user data on mount
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const ue = localStorage.getItem("userEmail");
+        if (!ue) {
+          console.warn("No userEmail in localStorage");
+          setSessionExpired(true);
+          return;
+        }
+
+        const res = await fetch(`/auth/me?email=${encodeURIComponent(ue)}`, {
+          method: "GET",
+          credentials: "include",
+          headers: { Accept: "application/json" },
+        });
+
+        if (res.status === 401) {
+          console.warn("Session expired - 401 response from /auth/me");
+          setSessionExpired(true);
+          // Don't redirect immediately - let user see the error
+          return;
+        }
+
+        if (!res.ok) {
+          console.error("Failed to load user:", res.status, res.statusText);
+          return;
+        }
+
+        const userData = await res.json().catch(() => null);
+        if (userData) {
+          console.log("User loaded successfully:", userData);
+          setUser(userData);
+          setSessionExpired(false);
+        }
+      } catch (err) {
+        console.error("Error loading user:", err);
+        // Don't set session expired on network errors
+      }
+    };
+
+    loadUser();
+
+    // Listen for auth changes from other tabs
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "auth-change") {
+        console.log("Auth change detected, reloading user");
+        loadUser();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
+  // Monitor session expiration
+  useEffect(() => {
+    if (sessionExpired) {
+      console.warn("Session expired - showing warning");
+      setErrorPopup({
+        open: true,
+        message: "Your session has expired. Please log in again.",
+      });
+
+      // Optionally redirect after 3 seconds
+      const timer = setTimeout(() => {
+        navigate("/login", { replace: true });
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [sessionExpired, navigate]);
+
   // Main processing function - only call parse_resume endpoint
   const handleProcess = async () => {
+    if (sessionExpired) {
+      setErrorPopup({
+        open: true,
+        message: "Your session has expired. Please log in again.",
+      });
+      return;
+    }
+
     if (!file) {
       setErrorPopup({ open: true, message: "Please select a file first." });
       return;
@@ -310,26 +394,36 @@ export default function UploadCVPage() {
     setLoading(true);
 
     try {
-      console.log("Starting CV processing - calling parse_resume endpoint...");
+      console.log(
+        "Starting CV processing - calling parse_resume via Java proxy..."
+      );
 
-      const AI_BASE_URL =
-        "https://cv-scanner-ai-cee2d5g9epb0hcg6.southafricanorth-01.azurewebsites.net";
+      // Use Java proxy endpoint instead of direct AI service call
+      const PROXY_URL = "/cv/proxy-ai";
 
       const parseFormData = new FormData();
       parseFormData.append("file", file);
+      parseFormData.append("targetUrl", "/parse_resume");
 
-      console.log("Calling parse_resume endpoint...");
+      console.log("Calling Java proxy with targetUrl: /parse_resume");
 
-      const parseResponse = await fetch(`${AI_BASE_URL}/parse_resume`, {
+      const parseResponse = await fetch(PROXY_URL, {
         method: "POST",
+        credentials: "include", // Include session cookies
         body: parseFormData,
       });
 
-      console.log("Parse response status:", parseResponse.status);
+      console.log("Proxy response status:", parseResponse.status);
+
+      // Handle session expiration
+      if (parseResponse.status === 401) {
+        setSessionExpired(true);
+        throw new Error("Session expired. Please log in again.");
+      }
 
       if (!parseResponse.ok) {
         const errorText = await parseResponse.text();
-        console.error("Parse failed:", parseResponse.status, errorText);
+        console.error("Proxy failed:", parseResponse.status, errorText);
         throw new Error(`Parse failed: ${parseResponse.status} - ${errorText}`);
       }
 
@@ -457,6 +551,27 @@ export default function UploadCVPage() {
         fontFamily: "Helvetica, sans-serif",
       }}
     >
+      {/* Session expired banner */}
+      {sessionExpired && (
+        <Box
+          sx={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bgcolor: "#b00020",
+            color: "#fff",
+            p: 2,
+            textAlign: "center",
+            zIndex: 9999,
+            fontWeight: "bold",
+          }}
+        >
+          ⚠️ Your session has expired. You will be redirected to login
+          shortly...
+        </Box>
+      )}
+
       <Sidebar
         userRole={user?.role || "User"}
         collapsed={collapsed}
@@ -515,7 +630,7 @@ export default function UploadCVPage() {
                       })`
                     : (user.username || user.email) +
                       (user.role ? ` (${user.role})` : "")
-                  : "User"}
+                  : "Loading..."}
               </Typography>
             </Box>
 
