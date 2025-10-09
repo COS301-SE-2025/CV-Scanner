@@ -32,23 +32,41 @@ logging.info("Runtime device: %s (cuda_available=%s)", DEVICE_ID, torch.cuda.is_
 # Flask app setup
 app = Flask(__name__)
 
-# CRITICAL: Add your exact Static Web App origin
+# CORS configuration - FIXED pattern
 CORS(app, resources={
-    r"/*": {
+    r"/**": {  # ✅ FIXED: Match ALL paths including nested routes
         "origins": [
             "http://localhost:3000",
             "http://localhost:5173",
-            "https://jolly-bay-0e45d8b03.2.azurestaticapps.net",  # Your exact Static Web App
-            "https://cvscanner-api-eaaudbdneafub4e3.southafricanorth-01.azurewebsites.net"  # Your Java API
-            "*"  # TEMPORARY: Allow all origins for testing (remove after confirming it works)
+            "https://jolly-bay-0e45d8b03.2.azurestaticapps.net",
+            "https://cvscanner-api-eaaudbdneafub4e3.southafricanorth-01.azurewebsites.net"
         ],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization", "Accept", "Origin"],
-        "supports_credentials": True,
+        "supports_credentials": False,  # ✅ Changed to False - you're not using cookies
         "expose_headers": ["Content-Type", "Content-Length"],
         "max_age": 3600
     }
 })
+
+# Add after_request handler to ensure CORS headers are always present
+@app.after_request
+def after_request(response):
+    origin = request.headers.get('Origin')
+    allowed_origins = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://jolly-bay-0e45d8b03.2.azurestaticapps.net",
+        "https://cvscanner-api-eaaudbdneafub4e3.southafricanorth-01.azurewebsites.net"
+    ]
+    
+    if origin in allowed_origins:
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, Origin'
+        response.headers['Access-Control-Max-Age'] = '3600'
+    
+    return response
 
 gunicorn_logger = logging.getLogger("gunicorn.error")
 if gunicorn_logger.handlers:

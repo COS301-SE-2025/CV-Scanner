@@ -60,97 +60,6 @@ interface ValidationErrors {
   candidateEmail?: string;
 }
 
-// safeAiFetch: calls local AI directly for localhost targets, otherwise routes through backend proxy
-const safeAiFetch = async (
-  url: string,
-  options: RequestInit = {}
-): Promise<Response> => {
-  try {
-    // First, try calling the target directly (works if AI allows CORS)
-    try {
-      console.debug("safeAiFetch: attempting direct call to", url);
-      return await fetch(url, options);
-    } catch (directErr) {
-      // direct call failed (network/CORS) -> fallback to proxy below
-      console.debug(
-        "safeAiFetch: direct call failed, falling back to proxy",
-        directErr
-      );
-    }
-
-    // Fallback: proxy via backend so deployed backend can call external AI endpoints
-    const proxyBody: any = {
-      targetUrl: url,
-      method: options.method || "POST",
-      headers: {}, // optional: pass through headers if needed
-      isFormData: false,
-      fileName: null,
-      contentType: null,
-      body: null,
-    };
-
-    if (options.body instanceof FormData) {
-      const file = options.body.get("file") as File | null;
-      if (file) {
-        proxyBody.isFormData = true;
-        proxyBody.fileName = file.name;
-        proxyBody.contentType = file.type || null;
-        proxyBody.body = await fileToBase64(file); // base64 payload
-      }
-    } else if (options.body) {
-      try {
-        proxyBody.body =
-          typeof options.body === "string"
-            ? options.body
-            : JSON.stringify(options.body);
-      } catch {
-        proxyBody.body = String(options.body);
-      }
-    }
-
-    console.debug("safeAiFetch -> proxy payload:", {
-      target: proxyBody.targetUrl,
-      fileName: proxyBody.fileName,
-    });
-
-    const res = await apiFetch("/cv/proxy-ai", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(proxyBody),
-    } as RequestInit);
-
-    if (!res) throw new Error("No response from proxy endpoint");
-    if (!res.ok) {
-      const text = await res.text().catch(() => "<no body>");
-      console.error("proxy /cv/proxy-ai returned non-OK:", res.status, text);
-      return new Response(text, {
-        status: res.status,
-        statusText: res.statusText,
-        headers: res.headers,
-      });
-    }
-
-    return res;
-  } catch (err: any) {
-    console.error("safeAiFetch/proxy error:", err && err.message);
-    const body = typeof err === "string" ? err : err?.message || "Proxy Error";
-    return new Response(body, { status: 502, statusText: "Proxy Error" });
-  }
-};
-
-// Helper to convert file to base64 for proxy
-const fileToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = (reader.result as string).split(",")[1];
-      resolve(base64);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-};
-
 // Validation functions
 const validateName = (name: string): string => {
   if (!name.trim()) {
@@ -361,106 +270,6 @@ export default function UploadCVPage() {
     };
   };
 
-  // Safe API call function
-  const makeApiCall = async (
-    endpoint: string,
-    formData: FormData
-  ): Promise<ApiResponse> => {
-    try {
-      const response = await safeAiFetch(endpoint, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response || !response.ok) {
-        // attempt to read body text to provide more detail
-        const txt = await response.text().catch(() => "");
-        return {
-          success: false,
-          error: `HTTP ${response?.status || "No response"} - ${
-            txt || response?.statusText || ""
-          }`,
-        };
-      }
-
-      const contentType = response.headers.get("content-type");
-      if (contentType?.includes("application/json")) {
-        const data = await response.json();
-        return { success: true, data };
-      } else {
-        const text = await response.text();
-        return { success: true, data: text };
-      }
-    } catch (error) {
-      console.error(`API call failed for ${endpoint}:`, error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
-    }
-  };
-
-  // Upload helper (call proxy endpoint with FormData)
-  async function handleUpload(file: File) {
-    try {
-      const form = new FormData();
-      form.append("file", file); // backend expects key "file"
-
-      // Use apiFetch which preserves FormData correctly
-      const res = await apiFetch("/cv/proxy-ai", {
-        method: "POST",
-        body: form,
-      } as RequestInit);
-
-      if (!res || !res.ok) {
-        const text = await res?.text().catch(() => "");
-        throw new Error(`Upload failed: ${res?.status ?? "no-res"} ${text}`);
-      }
-
-      const json = await res.json();
-      return { success: true, data: json } as ApiResponse;
-    } catch (err: any) {
-      console.error("Upload/parse error", err);
-      return { success: false, error: err?.message || "Upload error" };
-    }
-  }
-
-  // Load user on component mount
-  useEffect(() => {
-    const loadUser = async () => {
-      const email = localStorage.getItem("userEmail") || "admin@email.com";
-      try {
-        const res = await apiFetch(
-          `/auth/me?email=${encodeURIComponent(email)}`
-        );
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data);
-        } else {
-          setUser(null);
-        }
-      } catch {
-        setUser(null);
-      }
-    };
-    loadUser();
-  }, []);
-
-  // Tutorial anchor element management
-  useEffect(() => {
-    if (tutorialStep === 0 && uploadBoxRef.current) {
-      setAnchorEl(uploadBoxRef.current);
-    } else if (tutorialStep === 1 && candidateDetailsRef.current) {
-      setAnchorEl(candidateDetailsRef.current);
-    } else if (tutorialStep === 2 && file && cvTableRef.current) {
-      setAnchorEl(cvTableRef.current);
-    } else if (tutorialStep === 3 && file && processBtnRef.current) {
-      setAnchorEl(processBtnRef.current);
-    } else {
-      setAnchorEl(null);
-    }
-  }, [tutorialStep, file]);
-
   // Main processing function - only call parse_resume endpoint
   const handleProcess = async () => {
     if (!file) {
@@ -506,13 +315,11 @@ export default function UploadCVPage() {
       const AI_BASE_URL =
         "https://cv-scanner-ai-cee2d5g9epb0hcg6.southafricanorth-01.azurewebsites.net";
 
-      // Create FormData for parse endpoint
       const parseFormData = new FormData();
       parseFormData.append("file", file);
 
       console.log("Calling parse_resume endpoint...");
 
-      // Call only parse_resume endpoint
       const parseResponse = await fetch(`${AI_BASE_URL}/parse_resume`, {
         method: "POST",
         body: parseFormData,
@@ -520,24 +327,17 @@ export default function UploadCVPage() {
 
       console.log("Parse response status:", parseResponse.status);
 
-      let parseData = null;
-
-      if (parseResponse.ok) {
-        parseData = await parseResponse.json();
-        console.log("Parse data received:", parseData);
-      } else {
+      if (!parseResponse.ok) {
         const errorText = await parseResponse.text();
         console.error("Parse failed:", parseResponse.status, errorText);
         throw new Error(`Parse failed: ${parseResponse.status} - ${errorText}`);
       }
 
-      // Check if parse failed
-      if (!parseData) {
-        throw new Error("Failed to parse CV. Please try again.");
-      }
+      const parseData = await parseResponse.json();
+      console.log("Parse data received:", parseData);
 
       // Process the data
-      let processedData = extractDataSafely(parseData);
+      const processedData = extractDataSafely(parseData);
 
       setProcessedData(processedData);
       setAiParseData(parseData);
@@ -545,9 +345,9 @@ export default function UploadCVPage() {
       // Create file URL for preview
       const fileUrl = URL.createObjectURL(file);
 
-      // Navigate to results with enhanced parse data
+      // Navigate to results with parse data
       const navigationState = {
-        aiParse: parseData || {},
+        aiParse: parseData,
         fileUrl,
         fileType: file.type,
         candidate: {

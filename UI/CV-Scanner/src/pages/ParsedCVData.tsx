@@ -274,13 +274,11 @@ function normalizeToParsedFields(input: any): ParsedCVFields {
 const ParsedCVData: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const {
-    aiUpload = { applied: {}, best_fit_project_type: null },
-    aiParse = { result: {} },
-    parsedResume = null,
-  } = location.state ?? {};
-  // processedData is the existing response (upload_cv).
-  // aiParse / parsedResume are from the parse_resume endpoint (new) and should be shown as well.
+
+  // REMOVED: aiUpload - no longer using upload_cv endpoint
+  const { aiParse = { result: {} }, parsedResume = null } =
+    location.state ?? {};
+
   const { processedData, fileUrl, candidate } = location.state || {};
 
   const [user, setUser] = useState<any>(null);
@@ -294,42 +292,31 @@ const ParsedCVData: React.FC = () => {
   );
   const [lastName, setLastName] = useState<string>(candidate?.lastName ?? "");
   const [email, setEmail] = useState<string>(candidate?.email ?? "");
-  // parseResumeData holds the raw response from the /parse_resume endpoint if present
+
+  // parseResumeData holds the raw response from the /parse_resume endpoint
   const parseResumeData = useMemo(
     () => aiParse ?? parsedResume ?? null,
     [aiParse, parsedResume]
   );
 
-  // Prefer aiUpload (raw upload_cv JSON) first so upload classification displays.
-  // processedData (normalized) falls back if aiUpload is empty.
-  const primaryUpload =
-    aiUpload && Object.keys(aiUpload ?? {}).length
-      ? aiUpload
-      : processedData ?? null;
+  // Use parse data directly (no more upload data)
+  const primaryData = parseResumeData ?? processedData ?? null;
 
   const fieldsInitial = useMemo(
-    () => normalizeToParsedFields(primaryUpload ?? parseResumeData) ?? {},
-    [primaryUpload, parseResumeData]
+    () => normalizeToParsedFields(primaryData) ?? {},
+    [primaryData]
   );
+
   const [fields, setFields] = useState<ParsedCVFields>(fieldsInitial);
 
   const [rawData, setRawData] = useState<any>(
-    () =>
-      primaryUpload?.data ??
-      primaryUpload ??
-      parseResumeData?.data ??
-      parseResumeData
+    () => primaryData?.data ?? primaryData
   );
 
   useEffect(() => {
     setFields(fieldsInitial);
-    setRawData(
-      primaryUpload?.data ??
-        primaryUpload ??
-        parseResumeData?.data ??
-        parseResumeData
-    );
-  }, [fieldsInitial, processedData, parseResumeData]);
+    setRawData(primaryData?.data ?? primaryData);
+  }, [fieldsInitial, primaryData, parseResumeData]);
 
   useEffect(() => {
     if (email) return;
@@ -406,13 +393,12 @@ const ParsedCVData: React.FC = () => {
       candidate: { firstName, lastName, email },
       fileUrl,
       normalized: fields,
-      aiResult: primaryUpload ?? parseResumeData,
+      aiResult: parseResumeData, // Only parse data now
       raw: rawData,
-      resume: parseResumeData ?? null, // NEW: send resume JSON
+      resume: parseResumeData ?? null,
       receivedAt: new Date().toISOString(),
     };
     try {
-      // use fetch directly here so we can handle 401 explicitly and avoid unexpected global redirects
       const res = await fetch("/cv/save", {
         method: "POST",
         credentials: "include",
@@ -423,7 +409,6 @@ const ParsedCVData: React.FC = () => {
         body: JSON.stringify(payload),
       });
       if (res.status === 401) {
-        // session expired — inform user and set flag
         setSessionExpired(true);
         alert("Session expired. Please sign in again.");
         return;
@@ -437,8 +422,8 @@ const ParsedCVData: React.FC = () => {
     }
   };
 
-  // Show page when either upload_cv (primaryUpload) or parse_resume (parseResumeData) is present.
-  if (!primaryUpload && !parseResumeData) {
+  // Show page only if parse data is present
+  if (!parseResumeData && !processedData) {
     return (
       <Typography variant="h6" sx={{ p: 3 }}>
         No CV data available. Please upload and process a CV first.
@@ -590,6 +575,7 @@ const ParsedCVData: React.FC = () => {
             </Box>
             <Divider sx={{ mb: 2 }} />
 
+            {/* Render fields grid */}
             <Box
               sx={{
                 display: "grid",
@@ -675,7 +661,6 @@ const ParsedCVData: React.FC = () => {
                     fields,
                     rawData,
                     parseResumeData,
-                    primaryUpload,
                   });
                   return (
                     <Box sx={{ gridColumn: "1 / -1", p: 2 }}>
@@ -696,6 +681,7 @@ const ParsedCVData: React.FC = () => {
               })()}
             </Box>
 
+            {/* Raw JSON collapsibles */}
             <Collapse in={showRaw} unmountOnExit>
               <Box
                 sx={{
@@ -724,6 +710,7 @@ const ParsedCVData: React.FC = () => {
                 </pre>
               </Box>
             </Collapse>
+
             <Collapse in={showResumeRaw} unmountOnExit>
               <Box
                 sx={{
@@ -753,14 +740,14 @@ const ParsedCVData: React.FC = () => {
               </Box>
             </Collapse>
 
-            {/* If parse_resume data was provided, render it below the raw response */}
+            {/* Parsed Resume normalized view */}
             {parseResumeData && (
               <Box sx={{ mt: 2, p: 1.5 }}>
                 <Typography
                   variant="subtitle2"
                   sx={{ mb: 1, fontWeight: "bold" }}
                 >
-                  Parsed Resume (parse_resume)
+                  Parsed Resume Details
                 </Typography>
 
                 {(() => {
@@ -790,41 +777,6 @@ const ParsedCVData: React.FC = () => {
               </Box>
             )}
 
-            {/* Always show upload_cv applied classifications (if present) */}
-            {aiUpload && aiUpload.applied && (
-              <Box sx={{ mt: 2, p: 1.5 }}>
-                <Typography
-                  variant="subtitle2"
-                  sx={{ mb: 1, fontWeight: "bold" }}
-                >
-                  Upload Classification (upload_cv - applied)
-                </Typography>
-                <Box sx={{ display: "grid", gap: 1 }}>
-                  {Object.entries(aiUpload.applied).map(([cat, vals]) => (
-                    <Box
-                      key={cat}
-                      sx={{ p: 1, backgroundColor: "#f5f5f5", borderRadius: 1 }}
-                    >
-                      <Typography
-                        variant="subtitle2"
-                        sx={{ fontWeight: "bold" }}
-                      >
-                        {cat}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ whiteSpace: "pre-wrap" }}
-                      >
-                        {Array.isArray(vals)
-                          ? vals.join(", ")
-                          : JSON.stringify(vals)}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Box>
-              </Box>
-            )}
-
             <Box sx={{ mt: 3, textAlign: "center" }}>
               <Button
                 variant="contained"
@@ -842,7 +794,7 @@ const ParsedCVData: React.FC = () => {
             </Box>
           </Paper>
 
-          {/* Right Panel */}
+          {/* Right Panel - PDF Viewer */}
           <Paper
             elevation={4}
             sx={{
