@@ -288,84 +288,115 @@ public class CVController {
         }
     }
     @PostMapping("/proxy-ai")
-    public ResponseEntity<String> proxyToAi(@RequestParam(value = "file", required = false) MultipartFile file,
-                                        @RequestParam(value = "targetUrl", required = true) String targetUrl,
-                                        @RequestParam(value = "top_k", required = false, defaultValue = "3") int topK) {
-    System.out.println("Received proxy-ai POST with file: " + (file != null ? file.getOriginalFilename() : "null"));
-    
-    try {
-        if (file == null || file.isEmpty()) {
-            return ResponseEntity.badRequest()
-                .body("{\"status\":\"error\",\"detail\":\"No file uploaded.\"}");
-        }
-
-        // Build the full URL
-        if (!targetUrl.startsWith("http")) {
-            // Use your deployed AI service URL
-            targetUrl = "https://cv-scanner-ai-cee2d5g9epb0hcg6.southafricanorth-01.azurewebsites.net" + 
-                       (targetUrl.startsWith("/") ? targetUrl : "/" + targetUrl);
-        }
-
-        // Add top_k query parameter if needed
-        if (targetUrl.contains("upload_cv")) {
-            targetUrl += "?top_k=" + topK;
-        }
-
-        System.out.println("Proxying to: " + targetUrl);
-
-        // Create temporary file for multipart upload
-        Path tempFile = Files.createTempFile("cv-upload-", file.getOriginalFilename());
-        file.transferTo(tempFile.toFile());
-
-        try {
-            // Build multipart request
-            String boundary = "----WebKitFormBoundary" + UUID.randomUUID().toString().replace("-", "");
-            
-            StringBuilder multipartBody = new StringBuilder();
-            multipartBody.append("--").append(boundary).append("\r\n");
-            multipartBody.append("Content-Disposition: form-data; name=\"file\"; filename=\"")
-                        .append(file.getOriginalFilename()).append("\"\r\n");
-            multipartBody.append("Content-Type: ").append(file.getContentType()).append("\r\n\r\n");
-            
-            byte[] fileBytes = Files.readAllBytes(tempFile);
-            byte[] headerBytes = multipartBody.toString().getBytes(StandardCharsets.UTF_8);
-            byte[] footerBytes = ("\r\n--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8);
-            
-            // Combine all parts
-            byte[] fullBody = new byte[headerBytes.length + fileBytes.length + footerBytes.length];
-            System.arraycopy(headerBytes, 0, fullBody, 0, headerBytes.length);
-            System.arraycopy(fileBytes, 0, fullBody, headerBytes.length, fileBytes.length);
-            System.arraycopy(footerBytes, 0, fullBody, headerBytes.length + fileBytes.length, footerBytes.length);
-
-            // Create HTTP client and request
-            HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(targetUrl))
-                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
-                .POST(HttpRequest.BodyPublishers.ofByteArray(fullBody))
-                .build();
-
-            // Execute request
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            
-            System.out.println("AI service response status: " + response.statusCode());
-            
-            return ResponseEntity.status(response.statusCode())
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(response.body());
-                
-        } finally {
-            // Clean up temp file
-            Files.deleteIfExists(tempFile);
-        }
+    public ResponseEntity<String> proxyToAi(
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "targetUrl", required = false) String targetUrl,
+            @RequestParam(value = "top_k", required = false, defaultValue = "3") int topK) {
         
-    } catch (Exception e) {
-        System.err.println("Proxy error: " + e.getMessage());
-        e.printStackTrace();
-        return ResponseEntity.status(500)
-            .body("{\"status\":\"error\",\"detail\":\"Proxy failed: " + e.getMessage() + "\"}");
+        System.out.println("=== PROXY-AI DEBUG ===");
+        System.out.println("File: " + (file != null ? file.getOriginalFilename() : "null"));
+        System.out.println("TargetUrl param: " + targetUrl);
+        System.out.println("Top_k: " + topK);
+        
+        try {
+            // Validate inputs
+            if (file == null || file.isEmpty()) {
+                System.err.println("ERROR: No file in request");
+                return ResponseEntity.badRequest()
+                    .body("{\"status\":\"error\",\"detail\":\"No file uploaded.\"}");
+            }
+
+            if (targetUrl == null || targetUrl.trim().isEmpty()) {
+                System.err.println("ERROR: No targetUrl specified");
+                return ResponseEntity.badRequest()
+                    .body("{\"status\":\"error\",\"detail\":\"No target URL specified.\"}");
+            }
+
+            // Build full target URL
+            String fullUrl;
+            if (targetUrl.startsWith("http")) {
+                fullUrl = targetUrl;
+            } else {
+                String baseUrl = "https://cv-scanner-ai-cee2d5g9epb0hcg6.southafricanorth-01.azurewebsites.net";
+                fullUrl = baseUrl + (targetUrl.startsWith("/") ? targetUrl : "/" + targetUrl);
+            }
+
+            // Add query params for upload_cv
+            if (fullUrl.contains("upload_cv") && !fullUrl.contains("top_k=")) {
+                fullUrl += (fullUrl.contains("?") ? "&" : "?") + "top_k=" + topK;
+            }
+
+            System.out.println("Full target URL: " + fullUrl);
+
+            // Create temp file
+            Path tempFile = Files.createTempFile("cv-proxy-", "-" + file.getOriginalFilename());
+            file.transferTo(tempFile.toFile());
+
+            try {
+                // Build multipart body
+                String boundary = "----WebKitFormBoundary" + UUID.randomUUID().toString().replace("-", "");
+                
+                // Header part
+                StringBuilder headerBuilder = new StringBuilder();
+                headerBuilder.append("--").append(boundary).append("\r\n");
+                headerBuilder.append("Content-Disposition: form-data; name=\"file\"; filename=\"")
+                            .append(file.getOriginalFilename()).append("\"\r\n");
+                headerBuilder.append("Content-Type: ").append(file.getContentType() != null ? file.getContentType() : "application/octet-stream").append("\r\n\r\n");
+                
+                byte[] headerBytes = headerBuilder.toString().getBytes(StandardCharsets.UTF_8);
+                byte[] fileBytes = Files.readAllBytes(tempFile);
+                byte[] footerBytes = ("\r\n--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8);
+                
+                // Combine all parts
+                byte[] fullBody = new byte[headerBytes.length + fileBytes.length + footerBytes.length];
+                System.arraycopy(headerBytes, 0, fullBody, 0, headerBytes.length);
+                System.arraycopy(fileBytes, 0, fullBody, headerBytes.length, fileBytes.length);
+                System.arraycopy(footerBytes, 0, fullBody, headerBytes.length + fileBytes.length, footerBytes.length);
+
+                System.out.println("Multipart body size: " + fullBody.length + " bytes");
+
+                // Create HTTP request
+                HttpClient client = HttpClient.newBuilder()
+                    .connectTimeout(java.time.Duration.ofSeconds(30))
+                    .build();
+                    
+                HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(fullUrl))
+                    .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                    .header("Accept", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(fullBody))
+                    .timeout(java.time.Duration.ofSeconds(120))
+                    .build();
+
+                // Execute request
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                
+                System.out.println("AI service response status: " + response.statusCode());
+                System.out.println("AI service response body (first 200 chars): " + 
+                    (response.body() != null && response.body().length() > 200 
+                        ? response.body().substring(0, 200) 
+                        : response.body()));
+                
+                return ResponseEntity.status(response.statusCode())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(response.body());
+                    
+            } finally {
+                // Clean up temp file
+                try {
+                    Files.deleteIfExists(tempFile);
+                } catch (Exception e) {
+                    System.err.println("Failed to delete temp file: " + e.getMessage());
+                }
+            }
+            
+        } catch (Exception e) {
+            System.err.println("PROXY ERROR: " + e.getClass().getName() + " - " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500)
+                .body("{\"status\":\"error\",\"detail\":\"Proxy failed: " + e.getMessage().replace("\"", "\\\"") + "\"}");
+        }
     }
-}
 
     // Remove the old ProxyRequest class and related methods - they're not needed anymore
     // Upsert candidate: insert if not exists, else update and return id

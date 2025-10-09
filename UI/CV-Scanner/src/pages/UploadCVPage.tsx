@@ -469,7 +469,6 @@ export default function UploadCVPage() {
       return;
     }
 
-    // Validate all fields before processing
     if (!validateAllFields()) {
       setErrorPopup({
         open: true,
@@ -478,7 +477,6 @@ export default function UploadCVPage() {
       return;
     }
 
-    // Validate file type
     const validTypes = [
       "application/pdf",
       "application/msword",
@@ -492,7 +490,6 @@ export default function UploadCVPage() {
       return;
     }
 
-    // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
       setErrorPopup({
         open: true,
@@ -500,82 +497,105 @@ export default function UploadCVPage() {
       });
       return;
     }
+
     loader.show();
     setLoading(true);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      console.log("Starting CV processing via proxy...");
 
-      // Use deployed AI service
-      const AI_BASE =
-        "https://cv-scanner-ai-cee2d5g9epb0hcg6.southafricanorth-01.azurewebsites.net";
-      const uploadEndpoint = `${AI_BASE}/upload_cv?top_k=3`;
-      const parseEndpoint = `${AI_BASE}/parse_resume`;
+      // Create FormData for parse endpoint
+      const parseFormData = new FormData();
+      parseFormData.append("file", file);
+      parseFormData.append("targetUrl", "/parse_resume");
 
-      console.log("Starting CV processing with safe AI fetch...");
+      // Create FormData for upload endpoint
+      const uploadFormData = new FormData();
+      uploadFormData.append("file", file);
+      uploadFormData.append("targetUrl", "/upload_cv");
+      uploadFormData.append("top_k", "3");
 
-      // Make API calls in parallel using safeAiFetch
-      const [uploadResult, parseResult] = await Promise.all([
-        makeApiCall(uploadEndpoint, formData),
-        makeApiCall(parseEndpoint, formData),
+      console.log("Calling proxy endpoints...");
+
+      // Call both endpoints via proxy
+      const [parseResponse, uploadResponse] = await Promise.all([
+        fetch("/cv/proxy-ai", {
+          method: "POST",
+          credentials: "include",
+          body: parseFormData,
+        }),
+        fetch("/cv/proxy-ai", {
+          method: "POST",
+          credentials: "include",
+          body: uploadFormData,
+        }),
       ]);
 
-      // Save raw AI responses into state for later display
-      setAiUploadData(uploadResult.success ? uploadResult.data : null);
-      setAiParseData(parseResult.success ? parseResult.data : null);
+      console.log("Parse response status:", parseResponse.status);
+      console.log("Upload response status:", uploadResponse.status);
 
-      console.log("Safe API Results:", {
-        uploadSuccess: uploadResult.success,
-        parseSuccess: parseResult.success,
-        uploadError: uploadResult.error,
-        parseError: parseResult.error,
-      });
+      let parseData = null;
+      let uploadData = null;
 
-      // Check if both calls failed
-      if (!uploadResult.success && !parseResult.success) {
+      if (parseResponse.ok) {
+        parseData = await parseResponse.json();
+        console.log("Parse data received:", parseData);
+      } else {
+        const errorText = await parseResponse.text();
+        console.error("Parse failed:", parseResponse.status, errorText);
+      }
+
+      if (uploadResponse.ok) {
+        uploadData = await uploadResponse.json();
+        console.log("Upload data received:", uploadData);
+      } else {
+        const errorText = await uploadResponse.text();
+        console.error("Upload failed:", uploadResponse.status, errorText);
+      }
+
+      // Check if both failed
+      if (!parseData && !uploadData) {
         throw new Error(
-          `Upload: ${uploadResult.error}, Parse: ${parseResult.error}`
+          "Both parse and upload requests failed. Check console for details."
         );
       }
 
-      // Process the data safely - prefer parse, fallback to upload
-      let processedData = extractDataSafely(
-        parseResult.success ? parseResult.data : uploadResult.data
-      );
-      // If parse didn't provide skills/education/etc, try to pull from uploadResult
+      // Process the data
+      let processedData = extractDataSafely(parseData || uploadData);
+
+      // Enhance skills from upload result if needed
       if (
-        uploadResult.success &&
+        uploadData &&
         (!processedData.skills || processedData.skills === "")
       ) {
         try {
-          const up = uploadResult.data || {};
-          // common shapes: applied => { Skills: [...] }  or raw => { Skills: { top_k: [...] } }
-          const appliedSkills = up?.applied?.Skills;
+          const appliedSkills = uploadData?.applied?.Skills;
           if (Array.isArray(appliedSkills) && appliedSkills.length) {
             processedData.skills = appliedSkills.join(", ");
           } else {
-            const rawSkills = up?.raw?.Skills?.top_k;
+            const rawSkills = uploadData?.raw?.Skills?.top_k;
             if (Array.isArray(rawSkills) && rawSkills.length) {
               processedData.skills = rawSkills
                 .map((t: any) => t.label)
                 .join(", ");
             }
           }
-        } catch {
-          /* ignore */
+        } catch (err) {
+          console.error("Failed to extract skills from upload data:", err);
         }
       }
 
       setProcessedData(processedData);
+      setAiUploadData(uploadData);
+      setAiParseData(parseData);
 
       // Create file URL for preview
       const fileUrl = URL.createObjectURL(file);
 
-      // Prepare navigation data
+      // Navigate to results
       const navigationState = {
-        aiUpload: uploadResult.success ? uploadResult.data : {},
-        aiParse: parseResult.success ? parseResult.data : {},
+        aiUpload: uploadData || {},
+        aiParse: parseData || {},
         fileUrl,
         fileType: file.type,
         candidate: {
@@ -587,8 +607,6 @@ export default function UploadCVPage() {
       };
 
       console.log("Navigating with state:", navigationState);
-
-      // Navigate to results page
       navigate("/parsed-cv", { state: navigationState });
     } catch (error) {
       console.error("CV Processing Error:", error);

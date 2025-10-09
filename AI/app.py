@@ -1,7 +1,7 @@
 import time, logging, os, sys, subprocess, random
 from typing import Dict, List, Any
 from flask import Flask, jsonify, request, make_response
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 import torch
 import spacy
 import numpy as np
@@ -32,19 +32,21 @@ logging.info("Runtime device: %s (cuda_available=%s)", DEVICE_ID, torch.cuda.is_
 # Flask app setup
 app = Flask(__name__)
 
-# Update CORS to include all your deployed origins
+# CRITICAL: Add your exact Static Web App origin
 CORS(app, resources={
     r"/*": {
         "origins": [
             "http://localhost:3000",
             "http://localhost:5173",
-            "https://jolly-bay-0e45d8b03.2.azurestaticapps.net",  # Your Static Web App
+            "https://jolly-bay-0e45d8b03.2.azurestaticapps.net",  # Your exact Static Web App
             "https://cvscanner-api-eaaudbdneafub4e3.southafricanorth-01.azurewebsites.net"  # Your Java API
+            "*"  # TEMPORARY: Allow all origins for testing (remove after confirming it works)
         ],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization", "Accept"],
+        "allow_headers": ["Content-Type", "Authorization", "Accept", "Origin"],
         "supports_credentials": True,
-        "expose_headers": ["Content-Type", "Content-Length"]
+        "expose_headers": ["Content-Type", "Content-Length"],
+        "max_age": 3600
     }
 })
 
