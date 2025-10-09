@@ -670,7 +670,7 @@ export default function CandidatesDashboard() {
               </ResponsiveContainer>
             </Paper>
 
-            {/* Bar Chart: Overall Tech Usage - UPDATED with better sizing */}
+            {/* Bar Chart: Overall Tech Usage - FIXED Y-axis scale */}
             <Paper
               sx={{
                 p: 2,
@@ -679,7 +679,7 @@ export default function CandidatesDashboard() {
                 color: "#000",
                 transition: "transform 0.2s",
                 "&:hover": { transform: "translateY(-4px)" },
-                minHeight: 300, // Ensure minimum height
+                minHeight: 300,
                 display: "flex",
                 flexDirection: "column",
               }}
@@ -698,23 +698,26 @@ export default function CandidatesDashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={groupedBarData.length ? groupedBarData : [{ name: "No Data", value: 0 }]}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 80 }} // Increased bottom margin for labels
+                    margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
                   >
                     <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
                     <XAxis 
                       dataKey="name" 
                       angle={-45}
                       textAnchor="end"
-                      height={80} // Increased height for better label spacing
-                      interval={0} // Show all labels
+                      height={80}
+                      interval={0}
                       tick={{ 
                         fill: "#575656ff", 
                         fontWeight: "bold", 
-                        fontSize: 11, // Smaller font for long labels
+                        fontSize: 11,
                       }}
                     />
                     <YAxis
                       tick={{ fill: "#575656ff", fontWeight: "bold" }}
+                      domain={[0, 'dataMax + 5']} // Dynamic domain that adds padding
+                      tickCount={6} // Limit number of ticks
+                      allowDecimals={false} // No decimal values
                     />
                     <RechartsTooltip
                       contentStyle={{
