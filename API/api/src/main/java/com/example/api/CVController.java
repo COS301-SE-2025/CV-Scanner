@@ -2247,7 +2247,6 @@ private String truncateSummary(String s) {
      * GET /cv/{identifier}/phone
      * Returns the phone number from parse_resume result.
      * Identifier can be candidate ID (numeric) or email.
-     * Falls back to Candidates table phone if ResumeResult has no phone.
      */
     @GetMapping("/{identifier}/phone")
     public ResponseEntity<?> getCandidatePhone(@PathVariable("identifier") String identifier) {
@@ -2273,7 +2272,7 @@ private String truncateSummary(String s) {
             if (candidateId != null) {
                 sql = """
                     SELECT TOP 1 
-                        c.Id, c.FirstName, c.LastName, c.Email, c.Phone as CandidatePhone,
+                        c.Id, c.FirstName, c.LastName, c.Email,
                         cpc.ResumeResult, cpc.ReceivedAt
                     FROM dbo.Candidates c
                     LEFT JOIN dbo.CandidateParsedCv cpc ON cpc.CandidateId = c.Id
@@ -2284,7 +2283,7 @@ private String truncateSummary(String s) {
             } else {
                 sql = """
                     SELECT TOP 1 
-                        c.Id, c.FirstName, c.LastName, c.Email, c.Phone as CandidatePhone,
+                        c.Id, c.FirstName, c.LastName, c.Email,
                         cpc.ResumeResult, cpc.ReceivedAt
                     FROM dbo.Candidates c
                     LEFT JOIN dbo.CandidateParsedCv cpc ON cpc.CandidateId = c.Id
@@ -2301,40 +2300,30 @@ private String truncateSummary(String s) {
                 String first = rs.getString("FirstName");
                 String last = rs.getString("LastName");
                 String mail = rs.getString("Email");
-                String candidatePhone = rs.getString("CandidatePhone");
                 String resumeJson = rs.getString("ResumeResult");
                 Timestamp ts = rs.getTimestamp("ReceivedAt");
                 
                 System.out.println("Found candidate: " + id + " - " + first + " " + last);
-                System.out.println("Candidate table phone: " + candidatePhone);
                 System.out.println("ResumeResult present: " + (resumeJson != null));
                 if (resumeJson != null) {
                     System.out.println("ResumeResult length: " + resumeJson.length());
                 }
                 
-                // Try to extract phone from ResumeResult first
-                String phoneFromResume = null;
+                // Extract phone from ResumeResult
+                String phone = null;
+                String source = "not_found";
+                
                 try {
-                    phoneFromResume = extractPhoneFromResume(resumeJson);
-                    System.out.println("Phone from resume: " + phoneFromResume);
+                    phone = extractPhoneFromResume(resumeJson);
+                    if (phone != null && !phone.trim().isEmpty()) {
+                        source = "resume";
+                        System.out.println("Phone from resume: " + phone);
+                    } else {
+                        System.out.println("No phone found in resume");
+                    }
                 } catch (Exception e) {
                     System.err.println("Failed to extract phone from resume: " + e.getMessage());
                     e.printStackTrace();
-                }
-                
-                String phone = phoneFromResume;
-                String source = "resume";
-                
-                // Fallback to Candidates table phone if resume has no phone
-                if (phone == null || phone.trim().isEmpty()) {
-                    phone = candidatePhone;
-                    if (phone == null || phone.trim().isEmpty()) {
-                        source = "not_found";
-                        phone = null;
-                    } else {
-                        source = "candidate_table";
-                    }
-                    System.out.println("Using fallback phone. Source: " + source + ", Phone: " + phone);
                 }
                 
                 Map<String, Object> response = new LinkedHashMap<>();
