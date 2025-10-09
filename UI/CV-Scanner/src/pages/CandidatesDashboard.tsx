@@ -679,7 +679,7 @@ export default function CandidatesDashboard() {
                 color: "#000",
                 transition: "transform 0.2s",
                 "&:hover": { transform: "translateY(-4px)" },
-                height: 400, // Increased height
+                height: 500, // Increased height
                 display: "flex",
                 flexDirection: "column",
               }}
@@ -691,7 +691,6 @@ export default function CandidatesDashboard() {
                   mb: 1,
                   fontWeight: 600,
                   flexShrink: 0,
-                  fontSize: '0.9rem', // Slightly smaller title
                 }}
               >
                 Overall Tech Usage
