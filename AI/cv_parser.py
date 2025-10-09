@@ -747,11 +747,233 @@ class AIExtractor:
 
         return "\n".join(lines[start_section + 1:section_end]) if start_section != -1 else ""
 
-# def extract_personal_info(text: str):
+def _calculate_cv_score(parsed_data: dict) -> float:
+    score = 5.5  # Base score
+    
+    # Personal info (up to +0.8)
+    personal_info = parsed_data.get("personal_info", {})
+    if personal_info.get("name"):
+        score += 0.3
+    if personal_info.get("email"):
+        score += 0.3
+    if personal_info.get("phone"):
+        score += 0.2
+    
+    # Skills (up to +1.2)
+    skills = parsed_data.get("skills", [])
+    if isinstance(skills, str):
+        skills = [s.strip() for s in skills.split(",") if s.strip()]
+    
+    skill_count = len(skills)
+    if skill_count >= 10:
+        score += 1.2
+    elif skill_count >= 7:
+        score += 0.9
+    elif skill_count >= 4:
+        score += 0.6
+    elif skill_count >= 2:
+        score += 0.3
+    
+    # Experience (up to +1.5)
+    sections = parsed_data.get("sections", {})
+    experience_text = sections.get("experience", "") or sections.get("work_experience", "")
+    
+    if experience_text:
+        # Count bullet points or line breaks as indicators of detail
+        detail_indicators = experience_text.count("•") + experience_text.count("\n-") + experience_text.count("\n*")
+        if detail_indicators >= 10:
+            score += 1.5
+        elif detail_indicators >= 6:
+            score += 1.2
+        elif detail_indicators >= 3:
+            score += 0.8
+        else:
+            score += 0.4
+    
+    # Education (up to +0.7)
+    education_text = sections.get("education", "")
+    if education_text:
+        education_lower = education_text.lower()
+        if any(degree in education_lower for degree in ["phd", "doctorate", "masters", "master's", "msc", "ma"]):
+            score += 0.7
+        elif any(degree in education_lower for degree in ["bachelor", "bsc", "ba", "beng"]):
+            score += 0.5
+        else:
+            score += 0.3
+    
+    # Summary/Objective (up to +0.3)
+    summary = parsed_data.get("summary", "") or sections.get("summary", "") or sections.get("objective", "")
+    if summary and len(summary) > 50:
+        score += 0.3
+    elif summary:
+        score += 0.15
+    
+    # Cap at 9.0
+    return min(9.0, round(score, 1))
 
-# def extract_sections(text: str) -> Dict[str, str]:
 
-def parse_resume_from_bytes(file_bytes: bytes, filename: str):
+def _determine_project_type(parsed_data: dict) -> str:
+    """
+    Determine the best-fit project type based on CV content.
+    Returns one of the predefined project categories.
+    """
+    RULES = {
+        "Machine Learning / Data Science": [
+            "machine learning", "deep learning", "data science", "nlp", "computer vision",
+            "pytorch", "tensorflow", "sklearn", "xgboost", "model training", "dataset",
+            "neural network", "ai", "artificial intelligence", "pandas", "numpy"
+        ],
+        "API Backend / Services": [
+            "rest api", "graphql", "fastapi", "django", "flask", "express", "spring boot",
+            "microservice", "endpoint", "jwt", "postgres", "mongodb", "node.js", "java",
+            "backend", "server", "database"
+        ],
+        "Frontend Web App": [
+            "react", "next.js", "typescript", "javascript", "spa", "redux", "tailwind",
+            "vue", "angular", "ui", "ux", "css", "html", "frontend", "web design",
+            "responsive"
+        ],
+        "DevOps / Infrastructure": [
+            "docker", "kubernetes", "terraform", "ci/cd", "jenkins", "github actions",
+            "helm", "prometheus", "grafana", "aws", "azure", "gcp", "devops", "cloud",
+            "infrastructure", "deployment"
+        ],
+        "Mobile App": [
+            "android", "ios", "react native", "flutter", "kotlin", "swift", "xcode",
+            "mobile", "app development", "xamarin"
+        ],
+        "Data Engineering / ETL": [
+            "airflow", "spark", "databricks", "etl", "elt", "data pipeline", "kafka",
+            "bigquery", "snowflake", "redshift", "data warehouse", "data lake"
+        ],
+        "General Web Application": [
+            "full-stack", "web application", "crud", "authentication", "authorization",
+            "web development", "full stack"
+        ]
+    }
+    
+    # Combine all text from CV
+    all_text = ""
+    
+    # Add skills
+    skills = parsed_data.get("skills", [])
+    if isinstance(skills, str):
+        all_text += skills.lower() + " "
+    elif isinstance(skills, list):
+        all_text += " ".join([str(s).lower() for s in skills]) + " "
+    
+    # Add sections
+    sections = parsed_data.get("sections", {})
+    for section_content in sections.values():
+        if section_content:
+            all_text += str(section_content).lower() + " "
+    
+    # Add summary
+    summary = parsed_data.get("summary", "")
+    if summary:
+        all_text += summary.lower() + " "
+    
+    # Score each project type
+    scores = {ptype: 0 for ptype in RULES}
+    for ptype, keywords in RULES.items():
+        for keyword in keywords:
+            if keyword in all_text:
+                scores[ptype] += 1
+    
+    # Find best match
+    best_type = max(scores.items(), key=lambda x: x[1])
+    
+    # Return best type, or "General Web Application" if no strong match
+    if best_type[1] >= 2:
+        return best_type[0]
+    else:
+        return "General Web Application"
+
+
+def _calculate_project_fit(parsed_data: dict, project_type: str) -> float:
+    """
+    Calculate how well the candidate fits the determined project type.
+    Returns a score between 6.5 and 9.0.
+    
+    Factors:
+    - Skill alignment with project type
+    - Experience relevance
+    - Overall CV quality
+    """
+    base_score = 6.5
+    
+    # Get CV quality score (normalized to 0-1 range from 5.5-9.0)
+    cv_score = _calculate_cv_score(parsed_data)
+    quality_factor = (cv_score - 5.5) / 3.5  # Normalize to 0-1
+    
+    # Combine all text
+    all_text = ""
+    skills = parsed_data.get("skills", [])
+    if isinstance(skills, str):
+        all_text += skills.lower() + " "
+    elif isinstance(skills, list):
+        all_text += " ".join([str(s).lower() for s in skills]) + " "
+    
+    sections = parsed_data.get("sections", {})
+    for section_content in sections.values():
+        if section_content:
+            all_text += str(section_content).lower() + " "
+    
+    # Define keywords for each project type
+    PROJECT_KEYWORDS = {
+        "Machine Learning / Data Science": [
+            "machine learning", "deep learning", "data science", "nlp", "computer vision",
+            "pytorch", "tensorflow", "sklearn", "xgboost", "model training", "dataset",
+            "neural network", "ai", "pandas", "numpy"
+        ],
+        "API Backend / Services": [
+            "rest api", "graphql", "fastapi", "django", "flask", "express", "spring boot",
+            "microservice", "endpoint", "jwt", "postgres", "mongodb", "node.js", "java"
+        ],
+        "Frontend Web App": [
+            "react", "next.js", "typescript", "javascript", "spa", "redux", "tailwind",
+            "vue", "angular", "ui", "ux", "css", "html", "frontend"
+        ],
+        "DevOps / Infrastructure": [
+            "docker", "kubernetes", "terraform", "ci/cd", "jenkins", "github actions",
+            "helm", "prometheus", "grafana", "aws", "azure", "gcp", "devops"
+        ],
+        "Mobile App": [
+            "android", "ios", "react native", "flutter", "kotlin", "swift", "xcode",
+            "mobile", "app development"
+        ],
+        "Data Engineering / ETL": [
+            "airflow", "spark", "databricks", "etl", "elt", "data pipeline", "kafka",
+            "bigquery", "snowflake", "redshift"
+        ],
+        "General Web Application": [
+            "full-stack", "web application", "crud", "authentication", "authorization",
+            "web development"
+        ]
+    }
+    
+    # Count keyword matches for the determined project type
+    relevant_keywords = PROJECT_KEYWORDS.get(project_type, [])
+    matches = sum(1 for kw in relevant_keywords if kw in all_text)
+    
+    # Calculate alignment score (0-1)
+    if len(relevant_keywords) > 0:
+        alignment_factor = min(1.0, matches / (len(relevant_keywords) * 0.4))  # 40% match = 1.0
+    else:
+        alignment_factor = 0.5
+    
+    # Combine factors
+    # 60% alignment, 40% quality
+    final_score = base_score + (alignment_factor * 0.6 + quality_factor * 0.4) * 2.5
+    
+    return min(9.0, round(final_score, 1))
+
+
+def parse_resume_from_bytes(file_bytes: bytes, filename: str = "resume.pdf") -> dict:
+    """
+    Main entry point: parse resume from bytes.
+    Returns enhanced dict with CV score, project type, and project fit.
+    """
     ext = os.path.splitext(filename or "upload.bin")[1].lower()
     if ext not in (".pdf", ".docx", ".txt"):
         original = file_bytes.decode("utf-8", errors="ignore")
@@ -766,7 +988,8 @@ def parse_resume_from_bytes(file_bytes: bytes, filename: str):
     extractor = AIExtractor()
     ai_result = extractor.extract_with_ai_prompting(original)
 
-    return {
+    # After all parsing is complete, add the new fields
+    result = {
         "personal_info": ai_result["personal_info"],
         "sections": {
             "experience": str(ai_result.get("experience", [])),
@@ -775,7 +998,25 @@ def parse_resume_from_bytes(file_bytes: bytes, filename: str):
         },
         "skills": ai_result.get("skills", []),
         "summary": ai_result.get("summary", "No summary available"),
-        "ai_extracted": True,
-        "certifications": ai_result.get("certifications", []),
-        "languages": ai_result.get("languages", [])
+        # Add new scoring fields
+        "cv_score": _calculate_cv_score({
+            "personal_info": ai_result["personal_info"],
+            "sections": {
+                "experience": str(ai_result.get("experience", [])),
+                "education": str(ai_result.get("education", [])),
+                "projects": str(ai_result.get("projects", []))
+            },
+            "skills": ai_result.get("skills", []),
+            "summary": ai_result.get("summary", "No summary available")
+        }),
+        "project_type": None,  # Will be set below
+        "project_fit": None    # Will be set below
     }
+    
+    # Determine project type
+    result["project_type"] = _determine_project_type(result)
+    
+    # Calculate project fit
+    result["project_fit"] = _calculate_project_fit(result, result["project_type"])
+    
+    return result

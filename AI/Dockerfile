@@ -4,6 +4,7 @@ FROM python:3.10-slim
 # Prevent Python from writing .pyc files / buffering stdout
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV TOKENIZERS_PARALLELISM=false
 
 # Set working directory
 WORKDIR /app
@@ -30,5 +31,7 @@ COPY . .
 EXPOSE 80
 
 # Use gunicorn on port 80 with more tolerant settings
-CMD ["sh", "-c", "exec gunicorn --bind 0.0.0.0:80 --workers 2 --threads 4 --timeout 300 app:app"]
+CMD ["sh", "-c", "exec gunicorn --bind 0.0.0.0:80 --workers 2 --threads 4 --timeout 300 --graceful-timeout 300 --keep-alive 65 app:app"]
+
+
 
