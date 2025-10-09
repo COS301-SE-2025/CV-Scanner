@@ -141,16 +141,16 @@ public class AuthController {
         try {
             System.out.println("Fetching user data for email: " + emailToUse);
             
-            // Query with explicit column aliases to ensure snake_case format
+            // Fixed: Use lowercase column names with square brackets for SQL Server
             String sql = """
                 SELECT 
-                    Username as username,
-                    Email as email,
-                    FirstName as first_name,
-                    LastName as last_name,
-                    Role as role
-                FROM users 
-                WHERE Email = ? AND IsActive = 1
+                    [username] as username,
+                    [email] as email,
+                    [first_name] as first_name,
+                    [last_name] as last_name,
+                    [role] as role
+                FROM [users] 
+                WHERE [email] = ? AND [is_active] = 1
             """;
             
             var user = jdbcTemplate.queryForMap(sql, emailToUse);
