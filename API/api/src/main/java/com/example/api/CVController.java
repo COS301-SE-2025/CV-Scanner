@@ -1936,86 +1936,60 @@ private String truncateSummary(String s) {
         }
     }
 
-    // ---------- New: project-fit extraction ----------
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> extractProjectFitFromAiResult(String aiResultJson) {
-        if (isBlank(aiResultJson)) return null;
-        try {
-            Map<String, Object> root = parseJsonToMap(aiResultJson);
-            if (root == null) return null;
+    // ========== NEW ENDPOINTS FOR CV SCORE AND PROJECT TYPE ==========
 
-            // 1) top-level best_fit_project_type
-            Object b = root.get("best_fit_project_type");
-            if (b instanceof Map<?, ?> bm) {
-                Map<String, Object> out = new HashMap<>();
-                Object type = ((Map<?, ?>) bm).get("type");
-                Object confidence = ((Map<?, ?>) bm).get("confidence");
-                Object basis = ((Map<?, ?>) bm).get("basis");
-                if (type != null) out.put("type", String.valueOf(type));
-                if (confidence != null) out.put("confidence", toDouble(confidence));
-                if (basis != null) out.put("basis", basis);
-                return out;
-            }
-
-            // 2) maybe nested under "result" or "applied"
-            Object result = root.get("result");
-            if (result instanceof Map<?, ?> rm) {
-                Object rf = ((Map<?, ?>) rm).get("best_fit_project_type");
-                if (rf instanceof Map<?, ?> rfm) {
-                    Map<String, Object> out = new HashMap<>();
-                    Object type = ((Map<?, ?>) rfm).get("type");
-                    Object confidence = ((Map<?, ?>) rfm).get("confidence");
-                    Object basis = ((Map<?, ?>) rfm).get("basis");
-                    if (type != null) out.put("type", String.valueOf(type));
-                    if (confidence != null) out.put("confidence", toDouble(confidence));
-                    if (basis != null) out.put("basis", basis);
-                    return out;
-                }
-            }
-
-            // 3) fallback: look at ai.applied keys for heuristics (e.g., label presence)
-            Object applied = root.get("applied");
-            if (applied instanceof Map<?, ?> am) {
-                // If applied contains a single strong label for project-type, return it
-                Object project = ((Map<?, ?>) am).get("ProjectType");
-                if (project instanceof String) {
-                    return Map.of("type", project, "confidence", null, "basis", "applied.ProjectType");
-                }
-            }
-
-            return null;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-    
-    // ---------- New endpoint: single candidate project fit ----------
-    @GetMapping("/{identifier}/project-fit")
-    public ResponseEntity<?> getCandidateProjectFit(@PathVariable("identifier") String identifier) {
+    /**
+     * GET /cv/{identifier}/cv-score
+     * Returns the CV score (0-10 scale) from parse_resume result.
+     * Identifier can be candidate ID (numeric) or email.
+     * 
+     * Response:
+     * {
+     *   "candidateId": 123,
+     *   "firstName": "John",
+     *   "lastName": "Doe",
+     *   "email": "john@example.com",
+     *   "cvScore": 8.1,
+     *   "cvScoreOutOf100": 81,
+     *   "receivedAt": "2025-10-09T12:34:56Z"
+     * }
+     */
+    @GetMapping("/{identifier}/cv-score")
+    public ResponseEntity<?> getCandidateCvScore(@PathVariable("identifier") String identifier) {
         try {
             Long candidateId = null;
             String email = null;
-            try { candidateId = Long.parseLong(identifier); } catch (NumberFormatException ignored) { email = identifier; }
+            
+            // Parse identifier as ID or email
+            try {
+                candidateId = Long.parseLong(identifier);
+            } catch (NumberFormatException ignored) {
+                email = identifier;
+            }
 
             String sql;
             Object[] params;
+            
             if (candidateId != null) {
                 sql = """
-                    SELECT TOP 1 c.Id, c.FirstName, c.LastName, c.Email, l.AiResult, l.ReceivedAt
+                    SELECT TOP 1 
+                        c.Id, c.FirstName, c.LastName, c.Email,
+                        cpc.ResumeResult, cpc.ReceivedAt
                     FROM dbo.Candidates c
-                    LEFT JOIN dbo.CandidateParsedCv l ON l.CandidateId = c.Id
+                    LEFT JOIN dbo.CandidateParsedCv cpc ON cpc.CandidateId = c.Id
                     WHERE c.Id = ?
-                    ORDER BY l.ReceivedAt DESC
+                    ORDER BY cpc.ReceivedAt DESC
                 """;
                 params = new Object[]{candidateId};
             } else {
                 sql = """
-
-                    SELECT TOP 1 c.Id, c.FirstName, c.LastName, c.Email, l.AiResult, l.ReceivedAt
+                    SELECT TOP 1 
+                        c.Id, c.FirstName, c.LastName, c.Email,
+                        cpc.ResumeResult, cpc.ReceivedAt
                     FROM dbo.Candidates c
-                    LEFT JOIN dbo.CandidateParsedCv l ON l.CandidateId = c.Id
+                    LEFT JOIN dbo.CandidateParsedCv cpc ON cpc.CandidateId = c.Id
                     WHERE c.Email = ?
-                    ORDER BY l.ReceivedAt DESC
+                    ORDER BY cpc.ReceivedAt DESC
                 """;
                 params = new Object[]{email};
             }
@@ -2025,341 +1999,247 @@ private String truncateSummary(String s) {
                 String first = rs.getString("FirstName");
                 String last = rs.getString("LastName");
                 String mail = rs.getString("Email");
-                String aiResult = rs.getString("AiResult");
+                String resumeJson = rs.getString("ResumeResult");
                 Timestamp ts = rs.getTimestamp("ReceivedAt");
-                Map<String, Object> fit = extractProjectFitFromAiResult(aiResult);
-                Map<String, Object> out = new HashMap<>();
-                Integer pct = projectFitPercentFromAi(aiResult);
-                out.put("candidateId", id);
-                out.put("firstName", first);
-                out.put("lastName", last);
-                out.put("email", mail);
-                out.put("projectFit", fit);
-                out.put("projectFitPercent", pct);
-                out.put("projectFitLabel", pct != null ? ("Project Fit: " + pct + "%") : null);
-                out.put("receivedAt", ts != null ? ts.toInstant().toString() : null);
-                return out;
+                
+                Double cvScore = extractCvScoreFromResume(resumeJson);
+                Integer cvScoreOutOf100 = cvScore != null ? (int) Math.round(cvScore * 10.0) : null;
+                
+                Map<String, Object> response = new LinkedHashMap<>();
+                response.put("candidateId", id);
+                response.put("firstName", first);
+                response.put("lastName", last);
+                response.put("email", mail);
+                response.put("cvScore", cvScore); // 0-10 scale
+                response.put("cvScoreOutOf100", cvScoreOutOf100); // percentage
+                response.put("receivedAt", ts != null ? ts.toInstant().toString() : null);
+                
+                return response;
             });
 
-            if (rows.isEmpty()) return ResponseEntity.status(404).body(Map.of("message","Candidate not found"));
+            if (rows.isEmpty()) {
+                return ResponseEntity.status(404)
+                    .body(Map.of("message", "Candidate not found"));
+            }
+            
             return ResponseEntity.ok(rows.get(0));
+            
         } catch (Exception ex) {
-            return ResponseEntity.status(500).body(createErrorResponse("Failed to load project fit: " + ex.getMessage()));
+            System.err.println("Failed to get CV score: " + ex.getMessage());
+            ex.printStackTrace();
+            return ResponseEntity.status(500)
+                .body(createErrorResponse("Failed to get CV score: " + ex.getMessage()));
         }
     }
 
-    // ---------- New endpoint: project fit for many candidates ----------
-    @GetMapping("/project-fit")
-    public ResponseEntity<?> listProjectFits(@RequestParam(value = "limit", required = false, defaultValue = "100") int limit) {
+    /**
+     * GET /cv/{identifier}/project-type
+     * Returns the project type and fit percentage from parse_resume result.
+     * Identifier can be candidate ID (numeric) or email.
+     * 
+     * Response:
+     * {
+     *   "candidateId": 123,
+     *   "firstName": "John",
+     *   "lastName": "Doe",
+     *   "email": "john@example.com",
+     *   "projectType": "Frontend Web App",
+     *   "projectFit": 8.7,
+     *   "projectFitPercent": 87,
+     *   "projectFitLabel": "Frontend Web App 87%",
+     *   "receivedAt": "2025-10-09T12:34:56Z"
+     * }
+     */
+    @GetMapping("/{identifier}/project-type")
+    public ResponseEntity<?> getCandidateProjectType(@PathVariable("identifier") String identifier) {
         try {
-            int top = Math.max(1, Math.min(limit, 1000));
-            String sql = """
-                WITH latest AS (
-                  SELECT cpc.CandidateId, cpc.AiResult, cpc.ReceivedAt,
-                         ROW_NUMBER() OVER (PARTITION BY cpc.CandidateId ORDER BY cpc.ReceivedAt DESC) rn
-                  FROM dbo.CandidateParsedCv cpc
-                )
-                SELECT TOP %d
-                       c.Id, c.FirstName, c.LastName, c.Email, l.AiResult, l.ReceivedAt
-                FROM dbo.Candidates c
-                LEFT JOIN latest l ON l.CandidateId = c.Id AND l.rn = 1
-                ORDER BY c.Id DESC
-            """.formatted(top);
+            Long candidateId = null;
+            String email = null;
+            
+            // Parse identifier as ID or email
+            try {
+                candidateId = Long.parseLong(identifier);
+            } catch (NumberFormatException ignored) {
+                email = identifier;
+            }
 
-            var list = jdbc.query(sql, (rs, i) -> {
+            String sql;
+            Object[] params;
+            
+            if (candidateId != null) {
+                sql = """
+                    SELECT TOP 1 
+                        c.Id, c.FirstName, c.LastName, c.Email,
+                        cpc.ResumeResult, cpc.ReceivedAt
+                    FROM dbo.Candidates c
+                    LEFT JOIN dbo.CandidateParsedCv cpc ON cpc.CandidateId = c.Id
+                    WHERE c.Id = ?
+                    ORDER BY cpc.ReceivedAt DESC
+                """;
+                params = new Object[]{candidateId};
+            } else {
+                sql = """
+                    SELECT TOP 1 
+                        c.Id, c.FirstName, c.LastName, c.Email,
+                        cpc.ResumeResult, cpc.ReceivedAt
+                    FROM dbo.Candidates c
+                    LEFT JOIN dbo.CandidateParsedCv cpc ON cpc.CandidateId = c.Id
+                    WHERE c.Email = ?
+                    ORDER BY cpc.ReceivedAt DESC
+                """;
+                params = new Object[]{email};
+            }
+
+            var rows = jdbc.query(sql, params, (rs, i) -> {
                 long id = rs.getLong("Id");
                 String first = rs.getString("FirstName");
                 String last = rs.getString("LastName");
                 String mail = rs.getString("Email");
-                String aiResult = rs.getString("AiResult");
+                String resumeJson = rs.getString("ResumeResult");
                 Timestamp ts = rs.getTimestamp("ReceivedAt");
-                Map<String, Object> fit = extractProjectFitFromAiResult(aiResult);
-                Map<String, Object> out = new HashMap<>();
-                Integer pct = projectFitPercentFromAi(aiResult);
-                out.put("candidateId", id);
-                out.put("firstName", first);
-                out.put("lastName", last);
-                out.put("email", mail);
-                out.put("projectFit", fit);
-                out.put("projectFitPercent", pct);
-                out.put("projectFitLabel", pct != null ? ("Project Fit: " + pct + "%") : null);
-                out.put("receivedAt", ts != null ? ts.toInstant().toString() : null);
-                return out;
+                
+                String projectType = extractProjectTypeFromResume(resumeJson);
+                Double projectFit = extractProjectFitFromResume(resumeJson);
+                Integer projectFitPercent = projectFit != null ? (int) Math.round(projectFit * 10.0) : null;
+                
+                String projectFitLabel = null;
+                if (projectType != null && projectFitPercent != null) {
+                    projectFitLabel = projectType + " " + projectFitPercent + "%";
+                }
+                
+                Map<String, Object> response = new LinkedHashMap<>();
+                response.put("candidateId", id);
+                response.put("firstName", first);
+                response.put("lastName", last);
+                response.put("email", mail);
+                response.put("projectType", projectType);
+                response.put("projectFit", projectFit); // 0-10 scale
+                response.put("projectFitPercent", projectFitPercent); // percentage
+                response.put("projectFitLabel", projectFitLabel); // "Frontend Web App 87%"
+                response.put("receivedAt", ts != null ? ts.toInstant().toString() : null);
+                
+                return response;
             });
 
-            return ResponseEntity.ok(list);
+            if (rows.isEmpty()) {
+                return ResponseEntity.status(404)
+                    .body(Map.of("message", "Candidate not found"));
+            }
+            
+            return ResponseEntity.ok(rows.get(0));
+            
         } catch (Exception ex) {
-            return ResponseEntity.status(500).body(createErrorResponse("Failed to list project fits: " + ex.getMessage()));
+            System.err.println("Failed to get project type: " + ex.getMessage());
+            ex.printStackTrace();
+            return ResponseEntity.status(500)
+                .body(createErrorResponse("Failed to get project type: " + ex.getMessage()));
         }
     }
 
-    // Derive a project-fit percent from AI JSON. Prefer explicit best_fit_project_type.confidence,
-    // fall back to computeAverageScoreFromAiResult() (0..10 -> percent).
-    private Integer projectFitPercentFromAi(String aiResultJson) {
+    // ========== HELPER METHODS FOR NEW ENDPOINTS ==========
+
+    /**
+     * Extract cv_score from ResumeResult JSON.
+     * Supports both direct result.cv_score and nested structures.
+     * Returns value on 0-10 scale, or null if not found.
+     */
+    @SuppressWarnings("unchecked")
+    private Double extractCvScoreFromResume(String resumeJson) {
+        if (isBlank(resumeJson)) return null;
+        
         try {
-            if (isBlank(aiResultJson)) return null;
-            Map<String,Object> root = parseJsonToMap(aiResultJson);
-            if (root == null) return null;
-
-            // 1) top-level best_fit_project_type.confidence
-            Object b = root.get("best_fit_project_type");
-            Double conf = null;
-            if (b instanceof Map<?,?> bm) {
-                conf = toDouble(((Map<?,?>) bm).get("confidence"));
+            Map<String, Object> root = json.readValue(resumeJson, Map.class);
+            
+            // Try direct cv_score at root
+            Object cvScoreObj = root.get("cv_score");
+            if (cvScoreObj != null) {
+                return toDouble(cvScoreObj);
             }
-            // 2) fallback under result.best_fit_project_type.confidence
-            if (conf == null && root.get("result") instanceof Map<?,?> rm) {
-                Object rf = ((Map<?,?>) rm).get("best_fit_project_type");
-                if (rf instanceof Map<?,?> rfm) conf = toDouble(((Map<?,?>) rfm).get("confidence"));
-            }
-
-            // If we have a confidence value, normalize to 0..100
-            if (conf != null) {
-                if (conf > 1.0 && conf <= 100.0) {
-                    return (int) Math.round(conf); // already percent-like
-                } else if (conf > 100.0) {
-                    // improbable: clamp to 100
-                    return 100;
-                } else {
-                    // 0..1 -> percent
-                    return (int) Math.round(conf * 100.0);
+            
+            // Try nested in result.cv_score
+            Object resultObj = root.get("result");
+            if (resultObj instanceof Map<?, ?>) {
+                Map<String, Object> result = (Map<String, Object>) resultObj;
+                cvScoreObj = result.get("cv_score");
+                if (cvScoreObj != null) {
+                    return toDouble(cvScoreObj);
                 }
             }
-
-            // 3) fallback: compute average score (0..10) and scale to percent
-            Double avgOutOf10 = computeAverageScoreFromAiResult(aiResultJson);
-            if (avgOutOf10 != null) {
-                int pct = (int) Math.round(avgOutOf10 * 10.0);
-                return Math.max(0, Math.min(100, pct));
-            }
-
+            
             return null;
         } catch (Exception e) {
+            System.err.println("Failed to extract cv_score: " + e.getMessage());
             return null;
         }
     }
 
-    @GetMapping("/skill-distribution")
-    public ResponseEntity<?> skillDistribution(@RequestParam(value = "limit", required = false, defaultValue = "10") int limit) {
+    /**
+     * Extract project_type from ResumeResult JSON.
+     * Supports both direct result.project_type and nested structures.
+     * Returns the project type string, or null if not found.
+     */
+    @SuppressWarnings("unchecked")
+    private String extractProjectTypeFromResume(String resumeJson) {
+        if (isBlank(resumeJson)) return null;
+        
         try {
-            int top = Math.max(1, Math.min(limit, 1000));
-
-            // Latest parsed row per candidate
-            String sql = """
-                WITH latest AS (
-                  SELECT CandidateId, AiResult, Normalized, ResumeResult, ReceivedAt,
-                         ROW_NUMBER() OVER (PARTITION BY CandidateId ORDER BY ReceivedAt DESC) rn
-                  FROM dbo.CandidateParsedCv
-                )
-                SELECT l.CandidateId, l.AiResult, l.Normalized, l.ResumeResult
-                FROM latest l
-                WHERE l.rn = 1
-            """;
-
-            var rows = jdbc.query(sql, (rs, rowNum) -> {
-                String aiResult = rs.getString("AiResult");
-                String normalized = rs.getString("Normalized");
-                String resumeResult = rs.getString("ResumeResult");
-                Map<String, String> out = new HashMap<>();
-                out.put("ai", aiResult);
-                out.put("normalized", normalized);
-                out.put("resume", resumeResult);
-                return out;
-            });
-
-            ObjectMapper mapper = new ObjectMapper();
-            Map<String, Integer> counts = new HashMap<>();
-
-            for (var row : rows) {
-                String aiJson = row.get("ai");
-                if (aiJson != null && !aiJson.isBlank()) {
-                    try {
-                        Map<String, Object> root = mapper.readValue(aiJson, new TypeReference<>() {});
-                        Object applied = root.get("applied");
-                        if (applied instanceof Map<?, ?> appliedMap) {
-                            Object skillsObj = appliedMap.get("Skills");
-                            if (skillsObj instanceof Iterable<?> skillsIter) {
-                                for (Object s : skillsIter) {
-                                    if (s != null) {
-                                        String skill = String.valueOf(s).trim();
-                                        if (!skill.isEmpty()) counts.merge(skill, 1, Integer::sum);
-                                    }
-                                }
-                                continue;
-                            }
-                        }
-                        Object raw = root.get("raw");
-                        if (raw instanceof Map<?, ?> rawMap) {
-                            for (Object v : rawMap.values()) {
-                                if (v instanceof Map<?, ?> cat) {
-                                    Object labels = cat.get("labels");
-                                    if (labels instanceof Iterable<?> labIter) {
-                                        for (Object s : labIter) if (s != null) counts.merge(String.valueOf(s).trim(), 1, Integer::sum);
-                                    }
-                                }
-                            }
-                        }
-                    } catch (Exception ignored) { }
-                }
-                String normalized = row.get("normalized");
-                String resume = row.get("resume");
-                String fallback = normalized != null && !normalized.isBlank() ? normalized : resume;
-                if (fallback != null && !fallback.isBlank()) {
-                    String[] parts = fallback.split("[,;\\n]");
-                    for (String p : parts) {
-                        String s = p.trim();
-                        if (s.length() > 1 && s.length() < 60) counts.merge(s, 1, Integer::sum);
-                    }
+            Map<String, Object> root = json.readValue(resumeJson, Map.class);
+            
+            // Try direct project_type at root
+            Object projectTypeObj = root.get("project_type");
+            if (projectTypeObj != null) {
+                return String.valueOf(projectTypeObj);
+            }
+            
+            // Try nested in result.project_type
+            Object resultObj = root.get("result");
+            if (resultObj instanceof Map<?, ?>) {
+                Map<String, Object> result = (Map<String, Object>) resultObj;
+                projectTypeObj = result.get("project_type");
+                if (projectTypeObj != null) {
+                    return String.valueOf(projectTypeObj);
                 }
             }
-
-            List<Map<String, Object>> out = counts.entrySet().stream()
-                    .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
-                    .limit(top)
-                    .map(e -> {
-                        Map<String, Object> m = new HashMap<>();
-                        m.put("name", e.getKey());
-                        m.put("value", e.getValue());
-                        return m;
-                    })
-                    .toList();
-
-            return ResponseEntity.ok(out);
-        } catch (Exception ex) {
-            return ResponseEntity.status(500).body(Map.of("error", "Failed to compute skill distribution: " + ex.getMessage()));
+            
+            return null;
+        } catch (Exception e) {
+            System.err.println("Failed to extract project_type: " + e.getMessage());
+            return null;
         }
     }
 
-    @GetMapping("/monthly-uploads")
-    public ResponseEntity<?> monthlyUploads(@RequestParam(value = "months", required = false, defaultValue = "6") int months) {
+    /**
+     * Extract project_fit from ResumeResult JSON.
+     * Supports both direct result.project_fit and nested structures.
+     * Returns value on 0-10 scale, or null if not found.
+     */
+    @SuppressWarnings("unchecked")
+    private Double extractProjectFitFromResume(String resumeJson) {
+        if (isBlank(resumeJson)) return null;
+        
         try {
-            int m = Math.max(1, Math.min(months, 36));
-            // compute start = first day of oldest month to include full months
-            java.time.ZonedDateTime nowZ = java.time.ZonedDateTime.now(java.time.ZoneId.systemDefault());
-            java.time.ZonedDateTime startZ = nowZ.withDayOfMonth(1).minusMonths(m - 1);
-            Timestamp cutoff = Timestamp.from(startZ.toInstant());
-
-            String sql = """
-                SELECT YEAR(ReceivedAt) AS y, MONTH(ReceivedAt) AS mo, COUNT(*) AS cnt
-                FROM dbo.CandidateParsedCv
-                WHERE ReceivedAt >= ?
-                GROUP BY YEAR(ReceivedAt), MONTH(ReceivedAt)
-                ORDER BY y ASC, mo ASC
-            """;
-
-            var rows = jdbc.query(sql, new Object[]{cutoff}, (rs, i) -> {
-                int y = rs.getInt("y");
-                int mo = rs.getInt("mo");
-                int cnt = rs.getInt("cnt");
-                Map<String, Object> out = new java.util.LinkedHashMap<>();
-                out.put("month", String.format("%04d-%02d", y, mo));
-                out.put("count", cnt);
-                return out;
-            });
-
-            // build ordered month list (oldest -> newest) with zero fill
-            java.util.LinkedHashMap<String, Integer> map = new java.util.LinkedHashMap<>();
-            for (int i = 0; i < m; i++) {
-                java.time.ZonedDateTime z = startZ.plusMonths(i);
-                String key = String.format("%04d-%02d", z.getYear(), z.getMonthValue());
-                map.put(key, 0);
+            Map<String, Object> root = json.readValue(resumeJson, Map.class);
+            
+            // Try direct project_fit at root
+            Object projectFitObj = root.get("project_fit");
+            if (projectFitObj != null) {
+                return toDouble(projectFitObj);
             }
-            for (var r : rows) {
-                String k = String.valueOf(r.get("month"));
-                int v = r.get("count") instanceof Number ? ((Number) r.get("count")).intValue() : Integer.parseInt(String.valueOf(r.get("count")));
-                if (map.containsKey(k)) map.put(k, v);
-            }
-
-            java.util.List<Map<String, Object>> out = map.entrySet().stream()
-                    .map(e -> java.util.Map.<String,Object>of("month", e.getKey(), "count", e.getValue()))
-                    .toList();
-
-            return ResponseEntity.ok(out);
-        } catch (Exception ex) {
-            return ResponseEntity.status(500).body(java.util.Map.of("error", "Failed to compute monthly uploads: " + ex.getMessage()));
-        }
-    }
-
-    @GetMapping("/weekly-tech-usage")
-    public ResponseEntity<?> weeklyTechUsage(@RequestParam(value = "limit", required = false, defaultValue = "10") int limit) {
-        try {
-            int top = Math.max(1, Math.min(limit, 200));
-            Instant cutoff = Instant.now().minus(28, ChronoUnit.DAYS);
-
-            String sql = """
-                WITH recent AS (
-                  SELECT AiResult, Normalized, ResumeResult
-                  FROM dbo.CandidateParsedCv
-                  WHERE ReceivedAt >= ?
-                )
-                SELECT AiResult, Normalized, ResumeResult FROM recent
-            """;
-
-            var rows = jdbc.query(sql, new Object[]{ Timestamp.from(cutoff) }, (rs, i) -> {
-                Map<String, String> m = new HashMap<>();
-                m.put("ai", rs.getString("AiResult"));
-                m.put("normalized", rs.getString("Normalized"));
-                m.put("resume", rs.getString("ResumeResult"));
-                return m;
-            });
-
-            ObjectMapper mapper = new ObjectMapper();
-            Map<String, Integer> counts = new HashMap<>();
-
-            for (var row : rows) {
-                String aiJson = row.get("ai");
-                if (aiJson != null && !aiJson.isBlank()) {
-                    try {
-                        Map<String, Object> root = mapper.readValue(aiJson, new TypeReference<>() {});
-                        Object applied = root.get("applied");
-                        if (applied instanceof Map<?, ?> appliedMap) {
-                            Object skillsObj = appliedMap.get("Skills");
-                            if (skillsObj instanceof Iterable<?> skillsIter) {
-                                for (Object s : skillsIter) {
-                                    if (s != null) counts.merge(String.valueOf(s).trim(), 1, Integer::sum);
-                                }
-                                continue;
-                            }
-                        }
-                        Object raw = root.get("raw");
-                        if (raw instanceof Map<?, ?> rawMap) {
-                            for (Object v : rawMap.values()) {
-                                if (v instanceof Map<?, ?> cat) {
-                                    Object labels = cat.get("labels");
-                                    if (labels instanceof Iterable<?> labIter) {
-                                        for (Object s : labIter) if (s != null) counts.merge(String.valueOf(s).trim(), 1, Integer::sum);
-                                    }
-                                }
-                            }
-                        }
-                    } catch (Exception ignored) { }
-                }
-                String normalized = row.get("normalized");
-                String resume = row.get("resume");
-                String fallback = normalized != null && !normalized.isBlank() ? normalized : resume;
-                if (fallback != null && !fallback.isBlank()) {
-                    String[] parts = fallback.split("[,;\\n]");
-                    for (String p : parts) {
-                        String s = p.trim();
-                        if (s.length() > 1 && s.length() < 60) counts.merge(s, 1, Integer::sum);
-                    }
+            
+            // Try nested in result.project_fit
+            Object resultObj = root.get("result");
+            if (resultObj instanceof Map<?, ?>) {
+                Map<String, Object> result = (Map<String, Object>) resultObj;
+                projectFitObj = result.get("project_fit");
+                if (projectFitObj != null) {
+                    return toDouble(projectFitObj);
                 }
             }
-
-            List<Map<String, Object>> out = counts.entrySet().stream()
-                    .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
-                    .limit(top)
-                    .map(e -> {
-                        Map<String, Object> m = new HashMap<>();
-                        m.put("name", e.getKey());
-                        m.put("value", e.getValue());
-                        return m;
-                    })
-                    .toList();
-
-            return ResponseEntity.ok(out);
-        } catch (Exception ex) {
-            return ResponseEntity.status(500).body(createErrorResponse("Failed to compute weekly tech usage: " + ex.getMessage()));
+            
+            return null;
+        } catch (Exception e) {
+            System.err.println("Failed to extract project_fit: " + e.getMessage());
+            return null;
         }
     }
 }
