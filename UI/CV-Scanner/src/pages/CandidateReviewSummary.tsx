@@ -64,7 +64,6 @@ export default function CandidateReviewSummary() {
   } | null>(null);
   const [fitLoading, setFitLoading] = useState<boolean>(true);
   const [fitError, setFitError] = useState<string | null>(null);
-  
   // Fallback chain: route param -> navigation state -> ?id= query -> localStorage
   const queryId = searchParams.get("id") || undefined;
   const storedId = localStorage.getItem("lastCandidateId") || undefined;
@@ -111,7 +110,7 @@ export default function CandidateReviewSummary() {
     })();
   }, []);
 
-  // Logout handler
+  // Logout handler: invalidate server session, clear local client state and notify other tabs
   async function handleLogout() {
     try {
       await apiFetch("/auth/logout", { method: "POST" }).catch(() => null);
@@ -121,12 +120,13 @@ export default function CandidateReviewSummary() {
     try {
       localStorage.removeItem("user");
       localStorage.removeItem("userEmail");
+      // notify other tabs / ProtectedRoute to re-check auth
       localStorage.setItem("auth-change", Date.now().toString());
     } catch {}
     navigate("/login", { replace: true });
   }
 
-  // Candidate meta data
+  // Candidate meta (replace with real data from your API later)
   const [candidate, setCandidate] = useState({
     name: "Jane Smith",
     title: "Senior Software Engineer",
@@ -169,7 +169,7 @@ export default function CandidateReviewSummary() {
     ],
   });
 
-  // Summary fetch state
+  // --- summary fetch state (unchanged) ---
   const [summaryData, setSummaryData] = useState<{
     summary?: string | null;
     firstName?: string;
@@ -183,17 +183,19 @@ export default function CandidateReviewSummary() {
   // Fetch dynamic summary
   useEffect(() => {
     if (activeSection !== "summary") return;
+    // Auto-recover: if no id but we have a stored one, redirect
     if (!candidateId) {
       const last = localStorage.getItem("lastCandidateId");
       if (last) {
         navigate(`/candidate/${last}/summary`, { replace: true });
         return;
       }
+      // No recovery path: stop loading, but don't spam a permanent error if user will click something else
       setSummaryLoading(false);
       setSummaryError("No candidate selected. Open a candidate from the list.");
       return;
     }
-
+    // Persist resolved id
     localStorage.setItem("lastCandidateId", candidateId);
 
     let aborted = false;
@@ -234,8 +236,6 @@ export default function CandidateReviewSummary() {
       ctrl.abort();
     };
   }, [candidateId, navigate, activeSection]);
-
-  // Project fit fetch
   useEffect(() => {
     if (activeSection !== "summary") return;
     if (!candidateId) {
@@ -268,7 +268,7 @@ export default function CandidateReviewSummary() {
     };
   }, [candidateId, activeSection]);
 
-  // Skills fetch state
+  // --- skills fetch state ---
   const [skillsData, setSkillsData] = useState<string[]>([]);
   const [skillsLoading, setSkillsLoading] = useState<boolean>(true);
   const [skillsError, setSkillsError] = useState<string | null>(null);
@@ -292,6 +292,7 @@ export default function CandidateReviewSummary() {
           throw new Error((await res.text()) || `HTTP ${res.status}`);
         const json = await res.json();
 
+        // Support both single object and accidental array fallback
         let skills: any;
         if (Array.isArray(json)) {
           let match: any = null;
@@ -307,6 +308,7 @@ export default function CandidateReviewSummary() {
         }
 
         if (!Array.isArray(skills)) skills = [];
+        // Clean & dedupe
         const unique: string[] = [];
         for (const raw of skills) {
           const v = raw == null ? "" : String(raw).trim();
@@ -329,7 +331,7 @@ export default function CandidateReviewSummary() {
     };
   }, [candidateId, activeSection]);
 
-  // Experience fetch state
+  // --- experience fetch state ---
   const [experienceData, setExperienceData] = useState<string[]>([]);
   const [experienceLoading, setExperienceLoading] = useState<boolean>(true);
   const [experienceError, setExperienceError] = useState<string | null>(null);
@@ -353,6 +355,7 @@ export default function CandidateReviewSummary() {
           throw new Error((await res.text()) || `HTTP ${res.status}`);
         const json = await res.json();
 
+        // Support object or accidental list
         let exp: any;
         if (Array.isArray(json)) {
           const match = json.find(
@@ -385,51 +388,46 @@ export default function CandidateReviewSummary() {
     };
   }, [candidateId, activeSection]);
 
-  // Skills management (from CandidateSkillsPage)
-  const [newSkill, setNewSkill] = useState<string>("");
-  const [manualSkills, setManualSkills] = useState<string[]>([]);
-
-  const handleAddSkill = () => {
-    if (newSkill.trim() && ![...skillsData, ...manualSkills].includes(newSkill)) {
-      setManualSkills([...manualSkills, newSkill]);
-      setNewSkill("");
-    }
-  };
-
-  const handleDeleteSkill = (skillToDelete: string) => {
-    if (manualSkills.includes(skillToDelete)) {
-      setManualSkills(manualSkills.filter((skill) => skill !== skillToDelete));
-    }
-    // Note: Can't delete API-loaded skills, only manually added ones
-  };
-
   // Contact popover
   const [contactAnchor, setContactAnchor] = useState<HTMLElement | null>(null);
   const openContact = (e: React.MouseEvent<HTMLElement>) =>
     setContactAnchor(e.currentTarget);
   const closeContact = () => setContactAnchor(null);
 
-  // Snackbar state
+  // Summary attach + AI summary
+  const [summaryFileName, setSummaryFileName] = useState<string>("");
+  //const [aiSummary, setAiSummary] = useState<string>("");
   const [snack, setSnack] = useState({ open: false, msg: "" });
 
-  // Tutorial logic
-  const [tutorialStep, setTutorialStep] = useState(-1);
+  const handleAttachSummary = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSummaryFileName(file.name);
+      setSnack({ open: true, msg: "Summary attached." });
+    }
+  };
+
+  /*const handleAutoSummarize = () => {
+  // Stub: replace with your backend/AI call
+  const text = `Summary for ${candidate.name}: Strong .NET/Azure engineer (${candidate.yoe}y) with proven impact on performance and reliability. Led projects, mentored juniors, and improved deployment velocity. Best fit for backend/microservices roles with cloud exposure.`;
+  setAiSummary(text);
+  setSnack({ open: true, msg: "AI summary generated." });
+};*/
+
+  // Tutorial logic (copied from UserManagementPage)
+  const [tutorialStep, setTutorialStep] = useState(-1); // -1 means not showing
   const [fadeIn, setFadeIn] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
   // Refs for tutorial steps
   const techRef = useRef<HTMLDivElement>(null);
-  const skillsListRef = useRef<HTMLDivElement>(null);
-  const addSkillRef = useRef<HTMLDivElement>(null);
-  const workHistoryRef = useRef<HTMLDivElement>(null);
 
+  // both tutorial steps now anchor to the Key Technologies area
   useEffect(() => {
-    if (tutorialStep === 0 && techRef.current) setAnchorEl(techRef.current);
-    else if (tutorialStep === 1 && skillsListRef.current) setAnchorEl(skillsListRef.current);
-    else if (tutorialStep === 2 && addSkillRef.current) setAnchorEl(addSkillRef.current);
-    else if (tutorialStep === 3 && workHistoryRef.current) setAnchorEl(workHistoryRef.current);
+    if ((tutorialStep === 0 || tutorialStep === 1) && techRef.current)
+      setAnchorEl(techRef.current);
     else setAnchorEl(null);
-  }, [tutorialStep, activeSection]);
+  }, [tutorialStep]);
 
   const handleNext = () => {
     setFadeIn(false);
@@ -438,7 +436,6 @@ export default function CandidateReviewSummary() {
       setFadeIn(true);
     }, 250);
   };
-
   const handleBack = () => {
     setFadeIn(false);
     setTimeout(() => {
@@ -446,16 +443,8 @@ export default function CandidateReviewSummary() {
       setFadeIn(true);
     }, 250);
   };
-
   const handleCloseTutorial = () => setTutorialStep(-1);
 
-  // Start tutorial based on active section
-  const startTutorial = () => {
-    setTutorialStep(0);
-    setFadeIn(true);
-  };
-
-  // Helper component for facts
   function Fact({ label, value }: { label: string; value: string }) {
     return (
       <Box sx={{ p: 2, bgcolor: "#fff", borderRadius: 2 }}>
@@ -469,51 +458,7 @@ export default function CandidateReviewSummary() {
     );
   }
 
-  // Get page title based on active section
-  const getPageTitle = () => {
-    switch (activeSection) {
-      case "skills": return "Candidate Skills";
-      case "experience": return "Candidate Experience";
-      default: return "Candidate Summary";
-    }
-  };
-
-  // Get tutorial steps based on active section
-  const getTutorialContent = () => {
-    const steps = {
-      summary: [
-        {
-          title: "Project Fit",
-          content: "This section shows how well the candidate fits technical and collaborative projects."
-        },
-        {
-          title: "Key Technologies", 
-          content: "Here you can see the candidate's key technologies and skills."
-        }
-      ],
-      skills: [
-        {
-          title: "Skills List",
-          content: "This section shows the candidate's technical skills. You can remove manually added skills by clicking the X."
-        },
-        {
-          title: "Add Skill",
-          content: "Use this input to add a new skill to the candidate's profile."
-        }
-      ],
-      experience: [
-        {
-          title: "Work History",
-          content: "This section shows the candidate's previous work experience and roles."
-        }
-      ]
-    };
-
-    return steps[activeSection as keyof typeof steps] || steps.summary;
-  };
-
-  const tutorialContent = getTutorialContent();
-
+  // ---------- Main render ----------
   return (
     <Box
       sx={{
@@ -526,6 +471,7 @@ export default function CandidateReviewSummary() {
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Top App Bar */}
+
         <AppBar
           position="static"
           sx={{ bgcolor: "#232A3B ", boxShadow: "none" }}
@@ -534,6 +480,7 @@ export default function CandidateReviewSummary() {
             {/* Left: Logo */}
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <img src={logoNavbar} alt="Logo" style={{ width: 80 }} />
+              {/* Optional title next to logo */}
               <Typography
                 variant="h6"
                 sx={{
@@ -542,7 +489,7 @@ export default function CandidateReviewSummary() {
                   fontWeight: "bold",
                 }}
               >
-                {getPageTitle()}
+                Candidate Summary
               </Typography>
             </Box>
             {/* Right: Icons */}
@@ -550,7 +497,10 @@ export default function CandidateReviewSummary() {
               {/* Tutorial icon */}
               <Tooltip title="Run Tutorial" arrow>
                 <IconButton
-                  onClick={startTutorial}
+                  onClick={() => {
+                    setTutorialStep(0);
+                    setFadeIn(true);
+                  }}
                   sx={{ ml: 1, color: "#FFEB3B" }}
                 >
                   <LightbulbRoundedIcon />
@@ -632,10 +582,12 @@ export default function CandidateReviewSummary() {
                   mb: 1,
                 }}
               >
-                {tutorialStep < tutorialContent.length ? tutorialContent[tutorialStep].title : "Tutorial Complete"}
+                {tutorialStep === 0 ? "Project Fit" : "Key Technologies"}
               </Typography>
               <Typography sx={{ mb: 2 }}>
-                {tutorialStep < tutorialContent.length ? tutorialContent[tutorialStep].content : "You've completed the tutorial for this section."}
+                {tutorialStep === 0
+                  ? "This section shows how well the candidate fits technical and collaborative projects."
+                  : "Here you can see the candidate's key technologies and skills."}
               </Typography>
               <Box
                 sx={{
@@ -675,7 +627,7 @@ export default function CandidateReviewSummary() {
                       Back
                     </Button>
                   )}
-                  {tutorialStep < tutorialContent.length - 1 ? (
+                  {tutorialStep < 1 ? (
                     <Button
                       variant="contained"
                       onClick={handleNext}
@@ -763,6 +715,7 @@ export default function CandidateReviewSummary() {
               </Typography>
             ))}
           </Box>
+          {/* HEADER STRIP */}
 
           {/* Contact popover */}
           <Popover
@@ -786,33 +739,19 @@ export default function CandidateReviewSummary() {
             </Typography>
           </Popover>
 
-          {/* Summary Section */}
+          {/* Project Fit & Summary-only sections */}
           {activeSection === "summary" && (
             <>
-              {/* Project Fit & Contact Info */}
+              {/* Project Fit now displays contact info */}
               <Paper
                 elevation={6}
                 sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
-                ref={techRef}
               >
                 <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
                   Project Fit & Contact Info
                 </Typography>
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  {fitLoading && (
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <CircularProgress size={20} />
-                      <Typography variant="body2" sx={{ color: "#555" }}>
-                        Loading project fit...
-                      </Typography>
-                    </Box>
-                  )}
-                  {!fitLoading && fitError && (
-                    <Typography variant="body2" sx={{ color: "#b00020" }}>
-                      Error: {fitError}
-                    </Typography>
-                  )}
-                  {!fitLoading && !fitError && projectFit?.type && (
+                  {projectFit?.type && (
                     <Typography variant="body1" sx={{ fontWeight: "bold" }}>
                       Best Fit Project Type: {projectFit.type}
                       {projectFit.confidence && (
@@ -829,7 +768,7 @@ export default function CandidateReviewSummary() {
                       )}
                     </Typography>
                   )}
-                  {!fitLoading && !fitError && projectFit?.basis && projectFit.basis.length > 0 && (
+                  {projectFit?.basis && projectFit.basis.length > 0 && (
                     <Typography variant="body2" sx={{ color: "#555" }}>
                       Basis: {projectFit.basis.join(", ")}
                     </Typography>
@@ -867,8 +806,7 @@ export default function CandidateReviewSummary() {
                   </Box>
                 </Box>
               </Paper>
-
-              {/* CV Summary Section */}
+              {/* Resume & Links / CV Summary Section */}
               <Paper
                 elevation={6}
                 sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
@@ -898,11 +836,12 @@ export default function CandidateReviewSummary() {
             </>
           )}
 
-          {/* Skills Section */}
+          {/* Skills Tab Section */}
           {activeSection === "skills" && (
             <Paper
               elevation={6}
               sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
+              ref={techRef}
             >
               <Typography
                 variant="h6"
@@ -912,7 +851,7 @@ export default function CandidateReviewSummary() {
                   mb: 2,
                 }}
               >
-                Technical Skills
+                Key Technologies
               </Typography>
 
               {skillsLoading && (
@@ -937,7 +876,50 @@ export default function CandidateReviewSummary() {
                     onClick={() => {
                       setSkillsLoading(true);
                       setSkillsError(null);
-                      // Retry logic would go here
+                      (async () => {
+                        try {
+                          const res = await apiFetch(
+                            `/cv/${candidateId}/skills`,
+                            {
+                              headers: { Accept: "application/json" },
+                            }
+                          );
+                          if (!res.ok)
+                            throw new Error(
+                              (await res.text()) || `HTTP ${res.status}`
+                            );
+                          const json = await res.json();
+                          let skills: any;
+                          if (Array.isArray(json)) {
+                            let match: any = null;
+                            for (const c of json as any[]) {
+                              if (
+                                String((c as any).id) === String(candidateId)
+                              ) {
+                                match = c;
+                                break;
+                              }
+                            }
+                            skills = match?.skills;
+                          } else {
+                            skills = json.skills;
+                          }
+                          if (!Array.isArray(skills)) skills = [];
+                          const unique: string[] = [];
+                          for (const raw of skills) {
+                            const v = raw == null ? "" : String(raw).trim();
+                            if (v && unique.indexOf(v) === -1) {
+                              unique.push(v);
+                              if (unique.length >= 100) break;
+                            }
+                          }
+                          setSkillsData(unique);
+                        } catch (e: any) {
+                          setSkillsError(e.message || "Failed to load skills");
+                        } finally {
+                          setSkillsLoading(false);
+                        }
+                      })();
                     }}
                     sx={{ textTransform: "none" }}
                   >
@@ -946,20 +928,17 @@ export default function CandidateReviewSummary() {
                 </Box>
               )}
 
-              {/* Skills List */}
-              <Box
-                ref={skillsListRef}
-                sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 3 }}
-              >
-                {[...skillsData, ...manualSkills].map((tech, idx) => (
+              {!skillsLoading && !skillsError && skillsData.length === 0 && (
+                <Typography variant="body2" sx={{ color: "#555" }}>
+                  No skills found.
+                </Typography>
+              )}
+
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                {skillsData.map((tech, idx) => (
                   <Chip
                     key={idx}
                     label={tech}
-                    onDelete={
-                      manualSkills.includes(tech) 
-                        ? () => handleDeleteSkill(tech)
-                        : undefined
-                    }
                     size="small"
                     sx={{
                       bgcolor: "#08726aff",
@@ -968,44 +947,15 @@ export default function CandidateReviewSummary() {
                     }}
                   />
                 ))}
-                {!skillsLoading && !skillsError && skillsData.length === 0 && manualSkills.length === 0 && (
-                  <Typography variant="body2" sx={{ color: "#555" }}>
-                    No skills found.
-                  </Typography>
-                )}
-              </Box>
-
-              {/* Add Skill Section */}
-              <Box ref={addSkillRef} sx={{ display: "flex", gap: 2 }}>
-                <TextField
-                  label="Add new skill"
-                  variant="outlined"
-                  value={newSkill}
-                  onChange={(e) => setNewSkill(e.target.value)}
-                  sx={{ flexGrow: 1 }}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      handleAddSkill();
-                    }
-                  }}
-                />
-                <Button
-                  variant="contained"
-                  onClick={handleAddSkill}
-                  sx={{ bgcolor: "#08726aff" }}
-                >
-                  Add
-                </Button>
               </Box>
             </Paper>
           )}
 
-          {/* Experience Section */}
+          {/* Experience Tab Section */}
           {activeSection === "experience" && (
             <Paper
               elevation={6}
               sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
-              ref={workHistoryRef}
             >
               <Typography
                 variant="h6"
@@ -1039,7 +989,47 @@ export default function CandidateReviewSummary() {
                     size="small"
                     sx={{ textTransform: "none" }}
                     onClick={() => {
-                      // Retry logic would go here
+                      // simple retry: force effect rerun by toggling section temporarily
+                      setExperienceLoading(true);
+                      setExperienceError(null);
+                      (async () => {
+                        try {
+                          const res = await apiFetch(
+                            `/cv/${candidateId}/experience`,
+                            {
+                              headers: { Accept: "application/json" },
+                            }
+                          );
+                          if (!res.ok)
+                            throw new Error(
+                              (await res.text()) || `HTTP ${res.status}`
+                            );
+                          const json = await res.json();
+                          let exp: any;
+                          if (Array.isArray(json)) {
+                            const match = json.find(
+                              (c: any) => String(c.id) === String(candidateId)
+                            );
+                            exp = match?.experience;
+                          } else exp = json.experience;
+                          if (!Array.isArray(exp)) exp = [];
+                          const cleaned: string[] = [];
+                          for (const item of exp) {
+                            const v = item == null ? "" : String(item).trim();
+                            if (v && cleaned.indexOf(v) === -1) {
+                              cleaned.push(v);
+                              if (cleaned.length >= 100) break;
+                            }
+                          }
+                          setExperienceData(cleaned);
+                        } catch (e: any) {
+                          setExperienceError(
+                            e.message || "Failed to load experience"
+                          );
+                        } finally {
+                          setExperienceLoading(false);
+                        }
+                      })();
                     }}
                   >
                     Retry
@@ -1095,7 +1085,7 @@ export default function CandidateReviewSummary() {
             </Paper>
           )}
 
-          {/* Snackbar */}
+          {/* Snackbar (keep INSIDE the Candidate Details box) */}
           <Snackbar
             open={snack.open}
             autoHideDuration={2500}
@@ -1115,3 +1105,56 @@ export default function CandidateReviewSummary() {
     </Box>
   );
 }
+
+const navButtonStyle = {
+  justifyContent: "flex-start",
+  mb: 1,
+  color: "#fff",
+  backgroundColor: "transparent",
+  "&:hover": {
+    backgroundColor: "#487DA6",
+  },
+  textTransform: "none",
+  fontWeight: "bold",
+  position: "relative",
+  "&.active": {
+    "&::before": {
+      content: '""',
+      position: "absolute",
+      left: 0,
+      top: 0,
+      height: "100%",
+      width: "4px",
+      backgroundColor: "black",
+      borderRadius: "0 4px 4px 0",
+    },
+  },
+};
+
+const reviewButtonStyle = {
+  background: "#232A3B",
+  color: "DEDDEE",
+  fontWeight: "bold",
+  padding: "8px 20px",
+  borderRadius: "4px",
+  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+  "&:hover": {
+    background:
+      "linear-gradient(45deg, #081158 0%, #022028 50%, #003cbdff 100%)",
+    transform: "translateY(-1px)",
+  },
+  textTransform: "none",
+  transition: "all 0.3s ease",
+  position: "relative",
+  overflow: "hidden",
+  "&::after": {
+    content: '""',
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    background:
+      "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
+  },
+};
