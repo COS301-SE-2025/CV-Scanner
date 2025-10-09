@@ -237,6 +237,12 @@ public class CVController {
                 return ResponseEntity.badRequest().body(createErrorResponse("Missing candidate/email"));
             }
 
+            System.out.println("=== SAVE DEBUG ===");
+            System.out.println("Candidate: " + body.candidate.firstName + " " + body.candidate.lastName);
+            System.out.println("FileUrl: " + body.fileUrl);
+            System.out.println("Resume present: " + (body.resume != null));
+            System.out.println("AiResult present: " + (body.aiResult != null));
+
             long candidateId = upsertCandidate(body.candidate);
             Instant when = parseInstantOrNow(body.receivedAt);
 
@@ -245,19 +251,58 @@ public class CVController {
             try {
                 Map<String, Object> resumeData = new LinkedHashMap<>();
                 
-                // If body has a complete resume object, use it
+                // Start with body.resume (the full parse_resume response)
+                Map<String, Object> sourceData = null;
+                
                 if (body.resume != null) {
                     if (body.resume instanceof Map) {
-                        resumeData = (Map<String, Object>) body.resume;
+                        sourceData = (Map<String, Object>) body.resume;
                     } else if (body.resume instanceof String) {
-                        resumeData = json.readValue((String) body.resume, Map.class);
+                        sourceData = json.readValue((String) body.resume, Map.class);
+                    }
+                }
+                
+                // Fallback to aiResult if resume is null
+                if (sourceData == null && body.aiResult != null) {
+                    if (body.aiResult instanceof Map) {
+                        sourceData = (Map<String, Object>) body.aiResult;
+                    } else if (body.aiResult instanceof String) {
+                        sourceData = json.readValue((String) body.aiResult, Map.class);
+                    }
+                }
+
+                if (sourceData != null) {
+                    // If sourceData has status/filename/result structure, use it directly
+                    if (sourceData.containsKey("status") && sourceData.containsKey("result")) {
+                        resumeData = sourceData;
+                    } else {
+                        // Build structure from parse_resume format
+                        resumeData.put("status", "success");
+                        resumeData.put("filename", body.filename != null ? body.filename : "CV.pdf");
+                        
+                        // Extract result section
+                        Map<String, Object> result = new LinkedHashMap<>();
+                        
+                        // Check if sourceData has a "result" wrapper
+                        Map<String, Object> innerResult = null;
+                        if (sourceData.containsKey("result") && sourceData.get("result") instanceof Map) {
+                            innerResult = (Map<String, Object>) sourceData.get("result");
+                        } else {
+                            innerResult = sourceData;
+                        }
+                        
+                        // Copy all fields from innerResult
+                        if (innerResult != null) {
+                            result.putAll(innerResult);
+                        }
+                        
+                        resumeData.put("result", result);
                     }
                 } else {
-                    // Build from individual fields
+                    // Fallback: build from individual fields (old format)
                     resumeData.put("status", body.status != null ? body.status : "success");
                     resumeData.put("filename", body.filename);
                     
-                    // Create result section
                     Map<String, Object> result = new LinkedHashMap<>();
                     
                     if (body.personalInfo != null) {
@@ -284,28 +329,6 @@ public class CVController {
                         }
                     }
                     
-                    // Include aiResult data if present (for cv_score, project_type, project_fit)
-                    if (body.aiResult != null) {
-                        Map<String, Object> aiData = coerceToMap(body.aiResult);
-                        if (aiData != null) {
-                            // Extract scoring data from parse_resume
-                            if (aiData.containsKey("result")) {
-                                Map<String, Object> aiResult = coerceToMap(aiData.get("result"));
-                                if (aiResult != null) {
-                                    if (aiResult.containsKey("cv_score")) {
-                                        result.put("cv_score", aiResult.get("cv_score"));
-                                    }
-                                    if (aiResult.containsKey("project_type")) {
-                                        result.put("project_type", aiResult.get("project_type"));
-                                    }
-                                    if (aiResult.containsKey("project_fit")) {
-                                        result.put("project_fit", aiResult.get("project_fit"));
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
                     resumeData.put("result", result);
                 }
                 
@@ -315,8 +338,12 @@ public class CVController {
                 
                 resumeJson = json.writeValueAsString(resumeData);
                 
+                System.out.println("ResumeResult JSON length: " + resumeJson.length());
+                System.out.println("ResumeResult preview: " + resumeJson.substring(0, Math.min(200, resumeJson.length())));
+                
             } catch (Exception e) {
                 System.err.println("Failed to build ResumeResult JSON: " + e.getMessage());
+                e.printStackTrace();
                 resumeJson = body.resume != null ? toJson(body.resume) : "{}";
             }
 
@@ -325,7 +352,7 @@ public class CVController {
                     "(CandidateId, FileUrl, AiResult, Normalized, ResumeResult, ReceivedAt, RawResult) " +
                     "VALUES (?,?,?,?,?,?,?)";
 
-            jdbc.update(sql,
+            int rows = jdbc.update(sql,
                 candidateId,
                 body.fileUrl,
                 null,           // AiResult = NULL (deprecated)
@@ -335,10 +362,13 @@ public class CVController {
                 null            // RawResult = NULL (deprecated)
             );
 
+            System.out.println("Inserted " + rows + " row(s) into CandidateParsedCv");
+
             return ResponseEntity.ok(Map.of(
                 "status", "ok",
                 "candidateId", candidateId,
-                "message", "CV data saved to ResumeResult column"
+                "message", "CV data saved to ResumeResult column",
+                "rowsInserted", rows
             ));
         } catch (Exception ex) {
             System.err.println("Save failed: " + ex.getMessage());
