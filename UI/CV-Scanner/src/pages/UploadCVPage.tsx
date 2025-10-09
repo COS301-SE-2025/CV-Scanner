@@ -386,7 +386,7 @@ export default function UploadCVPage() {
     }
   }, [sessionExpired, navigate]);
 
-  // Main processing function - only call parse_resume endpoint
+  // Main processing function - call parse_resume via Java proxy
   const handleProcess = async () => {
     if (sessionExpired) {
       setErrorPopup({
@@ -438,18 +438,15 @@ export default function UploadCVPage() {
         "Starting CV processing - calling parse_resume via Java proxy..."
       );
 
-      // Use Java proxy endpoint instead of direct AI service call
-      const PROXY_URL = "/cv/proxy-ai";
-
       const parseFormData = new FormData();
       parseFormData.append("file", file);
       parseFormData.append("targetUrl", "/parse_resume");
 
       console.log("Calling Java proxy with targetUrl: /parse_resume");
 
-      const parseResponse = await fetch(PROXY_URL, {
+      // ✅ FIXED: Use apiFetch with no headers override
+      const parseResponse = await apiFetch("/cv/proxy-ai", {
         method: "POST",
-        credentials: "include", // Include session cookies
         body: parseFormData,
       });
 
