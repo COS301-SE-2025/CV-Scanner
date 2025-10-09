@@ -707,9 +707,15 @@ export default function UserManagementPage() {
                 label="Email"
                 fullWidth
                 value={editFormData.email}
-                onChange={(e) =>
-                  setEditFormData({ ...editFormData, email: e.target.value })
-                }
+                InputProps={{
+                  readOnly: true, // This makes the email field non-editable
+                }}
+                sx={{
+                  "& .MuiInputBase-input.Mui-disabled": {
+                    WebkitTextFillColor: "#000000", // Keep text color black for better readability
+                    backgroundColor: "#f5f5f5", // Light gray background to indicate disabled state
+                  },
+                }}
               />
               <Select
                 value={editFormData.role}
