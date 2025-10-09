@@ -2244,6 +2244,85 @@ private String truncateSummary(String s) {
     }
 
     /**
+     * GET /cv/project-fits
+     * Returns aggregated project fit types from all candidates' latest parsed CVs.
+     * Used for the Project Fit Types pie chart on the dashboard.
+     * 
+     * Response: [
+     *   { "type": "Frontend Web App", "value": 15 },
+     *   { "type": "Backend API", "value": 12 },
+     *   { "type": "Mobile App", "value": 8 }
+     * ]
+     */
+    @GetMapping("/project-fits")
+    public ResponseEntity<?> getProjectFits(
+            @RequestParam(value = "limit", required = false, defaultValue = "100") int limit) {
+        try {
+            int top = Math.max(1, Math.min(limit, 1000));
+            
+            // Get latest parsed CV per candidate
+            String sql = """
+                WITH latest AS (
+                  SELECT cpc.CandidateId, cpc.ResumeResult, cpc.ReceivedAt,
+                         ROW_NUMBER() OVER (PARTITION BY cpc.CandidateId ORDER BY cpc.ReceivedAt DESC) rn
+                  FROM dbo.CandidateParsedCv cpc
+                )
+                SELECT TOP %d
+                       l.CandidateId, l.ResumeResult
+                FROM latest l
+                WHERE l.rn = 1
+                ORDER BY l.ReceivedAt DESC
+            """.formatted(top);
+
+            var rows = jdbc.query(sql, (rs, rowNum) -> {
+                return rs.getString("ResumeResult");
+            });
+
+            System.out.println("project-fits: Processing " + rows.size() + " candidates");
+
+            // Count project types
+            Map<String, Integer> projectTypeCounts = new HashMap<>();
+            
+            for (String resumeJson : rows) {
+                String projectType = extractProjectTypeFromResume(resumeJson);
+                
+                if (projectType != null && !projectType.trim().isEmpty()) {
+                    String normalized = projectType.trim();
+                    projectTypeCounts.merge(normalized, 1, Integer::sum);
+                    System.out.println("Found project type: " + normalized);
+                }
+            }
+
+            System.out.println("project-fits: Found " + projectTypeCounts.size() + " unique project types");
+
+            // Convert to list format for frontend
+            List<Map<String, Object>> result = projectTypeCounts.entrySet().stream()
+                .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue())) // Sort by count descending
+                .map(entry -> {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("type", entry.getKey());
+                    item.put("value", entry.getValue());
+                    return item;
+                })
+                .collect(java.util.stream.Collectors.toList());
+
+            // If no data found, return placeholder
+            if (result.isEmpty()) {
+                System.out.println("project-fits: No project types found, returning placeholder");
+                result = List.of(Map.of("type", "No Data", "value", 1));
+            }
+
+            return ResponseEntity.ok(result);
+            
+        } catch (Exception ex) {
+            System.err.println("Failed to get project fits: " + ex.getMessage());
+            ex.printStackTrace();
+            return ResponseEntity.status(500)
+                .body(createErrorResponse("Failed to get project fits: " + ex.getMessage()));
+        }
+    }
+
+    /**
      * GET /cv/{identifier}/phone
      * Returns the phone number from parse_resume result.
      * Identifier can be candidate ID (numeric) or email.

@@ -302,15 +302,17 @@ export default function CandidatesDashboard() {
         try {
           setSkillError(null);
 
-          // Get all candidates and top technologies in parallel
-          const [candidatesRes, techRes] = await Promise.all([
+          // Get all candidates, top technologies, and project fits in parallel
+          const [candidatesRes, techRes, projectFitsRes] = await Promise.all([
             apiFetch("/cv/candidates").catch(() => null),
             apiFetch("/cv/top-technologies?limit=10").catch(() => null),
+            apiFetch("/cv/project-fits?limit=100").catch(() => null), // ✅ NEW
           ]);
 
           console.debug("Dashboard fetch statuses:", {
             candidates: candidatesRes?.status ?? null,
             technologies: techRes?.status ?? null,
+            projectFits: projectFitsRes?.status ?? null, // ✅ NEW
           });
 
           let candidatesData: any[] = [];
@@ -411,50 +413,21 @@ export default function CandidatesDashboard() {
             setGroupedBarData(techList);
           }
 
-          // ✅ 3. Project Fit Pie Chart (fetch individual project types)
-          if (Array.isArray(candidatesData) && candidatesData.length > 0) {
-            const projectTypePromises = candidatesData
-              .slice(0, 50)
-              .map(async (candidate: any) => {
-                try {
-                  const ptRes = await apiFetch(
-                    `/cv/${candidate.id}/project-type`
-                  );
-                  if (ptRes.ok) {
-                    const ptData = await ptRes.json();
-                    return ptData.projectType ?? null;
-                  }
-                } catch (e) {
-                  console.warn(
-                    `Failed to fetch project-type for ${candidate.id}:`,
-                    e
-                  );
-                }
-                return null;
-              });
+          // ✅ 3. Project Fit Pie Chart (NEW - from /cv/project-fits endpoint)
+          if (projectFitsRes && projectFitsRes.ok) {
+            const projectFitsJson = await projectFitsRes.json().catch(() => []);
 
-            const projectTypes = await Promise.all(projectTypePromises);
-            const projectTypeCounts = new Map<string, number>();
+            console.debug("Project fits response:", projectFitsJson);
 
-            projectTypes.forEach((type) => {
-              if (type && type !== "Unknown") {
-                projectTypeCounts.set(
-                  type,
-                  (projectTypeCounts.get(type) ?? 0) + 1
-                );
-              }
-            });
-
-            const projectFitArray = Array.from(projectTypeCounts.entries()).map(
-              ([type, value]) => ({ type, value })
-            );
-
-            setProjectFitData(
-              projectFitArray.length > 0
-                ? projectFitArray
-                : [{ type: "No Data", value: 1 }]
-            );
+            if (Array.isArray(projectFitsJson) && projectFitsJson.length > 0) {
+              // Data is already in the correct format: [{ type: "...", value: N }]
+              setProjectFitData(projectFitsJson);
+            } else {
+              console.debug("No project fit data available");
+              setProjectFitData([{ type: "No Data", value: 1 }]);
+            }
           } else {
+            console.debug("project-fits endpoint failed, using placeholder");
             setProjectFitData([{ type: "No Data", value: 1 }]);
           }
 
