@@ -676,7 +676,7 @@ export default function CandidatesDashboard() {
               </Box>
             </Paper>
 
-            {/* Bar Chart: Overall Tech Usage - FIXED consistent height */}
+            {/* Bar Chart: Overall Tech Usage - FIXED children prop */}
             <Paper
               sx={{
                 p: 2,
@@ -685,9 +685,6 @@ export default function CandidatesDashboard() {
                 color: "#000",
                 transition: "transform 0.2s",
                 "&:hover": { transform: "translateY(-4px)" },
-                height: 300, // Same height as others
-                display: "flex",
-                flexDirection: "column",
               }}
             >
               <Typography
@@ -696,65 +693,56 @@ export default function CandidatesDashboard() {
                   fontFamily: "Helvetica, sans-serif",
                   mb: 1,
                   fontWeight: 600,
-                  flexShrink: 0,
                 }}
               >
                 Overall Tech Usage
               </Typography>
-              <Box sx={{ 
-                flexGrow: 1, 
-                minHeight: 0,
-              }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={groupedBarData.length ? groupedBarData : [{ name: "No Data", value: 0 }]}
-                    margin={{ top: 5, right: 20, left: 15, bottom: 70 }}
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart
+                  data={groupedBarData.length ? groupedBarData : [{ name: "No Data", value: 0 }]}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
+                >
+                  <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="name" 
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                    interval={0}
+                    tick={{ 
+                      fill: "#575656ff", 
+                      fontWeight: "bold", 
+                      fontSize: 11,
+                    }}
+                  />
+                  <YAxis
+                    domain={[0, 30]}
+                    ticks={[0, 5, 10, 15, 20, 25, 30]}
+                    allowDecimals={false}
+                    tick={{ fill: "#575656ff", fontWeight: "bold" }}
+                  />
+                  <RechartsTooltip
+                    contentStyle={{
+                      backgroundColor: "#2b3a55",
+                      borderColor: "#4a5568",
+                      fontFamily: "Helvetica, sans-serif",
+                    }}
+                    formatter={(value, name) => [
+                      toNumberSafe(value),
+                      `Usage Count`
+                    ]}
+                  />
+                  <Bar 
+                    dataKey="value" 
+                    name="Technology Usage"
+                    fill="#8884D8"
                   >
-                    <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey="name" 
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                      interval={0}
-                      tick={{ 
-                        fill: "#575656ff", 
-                        fontWeight: "bold", 
-                        fontSize: 10,
-                      }}
-                    />
-                    <YAxis
-                      domain={[0, 30]}
-                      ticks={[0, 5, 10, 15, 20, 25, 30]}
-                      allowDecimals={false}
-                      tick={{ fill: "#575656ff", fontWeight: "bold", fontSize: 12 }}
-                      width={25}
-                    />
-                    <RechartsTooltip
-                      contentStyle={{
-                        backgroundColor: "#2b3a55",
-                        borderColor: "#4a5568",
-                        fontFamily: "Helvetica, sans-serif",
-                        fontSize: 12,
-                      }}
-                      formatter={(value, name) => [
-                        toNumberSafe(value),
-                        `Usage Count`
-                      ]}
-                    />
-                    <Bar 
-                      dataKey="value" 
-                      name="Technology Usage"
-                      fill="#8884D8"
-                      barSize={20} // Adjusted for consistent height
-                    >
-                      {groupedBarData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
+                    {groupedBarData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </Paper>
 
             {/* Pie Chart: Skill Distribution */}
