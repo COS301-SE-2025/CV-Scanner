@@ -699,7 +699,7 @@ export default function CandidatesDashboard() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={groupedBarData.length ? groupedBarData : [{ name: "No Data", value: 0 }]}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
+                  margin={{ top: 10, right: 20, left: 10, bottom: 20 }}
                 >
                   <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
                   <XAxis 
@@ -707,8 +707,8 @@ export default function CandidatesDashboard() {
                     tick={{ fill: "#575656ff", fontWeight: "bold", fontSize: 11 }}
                   />
                   <YAxis
-                    domain={[0, 30]}
-                    ticks={[0, 5, 10, 15, 20, 25, 30]}
+                    //domain={[0, 30]}
+                   // ticks={[0, 5, 10, 15, 20, 25, 30]}
                     allowDecimals={false}
                     tick={{ fill: "#575656ff", fontWeight: "bold" }}
                   />
