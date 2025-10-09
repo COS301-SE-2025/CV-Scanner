@@ -692,15 +692,11 @@ export default function CandidatesDashboard() {
             >
               <Typography
                 variant="subtitle1"
-                sx={{
-                  fontFamily: "Helvetica, sans-serif",
-                  mb: 1,
-                  fontWeight: 600,
-                }}
+               sx={{ fontFamily: "Helvetica, sans-serif", mb: 1, fontWeight: 600, flexShrink: 0 }}
               >
                 Overall Tech Usage
               </Typography>
-              <ResponsiveContainer width="100%" height={240}>
+              <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={groupedBarData.length ? groupedBarData : [{ name: "No Data", value: 0 }]}
                   margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
