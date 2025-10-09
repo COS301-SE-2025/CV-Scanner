@@ -685,6 +685,9 @@ export default function CandidatesDashboard() {
                 color: "#000",
                 transition: "transform 0.2s",
                 "&:hover": { transform: "translateY(-4px)" },
+                height: 300,                // 👈 same height for both
+  display: "flex",
+  flexDirection: "column",
               }}
             >
               <Typography
@@ -1137,4 +1140,16 @@ const graphCardBase = {
   display: "flex",
   flexDirection: "column",
   justifyContent: "space-between",
+};
+
+const chartCardStyle = {
+  p: 2,
+  borderRadius: 3,
+  backgroundColor: "#DEDDEE",
+  color: "#000",
+  transition: "transform 0.2s",
+  "&:hover": { transform: "translateY(-4px)" },
+  height: 300,                // 👈 same height for both
+  display: "flex",
+  flexDirection: "column",
 };
