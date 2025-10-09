@@ -99,7 +99,9 @@ export default function CompareCandidates() {
   const [candidateB, setCandidateB] = useState<Candidate | null>(null);
   const [compareResult, setCompareResult] = useState<string | null>(null);
   const [skillsDialogOpen, setSkillsDialogOpen] = useState(false);
-  const [selectedCandidateSkills, setSelectedCandidateSkills] = useState<string[]>([]);
+  const [selectedCandidateSkills, setSelectedCandidateSkills] = useState<
+    string[]
+  >([]);
   const [selectedCandidateName, setSelectedCandidateName] = useState("");
   const [searchTermA, setSearchTermA] = useState("");
   const [searchTermB, setSearchTermB] = useState("");
@@ -113,7 +115,8 @@ export default function CompareCandidates() {
     skillsB: {},
   });
 
-  const [comparisonResult, setComparisonResult] = useState<ComparisonResult | null>(null);
+  const [comparisonResult, setComparisonResult] =
+    useState<ComparisonResult | null>(null);
 
   // Score ring
   function scoreColor(value: number) {
@@ -265,21 +268,67 @@ export default function CompareCandidates() {
           setUser(null);
         }
 
-        // fetch candidates + filenames
-        const [candRes, fnRes] = await Promise.all([
+        console.log("Fetching candidates and related data...");
+
+        // fetch candidates + filenames + scores + project fits in parallel
+        const [candRes, fnRes, scoresRes, pfRes] = await Promise.all([
           apiFetch("/cv/candidates").catch(() => null),
           apiFetch("/cv/filenames").catch(() => null),
+          apiFetch("/cv/average-scores?limit=500").catch(() => null),
+          apiFetch("/cv/project-fits?limit=500").catch(() => null),
         ]);
+
+        console.log("API Response statuses:", {
+          candidates: candRes?.status,
+          filenames: fnRes?.status,
+          scores: scoresRes?.status,
+          projectFits: pfRes?.status,
+        });
 
         const list =
           candRes && candRes.ok ? await candRes.json().catch(() => []) : [];
         const filenames =
           fnRes && fnRes.ok ? await fnRes.json().catch(() => []) : [];
+        const scores =
+          scoresRes && scoresRes.ok
+            ? await scoresRes.json().catch(() => [])
+            : [];
+        const projectFits =
+          pfRes && pfRes.ok ? await pfRes.json().catch(() => []) : [];
 
+        console.log("Loaded data counts:", {
+          candidates: list.length,
+          filenames: filenames.length,
+          scores: scores.length,
+          projectFits: projectFits.length,
+        });
+
+        // Build lookup maps
         const filenameMap = new Map<number, any>();
         if (Array.isArray(filenames)) {
           for (const f of filenames) {
             if (f && typeof f.id === "number") filenameMap.set(f.id, f);
+          }
+        }
+
+        const scoresMap = new Map<number, number>();
+        if (Array.isArray(scores)) {
+          for (const s of scores) {
+            const id = Number(s?.candidateId ?? s?.id);
+            const scoreVal = s?.averageScoreOutOf10 ?? s?.averageScore;
+            if (!Number.isNaN(id) && scoreVal != null) {
+              scoresMap.set(id, Math.max(0, Math.min(10, Number(scoreVal))));
+            }
+          }
+        }
+
+        const projectFitMap = new Map<number, string>();
+        if (Array.isArray(projectFits)) {
+          for (const pf of projectFits) {
+            const id = Number(pf?.candidateId ?? pf?.id);
+            if (!Number.isNaN(id) && pf?.projectFitLabel) {
+              projectFitMap.set(id, pf.projectFitLabel);
+            }
           }
         }
 
@@ -302,6 +351,13 @@ export default function CompareCandidates() {
               filename = basenameFromUrl(filename);
             filename = makeFriendlyFilename(name, filename);
 
+            // Get score from map
+            const score =
+              scoresMap.get(Number(c.id)) ?? parsePercentToScore(c.match);
+
+            // Get project fit from map
+            const match = projectFitMap.get(Number(c.id)) ?? c.match ?? "N/A";
+
             return {
               id: Number(c.id),
               firstName: first,
@@ -310,91 +366,17 @@ export default function CompareCandidates() {
               skills: Array.isArray(c.skills) ? c.skills : [],
               project,
               receivedAt: c.receivedAt,
-              match: c.match || "N/A",
+              match,
               cvFileUrl: c.cvFileUrl ?? null,
               cvFileType: c.cvFileType ?? null,
               filename,
-              score:
-                typeof c.score === "number"
-                  ? Math.max(0, Math.min(10, c.score))
-                  : parsePercentToScore(c.match),
+              score,
             } as Candidate;
           }
         );
 
+        console.log("Mapped candidates:", mapped.length);
         setCandidates(mapped);
-
-        // merge average scores
-        try {
-          const avgRes = await apiFetch("/cv/average-scores?limit=500");
-          if (avgRes && avgRes.ok) {
-            const avgJson = await avgRes.json();
-            if (Array.isArray(avgJson)) {
-              const avgMap = new Map<number, number>();
-              for (const it of avgJson) {
-                const id = Number(it?.candidateId ?? it?.id);
-                const scoreVal = it?.averageScoreOutOf10 ?? it?.averageScore;
-                if (!Number.isNaN(id) && scoreVal != null)
-                  avgMap.set(id, Number(scoreVal));
-              }
-              setCandidates((prev) =>
-                prev.map((cand) => ({
-                  ...cand,
-                  score: avgMap.has(Number(cand.id))
-                    ? Math.max(
-                        0,
-                        Math.min(10, Number(avgMap.get(Number(cand.id))))
-                      )
-                    : cand.score,
-                }))
-              );
-            }
-          }
-        } catch (e) {
-          // ignore
-        }
-
-        // merge project-fit
-        try {
-          const pfRes = await apiFetch("/cv/project-fit?limit=500");
-          if (pfRes && pfRes.ok) {
-            const pfJson = await pfRes.json();
-            if (Array.isArray(pfJson)) {
-              const pfMap = new Map<number, any>();
-              for (const it of pfJson) {
-                const id = Number(it?.candidateId ?? it?.id);
-                if (!Number.isNaN(id)) pfMap.set(id, it);
-              }
-              setCandidates((prev) =>
-                prev.map((cand) => {
-                  const pf = pfMap.get(Number(cand.id));
-                  if (!pf) return cand;
-                  const pfObj = pf?.projectFit ?? null;
-                  const pct =
-                    pf?.projectFitPercent != null
-                      ? Number(pf.projectFitPercent)
-                      : null;
-                  const type =
-                    pfObj && typeof pfObj === "object"
-                      ? pfObj.type ?? pfObj?.type
-                      : null;
-                  let combinedLabel: string | null = null;
-                  if (type && pct != null) combinedLabel = `${type}:${pct}%`;
-                  else if (pf?.projectFitLabel)
-                    combinedLabel = pf.projectFitLabel;
-                  else if (type) combinedLabel = String(type);
-                  else if (pct != null) combinedLabel = `${pct}%`;
-                  return {
-                    ...cand,
-                    match: combinedLabel ?? cand.match,
-                  };
-                })
-              );
-            }
-          }
-        } catch (e) {
-          // ignore
-        }
       } catch (e) {
         console.warn("Failed loading candidates:", e);
         setCandidates([]);
@@ -409,8 +391,12 @@ export default function CompareCandidates() {
       const skillsB: { [key: string]: boolean } = {};
 
       // Initialize all checkboxes as unchecked
-      candidateA.skills?.forEach(skill => { skillsA[skill] = false; });
-      candidateB.skills?.forEach(skill => { skillsB[skill] = false; });
+      candidateA.skills?.forEach((skill) => {
+        skillsA[skill] = false;
+      });
+      candidateB.skills?.forEach((skill) => {
+        skillsB[skill] = false;
+      });
 
       setComparisonData({
         candidateA,
@@ -421,7 +407,10 @@ export default function CompareCandidates() {
     }
   }, [candidateA, candidateB]);
 
-  const handleSelectCandidate = async (candidate: Candidate, side: "A" | "B") => {
+  const handleSelectCandidate = async (
+    candidate: Candidate,
+    side: "A" | "B"
+  ) => {
     if (side === "A") {
       const newCandidateA = candidateA?.id === candidate.id ? null : candidate;
       setCandidateA(newCandidateA);
@@ -463,13 +452,13 @@ export default function CompareCandidates() {
   };
 
   // Handle checkbox changes - SIMPLIFIED
-  const handleCheckboxChange = (candidate: 'A' | 'B', skill: string) => {
-    setComparisonData(prev => ({
+  const handleCheckboxChange = (candidate: "A" | "B", skill: string) => {
+    setComparisonData((prev) => ({
       ...prev,
       [`skills${candidate}`]: {
         ...prev[`skills${candidate}`],
-        [skill]: !prev[`skills${candidate}`][skill]
-      }
+        [skill]: !prev[`skills${candidate}`][skill],
+      },
     }));
   };
 
@@ -480,11 +469,17 @@ export default function CompareCandidates() {
     // Skills (25% of total)
     const skillsACount = Object.keys(comparisonData.skillsA).length;
     const skillsBCount = Object.keys(comparisonData.skillsB).length;
-    const skillsASelected = Object.values(comparisonData.skillsA).filter(Boolean).length;
-    const skillsBSelected = Object.values(comparisonData.skillsB).filter(Boolean).length;
-    
-    const skillsAScore = skillsACount > 0 ? (skillsASelected / skillsACount) * 25 : 0;
-    const skillsBScore = skillsBCount > 0 ? (skillsBSelected / skillsBCount) * 25 : 0;
+    const skillsASelected = Object.values(comparisonData.skillsA).filter(
+      Boolean
+    ).length;
+    const skillsBSelected = Object.values(comparisonData.skillsB).filter(
+      Boolean
+    ).length;
+
+    const skillsAScore =
+      skillsACount > 0 ? (skillsASelected / skillsACount) * 25 : 0;
+    const skillsBScore =
+      skillsBCount > 0 ? (skillsBSelected / skillsBCount) * 25 : 0;
 
     // Base score from AI model (75% of total)
     const baseAScore = ((candidateA.score || 0) / 10) * 75;
@@ -499,7 +494,7 @@ export default function CompareCandidates() {
       breakdown: {
         skills: { a: skillsAScore, b: skillsBScore },
         baseScore: { a: baseAScore, b: baseBScore },
-      }
+      },
     };
 
     setComparisonResult(result);
@@ -507,11 +502,19 @@ export default function CompareCandidates() {
     // Set simple comparison result text
     if (totalAScore > totalBScore) {
       setCompareResult(
-        `${candidateA.firstName ?? candidateA.email} is the best suited candidate (${totalAScore.toFixed(1)}% vs ${totalBScore.toFixed(1)}%)`
+        `${
+          candidateA.firstName ?? candidateA.email
+        } is the best suited candidate (${totalAScore.toFixed(
+          1
+        )}% vs ${totalBScore.toFixed(1)}%)`
       );
     } else if (totalBScore > totalAScore) {
       setCompareResult(
-        `${candidateB.firstName ?? candidateB.email} is the best suited candidate (${totalBScore.toFixed(1)}% vs ${totalAScore.toFixed(1)}%)`
+        `${
+          candidateB.firstName ?? candidateB.email
+        } is the best suited candidate (${totalBScore.toFixed(
+          1
+        )}% vs ${totalAScore.toFixed(1)}%)`
       );
     } else {
       setCompareResult("Both candidates are equally suited (tie).");
@@ -524,16 +527,22 @@ export default function CompareCandidates() {
       .trim()
       .toLowerCase();
     const other = side === "A" ? candidateB : candidateA;
-    
+
     // Apply global search if present
     let filtered = candidates;
     if (globalSearchTerm.trim()) {
       const globalTerm = globalSearchTerm.trim().toLowerCase();
       filtered = candidates.filter((c) => {
         return (
-          String(c.firstName ?? "").toLowerCase().includes(globalTerm) ||
-          String(c.lastName ?? "").toLowerCase().includes(globalTerm) ||
-          String(c.email ?? "").toLowerCase().includes(globalTerm) ||
+          String(c.firstName ?? "")
+            .toLowerCase()
+            .includes(globalTerm) ||
+          String(c.lastName ?? "")
+            .toLowerCase()
+            .includes(globalTerm) ||
+          String(c.email ?? "")
+            .toLowerCase()
+            .includes(globalTerm) ||
           (Array.isArray(c.skills) &&
             c.skills.some((s) => s.toLowerCase().includes(globalTerm)))
         );
@@ -669,62 +678,92 @@ export default function CompareCandidates() {
   const renderComparisonBreakdown = () => {
     if (!candidateA || !candidateB || !comparisonResult) return null;
 
-    const isABetter = comparisonResult.candidateAScore > comparisonResult.candidateBScore;
-    const isBBetter = comparisonResult.candidateBScore > comparisonResult.candidateAScore;
+    const isABetter =
+      comparisonResult.candidateAScore > comparisonResult.candidateBScore;
+    const isBBetter =
+      comparisonResult.candidateBScore > comparisonResult.candidateAScore;
 
     return (
       <Paper sx={{ p: 3, mt: 3, bgcolor: "#DEDDEE" }}>
-        <Typography variant="h6" sx={{ mb: 3, textAlign: "center", color: "#000" }}>
+        <Typography
+          variant="h6"
+          sx={{ mb: 3, textAlign: "center", color: "#000" }}
+        >
           Detailed Comparison Breakdown
         </Typography>
 
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center' }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 3,
+            justifyContent: "center",
+          }}
+        >
           {/* Skills Section */}
-          <Box sx={{ flex: '1 1 300px', maxWidth: 400 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 2, color: "#000" }}>
+          <Box sx={{ flex: "1 1 300px", maxWidth: 400 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: "bold", mb: 2, color: "#000" }}
+            >
               Skills (25% of total)
             </Typography>
             <Box sx={{ mb: 2 }}>
               <Typography variant="body2" sx={{ color: "#000" }}>
-                {candidateA.firstName}: {Object.values(comparisonData.skillsA).filter(Boolean).length}/
+                {candidateA.firstName}:{" "}
+                {Object.values(comparisonData.skillsA).filter(Boolean).length}/
                 {Object.keys(comparisonData.skillsA).length} selected
               </Typography>
-              <LinearProgress 
-                variant="determinate" 
-                value={(Object.values(comparisonData.skillsA).filter(Boolean).length / Math.max(1, Object.keys(comparisonData.skillsA).length)) * 100}
+              <LinearProgress
+                variant="determinate"
+                value={
+                  (Object.values(comparisonData.skillsA).filter(Boolean)
+                    .length /
+                    Math.max(1, Object.keys(comparisonData.skillsA).length)) *
+                  100
+                }
                 sx={{ height: 8, borderRadius: 4, mb: 1 }}
               />
               <Typography variant="body2" sx={{ color: "#000" }}>
-                {candidateB.firstName}: {Object.values(comparisonData.skillsB).filter(Boolean).length}/
+                {candidateB.firstName}:{" "}
+                {Object.values(comparisonData.skillsB).filter(Boolean).length}/
                 {Object.keys(comparisonData.skillsB).length} selected
               </Typography>
-              <LinearProgress 
-                variant="determinate" 
-                value={(Object.values(comparisonData.skillsB).filter(Boolean).length / Math.max(1, Object.keys(comparisonData.skillsB).length)) * 100}
+              <LinearProgress
+                variant="determinate"
+                value={
+                  (Object.values(comparisonData.skillsB).filter(Boolean)
+                    .length /
+                    Math.max(1, Object.keys(comparisonData.skillsB).length)) *
+                  100
+                }
                 sx={{ height: 8, borderRadius: 4 }}
               />
             </Box>
           </Box>
 
           {/* Base Score Section */}
-          <Box sx={{ flex: '1 1 300px', maxWidth: 400 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 2, color: "#000" }}>
+          <Box sx={{ flex: "1 1 300px", maxWidth: 400 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: "bold", mb: 2, color: "#000" }}
+            >
               AI Score (75% of total)
             </Typography>
             <Box sx={{ mb: 2 }}>
               <Typography variant="body2" sx={{ color: "#000" }}>
                 {candidateA.firstName}: {candidateA.score}/10
               </Typography>
-              <LinearProgress 
-                variant="determinate" 
+              <LinearProgress
+                variant="determinate"
                 value={(candidateA.score || 0) * 10}
                 sx={{ height: 8, borderRadius: 4, mb: 1 }}
               />
               <Typography variant="body2" sx={{ color: "#000" }}>
                 {candidateB.firstName}: {candidateB.score}/10
               </Typography>
-              <LinearProgress 
-                variant="determinate" 
+              <LinearProgress
+                variant="determinate"
                 value={(candidateB.score || 0) * 10}
                 sx={{ height: 8, borderRadius: 4 }}
               />
@@ -734,42 +773,57 @@ export default function CompareCandidates() {
 
         {/* Final Scores */}
         <Box sx={{ mt: 3, p: 2, borderRadius: 2 }}>
-          <Typography variant="h6" sx={{ textAlign: "center", color: "#000", mb: 2 }}>
+          <Typography
+            variant="h6"
+            sx={{ textAlign: "center", color: "#000", mb: 2 }}
+          >
             Final Scores
           </Typography>
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <Box 
-              sx={{ 
-                flex: 1, 
+          <Box sx={{ display: "flex", gap: 2 }}>
+            <Box
+              sx={{
+                flex: 1,
                 textAlign: "center",
                 p: 2,
                 borderRadius: 2,
                 bgcolor: isABetter ? "#4CAF50" : "#232A3B",
-                color: isABetter ? "#000" : "#fff"
+                color: isABetter ? "#000" : "#fff",
               }}
             >
-              <Typography variant="h4" sx={{ color: isABetter ? "#000" : "#93AFF7" }}>
+              <Typography
+                variant="h4"
+                sx={{ color: isABetter ? "#000" : "#93AFF7" }}
+              >
                 {comparisonResult.candidateAScore.toFixed(1)}%
               </Typography>
-              <Typography variant="body2" sx={{ textAlign: "center", fontWeight: "bold" }}>
+              <Typography
+                variant="body2"
+                sx={{ textAlign: "center", fontWeight: "bold" }}
+              >
                 {candidateA.firstName}
                 {isABetter && " (Best Candidate)"}
               </Typography>
             </Box>
-            <Box 
-              sx={{ 
-                flex: 1, 
+            <Box
+              sx={{
+                flex: 1,
                 textAlign: "center",
                 p: 2,
                 borderRadius: 2,
                 bgcolor: isBBetter ? "#4CAF50" : "#232A3B",
-                color: isBBetter ? "#000" : "#fff"
+                color: isBBetter ? "#000" : "#fff",
               }}
             >
-              <Typography variant="h4" sx={{ color: isBBetter ? "#000" : "#93AFF7" }}>
+              <Typography
+                variant="h4"
+                sx={{ color: isBBetter ? "#000" : "#93AFF7" }}
+              >
                 {comparisonResult.candidateBScore.toFixed(1)}%
               </Typography>
-              <Typography variant="body2" sx={{ textAlign: "center", fontWeight: "bold" }}>
+              <Typography
+                variant="body2"
+                sx={{ textAlign: "center", fontWeight: "bold" }}
+              >
                 {candidateB.firstName}
                 {isBBetter && " (Best Candidate)"}
               </Typography>
@@ -786,53 +840,89 @@ export default function CompareCandidates() {
 
     return (
       <Paper sx={{ p: 3, mt: 3, bgcolor: "#DEDDEE" }}>
-        <Typography variant="h6" sx={{ mb: 3, textAlign: "center", color: "#000" }}>
+        <Typography
+          variant="h6"
+          sx={{ mb: 3, textAlign: "center", color: "#000" }}
+        >
           Select Relevant Skills (25% of total score)
         </Typography>
 
         {/* Skills Comparison */}
-        <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 3, mb: 3 }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: isMobile ? "column" : "row",
+            gap: 3,
+            mb: 3,
+          }}
+        >
           <Box sx={{ flex: 1 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 2, color: "#000" }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: "bold", mb: 2, color: "#000" }}
+            >
               {candidateA.firstName}'s Skills
             </Typography>
-            <Box sx={{ maxHeight: 300, overflow: 'auto', p: 1, border: '1px solid #ccc', borderRadius: 1 }}>
-              {Object.entries(comparisonData.skillsA).map(([skill, checked]) => (
-                <FormControlLabel
-                  key={skill}
-                  control={
-                    <Checkbox
-                      checked={checked}
-                      onChange={() => handleCheckboxChange('A', skill)}
-                      sx={{ color: "#232A3B" }}
-                    />
-                  }
-                  label={skill}
-                  sx={{ display: 'block', color: "#000", mb: 1 }}
-                />
-              ))}
+            <Box
+              sx={{
+                maxHeight: 300,
+                overflow: "auto",
+                p: 1,
+                border: "1px solid #ccc",
+                borderRadius: 1,
+              }}
+            >
+              {Object.entries(comparisonData.skillsA).map(
+                ([skill, checked]) => (
+                  <FormControlLabel
+                    key={skill}
+                    control={
+                      <Checkbox
+                        checked={checked}
+                        onChange={() => handleCheckboxChange("A", skill)}
+                        sx={{ color: "#232A3B" }}
+                      />
+                    }
+                    label={skill}
+                    sx={{ display: "block", color: "#000", mb: 1 }}
+                  />
+                )
+              )}
             </Box>
           </Box>
 
           <Box sx={{ flex: 1 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 2, color: "#000" }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: "bold", mb: 2, color: "#000" }}
+            >
               {candidateB.firstName}'s Skills
             </Typography>
-            <Box sx={{ maxHeight: 300, overflow: 'auto', p: 1, border: '1px solid #ccc', borderRadius: 1 }}>
-              {Object.entries(comparisonData.skillsB).map(([skill, checked]) => (
-                <FormControlLabel
-                  key={skill}
-                  control={
-                    <Checkbox
-                      checked={checked}
-                      onChange={() => handleCheckboxChange('B', skill)}
-                      sx={{ color: "#232A3B" }}
-                    />
-                  }
-                  label={skill}
-                  sx={{ display: 'block', color: "#000", mb: 1 }}
-                />
-              ))}
+            <Box
+              sx={{
+                maxHeight: 300,
+                overflow: "auto",
+                p: 1,
+                border: "1px solid #ccc",
+                borderRadius: 1,
+              }}
+            >
+              {Object.entries(comparisonData.skillsB).map(
+                ([skill, checked]) => (
+                  <FormControlLabel
+                    key={skill}
+                    control={
+                      <Checkbox
+                        checked={checked}
+                        onChange={() => handleCheckboxChange("B", skill)}
+                        sx={{ color: "#232A3B" }}
+                      />
+                    }
+                    label={skill}
+                    sx={{ display: "block", color: "#000", mb: 1 }}
+                  />
+                )
+              )}
             </Box>
           </Box>
         </Box>

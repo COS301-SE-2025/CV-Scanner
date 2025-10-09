@@ -2175,361 +2175,229 @@ private String truncateSummary(String s) {
 
     /**
      * Extract project_type from ResumeResult JSON.
-     * Supports both direct result.project_type and nested structures.
+     * Supports multiple nested structures and formats.
      * Returns the project type string, or null if not found.
      */
     @SuppressWarnings("unchecked")
     private String extractProjectTypeFromResume(String resumeJson) {
-        if (isBlank(resumeJson)) return null;
+        if (isBlank(resumeJson)) {
+            System.out.println("extractProjectType: resumeJson is blank");
+            return null;
+        }
         
         try {
             Map<String, Object> root = json.readValue(resumeJson, Map.class);
+            System.out.println("extractProjectType: Parsed JSON, root keys: " + root.keySet());
             
-            // Try direct project_type at root
+            // 1. Try direct project_type at root
             Object projectTypeObj = root.get("project_type");
-            if (projectTypeObj != null) {
-                return String.valueOf(projectTypeObj);
+            if (projectTypeObj != null && !isBlank(String.valueOf(projectTypeObj))) {
+                String type = String.valueOf(projectTypeObj).trim();
+                System.out.println("Found project_type at root: " + type);
+                return type;
             }
             
-            // Try nested in result.project_type
+            // 2. Try nested in result.project_type
             Object resultObj = root.get("result");
             if (resultObj instanceof Map<?, ?>) {
                 Map<String, Object> result = (Map<String, Object>) resultObj;
+                System.out.println("extractProjectType: result keys: " + result.keySet());
+                
                 projectTypeObj = result.get("project_type");
-                if (projectTypeObj != null) {
-                    return String.valueOf(projectTypeObj);
+                if (projectTypeObj != null && !isBlank(String.valueOf(projectTypeObj))) {
+                    String type = String.valueOf(projectTypeObj).trim();
+                    System.out.println("Found project_type in result: " + type);
+                    return type;
+                }
+                
+                // 3. Check summary field for project type keywords
+                Object summaryObj = result.get("summary");
+                if (summaryObj != null) {
+                    String summary = String.valueOf(summaryObj).toLowerCase();
+                    System.out.println("Checking summary for project type: " + summary.substring(0, Math.min(100, summary.length())));
+                    
+                    // Extract from patterns like "specializing in ['Frontend Development', ...]"
+                    if (summary.contains("frontend") || summary.contains("front-end")) {
+                        System.out.println("Detected: Frontend Development");
+                        return "Frontend Development";
+                    }
+                    if (summary.contains("backend") || summary.contains("back-end")) {
+                        System.out.println("Detected: Backend Development");
+                        return "Backend Development";
+                    }
+                    if (summary.contains("full stack") || summary.contains("fullstack")) {
+                        System.out.println("Detected: Full Stack Development");
+                        return "Full Stack Development";
+                    }
+                    if (summary.contains("mobile") || summary.contains("android") || summary.contains("ios")) {
+                        System.out.println("Detected: Mobile Development");
+                        return "Mobile Development";
+                    }
+                    if (summary.contains("data science") || summary.contains("machine learning") || summary.contains("ai/ml")) {
+                        System.out.println("Detected: Data Science / AI/ML");
+                        return "Data Science / AI/ML";
+                    }
+                    if (summary.contains("devops") || summary.contains("infrastructure")) {
+                        System.out.println("Detected: DevOps / Infrastructure");
+                        return "DevOps / Infrastructure";
+                    }
+                    if (summary.contains("cybersecurity") || summary.contains("security")) {
+                        System.out.println("Detected: Cybersecurity");
+                        return "Cybersecurity";
+                    }
                 }
             }
             
+            // 4. Fallback: analyze skills to infer project type
+            Object skillsObj = root.get("skills");
+            if (skillsObj == null && resultObj instanceof Map<?, ?>) {
+                skillsObj = ((Map<?, ?>) resultObj).get("skills");
+            }
+            
+            if (skillsObj instanceof List<?>) {
+                List<?> skills = (List<?>) skillsObj;
+                String inferredType = inferProjectTypeFromSkills(skills);
+                if (inferredType != null) {
+                    System.out.println("Inferred project type from skills: " + inferredType);
+                    return inferredType;
+                }
+            }
+            
+            System.out.println("extractProjectType: No project type found");
             return null;
         } catch (Exception e) {
             System.err.println("Failed to extract project_type: " + e.getMessage());
+            e.printStackTrace();
             return null;
         }
     }
 
     /**
-     * Extract project_fit from ResumeResult JSON.
-     * Supports both direct result.project_fit and nested structures.
-     * Returns value on 0-10 scale, or null if not found.
+     * Infer project type from skills list
+     */
+    private String inferProjectTypeFromSkills(List<?> skills) {
+        if (skills == null || skills.isEmpty()) return null;
+        
+        int frontendScore = 0;
+        int backendScore = 0;
+        int mobileScore = 0;
+        int dataScore = 0;
+        int devopsScore = 0;
+        
+        for (Object skillObj : skills) {
+            String skill = String.valueOf(skillObj).toLowerCase();
+            
+            // Frontend indicators
+            if (skill.matches(".*(react|angular|vue|html|css|javascript|typescript|frontend|ui|ux).*")) {
+                frontendScore++;
+            }
+            // Backend indicators
+            if (skill.matches(".*(java|python|node|spring|django|flask|sql|database|api|backend).*")) {
+                backendScore++;
+            }
+            // Mobile indicators
+            if (skill.matches(".*(android|ios|swift|kotlin|flutter|react native|mobile).*")) {
+                mobileScore++;
+            }
+            // Data Science indicators
+            if (skill.matches(".*(machine learning|tensorflow|pytorch|data science|ai|ml|pandas|numpy).*")) {
+                dataScore++;
+            }
+            // DevOps indicators
+            if (skill.matches(".*(docker|kubernetes|jenkins|ci/cd|aws|azure|devops|cloud).*")) {
+                devopsScore++;
+            }
+        }
+        
+        // Determine dominant type
+        int maxScore = Math.max(frontendScore, Math.max(backendScore, Math.max(mobileScore, Math.max(dataScore, devopsScore))));
+        
+        if (maxScore == 0) return null;
+        
+        if (frontendScore == maxScore && backendScore == maxScore && frontendScore >= 2) {
+            return "Full Stack Development";
+        }
+        if (frontendScore == maxScore) return "Frontend Development";
+        if (backendScore == maxScore) return "Backend Development";
+        if (mobileScore == maxScore) return "Mobile Development";
+        if (dataScore == maxScore) return "Data Science / AI/ML";
+        if (devopsScore == maxScore) return "DevOps / Infrastructure";
+        
+        return null;
+    }
+
+    /**
+     * Extract project_fit score from ResumeResult JSON and normalize it to 0..10.
      */
     @SuppressWarnings("unchecked")
     private Double extractProjectFitFromResume(String resumeJson) {
         if (isBlank(resumeJson)) return null;
-        
         try {
             Map<String, Object> root = json.readValue(resumeJson, Map.class);
-            
-            // Try direct project_fit at root
-            Object projectFitObj = root.get("project_fit");
-            if (projectFitObj != null) {
-                return toDouble(projectFitObj);
-            }
-            
-            // Try nested in result.project_fit
-            Object resultObj = root.get("result");
-            if (resultObj instanceof Map<?, ?>) {
-                Map<String, Object> result = (Map<String, Object>) resultObj;
-                projectFitObj = result.get("project_fit");
-                if (projectFitObj != null) {
-                    return toDouble(projectFitObj);
+
+            Double score = findProjectFitScore(root);
+            if (score == null) {
+                Object resultObj = root.get("result");
+                if (resultObj instanceof Map<?, ?>) {
+                    score = findProjectFitScore((Map<String, Object>) resultObj);
                 }
             }
-            
-            return null;
+            if (score == null) return null;
+
+            double norm = normalizeToTen(score);
+            return Math.round(norm * 100.0) / 100.0;
         } catch (Exception e) {
             System.err.println("Failed to extract project_fit: " + e.getMessage());
             return null;
         }
     }
 
-    /**
-     * GET /cv/project-fits
-     * Returns aggregated project fit types from all candidates' latest parsed CVs.
-     * Used for the Project Fit Types pie chart on the dashboard.
-     * 
-     * Response: [
-     *   { "type": "Frontend Web App", "value": 15 },
-     *   { "type": "Backend API", "value": 12 },
-     *   { "type": "Mobile App", "value": 8 }
-     * ]
-     */
-    @GetMapping("/project-fits")
-    public ResponseEntity<?> getProjectFits(
-            @RequestParam(value = "limit", required = false, defaultValue = "100") int limit) {
-        try {
-            int top = Math.max(1, Math.min(limit, 1000));
-            
-            // Get latest parsed CV per candidate
-            String sql = """
-                WITH latest AS (
-                  SELECT cpc.CandidateId, cpc.ResumeResult, cpc.ReceivedAt,
-                         ROW_NUMBER() OVER (PARTITION BY cpc.CandidateId ORDER BY cpc.ReceivedAt DESC) rn
-                  FROM dbo.CandidateParsedCv cpc
-                )
-                SELECT TOP %d
-                       l.CandidateId, l.ResumeResult
-                FROM latest l
-                WHERE l.rn = 1
-                ORDER BY l.ReceivedAt DESC
-            """.formatted(top);
+    private Double findProjectFitScore(Map<String, Object> map) {
+        if (map == null) return null;
 
-            var rows = jdbc.query(sql, (rs, rowNum) -> {
-                return rs.getString("ResumeResult");
-            });
-
-            System.out.println("project-fits: Processing " + rows.size() + " candidates");
-
-            // Count project types
-            Map<String, Integer> projectTypeCounts = new HashMap<>();
-            
-            for (String resumeJson : rows) {
-                String projectType = extractProjectTypeFromResume(resumeJson);
-                
-                if (projectType != null && !projectType.trim().isEmpty()) {
-                    String normalized = projectType.trim();
-                    projectTypeCounts.merge(normalized, 1, Integer::sum);
-                    System.out.println("Found project type: " + normalized);
-                }
-            }
-
-            System.out.println("project-fits: Found " + projectTypeCounts.size() + " unique project types");
-
-            // Convert to list format for frontend
-            List<Map<String, Object>> result = projectTypeCounts.entrySet().stream()
-                .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue())) // Sort by count descending
-                .map(entry -> {
-                    Map<String, Object> item = new LinkedHashMap<>();
-                    item.put("type", entry.getKey());
-                    item.put("value", entry.getValue());
-                    return item;
-                })
-                .collect(java.util.stream.Collectors.toList());
-
-            // If no data found, return placeholder
-            if (result.isEmpty()) {
-                System.out.println("project-fits: No project types found, returning placeholder");
-                result = List.of(Map.of("type", "No Data", "value", 1));
-            }
-
-            return ResponseEntity.ok(result);
-            
-        } catch (Exception ex) {
-            System.err.println("Failed to get project fits: " + ex.getMessage());
-            ex.printStackTrace();
-            return ResponseEntity.status(500)
-                .body(createErrorResponse("Failed to get project fits: " + ex.getMessage()));
+        String[] keys = {
+            "project_fit","projectFit","project_fit_score","projectFitScore",
+            "fit_score","fitScore","project_fit_percent","projectFitPercent"
+        };
+        for (String k : keys) {
+            Double v = toDouble(map.get(k));
+            if (v != null) return v;
         }
+
+        Object projTypeObj = map.get("project_type");
+        if (projTypeObj instanceof Map<?, ?> pm) {
+            Double v = toDouble(((Map<?, ?>) pm).get("score"));
+            if (v == null) v = toDouble(((Map<?, ?>) pm).get("confidence"));
+            if (v != null) return v;
+        }
+
+        Object fitObj = map.get("fit");
+        if (fitObj instanceof Map<?, ?> fm) {
+            Double v = toDouble(((Map<?, ?>) fm).get("score"));
+            if (v == null) v = toDouble(((Map<?, ?>) fm).get("confidence"));
+            if (v != null) return v;
+        }
+
+        Object topk = map.get("top_k");
+        if (topk instanceof List<?> list && !list.isEmpty()) {
+            Object first = list.get(0);
+            if (first instanceof Map<?, ?> m && m.get("score") != null) {
+                Double v = toDouble(m.get("score"));
+                if (v != null) return v;
+            }
+        }
+
+        return null;
     }
 
-    /**
-     * GET /cv/{identifier}/phone
-     * Returns the phone number from parse_resume result.
-     * Identifier can be candidate ID (numeric) or email.
-     */
-    @GetMapping("/{identifier}/phone")
-    public ResponseEntity<?> getCandidatePhone(@PathVariable("identifier") String identifier) {
-        System.out.println("=== PHONE ENDPOINT DEBUG ===");
-        System.out.println("Identifier: " + identifier);
-        
-        try {
-            Long candidateId = null;
-            String email = null;
-            
-            // Parse identifier as ID or email
-            try {
-                candidateId = Long.parseLong(identifier);
-                System.out.println("Parsed as candidate ID: " + candidateId);
-            } catch (NumberFormatException ignored) {
-                email = identifier;
-                System.out.println("Parsed as email: " + email);
-            }
-
-            String sql;
-            Object[] params;
-            
-            if (candidateId != null) {
-                sql = """
-                    SELECT TOP 1 
-                        c.Id, c.FirstName, c.LastName, c.Email,
-                        cpc.ResumeResult, cpc.ReceivedAt
-                    FROM dbo.Candidates c
-                    LEFT JOIN dbo.CandidateParsedCv cpc ON cpc.CandidateId = c.Id
-                    WHERE c.Id = ?
-                    ORDER BY cpc.ReceivedAt DESC
-                """;
-                params = new Object[]{candidateId};
-            } else {
-                sql = """
-                    SELECT TOP 1 
-                        c.Id, c.FirstName, c.LastName, c.Email,
-                        cpc.ResumeResult, cpc.ReceivedAt
-                    FROM dbo.Candidates c
-                    LEFT JOIN dbo.CandidateParsedCv cpc ON cpc.CandidateId = c.Id
-                    WHERE c.Email = ?
-                    ORDER BY cpc.ReceivedAt DESC
-                """;
-                params = new Object[]{email};
-            }
-
-            System.out.println("Executing SQL query...");
-            
-            var rows = jdbc.query(sql, params, (rs, i) -> {
-                long id = rs.getLong("Id");
-                String first = rs.getString("FirstName");
-                String last = rs.getString("LastName");
-                String mail = rs.getString("Email");
-                String resumeJson = rs.getString("ResumeResult");
-                Timestamp ts = rs.getTimestamp("ReceivedAt");
-                
-                System.out.println("Found candidate: " + id + " - " + first + " " + last);
-                System.out.println("ResumeResult present: " + (resumeJson != null));
-                if (resumeJson != null) {
-                    System.out.println("ResumeResult length: " + resumeJson.length());
-                }
-                
-                // Extract phone from ResumeResult
-                String phone = null;
-                String source = "not_found";
-                
-                try {
-                    phone = extractPhoneFromResume(resumeJson);
-                    if (phone != null && !phone.trim().isEmpty()) {
-                        source = "resume";
-                        System.out.println("Phone from resume: " + phone);
-                    } else {
-                        System.out.println("No phone found in resume");
-                    }
-                } catch (Exception e) {
-                    System.err.println("Failed to extract phone from resume: " + e.getMessage());
-                    e.printStackTrace();
-                }
-                
-                Map<String, Object> response = new LinkedHashMap<>();
-                response.put("candidateId", id);
-                response.put("firstName", first);
-                response.put("lastName", last);
-                response.put("email", mail);
-                response.put("phone", phone);
-                response.put("source", source);
-                response.put("receivedAt", ts != null ? ts.toInstant().toString() : null);
-                
-                return response;
-            });
-
-            System.out.println("Query returned " + rows.size() + " row(s)");
-
-            if (rows.isEmpty()) {
-                System.out.println("No candidate found for identifier: " + identifier);
-                return ResponseEntity.status(404)
-                    .body(Map.of(
-                        "message", "Candidate not found",
-                        "identifier", identifier
-                    ));
-            }
-            
-            System.out.println("Returning phone data successfully");
-            return ResponseEntity.ok(rows.get(0));
-            
-        } catch (Exception ex) {
-            System.err.println("=== PHONE ENDPOINT ERROR ===");
-            System.err.println("Error type: " + ex.getClass().getName());
-            System.err.println("Error message: " + ex.getMessage());
-            ex.printStackTrace();
-            
-            Map<String, Object> errorResponse = new LinkedHashMap<>();
-            errorResponse.put("status", "error");
-            errorResponse.put("message", "Failed to get phone number");
-            errorResponse.put("detail", ex.getMessage());
-            errorResponse.put("identifier", identifier);
-            
-            return ResponseEntity.status(500).body(errorResponse);
-        }
-    }
-
-    /**
-     * Extract phone number from ResumeResult JSON.
-     * Based on the structure: result.personal_info.phone
-     * Example: "065 924 3195"
-     */
-    @SuppressWarnings("unchecked")
-    private String extractPhoneFromResume(String resumeJson) {
-        if (resumeJson == null || resumeJson.trim().isEmpty()) {
-            System.out.println("extractPhoneFromResume: resumeJson is null or empty");
-            return null;
-        }
-        
-        try {
-            System.out.println("extractPhoneFromResume: Starting JSON parse...");
-            Map<String, Object> root = json.readValue(resumeJson, Map.class);
-            System.out.println("extractPhoneFromResume: JSON parsed successfully. Root keys: " + root.keySet());
-            
-            // Expected structure: root.result.personal_info.phone
-            Object resultObj = root.get("result");
-            if (resultObj == null) {
-                System.out.println("extractPhoneFromResume: 'result' key not found at root");
-                return null;
-            }
-            
-            if (!(resultObj instanceof Map<?, ?>)) {
-                System.out.println("extractPhoneFromResume: 'result' is not a Map, type: " + resultObj.getClass().getName());
-                return null;
-            }
-            
-            Map<String, Object> result = (Map<String, Object>) resultObj;
-            System.out.println("extractPhoneFromResume: result keys: " + result.keySet());
-            
-            // Check personal_info.phone (primary location)
-            Object personalInfoObj = result.get("personal_info");
-            if (personalInfoObj == null) {
-                System.out.println("extractPhoneFromResume: 'personal_info' key not found in result");
-                return null;
-            }
-            
-            if (!(personalInfoObj instanceof Map<?, ?>)) {
-                System.out.println("extractPhoneFromResume: 'personal_info' is not a Map, type: " + personalInfoObj.getClass().getName());
-                return null;
-            }
-            
-            Map<String, Object> personalInfo = (Map<String, Object>) personalInfoObj;
-            System.out.println("extractPhoneFromResume: personal_info keys: " + personalInfo.keySet());
-            
-            Object phoneObj = personalInfo.get("phone");
-            if (phoneObj != null) {
-                String phone = String.valueOf(phoneObj).trim();
-                if (!phone.isEmpty() && !phone.equals("null")) {
-                    System.out.println("extractPhoneFromResume: Found phone in personal_info: " + phone);
-                    return phone;
-                }
-            }
-            
-            // Try alternative keys
-            phoneObj = personalInfo.get("contact_number");
-            if (phoneObj != null) {
-                String phone = String.valueOf(phoneObj).trim();
-                if (!phone.isEmpty() && !phone.equals("null")) {
-                    System.out.println("extractPhoneFromResume: Found contact_number: " + phone);
-                    return phone;
-                }
-            }
-            
-            phoneObj = personalInfo.get("mobile");
-            if (phoneObj != null) {
-                String phone = String.valueOf(phoneObj).trim();
-                if (!phone.isEmpty() && !phone.equals("null")) {
-                    System.out.println("extractPhoneFromResume: Found mobile: " + phone);
-                    return phone;
-                }
-            }
-            
-            System.out.println("extractPhoneFromResume: No phone found in personal_info");
-            return null;
-            
-        } catch (Exception e) {
-            System.err.println("extractPhoneFromResume exception: " + e.getClass().getName() + " - " + e.getMessage());
-            e.printStackTrace();
-            return null;
-        }
+    // Normalize score possibly expressed as 0..1, 0..10, or 0..100 to 0..10.
+    private double normalizeToTen(Double score) {
+        double d = score;
+        if (Double.isNaN(d) || Double.isInfinite(d)) return 0.0;
+        if (d <= 1.0) return d * 10.0;     // probability
+        if (d <= 10.0) return d;           // already on 0..10
+        if (d <= 100.0) return d / 10.0;   // percentage
+        return Math.max(0.0, Math.min(10.0, d / 10.0)); // clamp
     }
 }
 
