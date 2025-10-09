@@ -209,7 +209,6 @@ export default function UploadCVPage() {
   const [candidateSurname, setCandidateSurname] = useState("");
   const [candidateEmail, setCandidateEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [aiUploadData, setAiUploadData] = useState<any | null>(null);
   const [aiParseData, setAiParseData] = useState<any | null>(null);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
     {}
@@ -462,7 +461,7 @@ export default function UploadCVPage() {
     }
   }, [tutorialStep, file]);
 
-  // Main processing function - call AI service directly
+  // Main processing function - only call parse_resume endpoint
   const handleProcess = async () => {
     if (!file) {
       setErrorPopup({ open: true, message: "Please select a file first." });
@@ -502,7 +501,7 @@ export default function UploadCVPage() {
     setLoading(true);
 
     try {
-      console.log("Starting CV processing - calling AI service directly...");
+      console.log("Starting CV processing - calling parse_resume endpoint...");
 
       const AI_BASE_URL =
         "https://cv-scanner-ai-cee2d5g9epb0hcg6.southafricanorth-01.azurewebsites.net";
@@ -511,29 +510,17 @@ export default function UploadCVPage() {
       const parseFormData = new FormData();
       parseFormData.append("file", file);
 
-      // Create FormData for upload endpoint
-      const uploadFormData = new FormData();
-      uploadFormData.append("file", file);
+      console.log("Calling parse_resume endpoint...");
 
-      console.log("Calling AI endpoints directly...");
-
-      // Call both endpoints directly
-      const [parseResponse, uploadResponse] = await Promise.all([
-        fetch(`${AI_BASE_URL}/parse_resume`, {
-          method: "POST",
-          body: parseFormData,
-        }),
-        fetch(`${AI_BASE_URL}/upload_cv?top_k=3`, {
-          method: "POST",
-          body: uploadFormData,
-        }),
-      ]);
+      // Call only parse_resume endpoint
+      const parseResponse = await fetch(`${AI_BASE_URL}/parse_resume`, {
+        method: "POST",
+        body: parseFormData,
+      });
 
       console.log("Parse response status:", parseResponse.status);
-      console.log("Upload response status:", uploadResponse.status);
 
       let parseData = null;
-      let uploadData = null;
 
       if (parseResponse.ok) {
         parseData = await parseResponse.json();
@@ -541,58 +528,25 @@ export default function UploadCVPage() {
       } else {
         const errorText = await parseResponse.text();
         console.error("Parse failed:", parseResponse.status, errorText);
+        throw new Error(`Parse failed: ${parseResponse.status} - ${errorText}`);
       }
 
-      if (uploadResponse.ok) {
-        uploadData = await uploadResponse.json();
-        console.log("Upload data received:", uploadData);
-      } else {
-        const errorText = await uploadResponse.text();
-        console.error("Upload failed:", uploadResponse.status, errorText);
-      }
-
-      // Check if both failed
-      if (!parseData && !uploadData) {
-        throw new Error(
-          "Both parse and upload requests failed. Check console for details."
-        );
+      // Check if parse failed
+      if (!parseData) {
+        throw new Error("Failed to parse CV. Please try again.");
       }
 
       // Process the data
-      let processedData = extractDataSafely(parseData || uploadData);
-
-      // Enhance skills from upload result if needed
-      if (
-        uploadData &&
-        (!processedData.skills || processedData.skills === "")
-      ) {
-        try {
-          const appliedSkills = uploadData?.applied?.Skills;
-          if (Array.isArray(appliedSkills) && appliedSkills.length) {
-            processedData.skills = appliedSkills.join(", ");
-          } else {
-            const rawSkills = uploadData?.raw?.Skills?.top_k;
-            if (Array.isArray(rawSkills) && rawSkills.length) {
-              processedData.skills = rawSkills
-                .map((t: any) => t.label)
-                .join(", ");
-            }
-          }
-        } catch (err) {
-          console.error("Failed to extract skills from upload data:", err);
-        }
-      }
+      let processedData = extractDataSafely(parseData);
 
       setProcessedData(processedData);
-      setAiUploadData(uploadData);
       setAiParseData(parseData);
 
       // Create file URL for preview
       const fileUrl = URL.createObjectURL(file);
 
-      // Navigate to results
+      // Navigate to results with enhanced parse data
       const navigationState = {
-        aiUpload: uploadData || {},
         aiParse: parseData || {},
         fileUrl,
         fileType: file.type,
@@ -1194,32 +1148,9 @@ export default function UploadCVPage() {
               </Box>
             </Box>
           )}
-          {/* Show raw AI upload/parse JSON for debugging / visibility */}
+          {/* Show raw AI parse JSON for debugging / visibility */}
           <Divider sx={{ my: 2 }} />
           <Box sx={{ px: 2 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
-              AI Upload Result (raw)
-            </Typography>
-            <Box
-              sx={{
-                bgcolor: "#ffffff",
-                color: "#000",
-                p: 1,
-                borderRadius: 1,
-                fontFamily: "monospace",
-                whiteSpace: "pre-wrap",
-                maxHeight: "20vh",
-                overflow: "auto",
-                fontSize: 12,
-              }}
-            >
-              <pre style={{ margin: 0 }}>
-                {aiUploadData
-                  ? JSON.stringify(aiUploadData, null, 2)
-                  : "No upload result"}
-              </pre>
-            </Box>
-
             <Typography
               variant="subtitle2"
               sx={{ fontWeight: "bold", mt: 2, mb: 1 }}
@@ -1484,64 +1415,3 @@ const reviewButtonStyle = {
       "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
   },
 };
-
-async function safeApiFetch(file: File) {
-  const results = {
-    parseSuccess: false,
-    uploadSuccess: false,
-    parseError: null as string | null,
-    uploadError: null as string | null,
-    parseData: null as any,
-    uploadData: null as any,
-  };
-
-  // Use FormData for both endpoints
-  const formData = new FormData();
-  formData.append("file", file);
-
-  // Parse endpoint
-  try {
-    formData.append("targetUrl", "/parse_resume");
-    const parseRes = await fetch("/cv/proxy-ai", {
-      method: "POST",
-      credentials: "include",
-      body: formData,
-    });
-
-    if (parseRes.ok) {
-      results.parseData = await parseRes.json();
-      results.parseSuccess = true;
-    } else {
-      const errText = await parseRes.text();
-      results.parseError = `HTTP ${parseRes.status} - ${errText}`;
-    }
-  } catch (err: any) {
-    results.parseError = err?.message || String(err);
-  }
-
-  // Upload/classification endpoint
-  try {
-    const uploadFormData = new FormData();
-    uploadFormData.append("file", file);
-    uploadFormData.append("targetUrl", "/upload_cv");
-    uploadFormData.append("top_k", "3");
-
-    const uploadRes = await fetch("/cv/proxy-ai", {
-      method: "POST",
-      credentials: "include",
-      body: uploadFormData,
-    });
-
-    if (uploadRes.ok) {
-      results.uploadData = await uploadRes.json();
-      results.uploadSuccess = true;
-    } else {
-      const errText = await uploadRes.text();
-      results.uploadError = `HTTP ${uploadRes.status} - ${errText}`;
-    }
-  } catch (err: any) {
-    results.uploadError = err?.message || String(err);
-  }
-
-  return results;
-}
