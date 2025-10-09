@@ -57,7 +57,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RestController
 @RequestMapping("/cv")
-@CrossOrigin(origins = "*")
 public class CVController {
     
     // New: DB + JSON helpers
