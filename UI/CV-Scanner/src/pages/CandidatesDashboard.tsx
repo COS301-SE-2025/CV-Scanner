@@ -676,7 +676,7 @@ export default function CandidatesDashboard() {
               </Box>
             </Paper>
 
-            {/* Bar Chart: Overall Tech Usage - FIXED children prop */}
+            {/* Bar Chart: Overall Tech Usage - FIXED */}
             <Paper
               sx={{
                 p: 2,
@@ -697,21 +697,18 @@ export default function CandidatesDashboard() {
               >
                 Overall Tech Usage
               </Typography>
-              <ResponsiveContainer width="100%" height={240}>
+              <ResponsiveContainer width="100%" height={200}>
                 <BarChart
                   data={groupedBarData.length ? groupedBarData : [{ name: "No Data", value: 0 }]}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
                 >
                   <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
                   <XAxis 
                     dataKey="name" 
-                    angle={-45}
-                    textAnchor="end"
-                    height={60}
                     interval={0}
                     tick={{ 
                       fill: "#575656ff", 
-                      fontWeight: "bold", 
+                      fontWeight: "bold",
                       fontSize: 11,
                     }}
                   />
