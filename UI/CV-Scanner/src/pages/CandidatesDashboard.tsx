@@ -881,7 +881,7 @@ export default function CandidatesDashboard() {
               </Box>
             </Paper>
 
-            {/* Doughnut Chart: Project Fit Types - FIXED with words */}
+            {/* Doughnut Chart: Project Fit Types - FIXED with correct label */}
             <Paper
               sx={{
                 p: 2,
@@ -919,12 +919,13 @@ export default function CandidatesDashboard() {
                   <Pie
                     data={projectFitData}
                     dataKey="value"
+                    nameKey="type"
                     cx="50%"
                     cy="50%"
                     innerRadius={40}
                     outerRadius={60}
-                    label={({ name, percent }) =>
-                      `${name}: ${
+                    label={({ type, percent }) =>
+                      `${type}: ${
                         Number.isFinite(percent)
                           ? (percent * 100).toFixed(0)
                           : "0"
@@ -944,7 +945,10 @@ export default function CandidatesDashboard() {
                       backgroundColor: "#2b3a55",
                       borderColor: "#4a5568",
                     }}
-                    formatter={(value, name) => [toNumberSafe(value), name]}
+                    formatter={(value: any, name: any, props: any) => {
+                      const typeName = props?.payload?.type || name;
+                      return [toNumberSafe(value), typeName];
+                    }}
                   />
                 </PieChart>
               </ResponsiveContainer>
