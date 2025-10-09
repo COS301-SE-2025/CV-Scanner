@@ -33,6 +33,7 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import Sidebar from "./Sidebar";
 import ConfigAlert from "./ConfigAlert";
+import RoleBasedAccess from "../components/RoleBaseAccess";
 import { apiFetch } from "../lib/api";
 import { useBrandLoader } from "../hooks/brandLoader";
 
@@ -609,6 +610,7 @@ export default function UploadCVPage() {
   };
 
   return (
+    <RoleBasedAccess allowedRoles={["Admin", "Editor"]} fallbackPath="/dashboard">
     <Box
       sx={{
         display: "flex",
@@ -1357,6 +1359,7 @@ export default function UploadCVPage() {
         </Fade>
       </Popover>
     </Box>
+    </RoleBasedAccess>
   );
 }
 
