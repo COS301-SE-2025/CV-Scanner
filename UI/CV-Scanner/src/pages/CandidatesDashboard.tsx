@@ -190,6 +190,51 @@ export default function CandidatesDashboard() {
     const parts = parseSkillFallback(String(raw));
     return parts.length ? parts.join(", ") : String(raw);
   }
+
+  // Helper to extract project fit types as words
+  function extractProjectFitTypes(pfJson: any): Array<{ type: string; value: number }> {
+    if (!Array.isArray(pfJson)) return [];
+    
+    const typeCounts = new Map<string, number>();
+    
+    for (const item of pfJson) {
+      let fitType = "Other";
+      
+      // Extract project fit type from various possible structures
+      if (item?.projectFit?.type) {
+        fitType = item.projectFit.type;
+      } else if (item?.projectFitLabel) {
+        fitType = item.projectFitLabel;
+      } else if (typeof item?.projectFit === 'string') {
+        fitType = item.projectFit;
+      } else if (item?.type) {
+        fitType = item.type;
+      }
+      
+      // Clean up the type - convert to words and filter out unwanted values
+      fitType = fitType.toString()
+        .replace(/[^a-zA-Z\s]/g, ' ') // Remove special characters but keep spaces
+        .replace(/\s+/g, ' ') // Normalize spaces
+        .trim()
+        .split(' ') // Split into words
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize each word
+        .join(' ');
+      
+      // Filter out "Unknown", empty, and numeric-only values
+      if (fitType && 
+          fitType.toLowerCase() !== 'unknown' && 
+          fitType.trim() !== '' &&
+          !/^\d+$/.test(fitType)) {
+        typeCounts.set(fitType, (typeCounts.get(fitType) || 0) + 1);
+      }
+    }
+    
+    // Convert to array and sort by count
+    return Array.from(typeCounts.entries())
+      .map(([type, value]) => ({ type, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 4); // Limit to top 4
+  }
   // --- end helpers ---
 
   useEffect(() => {
@@ -246,14 +291,16 @@ export default function CandidatesDashboard() {
           setRawSkillResponse(null);
 
           // Use apiFetch consistently (it should honor REACT_APP_API_BASE)
-          const [skillsRes, pfRes] = await Promise.all([
-            apiFetch("/cv/skill-distribution?limit=4").catch(() => null), // CHANGED: limit to 4
+          const [skillsRes, pfRes, techRes] = await Promise.all([
+            apiFetch("/cv/skill-distribution?limit=4").catch(() => null),
             apiFetch("/cv/project-fit?limit=200").catch(() => null),
+            apiFetch("/cv/top-technologies?limit=10").catch(() => null), // CHANGED: Get top 10 technologies
           ]);
 
           console.debug("Dashboard fetch statuses:", {
             skills: skillsRes?.status ?? null,
             projectFit: pfRes?.status ?? null,
+            technologies: techRes?.status ?? null,
           });
 
           // --- Skill distribution ---
@@ -297,7 +344,7 @@ export default function CandidatesDashboard() {
 
               if (parsed.length) {
                 parsed.sort((a, b) => b.value - a.value);
-                setSkillDistribution(parsed.slice(0, 4)); // CHANGED: limit to 4
+                setSkillDistribution(parsed.slice(0, 4));
               } else {
                 console.debug("skill-distribution: no usable data");
                 setSkillDistribution([]);
@@ -317,53 +364,53 @@ export default function CandidatesDashboard() {
           }
           // --- end skill distribution ---
 
-          // --- Project fit (FIXED: filter out Unknown and limit) ---
+          // --- Project fit (FIXED: Use word-based types) ---
           if (pfRes) {
             try {
               const pfJson = await pfRes.json().catch(() => null);
               console.debug("project-fit response:", pfJson);
+              
+              // Use the new helper function to extract word-based types
+              const projectFitArray = extractProjectFitTypes(pfJson);
+              setProjectFitData(projectFitArray);
+
+              // Also update recent candidates with proper fit types
               if (Array.isArray(pfJson)) {
-                const counts = new Map<string, number>();
                 const pfMap = new Map<number, any>();
                 for (const it of pfJson) {
                   const id = Number(it?.candidateId ?? it?.id);
-                  const type =
-                    it?.projectFit != null
-                      ? it.projectFit.type ?? it.projectFit
-                      : null;
                   if (!Number.isNaN(id)) pfMap.set(id, it);
-                  
-                  // FIXED: Filter out "Unknown" types and empty/null types
-                  const key = type || "Other";
-                  if (key.toLowerCase() !== "unknown" && key.trim() !== "") {
-                    counts.set(key, (counts.get(key) ?? 0) + 1);
-                  }
                 }
-                
-                // Convert to array and limit to top 4
-                const projectFitArray = Array.from(counts.entries())
-                  .map(([type, value]) => ({
-                    type,
-                    value,
-                  }))
-                  .sort((a, b) => b.value - a.value)
-                  .slice(0, 4); // CHANGED: limit to 4
-                
-                setProjectFitData(projectFitArray);
 
-                // merge project fit info into recent list if available
                 setRecent((prev) =>
                   prev.map((r) => {
                     const pf = pfMap.get(Number(r.id));
+                    let fitType = "N/A";
+                    
+                    if (pf?.projectFit?.type) {
+                      fitType = pf.projectFit.type;
+                    } else if (pf?.projectFitLabel) {
+                      fitType = pf.projectFitLabel;
+                    } else if (typeof pf?.projectFit === 'string') {
+                      fitType = pf.projectFit;
+                    }
+                    
+                    // Apply same cleaning to recent candidate fit types
+                    fitType = fitType.toString()
+                      .replace(/[^a-zA-Z\s]/g, ' ')
+                      .replace(/\s+/g, ' ')
+                      .trim()
+                      .split(' ')
+                      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                      .join(' ');
+                    
                     return {
                       ...r,
-                      fit: pf?.projectFit?.type ?? pf?.projectFitLabel ?? r.fit,
+                      fit: fitType || "N/A",
                       skills: r.skills ?? "—",
                     };
                   })
                 );
-              } else {
-                console.debug("project-fit: unexpected response shape", pfJson);
               }
             } catch (e) {
               console.debug("Failed to parse project-fit response", e);
@@ -393,67 +440,39 @@ export default function CandidatesDashboard() {
             setCandidateTrends([]);
           }
 
-          // --- Weekly tech usage (bar chart) ---
+          // --- Overall Tech Usage (bar chart) - UPDATED ---
           try {
-            // Prefer top-technologies endpoint for tech counts (simpler single-series chart)
-            const topTechRes = await apiFetch(
-              "/cv/top-technologies?limit=4" // CHANGED: limit to 4
-            ).catch(() => null);
-            if (topTechRes && topTechRes.ok) {
-              const topTechJson = await topTechRes.json().catch(() => []);
-              if (Array.isArray(topTechJson)) {
-                const techList = topTechJson.map((t: any) => ({
-                  name: normalizeSkillName(t.name),
-                  value: toNumberSafe(t.value ?? 0),
-                }));
+            // Use the technologies response for overall tech usage
+            if (techRes && techRes.ok) {
+              const techJson = await techRes.json().catch(() => []);
+              if (Array.isArray(techJson)) {
+                const techList = techJson.map((t: any) => ({
+                  name: normalizeSkillName(t.name || t.technology || t.tech),
+                  value: toNumberSafe(t.value ?? t.count ?? t.frequency ?? 0),
+                }))
+                .filter(item => item.name && item.name !== "—")
+                .sort((a, b) => b.value - a.value)
+                .slice(0, 10); // Get top 10 technologies
+                
                 setGroupedBarData(techList);
                 setTopTechnologies(techList);
                 if (techList.length) setTopTechnology(techList[0].name);
               }
             } else {
-              // fallback to weekly-tech-usage if top-technologies missing
-              const techRes = await apiFetch(
-                "/cv/weekly-tech-usage?limit=4" // CHANGED: limit to 4
-              ).catch(() => null);
-              if (techRes && techRes.ok) {
-                const techJson = await techRes.json().catch(() => []);
-                if (Array.isArray(techJson)) {
-                  const bar = techJson.map((t: any) => ({
-                    name: normalizeSkillName(t.name),
-                    value: toNumberSafe(t.value ?? 0),
-                  }));
-                  setGroupedBarData(bar);
-                  if (bar.length) {
-                    setTopTechnologies(bar);
-                    setTopTechnology(bar[0].name);
-                  }
-                }
+              // Fallback to skill distribution if tech endpoint fails
+              console.debug("Using skill distribution as fallback for tech usage");
+              if (skillDistribution.length) {
+                const techList = skillDistribution
+                  .filter(item => item.name && item.name !== "—")
+                  .slice(0, 10); // Top 10 skills as technologies
+                setGroupedBarData(techList);
+                setTopTechnologies(techList);
+                if (techList.length) setTopTechnology(techList[0].name);
               }
             }
           } catch (e) {
-            console.debug("weekly-tech-usage fetch failed", e);
+            console.debug("tech-usage fetch failed", e);
             setGroupedBarData([]);
-          }
-          // Also fetch top-technologies explicitly if not already set
-          try {
-            if (!topTechnologies.length) {
-              const topRes = await apiFetch(
-                "/cv/top-technologies?limit=4" // CHANGED: limit to 4
-              ).catch(() => null);
-              if (topRes && topRes.ok) {
-                const topJson = await topRes.json().catch(() => []);
-                if (Array.isArray(topJson) && topJson.length) {
-                  const list = topJson.map((t: any) => ({
-                    name: normalizeSkillName(t.name),
-                    value: toNumberSafe(t.value ?? 0),
-                  }));
-                  setTopTechnologies(list);
-                  setTopTechnology(list[0]?.name ?? "—");
-                }
-              }
-            }
-          } catch (e) {
-            console.debug("top-technologies fetch failed", e);
           }
         } catch (e) {
           console.warn("Failed to load dashboard charts:", e);
@@ -501,26 +520,11 @@ export default function CandidatesDashboard() {
   >([]);
   const [groupedBarData, setGroupedBarData] = useState<any[]>([]);
 
-  //Mock data for graphs
-  /*
-  const candidateTrends = [
-    { month: "Jan", candidates: 30 },
-    { month: "Feb", candidates: 45 },
-    { month: "Mar", candidates: 60 },
-    { month: "Apr", candidates: 50 },
-    { month: "May", candidates: 80 },
+  const COLORS = [
+    "#8884D8", "#00C49F", "#FFBB28", "#FF8042", 
+    "#82CA9D", "#FF6B6B", "#4ECDC4", "#45B7D1", 
+    "#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8"
   ];
-
-  // Weekly technology usage data for BarChart
-  const groupedBarData = [
-    { name: "Week 1", ".NET": 12, React: 9, Python: 6 },
-    { name: "Week 2", ".NET": 15, React: 11, Python: 8 },
-    { name: "Week 3", ".NET": 10, React: 14, Python: 9 },
-    { name: "Week 4", ".NET": 18, React: 13, Python: 11 },
-  ];
-  */
-
-  const COLORS = ["#8884D8", "#00C49F", "#FFBB28", "#FF8042"];
 
   return (
     <Box
@@ -710,7 +714,7 @@ export default function CandidatesDashboard() {
               </ResponsiveContainer>
             </Paper>
 
-            {/* Bar Chart: Dark Blue */}
+            {/* Bar Chart: Overall Tech Usage - UPDATED */}
             <Paper
               sx={{
                 p: 2,
@@ -729,24 +733,22 @@ export default function CandidatesDashboard() {
                   fontWeight: 600,
                 }}
               >
-                Weekly Tech Usage
+                Overall Tech Usage
               </Typography>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart
-                  data={
-                    groupedBarData.length
-                      ? groupedBarData.slice(0, 4) // CHANGED: Ensure only 4 items
-                      : [{ name: "No Data", value: 0 }]
-                  }
+                  data={groupedBarData.length ? groupedBarData : [{ name: "No Data", value: 0 }]}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
                 >
                   <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="name"
-                    stroke="#4a5568"
-                    tick={{ fill: "#575656ff", fontWeight: "bold" }}
+                  <XAxis 
+                    dataKey="name" 
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                    tick={{ fill: "#575656ff", fontWeight: "bold", fontSize: 12 }}
                   />
                   <YAxis
-                    stroke="#4a5568"
                     tick={{ fill: "#575656ff", fontWeight: "bold" }}
                   />
                   <RechartsTooltip
@@ -755,28 +757,25 @@ export default function CandidatesDashboard() {
                       borderColor: "#4a5568",
                       fontFamily: "Helvetica, sans-serif",
                     }}
+                    formatter={(value, name) => [
+                      toNumberSafe(value),
+                      `Usage Count`
+                    ]}
                   />
-                  <Legend
-                    formatter={(value) => (
-                      <span style={{ color: "#575656ff", fontWeight: 700 }}>
-                        {value}
-                      </span>
-                    )}
-                  />
-                  {/* single-series bars built from backend top tech counts */}
-                  {groupedBarData.slice(0, 4).map((d, i) => ( // CHANGED: Ensure only 4 items
-                    <Bar
-                      key={d.name}
-                      dataKey="value"
-                      name={d.name}
-                      fill={COLORS[i % COLORS.length]}
-                    />
-                  ))}
+                  <Bar 
+                    dataKey="value" 
+                    name="Technology Usage"
+                    fill="#8884D8"
+                  >
+                    {groupedBarData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </Paper>
 
-            {/* Pie Chart: Teal Accent */}
+            {/* Pie Chart: Skill Distribution */}
             <Paper
               sx={{
                 p: 2,
@@ -807,7 +806,7 @@ export default function CandidatesDashboard() {
               <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
                   <Pie
-                    data={skillDistribution.slice(0, 4)} // CHANGED: Ensure only 4 items
+                    data={skillDistribution.slice(0, 4)}
                     dataKey="value"
                     cx="50%"
                     cy="50%"
@@ -821,7 +820,7 @@ export default function CandidatesDashboard() {
                       }%`
                     }
                   >
-                    {(skillDistribution.slice(0, 4) || []).map((entry, index) => ( // CHANGED: Ensure only 4 items
+                    {(skillDistribution.slice(0, 4) || []).map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[index % COLORS.length]}
@@ -849,7 +848,7 @@ export default function CandidatesDashboard() {
               </ResponsiveContainer>
             </Paper>
 
-            {/* Doughnut Chart: Dark Blue */}
+            {/* Doughnut Chart: Project Fit Types - FIXED with words */}
             <Paper
               sx={{
                 p: 2,
@@ -885,14 +884,14 @@ export default function CandidatesDashboard() {
               <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
                   <Pie
-                    data={projectFitData.slice(0, 4)} // CHANGED: Ensure only 4 items
+                    data={projectFitData}
                     dataKey="value"
                     cx="50%"
                     cy="50%"
                     innerRadius={40}
                     outerRadius={60}
                     label={({ name, percent }) =>
-                      `${normalizeSkillName(name)}: ${
+                      `${name}: ${
                         Number.isFinite(percent)
                           ? (percent * 100).toFixed(0)
                           : "0"
@@ -900,7 +899,7 @@ export default function CandidatesDashboard() {
                     }
                     labelLine={true}
                   >
-                    {(projectFitData.slice(0, 4) || []).map((entry, index) => ( // CHANGED: Ensure only 4 items
+                    {(projectFitData || []).map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[index % COLORS.length]}
@@ -912,21 +911,10 @@ export default function CandidatesDashboard() {
                       backgroundColor: "#2b3a55",
                       borderColor: "#4a5568",
                     }}
-                    formatter={(value, name, props) => {
-                      const pct =
-                        props &&
-                        props.payload &&
-                        typeof props.payload.percent === "number" &&
-                        Number.isFinite(props.payload.percent)
-                          ? (props.payload.percent * 100).toFixed(1)
-                          : "";
-                      return [
-                        toNumberSafe(value),
-                        pct
-                          ? `${normalizeSkillName(name)}: ${pct}%`
-                          : normalizeSkillName(name),
-                      ];
-                    }}
+                    formatter={(value, name) => [
+                      toNumberSafe(value),
+                      name
+                    ]}
                   />
                 </PieChart>
               </ResponsiveContainer>
