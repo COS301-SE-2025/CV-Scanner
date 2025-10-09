@@ -2256,11 +2256,14 @@ private String truncateSummary(String s) {
      *   "lastName": "Doe",
      *   "email": "john@example.com",
      *   "phone": "+1234567890",
-     *   "source": "resume" | "candidate_table"
+     *   "source": "resume" | "candidate_table" | "not_found"
      * }
      */
     @GetMapping("/{identifier}/phone")
     public ResponseEntity<?> getCandidatePhone(@PathVariable("identifier") String identifier) {
+        System.out.println("=== PHONE ENDPOINT DEBUG ===");
+        System.out.println("Identifier: " + identifier);
+        
         try {
             Long candidateId = null;
             String email = null;
@@ -2268,8 +2271,10 @@ private String truncateSummary(String s) {
             // Parse identifier as ID or email
             try {
                 candidateId = Long.parseLong(identifier);
+                System.out.println("Parsed as candidate ID: " + candidateId);
             } catch (NumberFormatException ignored) {
                 email = identifier;
+                System.out.println("Parsed as email: " + email);
             }
 
             String sql;
@@ -2299,6 +2304,8 @@ private String truncateSummary(String s) {
                 params = new Object[]{email};
             }
 
+            System.out.println("Executing SQL query...");
+            
             var rows = jdbc.query(sql, params, (rs, i) -> {
                 long id = rs.getLong("Id");
                 String first = rs.getString("FirstName");
@@ -2308,15 +2315,36 @@ private String truncateSummary(String s) {
                 String resumeJson = rs.getString("ResumeResult");
                 Timestamp ts = rs.getTimestamp("ReceivedAt");
                 
+                System.out.println("Found candidate: " + id + " - " + first + " " + last);
+                System.out.println("Candidate table phone: " + candidatePhone);
+                System.out.println("ResumeResult present: " + (resumeJson != null));
+                if (resumeJson != null) {
+                    System.out.println("ResumeResult length: " + resumeJson.length());
+                }
+                
                 // Try to extract phone from ResumeResult first
-                String phoneFromResume = extractPhoneFromResume(resumeJson);
+                String phoneFromResume = null;
+                try {
+                    phoneFromResume = extractPhoneFromResume(resumeJson);
+                    System.out.println("Phone from resume: " + phoneFromResume);
+                } catch (Exception e) {
+                    System.err.println("Failed to extract phone from resume: " + e.getMessage());
+                    e.printStackTrace();
+                }
+                
                 String phone = phoneFromResume;
                 String source = "resume";
                 
                 // Fallback to Candidates table phone if resume has no phone
-                if (isBlank(phone)) {
+                if (phone == null || phone.trim().isEmpty()) {
                     phone = candidatePhone;
-                    source = "candidate_table";
+                    if (phone == null || phone.trim().isEmpty()) {
+                        source = "not_found";
+                        phone = null;
+                    } else {
+                        source = "candidate_table";
+                    }
+                    System.out.println("Using fallback phone. Source: " + source + ", Phone: " + phone);
                 }
                 
                 Map<String, Object> response = new LinkedHashMap<>();
@@ -2331,18 +2359,33 @@ private String truncateSummary(String s) {
                 return response;
             });
 
+            System.out.println("Query returned " + rows.size() + " row(s)");
+
             if (rows.isEmpty()) {
+                System.out.println("No candidate found for identifier: " + identifier);
                 return ResponseEntity.status(404)
-                    .body(Map.of("message", "Candidate not found"));
+                    .body(Map.of(
+                        "message", "Candidate not found",
+                        "identifier", identifier
+                    ));
             }
             
+            System.out.println("Returning phone data successfully");
             return ResponseEntity.ok(rows.get(0));
             
         } catch (Exception ex) {
-            System.err.println("Failed to get phone number: " + ex.getMessage());
+            System.err.println("=== PHONE ENDPOINT ERROR ===");
+            System.err.println("Error type: " + ex.getClass().getName());
+            System.err.println("Error message: " + ex.getMessage());
             ex.printStackTrace();
-            return ResponseEntity.status(500)
-                .body(createErrorResponse("Failed to get phone number: " + ex.getMessage()));
+            
+            Map<String, Object> errorResponse = new LinkedHashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", "Failed to get phone number");
+            errorResponse.put("detail", ex.getMessage());
+            errorResponse.put("identifier", identifier);
+            
+            return ResponseEntity.status(500).body(errorResponse);
         }
     }
 
@@ -2350,47 +2393,86 @@ private String truncateSummary(String s) {
 
     /**
      * Extract phone number from ResumeResult JSON.
-     * Looks in result.personal_info.phone and other common locations.
+     * Based on the structure: result.personal_info.phone
+     * Example: "065 924 3195"
      * Returns the phone number string, or null if not found.
      */
     @SuppressWarnings("unchecked")
     private String extractPhoneFromResume(String resumeJson) {
-        if (isBlank(resumeJson)) return null;
+        if (resumeJson == null || resumeJson.trim().isEmpty()) {
+            System.out.println("extractPhoneFromResume: resumeJson is null or empty");
+            return null;
+        }
         
         try {
+            System.out.println("extractPhoneFromResume: Starting JSON parse...");
             Map<String, Object> root = json.readValue(resumeJson, Map.class);
+            System.out.println("extractPhoneFromResume: JSON parsed successfully. Root keys: " + root.keySet());
             
-            // Try direct phone at root
-            Object phoneObj = root.get("phone");
-            if (phoneObj != null && !isBlank(String.valueOf(phoneObj))) {
-                return String.valueOf(phoneObj);
-            }
-            
-            // Try nested in result.personal_info.phone
+            // Expected structure: root.result.personal_info.phone
             Object resultObj = root.get("result");
-            if (resultObj instanceof Map<?, ?>) {
-                Map<String, Object> result = (Map<String, Object>) resultObj;
-                
-                // Check personal_info.phone
-                Object personalInfoObj = result.get("personal_info");
-                if (personalInfoObj instanceof Map<?, ?>) {
-                    Map<String, Object> personalInfo = (Map<String, Object>) personalInfoObj;
-                    phoneObj = personalInfo.get("phone");
-                    if (phoneObj != null && !isBlank(String.valueOf(phoneObj))) {
-                        return String.valueOf(phoneObj);
-                    }
-                }
-                
-                // Check direct phone in result
-                phoneObj = result.get("phone");
-                if (phoneObj != null && !isBlank(String.valueOf(phoneObj))) {
-                    return String.valueOf(phoneObj);
+            if (resultObj == null) {
+                System.out.println("extractPhoneFromResume: 'result' key not found at root");
+                return null;
+            }
+            
+            if (!(resultObj instanceof Map<?, ?>)) {
+                System.out.println("extractPhoneFromResume: 'result' is not a Map, type: " + resultObj.getClass().getName());
+                return null;
+            }
+            
+            Map<String, Object> result = (Map<String, Object>) resultObj;
+            System.out.println("extractPhoneFromResume: result keys: " + result.keySet());
+            
+            // Check personal_info.phone (primary location based on your example)
+            Object personalInfoObj = result.get("personal_info");
+            if (personalInfoObj == null) {
+                System.out.println("extractPhoneFromResume: 'personal_info' key not found in result");
+                return null;
+            }
+            
+            if (!(personalInfoObj instanceof Map<?, ?>)) {
+                System.out.println("extractPhoneFromResume: 'personal_info' is not a Map, type: " + personalInfoObj.getClass().getName());
+                return null;
+            }
+            
+            Map<String, Object> personalInfo = (Map<String, Object>) personalInfoObj;
+            System.out.println("extractPhoneFromResume: personal_info keys: " + personalInfo.keySet());
+            
+            Object phoneObj = personalInfo.get("phone");
+            if (phoneObj != null) {
+                String phone = String.valueOf(phoneObj).trim();
+                if (!phone.isEmpty() && !phone.equals("null")) {
+                    System.out.println("extractPhoneFromResume: Found phone in personal_info: " + phone);
+                    return phone;
                 }
             }
             
+            // Try alternative keys in personal_info
+            phoneObj = personalInfo.get("contact_number");
+            if (phoneObj != null) {
+                String phone = String.valueOf(phoneObj).trim();
+                if (!phone.isEmpty() && !phone.equals("null")) {
+                    System.out.println("extractPhoneFromResume: Found contact_number in personal_info: " + phone);
+                    return phone;
+                }
+            }
+            
+            phoneObj = personalInfo.get("mobile");
+            if (phoneObj != null) {
+                String phone = String.valueOf(phoneObj).trim();
+                if (!phone.isEmpty() && !phone.equals("null")) {
+                    System.out.println("extractPhoneFromResume: Found mobile in personal_info: " + phone);
+                    return phone;
+                }
+            }
+            
+            System.out.println("extractPhoneFromResume: No phone found in personal_info");
             return null;
+            
         } catch (Exception e) {
-            System.err.println("Failed to extract phone: " + e.getMessage());
+            System.err.println("extractPhoneFromResume exception: " + e.getClass().getName() + " - " + e.getMessage());
+            e.printStackTrace();
             return null;
         }
     }
