@@ -91,8 +91,9 @@ export default function CompareCandidates() {
   const [searchTermA, setSearchTermA] = useState("");
   const [searchTermB, setSearchTermB] = useState("");
   const [globalSearchTerm, setGlobalSearchTerm] = useState("");
+  const [loadingScores, setLoadingScores] = useState(false);
 
-  // Comparison state - SIMPLIFIED
+  // Comparison state
   const [comparisonData, setComparisonData] = useState<ComparisonData>({
     candidateA: null,
     candidateB: null,
@@ -103,7 +104,7 @@ export default function CompareCandidates() {
   const [comparisonResult, setComparisonResult] =
     useState<ComparisonResult | null>(null);
 
-  // Score ring
+  // ✅ Score ring component (same as Search page)
   function scoreColor(value: number) {
     const v = Math.max(0, Math.min(10, value));
     const hue = (v / 10) * 120;
@@ -114,21 +115,30 @@ export default function CompareCandidates() {
     const clamped = Math.max(0, Math.min(10, Number(value ?? 0)));
     const pct = clamped * 10;
     const ringColor = scoreColor(clamped);
+    const isPerfect = clamped === 10;
+
     return (
       <Box sx={{ position: "relative", display: "inline-flex" }}>
         <CircularProgress
           variant="determinate"
           value={100}
-          size={48}
+          size={64}
           thickness={4}
           sx={{ color: "rgba(255,255,255,0.15)" }}
         />
         <CircularProgress
           variant="determinate"
           value={pct}
-          size={48}
+          size={64}
           thickness={4}
-          sx={{ color: ringColor, position: "absolute", left: 0 }}
+          sx={{
+            color: ringColor,
+            position: "absolute",
+            left: 0,
+            ...(isPerfect && {
+              filter: "drop-shadow(0 0 6px rgba(0, 255, 0, 0.6))",
+            }),
+          }}
         />
         <Box
           sx={{
@@ -137,13 +147,17 @@ export default function CompareCandidates() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            flexDirection: "column",
           }}
         >
           <Typography
             variant="subtitle2"
-            sx={{ lineHeight: 1, fontWeight: 700, color: "#000", fontSize: 12 }}
+            sx={{ lineHeight: 1, fontWeight: 800, color: "#000", fontSize: 12 }}
           >
             {clamped}/10
+          </Typography>
+          <Typography variant="caption" sx={{ color: "#000", fontSize: 9 }}>
+            Score
           </Typography>
         </Box>
       </Box>
@@ -233,7 +247,7 @@ export default function CompareCandidates() {
     return Math.max(0, Math.min(10, p / 10));
   }
 
-  // Load user and candidate data
+  // ✅ Load user and candidate data (same as Search page)
   useEffect(() => {
     (async () => {
       try {
@@ -257,31 +271,24 @@ export default function CompareCandidates() {
         console.log("Fetching candidates and related data...");
 
         // Fetch all data in parallel
-        const [candRes, fnRes, scoresRes] = await Promise.all([
+        const [candRes, fnRes] = await Promise.all([
           apiFetch("/cv/candidates").catch(() => null),
           apiFetch("/cv/filenames").catch(() => null),
-          apiFetch("/cv/average-scores?limit=500").catch(() => null),
         ]);
 
         console.log("API Response statuses:", {
           candidates: candRes?.status,
           filenames: fnRes?.status,
-          scores: scoresRes?.status,
         });
 
         const list =
           candRes && candRes.ok ? await candRes.json().catch(() => []) : [];
         const filenames =
           fnRes && fnRes.ok ? await fnRes.json().catch(() => []) : [];
-        const scores =
-          scoresRes && scoresRes.ok
-            ? await scoresRes.json().catch(() => [])
-            : [];
 
         console.log("Loaded data counts:", {
           candidates: list.length,
           filenames: filenames.length,
-          scores: scores.length,
         });
 
         // Build lookup maps
@@ -292,20 +299,9 @@ export default function CompareCandidates() {
           }
         }
 
-        const scoresMap = new Map<number, number>();
-        if (Array.isArray(scores)) {
-          for (const s of scores) {
-            const id = Number(s?.candidateId ?? s?.id);
-            const scoreVal = s?.averageScoreOutOf10 ?? s?.averageScore;
-            if (!Number.isNaN(id) && scoreVal != null) {
-              scoresMap.set(id, Math.max(0, Math.min(10, Number(scoreVal))));
-            }
-          }
-        }
-
-        // Now fetch project fit labels for each candidate individually
-        const mapped: Candidate[] = await Promise.all(
-          (Array.isArray(list) ? list : []).map(async (c: any) => {
+        // Map candidates with initial score of 0
+        const mapped: Candidate[] = (Array.isArray(list) ? list : []).map(
+          (c: any) => {
             const first = c.firstName || c.first_name || "";
             const last = c.lastName || c.last_name || "";
             const name = `${first} ${last}`.trim() || c.email || "Unknown";
@@ -323,25 +319,6 @@ export default function CompareCandidates() {
               filename = basenameFromUrl(filename);
             filename = makeFriendlyFilename(name, filename);
 
-            // Get score from map
-            const score =
-              scoresMap.get(Number(c.id)) ?? parsePercentToScore(c.match);
-
-            // Fetch project fit for this candidate
-            let match = "N/A";
-            try {
-              const ptRes = await apiFetch(`/cv/${c.id}/project-type`);
-              if (ptRes.ok) {
-                const ptData = await ptRes.json();
-                match = ptData.projectFitLabel ?? ptData.projectType ?? "N/A";
-              }
-            } catch (e) {
-              console.warn(
-                `Failed to fetch project fit for candidate ${c.id}:`,
-                e
-              );
-            }
-
             return {
               id: Number(c.id),
               firstName: first,
@@ -350,17 +327,84 @@ export default function CompareCandidates() {
               skills: Array.isArray(c.skills) ? c.skills : [],
               project,
               receivedAt: c.receivedAt,
-              match,
+              match: "N/A",
               cvFileUrl: c.cvFileUrl ?? null,
               cvFileType: c.cvFileType ?? null,
               filename,
-              score,
+              score: 0, // Will be fetched
             } as Candidate;
-          })
+          }
         );
 
-        console.log("Mapped candidates with project fits:", mapped.length);
         setCandidates(mapped);
+
+        // ✅ Fetch CV scores and project types individually (same as Search page)
+        setLoadingScores(true);
+        try {
+          const scorePromises = mapped.map(async (cand) => {
+            try {
+              const scoreRes = await apiFetch(`/cv/${cand.id}/cv-score`);
+              if (scoreRes.ok) {
+                const scoreData = await scoreRes.json();
+                return {
+                  id: cand.id,
+                  score: scoreData.cvScore ?? 0,
+                };
+              }
+            } catch (e) {
+              console.warn(`Failed to fetch cv-score for ${cand.id}:`, e);
+            }
+            return { id: cand.id, score: 0 };
+          });
+
+          const projectTypePromises = mapped.map(async (cand) => {
+            try {
+              const ptRes = await apiFetch(`/cv/${cand.id}/project-type`);
+              if (ptRes.ok) {
+                const ptData = await ptRes.json();
+                return {
+                  id: cand.id,
+                  projectFitLabel: ptData.projectFitLabel ?? null,
+                };
+              }
+            } catch (e) {
+              console.warn(`Failed to fetch project-type for ${cand.id}:`, e);
+            }
+            return {
+              id: cand.id,
+              projectFitLabel: null,
+            };
+          });
+
+          const [scores, projectTypes] = await Promise.all([
+            Promise.all(scorePromises),
+            Promise.all(projectTypePromises),
+          ]);
+
+          const scoreMap = new Map(scores.map((s) => [s.id, s.score]));
+          const projectTypeMap = new Map(
+            projectTypes.map((pt) => [pt.id, pt.projectFitLabel])
+          );
+
+          setCandidates((prev) =>
+            prev.map((cand) => ({
+              ...cand,
+              score: Math.max(
+                0,
+                Math.min(10, scoreMap.get(Number(cand.id)) ?? 0)
+              ),
+              match: projectTypeMap.get(Number(cand.id)) ?? "N/A",
+            }))
+          );
+
+          console.log(
+            `✅ Fetched scores and project types for ${mapped.length} candidates`
+          );
+        } catch (e) {
+          console.error("Failed to fetch individual scores/project types:", e);
+        } finally {
+          setLoadingScores(false);
+        }
       } catch (e) {
         console.warn("Failed loading candidates:", e);
         setCandidates([]);
@@ -435,7 +479,6 @@ export default function CompareCandidates() {
     setSelectedCandidateName("");
   };
 
-  // Handle checkbox changes - SIMPLIFIED
   const handleCheckboxChange = (candidate: "A" | "B", skill: string) => {
     setComparisonData((prev) => ({
       ...prev,
@@ -446,11 +489,9 @@ export default function CompareCandidates() {
     }));
   };
 
-  // Calculate comparison results - UPDATED WEIGHTS
   const calculateComparison = () => {
     if (!candidateA || !candidateB) return;
 
-    // Skills (25% of total)
     const skillsACount = Object.keys(comparisonData.skillsA).length;
     const skillsBCount = Object.keys(comparisonData.skillsB).length;
     const skillsASelected = Object.values(comparisonData.skillsA).filter(
@@ -465,7 +506,6 @@ export default function CompareCandidates() {
     const skillsBScore =
       skillsBCount > 0 ? (skillsBSelected / skillsBCount) * 25 : 0;
 
-    // Base score from AI model (75% of total)
     const baseAScore = ((candidateA.score || 0) / 10) * 75;
     const baseBScore = ((candidateB.score || 0) / 10) * 75;
 
@@ -505,7 +545,6 @@ export default function CompareCandidates() {
     }
   };
 
-  // Filtering
   const getFilteredCandidates = (side: "A" | "B") => {
     const searchTerm = (side === "A" ? searchTermA : searchTermB)
       .trim()
@@ -552,6 +591,7 @@ export default function CompareCandidates() {
     });
   };
 
+  // ✅ Updated candidate card to match Search page style
   const renderCandidateCard = (candidate: Candidate, side: "A" | "B") => {
     const isSelected =
       side === "A"
@@ -582,57 +622,101 @@ export default function CompareCandidates() {
             : "none",
           cursor: isBlocked ? "not-allowed" : "pointer",
           opacity: isBlocked ? 0.6 : 1,
+          "&:hover": !isBlocked
+            ? {
+                boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
+                transform: "translateY(-2px)",
+              }
+            : {},
+          transition: "all 0.2s ease",
         }}
         onClick={() => !isBlocked && handleSelectCandidate(candidate, side)}
       >
         <CardContent sx={{ p: 2 }}>
-          <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-            <Avatar sx={{ bgcolor: "#93AFF7", mr: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}>
+            <Avatar
+              sx={{
+                bgcolor: "#93AFF7",
+                width: 56,
+                height: 56,
+                fontSize: "1.5rem",
+                fontWeight: "bold",
+              }}
+            >
               {initialsOf(candidate.firstName, candidate.lastName)}
             </Avatar>
+
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography sx={{ fontWeight: "bold" }}>
+              <Typography
+                sx={{ fontWeight: "bold", fontSize: "1.1rem", mb: 0.5 }}
+              >
                 {candidate.firstName} {candidate.lastName}
               </Typography>
-              <Typography sx={{ color: "#333" }}>{candidate.email}</Typography>
+              <Typography sx={{ color: "#555", fontSize: "0.9rem", mb: 1 }}>
+                {candidate.email}
+              </Typography>
+              <Typography
+                sx={{
+                  fontWeight: "bold",
+                  color: "#0D1B2A",
+                  mb: 1,
+                  fontSize: "0.95rem",
+                }}
+              >
+                File: {candidate.filename ?? candidate.project}
+              </Typography>
+
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mb: 1 }}>
+                {skillsToShow.map((skill) => (
+                  <Chip
+                    key={skill}
+                    label={skill}
+                    size={isMobile ? "small" : "medium"}
+                    sx={{
+                      bgcolor: "#93AFF7",
+                      color: "#0D1B2A",
+                      fontWeight: "bold",
+                    }}
+                  />
+                ))}
+                {remainingSkillsCount > 0 && (
+                  <Chip
+                    label={`+${remainingSkillsCount}`}
+                    size={isMobile ? "small" : "medium"}
+                    sx={{
+                      bgcolor: "#0D1B2A",
+                      color: "#93AFF7",
+                      fontWeight: "bold",
+                    }}
+                    onClick={(e) => handleViewAllSkills(candidate, e)}
+                  />
+                )}
+              </Box>
+
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "#204E20",
+                  fontWeight: "bold",
+                }}
+              >
+                Match: {candidate.match}
+              </Typography>
             </Box>
-            <Box>
+
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
               <ScoreRing value={candidate.score} />
             </Box>
           </Box>
 
-          <Typography sx={{ fontWeight: "bold", color: "#0D1B2A", mb: 1 }}>
-            File: {candidate.filename ?? candidate.project}
-          </Typography>
-
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, my: 1 }}>
-            {skillsToShow.map((skill) => (
-              <Chip
-                key={skill}
-                label={skill}
-                size={isMobile ? "small" : "medium"}
-                sx={{
-                  bgcolor: "#93AFF7",
-                  color: "#0D1B2A",
-                  fontWeight: "bold",
-                  textTransform: "lowercase",
-                }}
-              />
-            ))}
-            {remainingSkillsCount > 0 && (
-              <Chip
-                label={`+${remainingSkillsCount}`}
-                size={isMobile ? "small" : "medium"}
-                sx={{
-                  bgcolor: "#0D1B2A",
-                  color: "#93AFF7",
-                  fontWeight: "bold",
-                }}
-              />
-            )}
-          </Box>
-
-          <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+          <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
             {isSelected && (
               <Button
                 size="small"
@@ -641,6 +725,7 @@ export default function CompareCandidates() {
                   e.stopPropagation();
                   handleDeselect(side);
                 }}
+                sx={{ textTransform: "none" }}
               >
                 Deselect
               </Button>
@@ -649,6 +734,7 @@ export default function CompareCandidates() {
               size="small"
               variant="text"
               onClick={(e) => handleViewAllSkills(candidate, e)}
+              sx={{ textTransform: "none" }}
             >
               View All Skills ({(candidate.skills ?? []).length})
             </Button>
@@ -658,7 +744,6 @@ export default function CompareCandidates() {
     );
   };
 
-  // Render comparison breakdown section - SIMPLIFIED
   const renderComparisonBreakdown = () => {
     if (!candidateA || !candidateB || !comparisonResult) return null;
 
@@ -684,7 +769,6 @@ export default function CompareCandidates() {
             justifyContent: "center",
           }}
         >
-          {/* Skills Section */}
           <Box sx={{ flex: "1 1 300px", maxWidth: 400 }}>
             <Typography
               variant="subtitle1"
@@ -726,7 +810,6 @@ export default function CompareCandidates() {
             </Box>
           </Box>
 
-          {/* Base Score Section */}
           <Box sx={{ flex: "1 1 300px", maxWidth: 400 }}>
             <Typography
               variant="subtitle1"
@@ -755,7 +838,6 @@ export default function CompareCandidates() {
           </Box>
         </Box>
 
-        {/* Final Scores */}
         <Box sx={{ mt: 3, p: 2, borderRadius: 2 }}>
           <Typography
             variant="h6"
@@ -818,7 +900,6 @@ export default function CompareCandidates() {
     );
   };
 
-  // Render detailed comparison sections with checkboxes - SIMPLIFIED
   const renderDetailedComparison = () => {
     if (!candidateA || !candidateB) return null;
 
@@ -831,7 +912,6 @@ export default function CompareCandidates() {
           Select Relevant Skills (25% of total score)
         </Typography>
 
-        {/* Skills Comparison */}
         <Box
           sx={{
             display: "flex",
@@ -920,6 +1000,7 @@ export default function CompareCandidates() {
               bgcolor: "#93AFF7",
               color: "#0D1B2A",
               fontWeight: "bold",
+              textTransform: "none",
             }}
             onClick={calculateComparison}
           >
@@ -982,7 +1063,14 @@ export default function CompareCandidates() {
               </Typography>
             </Box>
 
-            <IconButton color="inherit" onClick={() => { localStorage.removeItem("userEmail"); navigate("/login"); }} sx={{ ml: 1 }}>
+            <IconButton
+              color="inherit"
+              onClick={() => {
+                localStorage.removeItem("userEmail");
+                navigate("/login");
+              }}
+              sx={{ ml: 1 }}
+            >
               <ExitToAppIcon />
             </IconButton>
           </Toolbar>
@@ -1002,7 +1090,15 @@ export default function CompareCandidates() {
             Compare Candidates
           </Typography>
 
-          {/* Global Search Bar */}
+          {loadingScores && (
+            <Box sx={{ textAlign: "center", mb: 2 }}>
+              <CircularProgress size={24} sx={{ color: "#93AFF7" }} />
+              <Typography sx={{ color: "#fff", mt: 1 }}>
+                Loading candidate scores...
+              </Typography>
+            </Box>
+          )}
+
           <Paper sx={{ p: 2, mb: 3, bgcolor: "#DEDDEE" }}>
             <TextField
               fullWidth
@@ -1098,7 +1194,7 @@ export default function CompareCandidates() {
                   <Button
                     variant="outlined"
                     fullWidth
-                    sx={{ mt: 2 }}
+                    sx={{ mt: 2, textTransform: "none" }}
                     onClick={() => handleDeselect("A")}
                   >
                     Show All Candidates
@@ -1118,13 +1214,12 @@ export default function CompareCandidates() {
               <Paper
                 sx={{
                   flex: 1,
-                  p: 1,
-                  borderRadius: 2,
+                  p: 2,
+                  borderRadius: 3,
                   bgcolor: "#DEDDEE",
                   display: "flex",
                   flexDirection: "column",
                   overflow: "hidden",
-                  gap: 1,
                 }}
               >
                 <Typography
@@ -1175,7 +1270,7 @@ export default function CompareCandidates() {
                   <Button
                     variant="outlined"
                     fullWidth
-                    sx={{ mt: 2 }}
+                    sx={{ mt: 2, textTransform: "none" }}
                     onClick={() => handleDeselect("B")}
                   >
                     Show All Candidates
@@ -1220,7 +1315,7 @@ export default function CompareCandidates() {
               Skills for {selectedCandidateName}
             </DialogTitle>
             <DialogContent sx={{ bgcolor: "#DEDDEE" }}>
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, pt: 2 }}>
                 {selectedCandidateSkills.map((s) => (
                   <Chip
                     key={s}
@@ -1233,7 +1328,7 @@ export default function CompareCandidates() {
             <DialogActions sx={{ bgcolor: "#DEDDEE" }}>
               <Button
                 onClick={handleCloseSkillsDialog}
-                sx={{ color: "#0D1B2A" }}
+                sx={{ color: "#0D1B2A", textTransform: "none" }}
               >
                 Close
               </Button>
