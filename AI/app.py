@@ -1,7 +1,7 @@
 import time, logging, os, sys, subprocess, random
 from typing import Dict, List, Any
 from flask import Flask, jsonify, request, make_response
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
 import torch
 import spacy
 import numpy as np
@@ -31,15 +31,22 @@ logging.info("Runtime device: %s (cuda_available=%s)", DEVICE_ID, torch.cuda.is_
 
 # Flask app setup
 app = Flask(__name__)
-CORS(app,
-     origins=[
-         "http://localhost",
-         "http://localhost:3000",
-         "https://jolly-bay-0e45d8b03.2.azurestaticapps.net"
-     ],
-     methods=["GET", "POST", "OPTIONS"],
-     allow_headers=["Content-Type", "Authorization"],
-     supports_credentials=False)
+
+# Update CORS to include all your deployed origins
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "https://jolly-bay-0e45d8b03.2.azurestaticapps.net",  # Your Static Web App
+            "https://cvscanner-api-eaaudbdneafub4e3.southafricanorth-01.azurewebsites.net"  # Your Java API
+        ],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization", "Accept"],
+        "supports_credentials": True,
+        "expose_headers": ["Content-Type", "Content-Length"]
+    }
+})
 
 gunicorn_logger = logging.getLogger("gunicorn.error")
 if gunicorn_logger.handlers:
