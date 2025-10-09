@@ -2248,16 +2248,6 @@ private String truncateSummary(String s) {
      * Returns the phone number from parse_resume result.
      * Identifier can be candidate ID (numeric) or email.
      * Falls back to Candidates table phone if ResumeResult has no phone.
-     * 
-     * Response:
-     * {
-     *   "candidateId": 123,
-     *   "firstName": "John",
-     *   "lastName": "Doe",
-     *   "email": "john@example.com",
-     *   "phone": "+1234567890",
-     *   "source": "resume" | "candidate_table" | "not_found"
-     * }
      */
     @GetMapping("/{identifier}/phone")
     public ResponseEntity<?> getCandidatePhone(@PathVariable("identifier") String identifier) {
@@ -2389,13 +2379,10 @@ private String truncateSummary(String s) {
         }
     }
 
-    // ========== HELPER METHOD FOR PHONE EXTRACTION ==========
-
     /**
      * Extract phone number from ResumeResult JSON.
      * Based on the structure: result.personal_info.phone
      * Example: "065 924 3195"
-     * Returns the phone number string, or null if not found.
      */
     @SuppressWarnings("unchecked")
     private String extractPhoneFromResume(String resumeJson) {
@@ -2424,7 +2411,7 @@ private String truncateSummary(String s) {
             Map<String, Object> result = (Map<String, Object>) resultObj;
             System.out.println("extractPhoneFromResume: result keys: " + result.keySet());
             
-            // Check personal_info.phone (primary location based on your example)
+            // Check personal_info.phone (primary location)
             Object personalInfoObj = result.get("personal_info");
             if (personalInfoObj == null) {
                 System.out.println("extractPhoneFromResume: 'personal_info' key not found in result");
@@ -2448,12 +2435,12 @@ private String truncateSummary(String s) {
                 }
             }
             
-            // Try alternative keys in personal_info
+            // Try alternative keys
             phoneObj = personalInfo.get("contact_number");
             if (phoneObj != null) {
                 String phone = String.valueOf(phoneObj).trim();
                 if (!phone.isEmpty() && !phone.equals("null")) {
-                    System.out.println("extractPhoneFromResume: Found contact_number in personal_info: " + phone);
+                    System.out.println("extractPhoneFromResume: Found contact_number: " + phone);
                     return phone;
                 }
             }
@@ -2462,7 +2449,7 @@ private String truncateSummary(String s) {
             if (phoneObj != null) {
                 String phone = String.valueOf(phoneObj).trim();
                 if (!phone.isEmpty() && !phone.equals("null")) {
-                    System.out.println("extractPhoneFromResume: Found mobile in personal_info: " + phone);
+                    System.out.println("extractPhoneFromResume: Found mobile: " + phone);
                     return phone;
                 }
             }
