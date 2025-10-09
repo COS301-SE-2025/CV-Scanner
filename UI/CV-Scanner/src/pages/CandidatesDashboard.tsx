@@ -614,11 +614,11 @@ export default function CandidatesDashboard() {
             sx={{
               display: "grid",
               gridTemplateColumns: {
-                xs: "1fr", // 1 column on mobile
-                sm: "1fr 1fr", // 2 columns on small/medium
-                lg: "1fr 1fr 1fr", // 3 columns on large
+                xs: "1fr",
+                sm: "1fr 1fr", 
+                lg: "1fr 1fr 1fr",
               },
-              gap: 4, // spacing between items
+              gap: 4,
               mb: 4,
             }}
           >
@@ -631,6 +631,9 @@ export default function CandidatesDashboard() {
                 color: "#000",
                 transition: "transform 0.2s",
                 "&:hover": { transform: "translateY(-4px)" },
+                height: 300, // Consistent height
+                display: "flex",
+                flexDirection: "column",
               }}
             >
               <Typography
@@ -639,38 +642,41 @@ export default function CandidatesDashboard() {
                   fontFamily: "Helvetica, sans-serif",
                   mb: 1,
                   fontWeight: 600,
+                  flexShrink: 0,
                 }}
               >
                 Monthly Candidate Uploads
               </Typography>
-              <ResponsiveContainer width="100%" height={200}>
-                <LineChart
-                  data={
-                    candidateTrends.length
-                      ? candidateTrends
-                      : [{ month: "N/A", candidates: 0 }]
-                  }
-                >
-                  <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fill: "#575656ff", fontWeight: "bold" }}
-                  />
-                  <YAxis tick={{ fill: "#575656ff", fontWeight: "bold" }} />
-                  <RechartsTooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="candidates"
-                    stroke="#0A2540 "
-                    strokeWidth={2}
-                    dot={{ r: 4 }}
-                    activeDot={{ r: 6, fill: "#0A2540 " }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <Box sx={{ flexGrow: 1, minHeight: 0 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={
+                      candidateTrends.length
+                        ? candidateTrends
+                        : [{ month: "N/A", candidates: 0 }]
+                    }
+                  >
+                    <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fill: "#575656ff", fontWeight: "bold" }}
+                    />
+                    <YAxis tick={{ fill: "#575656ff", fontWeight: "bold" }} />
+                    <RechartsTooltip />
+                    <Line
+                      type="monotone"
+                      dataKey="candidates"
+                      stroke="#0A2540 "
+                      strokeWidth={2}
+                      dot={{ r: 4 }}
+                      activeDot={{ r: 6, fill: "#0A2540 " }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </Box>
             </Paper>
 
-            {/* Bar Chart: Overall Tech Usage - MAXIMIZED sizing */}
+            {/* Bar Chart: Overall Tech Usage - FIXED consistent height */}
             <Paper
               sx={{
                 p: 2,
@@ -679,7 +685,7 @@ export default function CandidatesDashboard() {
                 color: "#000",
                 transition: "transform 0.2s",
                 "&:hover": { transform: "translateY(-4px)" },
-                height: 500, // Increased height
+                height: 300, // Same height as others
                 display: "flex",
                 flexDirection: "column",
               }}
@@ -697,25 +703,24 @@ export default function CandidatesDashboard() {
               </Typography>
               <Box sx={{ 
                 flexGrow: 1, 
-                height: '100%',
                 minHeight: 0,
               }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={groupedBarData.length ? groupedBarData : [{ name: "No Data", value: 0 }]}
-                    margin={{ top: 5, right: 20, left: 15, bottom: 70 }} // Reduced margins further
+                    margin={{ top: 5, right: 20, left: 15, bottom: 70 }}
                   >
                     <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
                     <XAxis 
                       dataKey="name" 
                       angle={-45}
                       textAnchor="end"
-                      height={60} // Reduced X-axis height
+                      height={60}
                       interval={0}
                       tick={{ 
                         fill: "#575656ff", 
                         fontWeight: "bold", 
-                        fontSize: 10, // Smaller font for X-axis
+                        fontSize: 10,
                       }}
                     />
                     <YAxis
@@ -723,7 +728,7 @@ export default function CandidatesDashboard() {
                       ticks={[0, 5, 10, 15, 20, 25, 30]}
                       allowDecimals={false}
                       tick={{ fill: "#575656ff", fontWeight: "bold", fontSize: 12 }}
-                      width={25} // Smaller Y-axis width
+                      width={25}
                     />
                     <RechartsTooltip
                       contentStyle={{
@@ -741,7 +746,7 @@ export default function CandidatesDashboard() {
                       dataKey="value" 
                       name="Technology Usage"
                       fill="#8884D8"
-                      barSize={30} // Increased bar width
+                      barSize={20} // Adjusted for consistent height
                     >
                       {groupedBarData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -761,6 +766,9 @@ export default function CandidatesDashboard() {
                 color: "#000",
                 transition: "transform 0.2s",
                 "&:hover": { transform: "translateY(-4px)" },
+                height: 300, // Same height as others
+                display: "flex",
+                flexDirection: "column",
                 "& .recharts-pie-label-text": {
                   fill: "#575656ff !important",
                   fontWeight: 700,
@@ -776,53 +784,56 @@ export default function CandidatesDashboard() {
                   fontFamily: "Helvetica, sans-serif",
                   mb: 1,
                   fontWeight: 600,
+                  flexShrink: 0,
                 }}
               >
                 Skill Distribution
               </Typography>
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={skillDistribution.slice(0, 4)}
-                    dataKey="value"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={60}
-                    labelLine={true}
-                    label={({ name, percent }) =>
-                      `${normalizeSkillName(name)}: ${
-                        Number.isFinite(percent)
-                          ? (percent * 100).toFixed(0)
-                          : "0"
-                      }%`
-                    }
-                  >
-                    {(skillDistribution.slice(0, 4) || []).map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip
-                    formatter={(value, name, props) => {
-                      const pct =
-                        props &&
-                        props.payload &&
-                        typeof props.payload.percent === "number" &&
-                        Number.isFinite(props.payload.percent)
-                          ? (props.payload.percent * 100).toFixed(1)
-                          : "";
-                      return [
-                        toNumberSafe(value),
-                        pct
-                          ? `${normalizeSkillName(name)}: ${pct}%`
-                          : normalizeSkillName(name),
-                      ];
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              <Box sx={{ flexGrow: 1, minHeight: 0 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={skillDistribution.slice(0, 4)}
+                      dataKey="value"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={70} // Slightly larger for consistent height
+                      labelLine={true}
+                      label={({ name, percent }) =>
+                        `${normalizeSkillName(name)}: ${
+                          Number.isFinite(percent)
+                            ? (percent * 100).toFixed(0)
+                            : "0"
+                        }%`
+                      }
+                    >
+                      {(skillDistribution.slice(0, 4) || []).map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip
+                      formatter={(value, name, props) => {
+                        const pct =
+                          props &&
+                          props.payload &&
+                          typeof props.payload.percent === "number" &&
+                          Number.isFinite(props.payload.percent)
+                            ? (props.payload.percent * 100).toFixed(1)
+                            : "";
+                        return [
+                          toNumberSafe(value),
+                          pct
+                            ? `${normalizeSkillName(name)}: ${pct}%`
+                            : normalizeSkillName(name),
+                        ];
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </Box>
             </Paper>
 
             {/* Doughnut Chart: Project Fit Types - FIXED with words */}
