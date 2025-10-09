@@ -2242,6 +2242,158 @@ private String truncateSummary(String s) {
             return null;
         }
     }
+
+    /**
+     * GET /cv/{identifier}/phone
+     * Returns the phone number from parse_resume result.
+     * Identifier can be candidate ID (numeric) or email.
+     * Falls back to Candidates table phone if ResumeResult has no phone.
+     * 
+     * Response:
+     * {
+     *   "candidateId": 123,
+     *   "firstName": "John",
+     *   "lastName": "Doe",
+     *   "email": "john@example.com",
+     *   "phone": "+1234567890",
+     *   "source": "resume" | "candidate_table"
+     * }
+     */
+    @GetMapping("/{identifier}/phone")
+    public ResponseEntity<?> getCandidatePhone(@PathVariable("identifier") String identifier) {
+        try {
+            Long candidateId = null;
+            String email = null;
+            
+            // Parse identifier as ID or email
+            try {
+                candidateId = Long.parseLong(identifier);
+            } catch (NumberFormatException ignored) {
+                email = identifier;
+            }
+
+            String sql;
+            Object[] params;
+            
+            if (candidateId != null) {
+                sql = """
+                    SELECT TOP 1 
+                        c.Id, c.FirstName, c.LastName, c.Email, c.Phone as CandidatePhone,
+                        cpc.ResumeResult, cpc.ReceivedAt
+                    FROM dbo.Candidates c
+                    LEFT JOIN dbo.CandidateParsedCv cpc ON cpc.CandidateId = c.Id
+                    WHERE c.Id = ?
+                    ORDER BY cpc.ReceivedAt DESC
+                """;
+                params = new Object[]{candidateId};
+            } else {
+                sql = """
+                    SELECT TOP 1 
+                        c.Id, c.FirstName, c.LastName, c.Email, c.Phone as CandidatePhone,
+                        cpc.ResumeResult, cpc.ReceivedAt
+                    FROM dbo.Candidates c
+                    LEFT JOIN dbo.CandidateParsedCv cpc ON cpc.CandidateId = c.Id
+                    WHERE c.Email = ?
+                    ORDER BY cpc.ReceivedAt DESC
+                """;
+                params = new Object[]{email};
+            }
+
+            var rows = jdbc.query(sql, params, (rs, i) -> {
+                long id = rs.getLong("Id");
+                String first = rs.getString("FirstName");
+                String last = rs.getString("LastName");
+                String mail = rs.getString("Email");
+                String candidatePhone = rs.getString("CandidatePhone");
+                String resumeJson = rs.getString("ResumeResult");
+                Timestamp ts = rs.getTimestamp("ReceivedAt");
+                
+                // Try to extract phone from ResumeResult first
+                String phoneFromResume = extractPhoneFromResume(resumeJson);
+                String phone = phoneFromResume;
+                String source = "resume";
+                
+                // Fallback to Candidates table phone if resume has no phone
+                if (isBlank(phone)) {
+                    phone = candidatePhone;
+                    source = "candidate_table";
+                }
+                
+                Map<String, Object> response = new LinkedHashMap<>();
+                response.put("candidateId", id);
+                response.put("firstName", first);
+                response.put("lastName", last);
+                response.put("email", mail);
+                response.put("phone", phone);
+                response.put("source", source);
+                response.put("receivedAt", ts != null ? ts.toInstant().toString() : null);
+                
+                return response;
+            });
+
+            if (rows.isEmpty()) {
+                return ResponseEntity.status(404)
+                    .body(Map.of("message", "Candidate not found"));
+            }
+            
+            return ResponseEntity.ok(rows.get(0));
+            
+        } catch (Exception ex) {
+            System.err.println("Failed to get phone number: " + ex.getMessage());
+            ex.printStackTrace();
+            return ResponseEntity.status(500)
+                .body(createErrorResponse("Failed to get phone number: " + ex.getMessage()));
+        }
+    }
+
+    // ========== HELPER METHOD FOR PHONE EXTRACTION ==========
+
+    /**
+     * Extract phone number from ResumeResult JSON.
+     * Looks in result.personal_info.phone and other common locations.
+     * Returns the phone number string, or null if not found.
+     */
+    @SuppressWarnings("unchecked")
+    private String extractPhoneFromResume(String resumeJson) {
+        if (isBlank(resumeJson)) return null;
+        
+        try {
+            Map<String, Object> root = json.readValue(resumeJson, Map.class);
+            
+            // Try direct phone at root
+            Object phoneObj = root.get("phone");
+            if (phoneObj != null && !isBlank(String.valueOf(phoneObj))) {
+                return String.valueOf(phoneObj);
+            }
+            
+            // Try nested in result.personal_info.phone
+            Object resultObj = root.get("result");
+            if (resultObj instanceof Map<?, ?>) {
+                Map<String, Object> result = (Map<String, Object>) resultObj;
+                
+                // Check personal_info.phone
+                Object personalInfoObj = result.get("personal_info");
+                if (personalInfoObj instanceof Map<?, ?>) {
+                    Map<String, Object> personalInfo = (Map<String, Object>) personalInfoObj;
+                    phoneObj = personalInfo.get("phone");
+                    if (phoneObj != null && !isBlank(String.valueOf(phoneObj))) {
+                        return String.valueOf(phoneObj);
+                    }
+                }
+                
+                // Check direct phone in result
+                phoneObj = result.get("phone");
+                if (phoneObj != null && !isBlank(String.valueOf(phoneObj))) {
+                    return String.valueOf(phoneObj);
+                }
+            }
+            
+            return null;
+        } catch (Exception e) {
+            System.err.println("Failed to extract phone: " + e.getMessage());
+            return null;
+        }
+    }
 }
 
 

@@ -58,7 +58,7 @@ export default function CandidateReviewSummary() {
     if (candidateId) localStorage.setItem("lastCandidateId", candidateId);
   }, [candidateId]);
 
-  // ✅ User info state with apiFetch
+  // User info state with apiFetch
   const [user, setUser] = useState<{
     first_name?: string;
     last_name?: string;
@@ -111,14 +111,14 @@ export default function CandidateReviewSummary() {
     navigate("/login", { replace: true });
   }
 
-  // ✅ Candidate basic info
+  // Candidate basic info
   const [candidate, setCandidate] = useState({
     name: "Loading...",
     email: "",
     phone: "",
   });
 
-  // ✅ Project fit state
+  // Project fit state
   const [projectFitData, setProjectFitData] = useState<{
     projectType?: string;
     projectFit?: number;
@@ -127,7 +127,7 @@ export default function CandidateReviewSummary() {
   } | null>(null);
   const [fitLoading, setFitLoading] = useState<boolean>(true);
 
-  // ✅ Summary state
+  // Summary state
   const [summaryData, setSummaryData] = useState<{
     summary?: string | null;
     firstName?: string;
@@ -137,21 +137,51 @@ export default function CandidateReviewSummary() {
   } | null>(null);
   const [summaryLoading, setSummaryLoading] = useState<boolean>(true);
 
-  // ✅ Skills state
+  // Skills state
   const [skillsData, setSkillsData] = useState<string[]>([]);
   const [skillsLoading, setSkillsLoading] = useState<boolean>(true);
 
-  // ✅ Experience state
+  // Experience state
   const [experienceData, setExperienceData] = useState<string[]>([]);
   const [experienceLoading, setExperienceLoading] = useState<boolean>(true);
 
-  // ✅ CV Score state
+  // CV Score state
   const [cvScore, setCvScore] = useState<number | null>(null);
   const [cvScoreLoading, setCvScoreLoading] = useState<boolean>(true);
 
-  // ✅ Fetch all data on mount
+  // ✅ NEW: Phone number state
+  const [phoneLoading, setPhoneLoading] = useState<boolean>(true);
+
+  // Fetch all data on mount
   useEffect(() => {
     if (!candidateId) return;
+
+    // Fetch phone number
+    (async () => {
+      setPhoneLoading(true);
+      try {
+        const res = await apiFetch(`/cv/${candidateId}/phone`, {
+          headers: { Accept: "application/json" },
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        setCandidate((prev) => ({
+          ...prev,
+          phone: data.phone || "N/A",
+        }));
+
+        console.log(`Phone loaded from ${data.source}:`, data.phone);
+      } catch (e: any) {
+        console.error("Failed to load phone:", e);
+        setCandidate((prev) => ({
+          ...prev,
+          phone: "N/A",
+        }));
+      } finally {
+        setPhoneLoading(false);
+      }
+    })();
 
     // Fetch project fit
     (async () => {
@@ -556,7 +586,7 @@ export default function CandidateReviewSummary() {
             )}
           </Box>
 
-          {/* ✅ SECTION 1: Summary & Project Fit */}
+          {/* SECTION 1: Summary & Project Fit - NO ICONS */}
           <Paper
             ref={summaryRef}
             elevation={6}
@@ -566,7 +596,7 @@ export default function CandidateReviewSummary() {
               variant="h5"
               sx={{ fontWeight: "bold", mb: 2, color: "#333" }}
             >
-              📄 Candidate Summary
+              Candidate Summary
             </Typography>
 
             {/* Project Fit */}
@@ -578,7 +608,7 @@ export default function CandidateReviewSummary() {
                   variant="h6"
                   sx={{ fontWeight: "bold", color: "#fff" }}
                 >
-                  🎯 Best Fit:{" "}
+                  Best Fit:{" "}
                   {projectFitData.projectFitLabel || projectFitData.projectType}
                 </Typography>
               </Box>
@@ -590,7 +620,7 @@ export default function CandidateReviewSummary() {
                 variant="subtitle1"
                 sx={{ fontWeight: "bold", mb: 1, color: "#333" }}
               >
-                📧 Contact Information
+                Contact Information
               </Typography>
               <Typography variant="body2" sx={{ color: "#555" }}>
                 <strong>Name:</strong> {candidate.name}
@@ -599,7 +629,8 @@ export default function CandidateReviewSummary() {
                 <strong>Email:</strong> {candidate.email || "-"}
               </Typography>
               <Typography variant="body2" sx={{ color: "#555" }}>
-                <strong>Phone:</strong> {candidate.phone || "-"}
+                <strong>Phone:</strong>{" "}
+                {phoneLoading ? "Loading..." : candidate.phone || "-"}
               </Typography>
             </Box>
 
@@ -629,7 +660,7 @@ export default function CandidateReviewSummary() {
             )}
           </Paper>
 
-          {/* ✅ SECTION 2: Skills */}
+          {/* SECTION 2: Skills - NO ICONS */}
           <Paper
             ref={skillsRef}
             elevation={6}
@@ -639,7 +670,7 @@ export default function CandidateReviewSummary() {
               variant="h5"
               sx={{ fontWeight: "bold", mb: 2, color: "#333" }}
             >
-              💻 Key Technologies & Skills
+              Key Technologies & Skills
             </Typography>
             {skillsLoading ? (
               <CircularProgress size={24} />
@@ -663,7 +694,7 @@ export default function CandidateReviewSummary() {
             )}
           </Paper>
 
-          {/* ✅ SECTION 3: Experience */}
+          {/* SECTION 3: Experience - NO ICONS */}
           <Paper
             ref={experienceRef}
             elevation={6}
@@ -673,7 +704,7 @@ export default function CandidateReviewSummary() {
               variant="h5"
               sx={{ fontWeight: "bold", mb: 2, color: "#333" }}
             >
-              💼 Work Experience
+              Work Experience
             </Typography>
             {experienceLoading ? (
               <CircularProgress size={24} />
