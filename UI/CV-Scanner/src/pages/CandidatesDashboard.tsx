@@ -670,7 +670,7 @@ export default function CandidatesDashboard() {
               </ResponsiveContainer>
             </Paper>
 
-            {/* Bar Chart: Overall Tech Usage - FIXED sizing */}
+            {/* Bar Chart: Overall Tech Usage - MAXIMIZED sizing */}
             <Paper
               sx={{
                 p: 2,
@@ -679,7 +679,7 @@ export default function CandidatesDashboard() {
                 color: "#000",
                 transition: "transform 0.2s",
                 "&:hover": { transform: "translateY(-4px)" },
-                height: 350, // Fixed height instead of minHeight
+                height: 400, // Increased height
                 display: "flex",
                 flexDirection: "column",
               }}
@@ -690,46 +690,48 @@ export default function CandidatesDashboard() {
                   fontFamily: "Helvetica, sans-serif",
                   mb: 1,
                   fontWeight: 600,
-                  flexShrink: 0, // Prevent title from shrinking
+                  flexShrink: 0,
+                  fontSize: '0.9rem', // Slightly smaller title
                 }}
               >
                 Overall Tech Usage
               </Typography>
               <Box sx={{ 
                 flexGrow: 1, 
-                height: '100%', // Use full available height
-                minHeight: 0, // Important for flex children
+                height: '100%',
+                minHeight: 0,
               }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={groupedBarData.length ? groupedBarData : [{ name: "No Data", value: 0 }]}
-                    margin={{ top: 10, right: 30, left: 20, bottom: 80 }} // Reduced top margin
+                    margin={{ top: 5, right: 20, left: 15, bottom: 70 }} // Reduced margins further
                   >
                     <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
                     <XAxis 
                       dataKey="name" 
                       angle={-45}
                       textAnchor="end"
-                      height={70}
+                      height={60} // Reduced X-axis height
                       interval={0}
                       tick={{ 
                         fill: "#575656ff", 
                         fontWeight: "bold", 
-                        fontSize: 11,
+                        fontSize: 10, // Smaller font for X-axis
                       }}
                     />
                     <YAxis
                       domain={[0, 30]}
                       ticks={[0, 5, 10, 15, 20, 25, 30]}
                       allowDecimals={false}
-                      tick={{ fill: "#575656ff", fontWeight: "bold" }}
-                      width={30} // Fixed width for Y-axis labels
+                      tick={{ fill: "#575656ff", fontWeight: "bold", fontSize: 12 }}
+                      width={25} // Smaller Y-axis width
                     />
                     <RechartsTooltip
                       contentStyle={{
                         backgroundColor: "#2b3a55",
                         borderColor: "#4a5568",
                         fontFamily: "Helvetica, sans-serif",
+                        fontSize: 12,
                       }}
                       formatter={(value, name) => [
                         toNumberSafe(value),
@@ -740,7 +742,7 @@ export default function CandidatesDashboard() {
                       dataKey="value" 
                       name="Technology Usage"
                       fill="#8884D8"
-                      barSize={25} // Fixed bar width
+                      barSize={30} // Increased bar width
                     >
                       {groupedBarData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
