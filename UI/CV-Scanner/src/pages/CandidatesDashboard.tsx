@@ -192,19 +192,20 @@ export default function CandidatesDashboard() {
   }
 
   // Helper to extract project fit types as words
-  function extractProjectFitTypes(pfJson: any): Array<{ type: string; value: number }> {
+  function extractProjectFitTypes(
+    pfJson: any
+  ): Array<{ type: string; value: number }> {
     if (!Array.isArray(pfJson)) return [];
-    
+
     const counts = new Map<string, number>();
-    
+
     for (const it of pfJson) {
-      const type = it?.projectFit != null
-        ? it.projectFit.type ?? it.projectFit
-        : null;
+      const type =
+        it?.projectFit != null ? it.projectFit.type ?? it.projectFit : null;
       const key = type || "Unknown";
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
-    
+
     return Array.from(counts.entries()).map(([type, value]) => ({
       type,
       value,
@@ -253,185 +254,261 @@ export default function CandidatesDashboard() {
           const rows = await recentRes.json().catch(() => []);
           const topRows = Array.isArray(rows) ? rows.slice(0, 3) : [];
           setRecent(topRows);
+
+          // ✅ Fetch project types for recent candidates
+          if (topRows.length > 0) {
+            const projectTypePromises = topRows.map(async (candidate: any) => {
+              try {
+                const ptRes = await apiFetch(
+                  `/cv/${candidate.id}/project-type`
+                );
+                if (ptRes.ok) {
+                  const ptData = await ptRes.json();
+                  return {
+                    id: candidate.id,
+                    projectFitLabel: ptData.projectFitLabel ?? null,
+                  };
+                }
+              } catch (e) {
+                console.warn(
+                  `Failed to fetch project-type for ${candidate.id}:`,
+                  e
+                );
+              }
+              return { id: candidate.id, projectFitLabel: null };
+            });
+
+            const projectTypes = await Promise.all(projectTypePromises);
+            const projectTypeMap = new Map(
+              projectTypes.map((pt) => [pt.id, pt.projectFitLabel])
+            );
+
+            setRecent((prev) =>
+              prev.map((r) => ({
+                ...r,
+                fit: projectTypeMap.get(Number(r.id)) ?? r.fit ?? "N/A",
+              }))
+            );
+          }
         } else {
           setRecent([]);
         }
       } catch {
         setRecent([]);
       }
-      // fetch chart data (skill distribution + project-fit + charts) after recent/load
+
+      // ✅ Load chart data using /cv/candidates and /cv/top-technologies
       (async () => {
         try {
           setSkillError(null);
-          setRawSkillResponse(null);
 
-          // Use apiFetch consistently (it should honor REACT_APP_API_BASE)
-          const [skillsRes, pfRes, techRes] = await Promise.all([
-            apiFetch("/cv/skill-distribution?limit=4").catch(() => null),
-            apiFetch("/cv/project-fit?limit=200").catch(() => null),
-            apiFetch("/cv/top-technologies?limit=10").catch(() => null), // CHANGED: Get top 10 technologies
+          // Get all candidates and top technologies in parallel
+          const [candidatesRes, techRes] = await Promise.all([
+            apiFetch("/cv/candidates").catch(() => null),
+            apiFetch("/cv/top-technologies?limit=10").catch(() => null),
           ]);
 
           console.debug("Dashboard fetch statuses:", {
-            skills: skillsRes?.status ?? null,
-            projectFit: pfRes?.status ?? null,
+            candidates: candidatesRes?.status ?? null,
             technologies: techRes?.status ?? null,
           });
 
-          // --- Skill distribution ---
-          if (skillsRes) {
-            try {
-              const skillsJson = await skillsRes.json().catch(() => null);
-              console.debug("skill-distribution response:", skillsJson);
-              setRawSkillResponse({
-                url: skillsRes.url ?? null,
-                body: skillsJson,
-                status: skillsRes.status,
-              });
-
-              let parsed: Array<{ name: string; value: number }> = [];
-
-              if (Array.isArray(skillsJson)) {
-                parsed = skillsJson
-                  .map((s: any) => {
-                    if (typeof s === "string") return { name: s, value: 1 };
-                    const rawName = s?.name ?? s?.label ?? JSON.stringify(s);
-                    return {
-                      name: normalizeSkillName(rawName),
-                      value: toNumberSafe(s?.value ?? s?.count ?? 0),
-                    };
-                  })
-                  .filter((it) => it.name);
-              } else if (skillsJson && typeof skillsJson === "object") {
-                parsed = Object.entries(skillsJson).map(([k, v]) => ({
-                  name: normalizeSkillName(k),
-                  value: toNumberSafe(v),
-                }));
-              } else if (typeof skillsJson === "string") {
-                const parts = parseSkillFallback(skillsJson);
-                parsed = parts.map((p) => ({
-                  name: normalizeSkillName(p),
-                  value: 1,
-                }));
-              } else {
-                parsed = [];
-              }
-
-              if (parsed.length) {
-                parsed.sort((a, b) => b.value - a.value);
-                setSkillDistribution(parsed.slice(0, 4));
-              } else {
-                console.debug("skill-distribution: no usable data");
-                setSkillDistribution([]);
-                setSkillError(
-                  "No usable data returned from /cv/skill-distribution"
-                );
-              }
-            } catch (e) {
-              console.debug("Failed to parse skill-distribution response", e);
-              setSkillDistribution([]);
-              setSkillError(String(e));
-            }
-          } else {
-            console.debug("skill-distribution response missing");
-            setSkillDistribution([]);
-            setSkillError("No response (fetch failed)");
+          let candidatesData: any[] = [];
+          if (candidatesRes && candidatesRes.ok) {
+            candidatesData = await candidatesRes.json().catch(() => []);
           }
-          // --- end skill distribution ---
 
-          // --- Project fit (FIXED: Use word-based types) ---
-          if (pfRes) {
-            try {
-              const pfJson = await pfRes.json().catch(() => null);
-              console.debug("project-fit response:", pfJson);
-              
-              // Use the restored helper function to extract project fit types
-              const projectFitArray = extractProjectFitTypes(pfJson);
-              setProjectFitData(projectFitArray);
+          // ✅ 1. Build skill distribution from candidates
+          if (Array.isArray(candidatesData) && candidatesData.length > 0) {
+            const skillCounts = new Map<string, number>();
 
-              // Also update recent candidates with proper fit types (restored logic)
-              if (Array.isArray(pfJson)) {
-                const pfMap = new Map<number, any>();
-                for (const it of pfJson) {
-                  const id = Number(it?.candidateId ?? it?.id);
-                  if (!Number.isNaN(id)) pfMap.set(id, it);
+            candidatesData.forEach((candidate: any) => {
+              const skills = candidate.skills;
+              let skillArray: string[] = [];
+
+              if (Array.isArray(skills)) {
+                skillArray = skills;
+              } else if (typeof skills === "string") {
+                skillArray = parseSkillFallback(skills);
+              }
+
+              skillArray.forEach((skill) => {
+                const normalized = normalizeSkillName(skill);
+                if (normalized && normalized !== "—") {
+                  skillCounts.set(
+                    normalized,
+                    (skillCounts.get(normalized) ?? 0) + 1
+                  );
                 }
+              });
+            });
 
-                setRecent((prev) =>
-                  prev.map((r) => {
-                    const pf = pfMap.get(Number(r.id));
-                    return {
-                      ...r,
-                      fit: pf?.projectFit?.type ?? pf?.projectFitLabel ?? r.fit,
-                      skills: r.skills ?? "—",
-                    };
-                  })
-                );
-              }
-            } catch (e) {
-              console.debug("Failed to parse project-fit response", e);
+            const skillDistData = Array.from(skillCounts.entries())
+              .map(([name, value]) => ({ name, value }))
+              .sort((a, b) => b.value - a.value)
+              .slice(0, 4);
+
+            setSkillDistribution(skillDistData);
+            setSkillError(null);
+
+            // Set top technology
+            if (skillDistData.length > 0) {
+              setTopTechnology(skillDistData[0].name);
+              setTopTechnologies(skillDistData);
             }
           } else {
-            console.debug("project-fit response missing");
+            console.debug("No candidates data available");
+            setSkillDistribution([]);
           }
 
-          // --- Monthly uploads (line chart) ---
-          try {
-            const monthsRes = await apiFetch(
-              "/cv/monthly-uploads?months=6"
-            ).catch(() => null);
-            if (monthsRes && monthsRes.ok) {
-              const monthsJson = await monthsRes.json().catch(() => []);
-              if (Array.isArray(monthsJson)) {
-                // convert to { month, candidates }
-                const series = monthsJson.map((m: any) => ({
-                  month: m.month,
-                  candidates: Number(m.count ?? m.cnt ?? 0),
-                }));
-                setCandidateTrends(series);
-              }
-            }
-          } catch (e) {
-            console.debug("monthly-uploads fetch failed", e);
-            setCandidateTrends([]);
-          }
-
-          // --- Overall Tech Usage (bar chart) - UPDATED ---
-          try {
-            // Use the technologies response for overall tech usage
-            if (techRes && techRes.ok) {
-              const techJson = await techRes.json().catch(() => []);
-              if (Array.isArray(techJson)) {
-                const techList = techJson.map((t: any) => ({
+          // ✅ 2. Overall Tech Usage Bar Chart (from /cv/top-technologies)
+          if (techRes && techRes.ok) {
+            const techJson = await techRes.json().catch(() => []);
+            if (Array.isArray(techJson) && techJson.length > 0) {
+              const techList = techJson
+                .map((t: any) => ({
                   name: normalizeSkillName(t.name || t.technology || t.tech),
                   value: toNumberSafe(t.value ?? t.count ?? t.frequency ?? 0),
                 }))
-                .filter(item => item.name && item.name !== "—")
+                .filter((item) => item.name && item.name !== "—")
                 .sort((a, b) => b.value - a.value)
-                .slice(0, 10); // Get top 10 technologies
-                
-                setGroupedBarData(techList);
-                setTopTechnologies(techList);
-                if (techList.length) setTopTechnology(techList[0].name);
-              }
-            } else {
-              // Fallback to skill distribution if tech endpoint fails
-              console.debug("Using skill distribution as fallback for tech usage");
-              if (skillDistribution.length) {
-                const techList = skillDistribution
-                  .filter(item => item.name && item.name !== "—")
-                  .slice(0, 10); // Top 10 skills as technologies
-                setGroupedBarData(techList);
-                setTopTechnologies(techList);
-                if (techList.length) setTopTechnology(techList[0].name);
-              }
+                .slice(0, 10);
+
+              setGroupedBarData(techList);
+              setTopTechnologies(techList);
+              if (techList.length) setTopTechnology(techList[0].name);
             }
-          } catch (e) {
-            console.debug("tech-usage fetch failed", e);
-            setGroupedBarData([]);
+          } else {
+            console.debug(
+              "top-technologies endpoint failed, using skill distribution fallback"
+            );
+            // Fallback to skill distribution
+            const skillCounts = new Map<string, number>();
+            candidatesData.forEach((candidate: any) => {
+              const skills = candidate.skills;
+              let skillArray: string[] = [];
+              if (Array.isArray(skills)) {
+                skillArray = skills;
+              } else if (typeof skills === "string") {
+                skillArray = parseSkillFallback(skills);
+              }
+              skillArray.forEach((skill) => {
+                const normalized = normalizeSkillName(skill);
+                if (normalized && normalized !== "—") {
+                  skillCounts.set(
+                    normalized,
+                    (skillCounts.get(normalized) ?? 0) + 1
+                  );
+                }
+              });
+            });
+
+            const techList = Array.from(skillCounts.entries())
+              .map(([name, value]) => ({ name, value }))
+              .sort((a, b) => b.value - a.value)
+              .slice(0, 10);
+
+            setGroupedBarData(techList);
+          }
+
+          // ✅ 3. Project Fit Pie Chart (fetch individual project types)
+          if (Array.isArray(candidatesData) && candidatesData.length > 0) {
+            const projectTypePromises = candidatesData
+              .slice(0, 50)
+              .map(async (candidate: any) => {
+                try {
+                  const ptRes = await apiFetch(
+                    `/cv/${candidate.id}/project-type`
+                  );
+                  if (ptRes.ok) {
+                    const ptData = await ptRes.json();
+                    return ptData.projectType ?? null;
+                  }
+                } catch (e) {
+                  console.warn(
+                    `Failed to fetch project-type for ${candidate.id}:`,
+                    e
+                  );
+                }
+                return null;
+              });
+
+            const projectTypes = await Promise.all(projectTypePromises);
+            const projectTypeCounts = new Map<string, number>();
+
+            projectTypes.forEach((type) => {
+              if (type && type !== "Unknown") {
+                projectTypeCounts.set(
+                  type,
+                  (projectTypeCounts.get(type) ?? 0) + 1
+                );
+              }
+            });
+
+            const projectFitArray = Array.from(projectTypeCounts.entries()).map(
+              ([type, value]) => ({ type, value })
+            );
+
+            setProjectFitData(
+              projectFitArray.length > 0
+                ? projectFitArray
+                : [{ type: "No Data", value: 1 }]
+            );
+          } else {
+            setProjectFitData([{ type: "No Data", value: 1 }]);
+          }
+
+          // ✅ 4. Monthly Uploads Line Chart (from receivedAt dates)
+          if (Array.isArray(candidatesData) && candidatesData.length > 0) {
+            const monthCounts = new Map<string, number>();
+            const now = new Date();
+
+            candidatesData.forEach((candidate: any) => {
+              if (candidate.receivedAt) {
+                try {
+                  const date = new Date(candidate.receivedAt);
+                  const monthDiff =
+                    (now.getFullYear() - date.getFullYear()) * 12 +
+                    (now.getMonth() - date.getMonth());
+
+                  if (monthDiff >= 0 && monthDiff < 6) {
+                    const monthKey = date.toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                    });
+                    monthCounts.set(
+                      monthKey,
+                      (monthCounts.get(monthKey) ?? 0) + 1
+                    );
+                  }
+                } catch (e) {
+                  console.warn("Invalid date:", candidate.receivedAt);
+                }
+              }
+            });
+
+            // Generate last 6 months
+            const monthlyData = [];
+            for (let i = 5; i >= 0; i--) {
+              const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+              const monthKey = d.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+              });
+              monthlyData.push({
+                month: monthKey,
+                candidates: monthCounts.get(monthKey) ?? 0,
+              });
+            }
+
+            setCandidateTrends(monthlyData);
+          } else {
+            setCandidateTrends([]);
           }
         } catch (e) {
           console.warn("Failed to load dashboard charts:", e);
+          setSkillDistribution([]);
+          setSkillError(String(e));
         }
       })();
     })();
@@ -477,9 +554,18 @@ export default function CandidatesDashboard() {
   const [groupedBarData, setGroupedBarData] = useState<any[]>([]);
 
   const COLORS = [
-    "#8884D8", "#00C49F", "#FFBB28", "#FF8042", 
-    "#82CA9D", "#FF6B6B", "#4ECDC4", "#45B7D1", 
-    "#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8"
+    "#8884D8",
+    "#00C49F",
+    "#FFBB28",
+    "#FF8042",
+    "#82CA9D",
+    "#FF6B6B",
+    "#4ECDC4",
+    "#45B7D1",
+    "#96CEB4",
+    "#FFEAA7",
+    "#DDA0DD",
+    "#98D8C8",
   ];
 
   return (
@@ -615,7 +701,7 @@ export default function CandidatesDashboard() {
               display: "grid",
               gridTemplateColumns: {
                 xs: "1fr",
-                sm: "1fr 1fr", 
+                sm: "1fr 1fr",
                 lg: "1fr 1fr 1fr",
               },
               gap: 4,
@@ -685,47 +771,59 @@ export default function CandidatesDashboard() {
                 color: "#000",
                 transition: "transform 0.2s",
                 "&:hover": { transform: "translateY(-4px)" },
-                height: 300,  
-                boxSizing: "border-box",               // 👈 same height for both
-               display: "flex",
-               flexDirection: "column",
+                height: 300,
+                boxSizing: "border-box", // 👈 same height for both
+                display: "flex",
+                flexDirection: "column",
               }}
             >
               <Typography
                 variant="subtitle1"
-               sx={{ fontFamily: "Helvetica, sans-serif", mb: 1, fontWeight: 600, flexShrink: 0 }}
+                sx={{
+                  fontFamily: "Helvetica, sans-serif",
+                  mb: 1,
+                  fontWeight: 600,
+                  flexShrink: 0,
+                }}
               >
                 Overall Tech Usage
               </Typography>
               <Box sx={{ flexGrow: 1, minHeight: 0 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={groupedBarData.length ? groupedBarData : [{ name: "No Data", value: 0 }]}
-                  margin={{ top: 10, right: 20, left: 10, bottom: 20 }}
-                >
-                  <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="name"
-                    tick={{ fill: "#575656ff", fontWeight: "bold", fontSize: 11 }}
-                  />
-                  <YAxis
-                    //domain={[0, 30]}
-                   // ticks={[0, 5, 10, 15, 20, 25, 30]}
-                    allowDecimals={false}
-                    tick={{ fill: "#575656ff", fontWeight: "bold" }}
-                  />
-                  <RechartsTooltip />
-                  <Bar 
-                    dataKey="value" 
-                    name="Technology Usage"
-                    fill="#8884D8"
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={
+                      groupedBarData.length
+                        ? groupedBarData
+                        : [{ name: "No Data", value: 0 }]
+                    }
+                    margin={{ top: 10, right: 20, left: 10, bottom: 20 }}
                   >
-                    {groupedBarData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+                    <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="name"
+                      tick={{
+                        fill: "#575656ff",
+                        fontWeight: "bold",
+                        fontSize: 11,
+                      }}
+                    />
+                    <YAxis
+                      //domain={[0, 30]}
+                      // ticks={[0, 5, 10, 15, 20, 25, 30]}
+                      allowDecimals={false}
+                      tick={{ fill: "#575656ff", fontWeight: "bold" }}
+                    />
+                    <RechartsTooltip />
+                    <Bar dataKey="value" name="Technology Usage" fill="#8884D8">
+                      {groupedBarData.map((_, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </Box>
             </Paper>
 
@@ -779,12 +877,14 @@ export default function CandidatesDashboard() {
                         }%`
                       }
                     >
-                      {(skillDistribution.slice(0, 4) || []).map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
+                      {(skillDistribution.slice(0, 4) || []).map(
+                        (entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        )
+                      )}
                     </Pie>
                     <RechartsTooltip
                       formatter={(value, name, props) => {
@@ -871,10 +971,7 @@ export default function CandidatesDashboard() {
                       backgroundColor: "#2b3a55",
                       borderColor: "#4a5568",
                     }}
-                    formatter={(value, name) => [
-                      toNumberSafe(value),
-                      name
-                    ]}
+                    formatter={(value, name) => [toNumberSafe(value), name]}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -1148,7 +1245,7 @@ const chartCardStyle = {
   color: "#000",
   transition: "transform 0.2s",
   "&:hover": { transform: "translateY(-4px)" },
-  height: 300,                // 👈 same height for both
+  height: 300, // 👈 same height for both
   display: "flex",
   flexDirection: "column",
 };
