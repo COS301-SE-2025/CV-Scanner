@@ -462,7 +462,7 @@ export default function UploadCVPage() {
     }
   }, [tutorialStep, file]);
 
-  // Main processing function
+  // Main processing function - call AI service directly
   const handleProcess = async () => {
     if (!file) {
       setErrorPopup({ open: true, message: "Please select a file first." });
@@ -502,31 +502,29 @@ export default function UploadCVPage() {
     setLoading(true);
 
     try {
-      console.log("Starting CV processing via proxy...");
+      console.log("Starting CV processing - calling AI service directly...");
+
+      const AI_BASE_URL =
+        "https://cv-scanner-ai-cee2d5g9epb0hcg6.southafricanorth-01.azurewebsites.net";
 
       // Create FormData for parse endpoint
       const parseFormData = new FormData();
       parseFormData.append("file", file);
-      parseFormData.append("targetUrl", "/parse_resume");
 
       // Create FormData for upload endpoint
       const uploadFormData = new FormData();
       uploadFormData.append("file", file);
-      uploadFormData.append("targetUrl", "/upload_cv");
-      uploadFormData.append("top_k", "3");
 
-      console.log("Calling proxy endpoints...");
+      console.log("Calling AI endpoints directly...");
 
-      // Call both endpoints via proxy
+      // Call both endpoints directly
       const [parseResponse, uploadResponse] = await Promise.all([
-        fetch("/cv/proxy-ai", {
+        fetch(`${AI_BASE_URL}/parse_resume`, {
           method: "POST",
-          credentials: "include",
           body: parseFormData,
         }),
-        fetch("/cv/proxy-ai", {
+        fetch(`${AI_BASE_URL}/upload_cv?top_k=3`, {
           method: "POST",
-          credentials: "include",
           body: uploadFormData,
         }),
       ]);
