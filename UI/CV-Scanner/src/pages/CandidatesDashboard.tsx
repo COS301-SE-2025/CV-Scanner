@@ -676,7 +676,7 @@ export default function CandidatesDashboard() {
               </Box>
             </Paper>
 
-            {/* Bar Chart: Overall Tech Usage - FIXED */}
+            {/* Bar Chart: Overall Tech Usage */}
             <Paper
               sx={{
                 p: 2,
@@ -697,20 +697,15 @@ export default function CandidatesDashboard() {
               >
                 Overall Tech Usage
               </Typography>
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={240}>
                 <BarChart
                   data={groupedBarData.length ? groupedBarData : [{ name: "No Data", value: 0 }]}
                   margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
                 >
                   <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
                   <XAxis 
-                    dataKey="name" 
-                    interval={0}
-                    tick={{ 
-                      fill: "#575656ff", 
-                      fontWeight: "bold",
-                      fontSize: 11,
-                    }}
+                    dataKey="name"
+                    tick={{ fill: "#575656ff", fontWeight: "bold", fontSize: 11 }}
                   />
                   <YAxis
                     domain={[0, 30]}
@@ -718,17 +713,7 @@ export default function CandidatesDashboard() {
                     allowDecimals={false}
                     tick={{ fill: "#575656ff", fontWeight: "bold" }}
                   />
-                  <RechartsTooltip
-                    contentStyle={{
-                      backgroundColor: "#2b3a55",
-                      borderColor: "#4a5568",
-                      fontFamily: "Helvetica, sans-serif",
-                    }}
-                    formatter={(value, name) => [
-                      toNumberSafe(value),
-                      `Usage Count`
-                    ]}
-                  />
+                  <RechartsTooltip />
                   <Bar 
                     dataKey="value" 
                     name="Technology Usage"
