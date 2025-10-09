@@ -20,6 +20,7 @@ import {
   Tooltip,
   Fade,
   Popover,
+  CircularProgress,
 } from "@mui/material";
 import {
   useNavigate,
@@ -33,12 +34,11 @@ import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import logoNavbar from "../assets/logoNavbar.png";
-import CircularProgress from "@mui/material/CircularProgress";
 
 export default function CandidateReviewSummary() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { id: routeId, section } = useParams();
+  const { id: routeId } = useParams();
   const [searchParams] = useSearchParams();
 
   const passedCandidate = (location.state as any)?.candidate;
@@ -53,15 +53,12 @@ export default function CandidateReviewSummary() {
     queryId ||
     storedId;
 
-  // Determine active section
-  const activeSection = (section || "summary").toLowerCase();
-
   // Persist resolved id
   useEffect(() => {
     if (candidateId) localStorage.setItem("lastCandidateId", candidateId);
   }, [candidateId]);
 
-  // ✅ FIXED: User info state with apiFetch
+  // User info state with apiFetch
   const [user, setUser] = useState<{
     first_name?: string;
     last_name?: string;
@@ -76,10 +73,12 @@ export default function CandidateReviewSummary() {
       console.warn("No userEmail in localStorage");
       return;
     }
-    
+
     (async () => {
       try {
-        const res = await apiFetch(`/auth/me?email=${encodeURIComponent(email)}`);
+        const res = await apiFetch(
+          `/auth/me?email=${encodeURIComponent(email)}`
+        );
         if (res.status === 401) {
           console.warn("Session expired - redirecting to login");
           navigate("/login", { replace: true });
@@ -112,15 +111,14 @@ export default function CandidateReviewSummary() {
     navigate("/login", { replace: true });
   }
 
-  // ✅ FIXED: Candidate state - now dynamic
+  // Candidate basic info
   const [candidate, setCandidate] = useState({
     name: "Loading...",
-    title: "",
     email: "",
     phone: "",
   });
 
-  // ✅ FIXED: Project fit state with correct endpoint
+  // Project fit state
   const [projectFitData, setProjectFitData] = useState<{
     projectType?: string;
     projectFit?: number;
@@ -128,9 +126,8 @@ export default function CandidateReviewSummary() {
     projectFitLabel?: string;
   } | null>(null);
   const [fitLoading, setFitLoading] = useState<boolean>(true);
-  const [fitError, setFitError] = useState<string | null>(null);
 
-  // ✅ FIXED: Summary state
+  // Summary state
   const [summaryData, setSummaryData] = useState<{
     summary?: string | null;
     firstName?: string;
@@ -139,143 +136,120 @@ export default function CandidateReviewSummary() {
     receivedAt?: string | null;
   } | null>(null);
   const [summaryLoading, setSummaryLoading] = useState<boolean>(true);
-  const [summaryError, setSummaryError] = useState<string | null>(null);
 
-  // ✅ FIXED: Skills state
+  // Skills state
   const [skillsData, setSkillsData] = useState<string[]>([]);
   const [skillsLoading, setSkillsLoading] = useState<boolean>(true);
-  const [skillsError, setSkillsError] = useState<string | null>(null);
 
-  // ✅ FIXED: Experience state
+  // Experience state
   const [experienceData, setExperienceData] = useState<string[]>([]);
   const [experienceLoading, setExperienceLoading] = useState<boolean>(true);
-  const [experienceError, setExperienceError] = useState<string | null>(null);
 
-  // ✅ NEW: Fetch candidate basic info
+  // CV Score state
+  const [cvScore, setCvScore] = useState<number | null>(null);
+  const [cvScoreLoading, setCvScoreLoading] = useState<boolean>(true);
+
+  // ✅ NEW: Phone number state
+  const [phoneLoading, setPhoneLoading] = useState<boolean>(true);
+
+  // Fetch all data on mount
   useEffect(() => {
     if (!candidateId) return;
-    
+
+    // Fetch phone number
     (async () => {
+      setPhoneLoading(true);
       try {
-        const res = await apiFetch(`/cv/${candidateId}/summary`);
+        const res = await apiFetch(`/cv/${candidateId}/phone`, {
+          headers: { Accept: "application/json" },
+        });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        
+
         setCandidate((prev) => ({
           ...prev,
-          name: `${data.firstName || ""} ${data.lastName || ""}`.trim() || "Unknown",
-          email: data.email || "",
+          phone: data.phone || "N/A",
         }));
-      } catch (e) {
-        console.error("Failed to load candidate info:", e);
+
+        console.log(`Phone loaded from ${data.source}:`, data.phone);
+      } catch (e: any) {
+        console.error("Failed to load phone:", e);
+        setCandidate((prev) => ({
+          ...prev,
+          phone: "N/A",
+        }));
+      } finally {
+        setPhoneLoading(false);
       }
     })();
-  }, [candidateId]);
 
-  // ✅ FIXED: Fetch project fit with correct endpoint path
-  useEffect(() => {
-    if (activeSection !== "summary" || !candidateId) {
-      setFitLoading(false);
-      return;
-    }
-
-    let aborted = false;
+    // Fetch project fit
     (async () => {
       setFitLoading(true);
-      setFitError(null);
       try {
-        // ✅ FIXED: Use /cv/{id}/project-type instead of /cv/{id}/project-fit
         const res = await apiFetch(`/cv/${candidateId}/project-type`, {
           headers: { Accept: "application/json" },
         });
-        if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        
-        if (!aborted) {
-          setProjectFitData(data);
-          
-          // Extract contact info from project-type response
-          if (data.firstName || data.lastName) {
-            setCandidate((prev) => ({
-              ...prev,
-              name: `${data.firstName || ""} ${data.lastName || ""}`.trim() || prev.name,
-              email: data.email || prev.email,
-            }));
-          }
+        setProjectFitData(data);
+
+        // Update candidate info from project-type response
+        if (data.firstName || data.lastName) {
+          setCandidate((prev) => ({
+            ...prev,
+            name:
+              `${data.firstName || ""} ${data.lastName || ""}`.trim() ||
+              prev.name,
+            email: data.email || prev.email,
+          }));
         }
       } catch (e: any) {
-        if (!aborted) setFitError(e.message || "Failed to load project fit");
+        console.error("Failed to load project fit:", e);
       } finally {
-        if (!aborted) setFitLoading(false);
+        setFitLoading(false);
       }
     })();
 
-    return () => {
-      aborted = true;
-    };
-  }, [candidateId, activeSection]);
-
-  // Fetch summary
-  useEffect(() => {
-    if (activeSection !== "summary" || !candidateId) {
-      setSummaryLoading(false);
-      return;
-    }
-
-    let aborted = false;
-    const ctrl = new AbortController();
-    setSummaryLoading(true);
-    setSummaryError(null);
-
+    // Fetch summary
     (async () => {
+      setSummaryLoading(true);
       try {
         const res = await apiFetch(`/cv/${candidateId}/summary`, {
-          signal: ctrl.signal,
           headers: { Accept: "application/json" },
         });
-        if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        if (aborted) return;
         setSummaryData(data);
         setCandidate((prev) => ({
           ...prev,
-          name: `${data.firstName || ""} ${data.lastName || ""}`.trim() || prev.name,
+          name:
+            `${data.firstName || ""} ${data.lastName || ""}`.trim() ||
+            prev.name,
           email: data.email || prev.email,
         }));
       } catch (e: any) {
-        if (!aborted) setSummaryError(e.message || "Failed to load summary");
+        console.error("Failed to load summary:", e);
       } finally {
-        if (!aborted) setSummaryLoading(false);
+        setSummaryLoading(false);
       }
     })();
 
-    return () => {
-      aborted = true;
-      ctrl.abort();
-    };
-  }, [candidateId, activeSection]);
-
-  // Fetch skills
-  useEffect(() => {
-    if (activeSection !== "skills" || !candidateId) {
-      setSkillsLoading(false);
-      return;
-    }
-
-    let aborted = false;
+    // Fetch skills
     (async () => {
       setSkillsLoading(true);
-      setSkillsError(null);
       try {
         const res = await apiFetch(`/cv/${candidateId}/skills`, {
           headers: { Accept: "application/json" },
         });
-        if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
 
         let skills: any;
         if (Array.isArray(json)) {
-          const match = json.find((c: any) => String(c.id) === String(candidateId));
+          const match = json.find(
+            (c: any) => String(c.id) === String(candidateId)
+          );
           skills = match?.skills;
         } else {
           skills = json.skills;
@@ -290,41 +264,29 @@ export default function CandidateReviewSummary() {
             if (unique.length >= 100) break;
           }
         }
-
-        if (!aborted) setSkillsData(unique);
+        setSkillsData(unique);
       } catch (e: any) {
-        if (!aborted) setSkillsError(e.message || "Failed to load skills");
+        console.error("Failed to load skills:", e);
       } finally {
-        if (!aborted) setSkillsLoading(false);
+        setSkillsLoading(false);
       }
     })();
 
-    return () => {
-      aborted = true;
-    };
-  }, [candidateId, activeSection]);
-
-  // Fetch experience
-  useEffect(() => {
-    if (activeSection !== "experience" || !candidateId) {
-      setExperienceLoading(false);
-      return;
-    }
-
-    let aborted = false;
+    // Fetch experience
     (async () => {
       setExperienceLoading(true);
-      setExperienceError(null);
       try {
         const res = await apiFetch(`/cv/${candidateId}/experience`, {
           headers: { Accept: "application/json" },
         });
-        if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
 
         let exp: any;
         if (Array.isArray(json)) {
-          const match = json.find((c: any) => String(c.id) === String(candidateId));
+          const match = json.find(
+            (c: any) => String(c.id) === String(candidateId)
+          );
           exp = match?.experience;
         } else {
           exp = json.experience;
@@ -339,28 +301,47 @@ export default function CandidateReviewSummary() {
             if (cleaned.length >= 100) break;
           }
         }
-        if (!aborted) setExperienceData(cleaned);
+        setExperienceData(cleaned);
       } catch (e: any) {
-        if (!aborted) setExperienceError(e.message || "Failed to load experience");
+        console.error("Failed to load experience:", e);
       } finally {
-        if (!aborted) setExperienceLoading(false);
+        setExperienceLoading(false);
       }
     })();
 
-    return () => {
-      aborted = true;
-    };
-  }, [candidateId, activeSection]);
+    // Fetch CV score
+    (async () => {
+      setCvScoreLoading(true);
+      try {
+        const res = await apiFetch(`/cv/${candidateId}/cv-score`, {
+          headers: { Accept: "application/json" },
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        setCvScore(data.cvScore ?? null);
+      } catch (e: any) {
+        console.error("Failed to load CV score:", e);
+      } finally {
+        setCvScoreLoading(false);
+      }
+    })();
+  }, [candidateId]);
 
   // Tutorial logic
   const [tutorialStep, setTutorialStep] = useState(-1);
   const [fadeIn, setFadeIn] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const techRef = useRef<HTMLDivElement>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const skillsRef = useRef<HTMLDivElement>(null);
+  const experienceRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if ((tutorialStep === 0 || tutorialStep === 1) && techRef.current)
-      setAnchorEl(techRef.current);
+    if (tutorialStep === 0 && summaryRef.current)
+      setAnchorEl(summaryRef.current);
+    else if (tutorialStep === 1 && skillsRef.current)
+      setAnchorEl(skillsRef.current);
+    else if (tutorialStep === 2 && experienceRef.current)
+      setAnchorEl(experienceRef.current);
     else setAnchorEl(null);
   }, [tutorialStep]);
 
@@ -380,17 +361,25 @@ export default function CandidateReviewSummary() {
   };
   const handleCloseTutorial = () => setTutorialStep(-1);
 
-  const [snack, setSnack] = useState({ open: false, msg: "" });
-
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#1E1E1E", color: "#fff" }}>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        bgcolor: "#1E1E1E",
+        color: "#fff",
+      }}
+    >
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-        <AppBar position="static" sx={{ bgcolor: "#232A3B", boxShadow: "none" }}>
+        <AppBar
+          position="static"
+          sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
+        >
           <Toolbar sx={{ justifyContent: "space-between" }}>
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <img src={logoNavbar} alt="Logo" style={{ width: 80 }} />
               <Typography variant="h6" sx={{ ml: 2, fontWeight: "bold" }}>
-                Candidate Summary
+                Candidate Profile
               </Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center" }}>
@@ -406,7 +395,10 @@ export default function CandidateReviewSummary() {
                 </IconButton>
               </Tooltip>
               <Tooltip title="Go to Help Page" arrow>
-                <IconButton onClick={() => navigate("/help")} sx={{ ml: 1, color: "#90ee90" }}>
+                <IconButton
+                  onClick={() => navigate("/help")}
+                  sx={{ ml: 1, color: "#90ee90" }}
+                >
                   <HelpOutlineIcon />
                 </IconButton>
               </Tooltip>
@@ -424,8 +416,11 @@ export default function CandidateReviewSummary() {
                 <Typography variant="subtitle1">
                   {user
                     ? user.first_name
-                      ? `${user.first_name} ${user.last_name || ""} (${user.role || "User"})`
-                      : (user.username || user.email) + (user.role ? ` (${user.role})` : "")
+                      ? `${user.first_name} ${user.last_name || ""} (${
+                          user.role || "User"
+                        })`
+                      : (user.username || user.email) +
+                        (user.role ? ` (${user.role})` : "")
                     : "User"}
                 </Typography>
               </Box>
@@ -459,19 +454,35 @@ export default function CandidateReviewSummary() {
           <Fade in={fadeIn} timeout={250}>
             <Box>
               <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-                {tutorialStep === 0 ? "Project Fit" : "Key Technologies"}
+                {tutorialStep === 0 && "Candidate Summary"}
+                {tutorialStep === 1 && "Key Technologies"}
+                {tutorialStep === 2 && "Work Experience"}
               </Typography>
               <Typography sx={{ mb: 2 }}>
-                {tutorialStep === 0
-                  ? "This section shows how well the candidate fits technical projects."
-                  : "Here you can see the candidate's key technologies and skills."}
+                {tutorialStep === 0 &&
+                  "This section shows the candidate's CV summary and project fit."}
+                {tutorialStep === 1 &&
+                  "Here you can see the candidate's key technologies and skills."}
+                {tutorialStep === 2 &&
+                  "This displays the candidate's work experience and background."}
               </Typography>
-              <Box sx={{ display: "flex", justifyContent: "space-between", mt: 3, gap: 2 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  mt: 3,
+                  gap: 2,
+                }}
+              >
                 <Button
                   variant="text"
                   size="small"
                   onClick={handleCloseTutorial}
-                  sx={{ color: "#888", fontSize: "0.85rem", textTransform: "none" }}
+                  sx={{
+                    color: "#888",
+                    fontSize: "0.85rem",
+                    textTransform: "none",
+                  }}
                 >
                   End Tutorial
                 </Button>
@@ -480,16 +491,26 @@ export default function CandidateReviewSummary() {
                     <Button
                       variant="outlined"
                       onClick={handleBack}
-                      sx={{ color: "#0073c1", borderColor: "#0073c1", fontWeight: "bold", textTransform: "none" }}
+                      sx={{
+                        color: "#0073c1",
+                        borderColor: "#0073c1",
+                        fontWeight: "bold",
+                        textTransform: "none",
+                      }}
                     >
                       Back
                     </Button>
                   )}
-                  {tutorialStep < 1 ? (
+                  {tutorialStep < 2 ? (
                     <Button
                       variant="contained"
                       onClick={handleNext}
-                      sx={{ bgcolor: "#5a88ad", color: "#fff", fontWeight: "bold", textTransform: "none" }}
+                      sx={{
+                        bgcolor: "#5a88ad",
+                        color: "#fff",
+                        fontWeight: "bold",
+                        textTransform: "none",
+                      }}
                     >
                       Next
                     </Button>
@@ -497,7 +518,12 @@ export default function CandidateReviewSummary() {
                     <Button
                       variant="contained"
                       onClick={handleCloseTutorial}
-                      sx={{ bgcolor: "#5a88ad", color: "#fff", fontWeight: "bold", textTransform: "none" }}
+                      sx={{
+                        bgcolor: "#5a88ad",
+                        color: "#fff",
+                        fontWeight: "bold",
+                        textTransform: "none",
+                      }}
                     >
                       Finish
                     </Button>
@@ -522,145 +548,211 @@ export default function CandidateReviewSummary() {
           >
             Back to Candidates
           </Button>
-          
-          <Typography variant="h4" sx={{ fontWeight: "bold", mb: 2 }}>
-            {candidate.name}
-            {candidateId ? ` (ID ${candidateId})` : ""}
-          </Typography>
 
-          {/* Tabs */}
-          <Box sx={{ display: "flex", gap: 3, mb: 4 }}>
-            {[
-              {
-                label: "Summary",
-                key: "summary",
-              },
-              {
-                label: "Skills",
-                key: "skills",
-              },
-              {
-                label: "Experience",
-                key: "experience",
-              },
-            ].map((t) => (
-              <Typography
-                key={t.key}
-                variant="body1"
-                sx={{
-                  cursor: "pointer",
-                  color: activeSection === t.key ? "#0073c1" : "#b0b8c1",
-                  fontWeight: activeSection === t.key ? "bold" : "normal",
-                }}
-                onClick={() => {
-                  if (!candidateId) return;
-                  navigate(`/candidate/${candidateId}/${t.key}`);
-                }}
-              >
-                {t.label}
-              </Typography>
-            ))}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 3,
+            }}
+          >
+            <Typography variant="h4" sx={{ fontWeight: "bold" }}>
+              {candidate.name}
+              {candidateId && (
+                <Typography
+                  component="span"
+                  variant="h6"
+                  sx={{ ml: 2, color: "#888" }}
+                >
+                  ID: {candidateId}
+                </Typography>
+              )}
+            </Typography>
+
+            {/* CV Score Display */}
+            {!cvScoreLoading && cvScore !== null && (
+              <Box sx={{ textAlign: "center" }}>
+                <Typography
+                  variant="h3"
+                  sx={{ fontWeight: "bold", color: "#0073c1" }}
+                >
+                  {cvScore.toFixed(1)}
+                </Typography>
+                <Typography variant="caption" sx={{ color: "#888" }}>
+                  CV Score / 10
+                </Typography>
+              </Box>
+            )}
           </Box>
 
-          {/* Summary Tab */}
-          {activeSection === "summary" && (
-            <>
-              <Paper elevation={6} sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}>
-                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
-                  Project Fit & Contact Info
+          {/* SECTION 1: Summary & Project Fit - NO ICONS */}
+          <Paper
+            ref={summaryRef}
+            elevation={6}
+            sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
+          >
+            <Typography
+              variant="h5"
+              sx={{ fontWeight: "bold", mb: 2, color: "#333" }}
+            >
+              Candidate Summary
+            </Typography>
+
+            {/* Project Fit */}
+            {fitLoading ? (
+              <CircularProgress size={24} />
+            ) : projectFitData?.projectType ? (
+              <Box sx={{ mb: 3, p: 2, bgcolor: "#08726a", borderRadius: 2 }}>
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: "bold", color: "#fff" }}
+                >
+                  Best Fit:{" "}
+                  {projectFitData.projectFitLabel || projectFitData.projectType}
                 </Typography>
-                {fitLoading ? (
-                  <CircularProgress size={24} />
-                ) : fitError ? (
-                  <Typography color="error">{fitError}</Typography>
-                ) : (
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    {projectFitData?.projectType && (
-                      <Typography variant="body1" sx={{ fontWeight: "bold" }}>
-                        Best Fit: {projectFitData.projectFitLabel || projectFitData.projectType}
-                      </Typography>
-                    )}
-                    <Divider />
-                    <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
-                      Contact Details
+              </Box>
+            ) : null}
+
+            {/* Contact Info */}
+            <Box sx={{ mb: 3, p: 2, bgcolor: "#ffffff", borderRadius: 2 }}>
+              <Typography
+                variant="subtitle1"
+                sx={{ fontWeight: "bold", mb: 1, color: "#333" }}
+              >
+                Contact Information
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#555" }}>
+                <strong>Name:</strong> {candidate.name}
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#555" }}>
+                <strong>Email:</strong> {candidate.email || "-"}
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#555" }}>
+                <strong>Phone:</strong>{" "}
+                {phoneLoading ? "Loading..." : candidate.phone || "-"}
+              </Typography>
+            </Box>
+
+            {/* CV Summary Text */}
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: "bold", mb: 1, color: "#333" }}
+            >
+              Summary
+            </Typography>
+            {summaryLoading ? (
+              <CircularProgress size={24} />
+            ) : (
+              <TextField
+                value={summaryData?.summary || "No summary available."}
+                multiline
+                minRows={6}
+                fullWidth
+                InputProps={{ readOnly: true }}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    bgcolor: "#edededff",
+                    "& fieldset": { borderColor: "#ccc" },
+                  },
+                }}
+              />
+            )}
+          </Paper>
+
+          {/* SECTION 2: Skills - NO ICONS */}
+          <Paper
+            ref={skillsRef}
+            elevation={6}
+            sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
+          >
+            <Typography
+              variant="h5"
+              sx={{ fontWeight: "bold", mb: 2, color: "#333" }}
+            >
+              Key Technologies & Skills
+            </Typography>
+            {skillsLoading ? (
+              <CircularProgress size={24} />
+            ) : skillsData.length === 0 ? (
+              <Typography sx={{ color: "#666" }}>No skills found.</Typography>
+            ) : (
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                {skillsData.map((tech, idx) => (
+                  <Chip
+                    key={idx}
+                    label={tech}
+                    sx={{
+                      bgcolor: "#08726aff",
+                      color: "#fff",
+                      fontWeight: "bold",
+                      fontSize: "0.9rem",
+                    }}
+                  />
+                ))}
+              </Box>
+            )}
+          </Paper>
+
+          {/* SECTION 3: Experience - NO ICONS */}
+          <Paper
+            ref={experienceRef}
+            elevation={6}
+            sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
+          >
+            <Typography
+              variant="h5"
+              sx={{ fontWeight: "bold", mb: 2, color: "#333" }}
+            >
+              Work Experience
+            </Typography>
+            {experienceLoading ? (
+              <CircularProgress size={24} />
+            ) : experienceData.length === 0 ? (
+              <Typography sx={{ color: "#666" }}>
+                No experience entries found.
+              </Typography>
+            ) : (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                {experienceData.map((line, idx) => (
+                  <Paper
+                    key={idx}
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      bgcolor: "#ffffff",
+                      borderRadius: 2,
+                      display: "flex",
+                      gap: 2,
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    <Chip
+                      label={idx + 1}
+                      size="small"
+                      sx={{
+                        bgcolor: "#08726a",
+                        color: "#fff",
+                        fontWeight: "bold",
+                        minWidth: 32,
+                      }}
+                    />
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: "#333",
+                        lineHeight: 1.6,
+                        whiteSpace: "pre-wrap",
+                        flex: 1,
+                      }}
+                    >
+                      {line}
                     </Typography>
-                    <Typography variant="body2">Name: {candidate.name}</Typography>
-                    <Typography variant="body2">Email: {candidate.email || "-"}</Typography>
-                    <Typography variant="body2">Phone: {candidate.phone || "-"}</Typography>
-                  </Box>
-                )}
-              </Paper>
-
-              <Paper elevation={6} sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}>
-                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
-                  CV Summary
-                </Typography>
-                <TextField
-                  value={
-                    summaryLoading
-                      ? "Loading summary..."
-                      : summaryError
-                      ? `Error: ${summaryError}`
-                      : summaryData?.summary || "No summary available."
-                  }
-                  multiline
-                  minRows={6}
-                  fullWidth
-                  InputProps={{ readOnly: true }}
-                  sx={{ "& .MuiOutlinedInput-root": { bgcolor: "#edededff" } }}
-                />
-              </Paper>
-            </>
-          )}
-
-          {/* Skills Tab */}
-          {activeSection === "skills" && (
-            <Paper elevation={6} sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }} ref={techRef}>
-              <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
-                Key Technologies
-              </Typography>
-              {skillsLoading ? (
-                <CircularProgress size={24} />
-              ) : skillsError ? (
-                <Typography color="error">{skillsError}</Typography>
-              ) : skillsData.length === 0 ? (
-                <Typography>No skills found.</Typography>
-              ) : (
-                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                  {skillsData.map((tech, idx) => (
-                    <Chip key={idx} label={tech} sx={{ bgcolor: "#08726aff", color: "#fff", fontWeight: "bold" }} />
-                  ))}
-                </Box>
-              )}
-            </Paper>
-          )}
-
-          {/* Experience Tab */}
-          {activeSection === "experience" && (
-            <Paper elevation={6} sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}>
-              <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
-                Experience
-              </Typography>
-              {experienceLoading ? (
-                <CircularProgress size={24} />
-              ) : experienceError ? (
-                <Typography color="error">{experienceError}</Typography>
-              ) : experienceData.length === 0 ? (
-                <Typography>No experience entries found.</Typography>
-              ) : (
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                  {experienceData.map((line, idx) => (
-                    <Paper key={idx} elevation={0} sx={{ p: 1.2, bgcolor: "#ffffff", borderRadius: 2, display: "flex", gap: 1.5 }}>
-                      <Chip label={idx + 1} size="small" sx={{ bgcolor: "#08726a", color: "#fff", fontWeight: "bold", height: 22 }} />
-                      <Typography variant="body2" sx={{ color: "#333", lineHeight: 1.4, whiteSpace: "pre-wrap" }}>
-                        {line}
-                      </Typography>
-                    </Paper>
-                  ))}
-                </Box>
-              )}
-            </Paper>
-          )}
+                  </Paper>
+                ))}
+              </Box>
+            )}
+          </Paper>
         </Box>
       </Box>
     </Box>
