@@ -8,7 +8,6 @@ import {
   Toolbar,
   IconButton,
   Button,
-  TextField,
   Paper,
   Tooltip,
 } from "@mui/material";
@@ -30,7 +29,6 @@ const devUser = {
 
 export default function HelpPage() {
   const navigate = useNavigate();
-  const [search, setSearch] = useState("");
   const [user, setUser] = useState<any>(null);
 
   // Load user data
@@ -97,12 +95,6 @@ export default function HelpPage() {
         'Yes. Navigate to the Candidates page, click the "Review" button next to a candidate, then naviagte to either "Skills" if you would like to add a new skill or "Recruiter Notes" if you want add additional informations. You can update skills by typing and clicking "ADD" or using the Recruiter Notes section to type then press "Save Notes".',
     },
   ];
-
-  const filteredFaqs = faqs.filter(
-    (faq) =>
-      faq.question.toLowerCase().includes(search.toLowerCase()) ||
-      faq.answer.toLowerCase().includes(search.toLowerCase())
-  );
 
   return (
     <Box
@@ -187,59 +179,27 @@ export default function HelpPage() {
             Frequently Asked Questions
           </Typography>
 
-          {/* Search Field */}
-          <TextField
-            fullWidth
-            placeholder="Search FAQs..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            sx={{
-              mb: 3,
-              "& .MuiOutlinedInput-root": { 
-                bgcolor: "white",
-                "& fieldset": { borderColor: "#93AFF7" },
-                "&:hover fieldset": { borderColor: "#93AFF7" },
-                "&.Mui-focused fieldset": { borderColor: "#93AFF7" },
-              },
-            }}
-          />
-
-          {filteredFaqs.length > 0 ? (
-            filteredFaqs.map((faq, index) => (
-              <Accordion
-                key={index}
-                sx={{ mb: 2, bgcolor: "#e1f4ff", color: "#000", borderRadius: 1 }}
-              >
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography
-                    variant="subtitle1"
-                    sx={{
-                      fontFamily: "Helvetica, sans-serif",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    {faq.question}
-                  </Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <Typography variant="body1">{faq.answer}</Typography>
-                </AccordionDetails>
-              </Accordion>
-            ))
-          ) : (
-            <Paper
-              sx={{
-                p: 3,
-                textAlign: "center",
-                bgcolor: "#fefefe",
-                borderRadius: 1,
-              }}
+          {faqs.map((faq, index) => (
+            <Accordion
+              key={index}
+              sx={{ mb: 2, bgcolor: "#e1f4ff", color: "#000", borderRadius: 1 }}
             >
-              <Typography variant="body1" sx={{ color: "#000" }}>
-                No results found for your question.
-              </Typography>
-            </Paper>
-          )}
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    fontFamily: "Helvetica, sans-serif",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {faq.question}
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Typography variant="body1">{faq.answer}</Typography>
+              </AccordionDetails>
+            </Accordion>
+          ))}
 
           {/* PDF Button */}
           <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
