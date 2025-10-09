@@ -32,7 +32,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 
 @RestController
-@CrossOrigin(origins = "*")
 @RequestMapping("/auth")
 public class AuthController {
 
