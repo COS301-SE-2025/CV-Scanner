@@ -748,7 +748,7 @@ export default function Search() {
                         }}
                       >
                         <ScoreRing value={candidate.score} />
-                        <Button
+                        {/* <Button
                           variant="contained"
                           size="small"
                           onClick={async (e) => {
@@ -819,7 +819,7 @@ export default function Search() {
                           {processingCandidates.includes(candidate.email)
                             ? "Processing..."
                             : "Re-Extract"}
-                        </Button>
+                        </Button> */}
                       </Box>
                     </Box>
                   </Paper>
