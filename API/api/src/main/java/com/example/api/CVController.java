@@ -2399,6 +2399,98 @@ private String truncateSummary(String s) {
         if (d <= 100.0) return d / 10.0;   // percentage
         return Math.max(0.0, Math.min(10.0, d / 10.0)); // clamp
     }
+
+    /**
+     * GET /cv/project-fits
+     * Returns aggregated project fit types from all candidates' latest parsed CVs.
+     * Used for the Project Fit Types pie chart on the dashboard.
+     * 
+     * Response: [
+     *   { "type": "Frontend Development", "value": 15 },
+     *   { "type": "Backend Development", "value": 12 },
+     *   { "type": "Mobile Development", "value": 8 }
+     * ]
+     */
+    @GetMapping("/project-fits")
+    public ResponseEntity<?> getProjectFits(
+            @RequestParam(value = "limit", required = false, defaultValue = "100") int limit) {
+        try {
+            int top = Math.max(1, Math.min(limit, 1000));
+            
+            System.out.println("=== PROJECT FITS DEBUG ===");
+            System.out.println("Fetching latest parsed CVs for up to " + top + " candidates");
+            
+            // Get latest parsed CV per candidate
+            String sql = """
+                WITH latest AS (
+                  SELECT cpc.CandidateId, cpc.ResumeResult, cpc.ReceivedAt,
+                         ROW_NUMBER() OVER (PARTITION BY cpc.CandidateId ORDER BY cpc.ReceivedAt DESC) rn
+                  FROM dbo.CandidateParsedCv cpc
+                )
+                SELECT TOP %d
+                       l.CandidateId, l.ResumeResult
+                FROM latest l
+                WHERE l.rn = 1
+                ORDER BY l.ReceivedAt DESC
+            """.formatted(top);
+
+            var rows = jdbc.query(sql, (rs, rowNum) -> {
+                return rs.getString("ResumeResult");
+            });
+
+            System.out.println("Processing " + rows.size() + " candidates for project types");
+
+            // Count project types
+            Map<String, Integer> projectTypeCounts = new HashMap<>();
+            int processed = 0;
+            int found = 0;
+            
+            for (String resumeJson : rows) {
+                processed++;
+                String projectType = extractProjectTypeFromResume(resumeJson);
+                
+                if (projectType != null && !projectType.trim().isEmpty()) {
+                    String normalized = projectType.trim();
+                    projectTypeCounts.merge(normalized, 1, Integer::sum);
+                    found++;
+                    if (found <= 10) { // Log first 10 for debugging
+                        System.out.println("Candidate " + processed + ": Found project type: " + normalized);
+                    }
+                }
+            }
+
+            System.out.println("Summary: Processed " + processed + " candidates, found " + found + " project types");
+            System.out.println("Unique project types: " + projectTypeCounts.size());
+            projectTypeCounts.forEach((type, count) -> 
+                System.out.println("  - " + type + ": " + count)
+            );
+
+            // Convert to list format for frontend
+            List<Map<String, Object>> result = projectTypeCounts.entrySet().stream()
+                .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue())) // Sort by count descending
+                .map(entry -> {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("type", entry.getKey());
+                    item.put("value", entry.getValue());
+                    return item;
+                })
+                .collect(java.util.stream.Collectors.toList());
+
+            // If no data found, return placeholder
+            if (result.isEmpty()) {
+                System.out.println("No project types found, returning placeholder");
+                result = List.of(Map.of("type", "No Data", "value", 1));
+            }
+
+            return ResponseEntity.ok(result);
+            
+        } catch (Exception ex) {
+            System.err.println("Failed to get project fits: " + ex.getMessage());
+            ex.printStackTrace();
+            return ResponseEntity.status(500)
+                .body(createErrorResponse("Failed to get project fits: " + ex.getMessage()));
+        }
+    }
 }
 
 

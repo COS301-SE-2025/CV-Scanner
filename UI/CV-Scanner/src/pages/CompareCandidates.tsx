@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -78,23 +78,8 @@ export default function CompareCandidates() {
   const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md"));
   const [collapsed, setCollapsed] = useState(false);
   const [user, setUser] = useState<any>(null);
-
-  // Logout handler
-  async function handleLogout() {
-    try {
-      await apiFetch("/auth/logout", { method: "POST" }).catch(() => null);
-    } catch {
-      // ignore network errors
-    }
-    try {
-      localStorage.removeItem("user");
-      localStorage.removeItem("userEmail");
-      localStorage.setItem("auth-change", Date.now().toString());
-    } catch {}
-    navigate("/login", { replace: true });
-  }
-
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [candidateA, setCandidateA] = useState<Candidate | null>(null);
   const [candidateB, setCandidateB] = useState<Candidate | null>(null);
   const [compareResult, setCompareResult] = useState<string | null>(null);
@@ -253,7 +238,8 @@ export default function CompareCandidates() {
     (async () => {
       try {
         const email = localStorage.getItem("userEmail") || devUser.email;
-        // user
+
+        // Load user
         try {
           const meRes = await apiFetch(
             `/auth/me?email=${encodeURIComponent(email)}`
@@ -270,19 +256,17 @@ export default function CompareCandidates() {
 
         console.log("Fetching candidates and related data...");
 
-        // fetch candidates + filenames + scores + project fits in parallel
-        const [candRes, fnRes, scoresRes, pfRes] = await Promise.all([
+        // Fetch all data in parallel
+        const [candRes, fnRes, scoresRes] = await Promise.all([
           apiFetch("/cv/candidates").catch(() => null),
           apiFetch("/cv/filenames").catch(() => null),
           apiFetch("/cv/average-scores?limit=500").catch(() => null),
-          apiFetch("/cv/project-fits?limit=500").catch(() => null),
         ]);
 
         console.log("API Response statuses:", {
           candidates: candRes?.status,
           filenames: fnRes?.status,
           scores: scoresRes?.status,
-          projectFits: pfRes?.status,
         });
 
         const list =
@@ -293,14 +277,11 @@ export default function CompareCandidates() {
           scoresRes && scoresRes.ok
             ? await scoresRes.json().catch(() => [])
             : [];
-        const projectFits =
-          pfRes && pfRes.ok ? await pfRes.json().catch(() => []) : [];
 
         console.log("Loaded data counts:", {
           candidates: list.length,
           filenames: filenames.length,
           scores: scores.length,
-          projectFits: projectFits.length,
         });
 
         // Build lookup maps
@@ -322,18 +303,9 @@ export default function CompareCandidates() {
           }
         }
 
-        const projectFitMap = new Map<number, string>();
-        if (Array.isArray(projectFits)) {
-          for (const pf of projectFits) {
-            const id = Number(pf?.candidateId ?? pf?.id);
-            if (!Number.isNaN(id) && pf?.projectFitLabel) {
-              projectFitMap.set(id, pf.projectFitLabel);
-            }
-          }
-        }
-
-        const mapped: Candidate[] = (Array.isArray(list) ? list : []).map(
-          (c: any) => {
+        // Now fetch project fit labels for each candidate individually
+        const mapped: Candidate[] = await Promise.all(
+          (Array.isArray(list) ? list : []).map(async (c: any) => {
             const first = c.firstName || c.first_name || "";
             const last = c.lastName || c.last_name || "";
             const name = `${first} ${last}`.trim() || c.email || "Unknown";
@@ -355,8 +327,20 @@ export default function CompareCandidates() {
             const score =
               scoresMap.get(Number(c.id)) ?? parsePercentToScore(c.match);
 
-            // Get project fit from map
-            const match = projectFitMap.get(Number(c.id)) ?? c.match ?? "N/A";
+            // Fetch project fit for this candidate
+            let match = "N/A";
+            try {
+              const ptRes = await apiFetch(`/cv/${c.id}/project-type`);
+              if (ptRes.ok) {
+                const ptData = await ptRes.json();
+                match = ptData.projectFitLabel ?? ptData.projectType ?? "N/A";
+              }
+            } catch (e) {
+              console.warn(
+                `Failed to fetch project fit for candidate ${c.id}:`,
+                e
+              );
+            }
 
             return {
               id: Number(c.id),
@@ -372,10 +356,10 @@ export default function CompareCandidates() {
               filename,
               score,
             } as Candidate;
-          }
+          })
         );
 
-        console.log("Mapped candidates:", mapped.length);
+        console.log("Mapped candidates with project fits:", mapped.length);
         setCandidates(mapped);
       } catch (e) {
         console.warn("Failed loading candidates:", e);
@@ -998,7 +982,7 @@ export default function CompareCandidates() {
               </Typography>
             </Box>
 
-            <IconButton color="inherit" onClick={handleLogout} sx={{ ml: 1 }}>
+            <IconButton color="inherit" onClick={() => { localStorage.removeItem("userEmail"); navigate("/login"); }} sx={{ ml: 1 }}>
               <ExitToAppIcon />
             </IconButton>
           </Toolbar>
