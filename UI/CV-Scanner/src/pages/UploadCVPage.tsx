@@ -274,7 +274,7 @@ export default function UploadCVPage() {
     };
   };
 
-  // Load user data on mount - IMPROVED VERSION
+  // Load user data on mount - FIXED VERSION
   useEffect(() => {
     const loadUser = async () => {
       setUserLoading(true);
@@ -289,13 +289,10 @@ export default function UploadCVPage() {
 
         console.log("Loading user with email:", ue);
 
-        const res = await fetch(`/auth/me?email=${encodeURIComponent(ue)}`, {
+        // ✅ FIXED: Use apiFetch instead of raw fetch
+        const res = await apiFetch(`/auth/me?email=${encodeURIComponent(ue)}`, {
           method: "GET",
           credentials: "include",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
         });
 
         console.log("Auth response status:", res.status);
