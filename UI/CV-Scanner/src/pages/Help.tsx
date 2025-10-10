@@ -18,6 +18,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import logoNavbar from "../assets/logoNavbar.png";
 import { apiFetch } from "../lib/api";
 
 const devUser = {
@@ -125,7 +126,7 @@ export default function HelpPage() {
                   fontWeight: "bold",
                 }}
               >
-                Candidate Skills
+                Frequently Asked Questions 
               </Typography>
             </Box>
 
