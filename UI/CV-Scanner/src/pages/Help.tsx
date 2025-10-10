@@ -113,6 +113,22 @@ export default function HelpPage() {
           sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
         >
           <Toolbar sx={{ justifyContent: "flex-end" }}>
+
+ {/* Left: Logo and heading */}
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <img src={logoNavbar} alt="Logo" style={{ width: 80 }} />
+              <Typography
+                variant="h6"
+                sx={{
+                  fontFamily: "Helvetica, sans-serif",
+                  ml: 2,
+                  fontWeight: "bold",
+                }}
+              >
+                Candidate Skills
+              </Typography>
+            </Box>
+
             <Tooltip title="Go to Help Page" arrow>
               <IconButton
                 onClick={() => navigate("/help")}
