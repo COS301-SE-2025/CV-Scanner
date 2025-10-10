@@ -796,6 +796,7 @@ export default function CandidatesDashboard() {
               },
               gap: 4,
               mb: 4,
+              alignItems: "stretch",  
             }}
           >
             {/* Line Chart: Light Blue */}

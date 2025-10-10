@@ -113,15 +113,16 @@ export default function HelpPage() {
           position="static"
           sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
         >
-         <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          {/* Top bar image and heading name*/}
+         <Toolbar sx={{ gap:1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mr: "auto"  }}>
              <img src={logoNavbar} alt="Logo" style={{ width: 80 }} />
              <Typography variant="h6" sx={{fontFamily: 'Helvetica, sans-serif', ml: 2, fontWeight: 'bold' }}>
                            CV Scanner Help
                           </Typography>
           </Box>
           
-
+ <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Tooltip title="Go to Help Page" arrow>
               <IconButton
                 onClick={() => navigate("/help")}
@@ -156,6 +157,7 @@ export default function HelpPage() {
             <IconButton color="inherit" onClick={handleLogout} sx={{ ml: 1 }}>
               <ExitToAppIcon />
             </IconButton>
+            </Box>
           </Toolbar>
         </AppBar>
 
