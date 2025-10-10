@@ -4,11 +4,11 @@ import {
   Button,
   AppBar,
   Toolbar,
-  IconButton,
   Paper,
-  Grid, // use v2 Grid via named import
+  Grid,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import DescriptionIcon from "@mui/icons-material/Description";
 import InsightsIcon from "@mui/icons-material/Insights";
@@ -20,9 +20,73 @@ import landingImage1 from "../assets/landingImage1.svg";
 import landingImage2 from "../assets/landingImage2.svg";
 import landingImage3 from "../assets/landingimage3.svg";
 import landingImage4 from "../assets/landingImage4.svg";
+import { apiFetch } from "../lib/api";
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  // ✅ Check authentication on mount - redirect if already logged in
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const email = localStorage.getItem("userEmail");
+
+        if (!email) {
+          setIsAuthenticated(false);
+          return;
+        }
+
+        const response = await apiFetch(
+          `/auth/me?email=${encodeURIComponent(email)}`
+        );
+
+        if (response && response.ok) {
+          console.log(
+            "LandingPage: User already authenticated, redirecting to dashboard"
+          );
+          // User is already logged in, redirect to dashboard
+          navigate("/dashboard", { replace: true });
+        } else {
+          setIsAuthenticated(false);
+          localStorage.removeItem("userEmail");
+        }
+      } catch (error) {
+        setIsAuthenticated(false);
+      }
+    };
+
+    checkAuth();
+  }, [navigate]);
+
+  // ✅ Prevent all navigation except to login
+  const handleGetStarted = () => {
+    console.log("LandingPage: Get Started clicked, navigating to login");
+    navigate("/login");
+  };
+
+  const handleLogin = () => {
+    console.log("LandingPage: Login clicked");
+    navigate("/login");
+  };
+
+  // ✅ Show loading while checking auth
+  if (isAuthenticated === null) {
+    return (
+      <Box
+        sx={{
+          minHeight: "100vh",
+          bgcolor: "#121436ff",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "#fff",
+        }}
+      >
+        <Typography>Loading...</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -44,7 +108,8 @@ export default function LandingPage() {
               CV Scanner
             </Typography>
           </Box>
-          <Button color="inherit" onClick={() => navigate("/login")}>
+          {/* ✅ Only allow navigation to login */}
+          <Button color="inherit" onClick={handleLogin}>
             Login
           </Button>
         </Toolbar>
@@ -85,10 +150,11 @@ export default function LandingPage() {
               Empower your hiring process with AI that filters and highlights
               the best candidates in seconds.
             </Typography>
+            {/* ✅ Changed to go to login instead of register */}
             <Button
               variant="contained"
               endIcon={<ArrowForwardIcon />}
-              onClick={() => navigate("/register")}
+              onClick={handleGetStarted}
               sx={{
                 background: "linear-gradient(90deg, #232a3b 0%, #6ddf6d 100%)",
                 color: "#fff",
