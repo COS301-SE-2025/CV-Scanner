@@ -255,7 +255,7 @@ export default function CandidatesDashboard() {
           const topRows = Array.isArray(rows) ? rows.slice(0, 3) : [];
           setRecent(topRows);
 
-          // ✅ Fetch project types for recent candidates
+          // Fetch project types for recent candidates
           if (topRows.length > 0) {
             const projectTypePromises = topRows.map(async (candidate: any) => {
               try {
@@ -306,13 +306,13 @@ export default function CandidatesDashboard() {
           const [candidatesRes, techRes, projectFitsRes] = await Promise.all([
             apiFetch("/cv/candidates").catch(() => null),
             apiFetch("/cv/top-technologies?limit=10").catch(() => null),
-            apiFetch("/cv/project-fits?limit=100").catch(() => null), // ✅ NEW
+            apiFetch("/cv/project-fits?limit=100").catch(() => null),
           ]);
 
           console.debug("Dashboard fetch statuses:", {
             candidates: candidatesRes?.status ?? null,
             technologies: techRes?.status ?? null,
-            projectFits: projectFitsRes?.status ?? null, // ✅ NEW
+            projectFits: projectFitsRes?.status ?? null,
           });
 
           let candidatesData: any[] = [];
@@ -353,10 +353,9 @@ export default function CandidatesDashboard() {
             setSkillDistribution(skillDistData);
             setSkillError(null);
 
-            // Set top technology
+            // Set fallback top technology from skill distribution
             if (skillDistData.length > 0) {
               setTopTechnology(skillDistData[0].name);
-              setTopTechnologies(skillDistData);
             }
           } else {
             console.debug("No candidates data available");
@@ -366,19 +365,134 @@ export default function CandidatesDashboard() {
           // ✅ 2. Overall Tech Usage Bar Chart (from /cv/top-technologies)
           if (techRes && techRes.ok) {
             const techJson = await techRes.json().catch(() => []);
-            if (Array.isArray(techJson) && techJson.length > 0) {
-              const techList = techJson
+
+            console.debug("Raw tech response:", techJson);
+
+            // Filter out non-technology entries (like "status", "message", etc.)
+            const validTechData = Array.isArray(techJson)
+              ? techJson.filter((item: any) => {
+                  // Must have name and value properties
+                  if (!item || typeof item !== "object") return false;
+                  if (!item.name || !item.value) return false;
+
+                  // Filter out metadata keys
+                  const name = String(item.name).toLowerCase();
+                  const metadataKeys = [
+                    "status",
+                    "message",
+                    "error",
+                    "success",
+                    "ok",
+                    "result",
+                  ];
+                  if (
+                    metadataKeys.some(
+                      (key) => name === key || name.includes(key)
+                    )
+                  ) {
+                    console.debug(`Filtering out metadata entry: ${item.name}`);
+                    return false;
+                  }
+
+                  return true;
+                })
+              : [];
+
+            if (validTechData.length > 0) {
+              const techList = validTechData
                 .map((t: any) => ({
                   name: normalizeSkillName(t.name || t.technology || t.tech),
                   value: toNumberSafe(t.value ?? t.count ?? t.frequency ?? 0),
                 }))
-                .filter((item) => item.name && item.name !== "—")
+                .filter((item) => {
+                  // Additional validation after normalization
+                  if (!item.name || item.name === "—") return false;
+                  const nameLower = item.name.toLowerCase();
+                  return ![
+                    "status",
+                    "message",
+                    "error",
+                    "success",
+                    "ok",
+                    "result",
+                  ].some((key) => nameLower === key || nameLower.includes(key));
+                })
+                .sort((a, b) => b.value - a.value)
+                .slice(0, 10);
+
+              console.debug("Processed tech list:", techList);
+
+              if (techList.length > 0) {
+                setGroupedBarData(techList);
+                setTopTechnologies(techList);
+                setTopTechnology(techList[0].name); // ✅ Set top technology
+              } else {
+                console.debug("No valid technologies after filtering");
+                // Use fallback from skill distribution
+                const skillCounts = new Map<string, number>();
+                candidatesData.forEach((candidate: any) => {
+                  const skills = candidate.skills;
+                  let skillArray: string[] = [];
+                  if (Array.isArray(skills)) {
+                    skillArray = skills;
+                  } else if (typeof skills === "string") {
+                    skillArray = parseSkillFallback(skills);
+                  }
+                  skillArray.forEach((skill) => {
+                    const normalized = normalizeSkillName(skill);
+                    if (normalized && normalized !== "—") {
+                      skillCounts.set(
+                        normalized,
+                        (skillCounts.get(normalized) ?? 0) + 1
+                      );
+                    }
+                  });
+                });
+
+                const techList = Array.from(skillCounts.entries())
+                  .map(([name, value]) => ({ name, value }))
+                  .sort((a, b) => b.value - a.value)
+                  .slice(0, 10);
+
+                setGroupedBarData(techList);
+                if (techList.length > 0) {
+                  setTopTechnology(techList[0].name);
+                }
+              }
+            } else {
+              console.debug(
+                "No valid tech data, using skill distribution fallback"
+              );
+              // Fallback to skill distribution
+              const skillCounts = new Map<string, number>();
+              candidatesData.forEach((candidate: any) => {
+                const skills = candidate.skills;
+                let skillArray: string[] = [];
+                if (Array.isArray(skills)) {
+                  skillArray = skills;
+                } else if (typeof skills === "string") {
+                  skillArray = parseSkillFallback(skills);
+                }
+                skillArray.forEach((skill) => {
+                  const normalized = normalizeSkillName(skill);
+                  if (normalized && normalized !== "—") {
+                    skillCounts.set(
+                      normalized,
+                      (skillCounts.get(normalized) ?? 0) + 1
+                    );
+                  }
+                });
+              });
+
+              const techList = Array.from(skillCounts.entries())
+                .map(([name, value]) => ({ name, value }))
                 .sort((a, b) => b.value - a.value)
                 .slice(0, 10);
 
               setGroupedBarData(techList);
-              setTopTechnologies(techList);
-              if (techList.length) setTopTechnology(techList[0].name);
+              if (techList.length > 0) {
+                setTopTechnology(techList[0].name);
+              }
             }
           } else {
             console.debug(
@@ -411,9 +525,12 @@ export default function CandidatesDashboard() {
               .slice(0, 10);
 
             setGroupedBarData(techList);
+            if (techList.length > 0) {
+              setTopTechnology(techList[0].name);
+            }
           }
 
-          // ✅ 3. Project Fit Pie Chart (NEW - from /cv/project-fits endpoint)
+          // ✅ 3. Project Fit Pie Chart (from /cv/project-fits endpoint)
           if (projectFitsRes && projectFitsRes.ok) {
             const projectFitsJson = await projectFitsRes.json().catch(() => []);
 

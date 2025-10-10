@@ -2491,6 +2491,242 @@ private String truncateSummary(String s) {
                 .body(createErrorResponse("Failed to get project fits: " + ex.getMessage()));
         }
     }
+
+    @GetMapping("/{identifier}/phone")
+    public ResponseEntity<?> getCandidatePhone(@PathVariable("identifier") String identifier) {
+        System.out.println("=== PHONE ENDPOINT DEBUG ===");
+        System.out.println("Identifier: " + identifier);
+        
+        try {
+            Long candidateId = null;
+            String email = null;
+            
+            // Parse identifier as ID or email
+            try {
+                candidateId = Long.parseLong(identifier);
+                System.out.println("Parsed as candidate ID: " + candidateId);
+            } catch (NumberFormatException ignored) {
+                email = identifier;
+                System.out.println("Parsed as email: " + email);
+            }
+
+            // First, check if candidate exists
+            String candidateCheckSql;
+            Object[] candidateCheckParams;
+            
+            if (candidateId != null) {
+                candidateCheckSql = "SELECT Id, FirstName, LastName, Email FROM dbo.Candidates WHERE Id = ?";
+                candidateCheckParams = new Object[]{candidateId};
+            } else {
+                candidateCheckSql = "SELECT Id, FirstName, LastName, Email FROM dbo.Candidates WHERE Email = ?";
+                candidateCheckParams = new Object[]{email};
+            }
+
+            var candidateRows = jdbc.query(candidateCheckSql, candidateCheckParams, (rs, i) -> {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("id", rs.getLong("Id"));
+                row.put("firstName", rs.getString("FirstName"));
+                row.put("lastName", rs.getString("LastName"));
+                row.put("email", rs.getString("Email"));
+                return row;
+            });
+
+            if (candidateRows.isEmpty()) {
+                System.out.println("No candidate found for identifier: " + identifier);
+                return ResponseEntity.status(404)
+                    .body(Map.of(
+                        "status", "error",
+                        "message", "Candidate not found",
+                        "identifier", identifier,
+                        "detail", "No candidate exists with ID or email: " + identifier
+                    ));
+            }
+
+            Map<String, Object> candidateInfo = candidateRows.get(0);
+            long foundCandidateId = (Long) candidateInfo.get("id");
+            String firstName = (String) candidateInfo.get("firstName");
+            String lastName = (String) candidateInfo.get("lastName");
+            String candidateEmail = (String) candidateInfo.get("email");
+
+            System.out.println("Found candidate: " + foundCandidateId + " - " + firstName + " " + lastName);
+
+            // Now try to get phone from latest parsed CV
+            String parsedCvSql = """
+                SELECT TOP 1 ResumeResult, ReceivedAt
+                FROM dbo.CandidateParsedCv
+                WHERE CandidateId = ?
+                ORDER BY ReceivedAt DESC
+            """;
+
+            var parsedCvRows = jdbc.query(parsedCvSql, new Object[]{foundCandidateId}, (rs, i) -> {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("resumeResult", rs.getString("ResumeResult"));
+                row.put("receivedAt", rs.getTimestamp("ReceivedAt"));
+                return row;
+            });
+
+            String phone = null;
+            String source = "not_found";
+            String receivedAt = null;
+
+            if (!parsedCvRows.isEmpty()) {
+                Map<String, Object> parsedCv = parsedCvRows.get(0);
+                String resumeJson = (String) parsedCv.get("resumeResult");
+                Timestamp ts = (Timestamp) parsedCv.get("receivedAt");
+                receivedAt = ts != null ? ts.toInstant().toString() : null;
+
+                System.out.println("Found parsed CV, length: " + (resumeJson != null ? resumeJson.length() : 0));
+
+                try {
+                    phone = extractPhoneFromResume(resumeJson);
+                    if (phone != null && !phone.trim().isEmpty()) {
+                        source = "resume";
+                        System.out.println("Phone from resume: " + phone);
+                    } else {
+                        System.out.println("No phone found in resume JSON");
+                    }
+                } catch (Exception e) {
+                    System.err.println("Failed to extract phone from resume: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            } else {
+                System.out.println("No parsed CV found for candidate " + foundCandidateId);
+            }
+
+            // Build response
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("candidateId", foundCandidateId);
+            response.put("firstName", firstName);
+            response.put("lastName", lastName);
+            response.put("email", candidateEmail);
+            response.put("phone", phone);
+            response.put("source", source);
+            response.put("receivedAt", receivedAt);
+
+            System.out.println("Returning phone data successfully");
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception ex) {
+            System.err.println("=== PHONE ENDPOINT ERROR ===");
+            System.err.println("Error type: " + ex.getClass().getName());
+            System.err.println("Error message: " + ex.getMessage());
+            ex.printStackTrace();
+            
+            Map<String, Object> errorResponse = new LinkedHashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", "Failed to get phone number");
+            errorResponse.put("detail", ex.getMessage());
+            errorResponse.put("identifier", identifier);
+            
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+
+    // Extract phone from ResumeResult JSON with regex fallback and sanitization
+    @SuppressWarnings("unchecked")
+    private String extractPhoneFromResume(String resumeJson) {
+        if (isBlank(resumeJson)) return null;
+        try {
+            Map<String, Object> root = json.readValue(resumeJson, Map.class);
+
+            String phone = findPhoneInMap(root, 0);
+            if (!isBlank(phone)) return sanitizePhone(phone);
+
+            Object result = root.get("result");
+            if (result instanceof Map<?, ?>) {
+                phone = findPhoneInMap((Map<String, Object>) result, 0);
+                if (!isBlank(phone)) return sanitizePhone(phone);
+            }
+
+            // Fallback to regex over the entire JSON string
+            String viaRegex = findPhoneByRegex(resumeJson);
+            return sanitizePhone(viaRegex);
+        } catch (Exception e) {
+            // Fallback to regex if JSON parsing fails
+            String viaRegex = findPhoneByRegex(resumeJson);
+            return sanitizePhone(viaRegex);
+        }
+    }
+
+    private String findPhoneByRegex(String text) {
+        if (isBlank(text)) return null;
+        // Prefer label-based match like "phone: +1 234 567 890"
+        java.util.regex.Pattern labeled = java.util.regex.Pattern.compile("(?i)(?:phone|mobile|tel(?:ephone)?|contact|cell)\\s*[:\\-]?\\s*([+()\\d][\\d\\s().\\-]{6,})");
+        java.util.regex.Matcher m = labeled.matcher(text);
+        if (m.find()) {
+            String g = m.group(1);
+            if (!isBlank(g)) return g.trim();
+        }
+        // Generic phone-like number
+        java.util.regex.Pattern generic = java.util.regex.Pattern.compile("([+]?\\d[\\d\\s().\\-]{7,}\\d)");
+        m = generic.matcher(text);
+        if (m.find()) return m.group(1).trim();
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private String findPhoneInMap(Map<String, Object> map, int depth) {
+        if (map == null || depth > 4) return null;
+
+        // Common phone keys
+        String[] keys = {
+            "phone","phone_number","phoneNumber","mobile","mobile_number","mobileNumber",
+            "contact_number","contactNumber","tel","telephone","cell","cellphone"
+        };
+        for (String k : keys) {
+            Object v = map.get(k);
+            if (v instanceof String s && !isBlank(s)) return s;
+            if (v instanceof Number n) return String.valueOf(n);
+        }
+
+        // Common containers where phone may reside
+        String[] containers = { "personalInfo","personal_info","contact","contacts","profile","meta" };
+        for (String c : containers) {
+            Object obj = map.get(c);
+            if (obj instanceof Map<?, ?> m) {
+                String s = findPhoneInMap((Map<String, Object>) m, depth + 1);
+                if (!isBlank(s)) return s;
+            } else if (obj instanceof java.util.List<?> list) {
+                for (Object item : list) {
+                    if (item instanceof Map<?, ?> m) {
+                        String s = findPhoneInMap((Map<String, Object>) m, depth + 1);
+                        if (!isBlank(s)) return s;
+                    } else if (item instanceof String s) {
+                        String viaRegex = findPhoneByRegex(s);
+                        if (!isBlank(viaRegex)) return viaRegex;
+                    }
+                }
+            }
+        }
+
+        // Sections may contain contact info too
+        Object sections = map.get("sections");
+        if (sections instanceof Map<?, ?> m) {
+            String s = findPhoneInMap((Map<String, Object>) m, depth + 1);
+            if (!isBlank(s)) return s;
+        }
+
+        return null;
+    }
+
+    private String sanitizePhone(String s) {
+        if (isBlank(s)) return null;
+
+        String trimmed = s.replace('\u00A0', ' ').trim();
+
+        // If multiple numbers present, choose the first phone-like token
+        String primary = findPhoneByRegex(trimmed);
+        if (!isBlank(primary)) trimmed = primary;
+
+        // Keep leading '+' and digits only
+        String digits = trimmed.replaceAll("[^+\\d]", "");
+        if (digits.startsWith("00")) digits = "+" + digits.substring(2);
+
+        String onlyDigits = digits.startsWith("+") ? digits.substring(1) : digits;
+        if (onlyDigits.length() < 7) return null;
+
+        return digits;
+    }
 }
 
 
