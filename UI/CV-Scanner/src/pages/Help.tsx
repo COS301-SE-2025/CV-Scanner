@@ -113,22 +113,14 @@ export default function HelpPage() {
           position="static"
           sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
         >
-          <Toolbar sx={{ justifyContent: "flex-end" }}>
-
- {/* Left: Logo and heading */}
-            <Box sx={{ display: "flex", alignItems: "center" }}>
-              <img src={logoNavbar} alt="Logo" style={{ width: 80 }} />
-              <Typography
-                variant="h6"
-                sx={{
-                  fontFamily: "Helvetica, sans-serif",
-                  ml: 2,
-                  fontWeight: "bold",
-                }}
-              >
-                Frequently Asked Questions 
-              </Typography>
-            </Box>
+         <Toolbar sx={{ justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+             <img src={logoNavbar} alt="Logo" style={{ width: 80 }} />
+             <Typography variant="h6" sx={{fontFamily: 'Helvetica, sans-serif', ml: 2, fontWeight: 'bold' }}>
+                           CV Scanner Help
+                          </Typography>
+          </Box>
+          
 
             <Tooltip title="Go to Help Page" arrow>
               <IconButton
