@@ -14,7 +14,6 @@ interface Props {
  * - Re-checks auth when location changes (typing URL / navigation).
  * - Listens for localStorage "auth" changes (logout in other tabs) and reacts.
  * - If /auth/me returns non-ok, immediately redirect and clear local auth state.
- * - ✅ Now includes userEmail from localStorage in auth check
  */
 export default function ProtectedRoute({ children }: Props) {
   const [loading, setLoading] = useState(true);
@@ -25,57 +24,20 @@ export default function ProtectedRoute({ children }: Props) {
   async function checkAuth() {
     setLoading(true);
     try {
-      // ✅ Get email from localStorage
-      const email = localStorage.getItem("userEmail");
-
-      // ✅ If no email in storage, immediately redirect
-      if (!email) {
-        console.log("ProtectedRoute: No userEmail in localStorage");
-        setOk(false);
-        navigate("/login", {
-          replace: true,
-          state: { from: location.pathname },
-        });
-        setLoading(false);
-        return;
-      }
-
-      // ✅ Call /auth/me with email parameter
-      const res = await apiFetch(
-        `/auth/me?email=${encodeURIComponent(email)}`
-      ).catch(() => null);
-
+      const res = await apiFetch("/auth/me").catch(() => null);
       if (res && res.ok) {
-        const userData = await res.json().catch(() => null);
-        if (userData && userData.email) {
-          console.log("ProtectedRoute: Authenticated as", userData.email);
-          setOk(true);
-        } else {
-          console.log("ProtectedRoute: Invalid user data");
-          setOk(false);
-          localStorage.removeItem("userEmail");
-          navigate("/login", {
-            replace: true,
-            state: { from: location.pathname },
-          });
-        }
+        setOk(true);
       } else {
-        console.log("ProtectedRoute: Auth check failed, status:", res?.status);
         setOk(false);
-        localStorage.removeItem("userEmail");
+        // redirect to login, preserve attempted path optionally
         navigate("/login", {
           replace: true,
           state: { from: location.pathname },
         });
       }
-    } catch (err) {
-      console.error("ProtectedRoute: Error during auth check:", err);
+    } catch {
       setOk(false);
-      localStorage.removeItem("userEmail");
-      navigate("/login", {
-        replace: true,
-        state: { from: location.pathname },
-      });
+      navigate("/login", { replace: true, state: { from: location.pathname } });
     } finally {
       setLoading(false);
     }
@@ -89,16 +51,11 @@ export default function ProtectedRoute({ children }: Props) {
       await checkAuth();
     })();
 
-    // storage listener: detect login/logout from other tabs (key 'user', 'userEmail' or generic 'auth-change')
+    // storage listener: detect login/logout from other tabs (key 'user' or generic 'auth-change')
     const onStorage = (e: StorageEvent) => {
       if (!mounted) return;
-      // ✅ Also listen for userEmail changes
-      if (
-        e.key === "user" ||
-        e.key === "userEmail" ||
-        e.key === "auth-change"
-      ) {
-        console.log("ProtectedRoute: Storage change detected for key:", e.key);
+      // if user info removed or a dedicated auth-change flag updated, re-check
+      if (e.key === "user" || e.key === "auth-change") {
         checkAuth();
       }
     };
@@ -113,17 +70,7 @@ export default function ProtectedRoute({ children }: Props) {
 
   if (loading) {
     return (
-      <div
-        style={{
-          padding: 20,
-          color: "#fff",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "100vh",
-          backgroundColor: "#1E1E1E",
-        }}
-      >
+      <div style={{ padding: 20, color: "#fff" }}>
         Checking authentication...
       </div>
     );
