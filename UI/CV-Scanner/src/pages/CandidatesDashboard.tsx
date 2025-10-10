@@ -863,7 +863,7 @@ export default function CandidatesDashboard() {
                 transition: "transform 0.2s",
                 "&:hover": { transform: "translateY(-4px)" },
                 height: 300,
-                boxSizing: "border-box", // 👈 same height for both
+               // boxSizing: "border-box", // 👈 same height for both
                 display: "flex",
                 flexDirection: "column",
               }}
