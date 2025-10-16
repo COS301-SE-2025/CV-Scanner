@@ -23,6 +23,7 @@ import { BrandLoaderProvider, useBrandLoader } from "./hooks/brandLoader";
 import CompareCandidates from "./pages/CompareCandidates";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./lib/ProtectedRoute";
+import ManageDataPage from "./pages/ManageDataPage";
 
 function BrandLoaderOverlay() {
   const loader = useBrandLoader();
@@ -164,7 +165,14 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-
+              <Route 
+                path="/manage-data"
+                element={
+                  <ProtectedRoute>
+                    <ManageDataPage />
+                  </ProtectedRoute>
+                }
+              />
               {/* Fallback */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

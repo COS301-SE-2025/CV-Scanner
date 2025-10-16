@@ -12,6 +12,7 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import Typography from "@mui/material/Typography";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import StorageIcon from "@mui/icons-material/Storage"; 
 import { apiFetch } from "../lib/api";
 
 interface SidebarProps {
@@ -291,7 +292,28 @@ const Sidebar: React.FC<SidebarProps> = ({
           Compare
         </span>
       </Button>
-
+      {userRole === "Admin" && (
+        <Button
+          fullWidth
+          sx={getButtonStyle("/manage-data")}
+          className={isActive("/manage-data") ? "active" : ""}
+          startIcon={<StorageIcon />} // Different icon for Manage Data
+          onClick={() => navigate("/manage-data")}
+        >
+          <span
+            style={{
+              display: "inline-block",
+              overflow: "hidden",
+              whiteSpace: "nowrap",
+              transition: "width 0.3s, opacity 0.3s",
+              width: isCollapsing ? 0 : "auto",
+              opacity: isCollapsing ? 0 : 1,
+            }}
+          >
+            Manage Data
+          </span>
+        </Button>
+      )}
       {userRole === "Admin" && (
         <>
           <Button
