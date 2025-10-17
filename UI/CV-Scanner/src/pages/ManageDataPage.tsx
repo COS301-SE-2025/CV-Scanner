@@ -384,131 +384,113 @@ export default function ManageData() {
   // Load candidate data for editing
   const loadCandidateData = async (candidate: CandidateCard) => {
     try {
-      // Open dialog immediately and show loader
       setSelectedCandidate(candidate);
       setCandidateData(null);
       setEditDialogOpen(true);
       setLoadingCandidateData(true);
 
-      // Try to fetch real candidate data from API
-      const res = await apiFetch(`/cv/${candidate.id}/data`);
-      if (res && res.ok) {
-        const data = await res.json().catch(async () => {
-          // if JSON parse fails, try to log raw text for debugging
-          try {
-            const raw = await res.text();
-            console.warn("Candidate /cv/{id}/data returned non-JSON:", raw);
-            return null;
-          } catch {
-            return null;
-          }
-        });
+      // Use endpoints that exist on the API
+      const summaryPromise = apiFetch(`/cv/${candidate.id}/summary`);
+      const expPromise = apiFetch(`/cv/${candidate.id}/experience`);
+      const scorePromise = apiFetch(`/cv/${candidate.id}/cv-score`);
+      const projectTypePromise = apiFetch(`/cv/${candidate.id}/project-type`);
+      const skillsPromise = apiFetch(`/cv/${candidate.id}/skills`);
 
-        // log the raw object so we can see actual structure when debugging
-        console.debug("Loaded candidate data for", candidate.id, data);
+      const [summaryRes, expRes, scoreRes, ptRes, skillsRes] =
+        await Promise.allSettled([
+          summaryPromise,
+          expPromise,
+          scorePromise,
+          projectTypePromise,
+          skillsPromise,
+        ]);
 
-        const mapped: CandidateData = {
-          filename: data?.filename ?? candidate.filename ?? "CV.pdf",
-          result: {
-            cv_score:
-              data?.result?.cv_score ??
-              data?.cv_score ??
-              data?.score ??
-              candidate.score ??
-              0,
-            personal_info: data?.result?.personal_info ??
-              data?.personal_info ?? {
-                email: candidate.email,
-                name: candidate.name,
-                phone: data?.phone ?? "Not available",
-              },
-            project_fit:
-              data?.result?.project_fit ??
-              data?.project_fit ??
-              data?.projectFitPercent ??
-              candidate.projectFitPercent ??
-              0,
-            project_type:
-              data?.result?.project_type ??
-              data?.project_type ??
-              candidate.project ??
-              "General",
-            // use normalizeSections to ensure strings for editForm
-            sections: normalizeSections(data),
-            skills:
-              data?.result?.skills ?? data?.skills ?? candidate.skills ?? [],
-            summary:
-              data?.result?.summary ??
-              data?.summary ??
-              `Summary for ${candidate.name}`,
+      const mapped: CandidateData = {
+        filename: candidate.filename ?? "CV.pdf",
+        result: {
+          cv_score: candidate.score ?? 0,
+          personal_info: {
+            email: candidate.email,
+            name: candidate.name,
+            phone: "",
           },
-          status: "success",
-        };
+          project_fit: candidate.projectFitPercent ?? 0,
+          project_type: candidate.project ?? "General",
+          sections: { education: "", experience: "", projects: "" },
+          skills: candidate.skills ?? [],
+          summary: "",
+        },
+        status: "success",
+      };
 
-        setCandidateData(mapped);
-
-        // Populate edit form from mapped data
-        setEditForm({
-          name: mapped.result.personal_info.name || candidate.name,
-          email: mapped.result.personal_info.email || candidate.email,
-          phone: mapped.result.personal_info.phone || "",
-          skills: mapped.result.skills || candidate.skills,
-          summary: mapped.result.summary || "",
-          project_type: mapped.result.project_type || "",
-          project_fit: mapped.result.project_fit ?? 0,
-          education: mapped.result.sections.education || "",
-          experience: mapped.result.sections.experience || "",
-          projects: mapped.result.sections.projects || "",
-        });
-      } else {
-        // Fallback to mock if API missing or failed
-        const mockCandidateData: CandidateData = {
-          filename: candidate.filename || "CV.pdf",
-          result: {
-            cv_score: candidate.score,
-            personal_info: {
-              email: candidate.email,
-              name: candidate.name,
-              phone: "Not available",
-            },
-            project_fit: candidate.projectFitPercent || 0,
-            project_type: candidate.project || "General",
-            sections: normalizeSections({
-              sections: {
-                education: candidate.skills.length
-                  ? `Skills: ${candidate.skills.join(", ")}`
-                  : "Education information not available",
-                experience: "Experience information not available",
-                projects: "Projects information not available",
-              },
-            }),
-            skills: candidate.skills,
-            summary: `Summary for ${candidate.name}`,
-          },
-          status: "success",
-        };
-
-        setCandidateData(mockCandidateData);
-
-        setEditForm({
-          name: mockCandidateData.result.personal_info.name || candidate.name,
-          email:
-            mockCandidateData.result.personal_info.email || candidate.email,
-          phone: mockCandidateData.result.personal_info.phone || "",
-          skills: mockCandidateData.result.skills || candidate.skills,
-          summary: mockCandidateData.result.summary || "",
-          project_type: mockCandidateData.result.project_type || "",
-          project_fit: mockCandidateData.result.project_fit || 0,
-          education: mockCandidateData.result.sections.education || "",
-          experience: mockCandidateData.result.sections.experience || "",
-          projects: mockCandidateData.result.sections.projects || "",
-        });
+      // summary -> summary text
+      if (summaryRes.status === "fulfilled" && summaryRes.value?.ok) {
+        try {
+          const s = await summaryRes.value.json();
+          mapped.result.summary = s?.summary ?? s?.result?.summary ?? "";
+        } catch {}
       }
+
+      // experience -> array -> join into experience section
+      if (expRes.status === "fulfilled" && expRes.value?.ok) {
+        try {
+          const e = await expRes.value.json();
+          if (Array.isArray(e?.experience)) {
+            mapped.result.sections.experience = e.experience.join("\n\n");
+          } else if (Array.isArray(e)) {
+            mapped.result.sections.experience = e.join("\n\n");
+          }
+        } catch {}
+      }
+
+      // skills
+      if (skillsRes.status === "fulfilled" && skillsRes.value?.ok) {
+        try {
+          const sk = await skillsRes.value.json();
+          mapped.result.skills = sk?.skills ?? mapped.result.skills;
+        } catch {}
+      }
+
+      // cv-score
+      if (scoreRes.status === "fulfilled" && scoreRes.value?.ok) {
+        try {
+          const sc = await scoreRes.value.json();
+          mapped.result.cv_score =
+            sc?.cvScore ?? sc?.cv_score ?? mapped.result.cv_score;
+        } catch {}
+      }
+
+      // project-type -> project_type and project_fit
+      if (ptRes.status === "fulfilled" && ptRes.value?.ok) {
+        try {
+          const pt = await ptRes.value.json();
+          mapped.result.project_type =
+            pt?.projectType ?? pt?.project_type ?? mapped.result.project_type;
+          mapped.result.project_fit =
+            pt?.projectFit ?? pt?.project_fit ?? mapped.result.project_fit;
+          // also set match string if needed (frontend uses candidate.match)
+        } catch {}
+      }
+
+      // leave education/projects empty if API doesn't expose them
+      setCandidateData(mapped);
+
+      setEditForm({
+        name: mapped.result.personal_info.name || candidate.name,
+        email: mapped.result.personal_info.email || candidate.email,
+        phone: mapped.result.personal_info.phone || "",
+        skills: mapped.result.skills || candidate.skills,
+        summary: mapped.result.summary || "",
+        project_type: mapped.result.project_type || "",
+        project_fit: mapped.result.project_fit ?? 0,
+        education: mapped.result.sections.education || "",
+        experience: mapped.result.sections.experience || "",
+        projects: mapped.result.sections.projects || "",
+      });
     } catch (error) {
       console.error("Failed to load candidate data:", error);
       showSnackbar("Failed to load candidate data", "error");
-
-      // fallback mock on error
+      // fallback mapping
       setCandidateData({
         filename: candidate.filename || "CV.pdf",
         result: {
@@ -516,27 +498,22 @@ export default function ManageData() {
           personal_info: {
             email: candidate.email,
             name: candidate.name,
-            phone: "Not available",
+            phone: "",
           },
           project_fit: candidate.projectFitPercent || 0,
           project_type: candidate.project || "General",
-          sections: {
-            education: "Education information not available",
-            experience: "Experience information not available",
-            projects: "Projects information not available",
-          },
+          sections: { education: "", experience: "", projects: "" },
           skills: candidate.skills,
-          summary: `Summary for ${candidate.name}`,
+          summary: "",
         },
         status: "success",
       });
-
       setEditForm({
         name: candidate.name,
         email: candidate.email,
         phone: "",
         skills: candidate.skills,
-        summary: `Summary for ${candidate.name}`,
+        summary: "",
         project_type: candidate.project || "",
         project_fit: candidate.projectFitPercent || 0,
         education: "",
