@@ -393,7 +393,19 @@ export default function ManageData() {
       // Try to fetch real candidate data from API
       const res = await apiFetch(`/cv/${candidate.id}/data`);
       if (res && res.ok) {
-        const data = await res.json().catch(() => null);
+        const data = await res.json().catch(async () => {
+          // if JSON parse fails, try to log raw text for debugging
+          try {
+            const raw = await res.text();
+            console.warn("Candidate /cv/{id}/data returned non-JSON:", raw);
+            return null;
+          } catch {
+            return null;
+          }
+        });
+
+        // log the raw object so we can see actual structure when debugging
+        console.debug("Loaded candidate data for", candidate.id, data);
 
         const mapped: CandidateData = {
           filename: data?.filename ?? candidate.filename ?? "CV.pdf",
@@ -1162,12 +1174,61 @@ function extractSectionText(input: any): string {
   }
 }
 
-// Improved normalizeSections: checks many possible locations including resumeResult (stringified JSON)
+// new helper: deep-collect likely section fields anywhere in object
+function deepCollectSections(root: any) {
+  const sections: { education: any; experience: any; projects: any } = {
+    education: null,
+    experience: null,
+    projects: null,
+  };
+  const visited = new Set<any>();
+  const stack = [root];
+
+  while (stack.length) {
+    const cur = stack.pop();
+    if (!cur || typeof cur !== "object" || visited.has(cur)) continue;
+    visited.add(cur);
+
+    for (const key of Object.keys(cur)) {
+      const val = cur[key];
+      const k = String(key).toLowerCase();
+
+      if (
+        !sections.education &&
+        /education|school|degree|qualification/.test(k) &&
+        val
+      ) {
+        sections.education = val;
+      }
+      if (
+        !sections.experience &&
+        /experience|work|employment|work_history|positions|jobs/.test(k) &&
+        val
+      ) {
+        sections.experience = val;
+      }
+      if (
+        !sections.projects &&
+        /project|portfolio|projects_section|open_source/.test(k) &&
+        val
+      ) {
+        sections.projects = val;
+      }
+
+      if (typeof val === "object") stack.push(val);
+    }
+
+    if (sections.education && sections.experience && sections.projects) break;
+  }
+
+  return sections;
+}
+
+// improved normalizeSections that uses deepCollectSections and existing extractSectionText
 function normalizeSections(data: any) {
-  // 1) direct sections object
+  // try previously implemented direct lookups first
   const direct =
     data?.result?.sections ?? data?.sections ?? data?.parsedSections ?? null;
-
   if (direct) {
     return {
       education: extractSectionText(
@@ -1182,8 +1243,8 @@ function normalizeSections(data: any) {
     };
   }
 
-  // 2) try resumeResult / ResumeResult / resume / parsed_resume fields (may be string)
-  const resumeCandidates = [
+  // try to parse possible resume JSON fields first
+  const candidates = [
     data?.result?.resumeResult,
     data?.resumeResult,
     data?.ResumeResult,
@@ -1193,73 +1254,43 @@ function normalizeSections(data: any) {
     data?.result?.parse_result,
   ];
 
-  for (const candidate of resumeCandidates) {
-    const parsed = parseResumeJson(candidate) || candidate;
+  for (const cand of candidates) {
+    const parsed = parseResumeJson(cand) || cand;
     if (!parsed) continue;
-
-    // common shapes: parsed.sections, parsed.resume.sections, parsed.data.sections, parsed.parsed.sections
-    const possibleSections =
-      parsed.sections ??
-      parsed.resume?.sections ??
-      parsed.data?.sections ??
-      parsed.parsed?.sections ??
-      parsed.parsed_cv?.sections ??
-      parsed.experienceSections ??
-      null;
-
-    if (possibleSections) {
+    const collected = deepCollectSections(parsed);
+    if (collected.education || collected.experience || collected.projects) {
       return {
-        education: extractSectionText(
-          possibleSections.education ??
-            possibleSections.educationText ??
-            possibleSections.education_section
-        ),
-        experience: extractSectionText(
-          possibleSections.experience ??
-            possibleSections.workExperience ??
-            possibleSections.experience_section
-        ),
-        projects: extractSectionText(
-          possibleSections.projects ??
-            possibleSections.project ??
-            possibleSections.projects_section
-        ),
-      };
-    }
-
-    // some parsers put education/experience/projects at top-level
-    const education =
-      parsed.education ??
-      parsed.educationText ??
-      parsed.education_section ??
-      parsed.education_details;
-    const experience =
-      parsed.experience ??
-      parsed.workExperience ??
-      parsed.experience_section ??
-      parsed.work_history;
-    const projects =
-      parsed.projects ??
-      parsed.project ??
-      parsed.projects_section ??
-      parsed.portfolio;
-
-    if (education || experience || projects) {
-      return {
-        education: extractSectionText(education),
-        experience: extractSectionText(experience),
-        projects: extractSectionText(projects),
+        education: extractSectionText(collected.education),
+        experience: extractSectionText(collected.experience),
+        projects: extractSectionText(collected.projects),
       };
     }
   }
 
-  // 3) last resort: try top-level fields on data
+  // deep-scan entire `data` object as last resort
+  const collectedAll = deepCollectSections(data);
+  if (
+    collectedAll.education ||
+    collectedAll.experience ||
+    collectedAll.projects
+  ) {
+    return {
+      education: extractSectionText(collectedAll.education),
+      experience: extractSectionText(collectedAll.experience),
+      projects: extractSectionText(collectedAll.projects),
+    };
+  }
+
+  // final fallback to earlier simple fields
   const fallbackEducation =
-    data?.education ?? data?.educationText ?? data?.education_section;
+    data?.education ?? data?.educationText ?? data?.education_section ?? null;
   const fallbackExperience =
-    data?.experience ?? data?.workExperience ?? data?.experience_section;
+    data?.experience ??
+    data?.workExperience ??
+    data?.experience_section ??
+    null;
   const fallbackProjects =
-    data?.projects ?? data?.project ?? data?.projects_section;
+    data?.projects ?? data?.project ?? data?.projects_section ?? null;
 
   return {
     education: extractSectionText(fallbackEducation),
