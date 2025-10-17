@@ -1098,14 +1098,28 @@ export default function ManageData() {
   );
 }
 
+// Helper: try to parse a resume JSON if it's a string, otherwise return object
+function parseResumeJson(input: any): any {
+  if (!input) return null;
+  // input may be a stringified JSON
+  if (typeof input === "string") {
+    try {
+      return JSON.parse(input);
+    } catch {
+      // not JSON, return null so other sources are checked
+      return null;
+    }
+  }
+  // already an object
+  if (typeof input === "object") return input;
+  return null;
+}
+
 // Helper: robustly extract section text from multiple possible shapes
 function extractSectionText(input: any): string {
   if (!input && input !== 0) return "";
-  // already a string
   if (typeof input === "string") return input;
-  // array of strings
   if (Array.isArray(input)) {
-    // array of strings or array of objects with text/summary/content
     return input
       .map((it) => {
         if (!it && it !== 0) return "";
@@ -1116,6 +1130,7 @@ function extractSectionText(input: any): string {
             (it.summary && String(it.summary)) ||
             (it.content && String(it.content)) ||
             (it.description && String(it.description)) ||
+            (it.title && String(it.title)) ||
             ""
           );
         }
@@ -1124,14 +1139,13 @@ function extractSectionText(input: any): string {
       .filter(Boolean)
       .join("\n\n");
   }
-  // object with common keys
   if (typeof input === "object") {
     return (
       (input.text && String(input.text)) ||
       (input.summary && String(input.summary)) ||
       (input.content && String(input.content)) ||
       (input.description && String(input.description)) ||
-      // if object has items array, flatten them
+      (input.title && String(input.title)) ||
       (Array.isArray(input.items)
         ? input.items
             .map((it: any) => (typeof it === "string" ? it : it.text || ""))
@@ -1141,7 +1155,6 @@ function extractSectionText(input: any): string {
       ""
     );
   }
-  // fallback to string coercion
   try {
     return String(input);
   } catch {
@@ -1149,17 +1162,108 @@ function extractSectionText(input: any): string {
   }
 }
 
+// Improved normalizeSections: checks many possible locations including resumeResult (stringified JSON)
 function normalizeSections(data: any) {
-  const src = data?.result?.sections ?? data?.sections ?? data ?? {};
+  // 1) direct sections object
+  const direct =
+    data?.result?.sections ?? data?.sections ?? data?.parsedSections ?? null;
+
+  if (direct) {
+    return {
+      education: extractSectionText(
+        direct.education ?? direct.educationText ?? direct.education_section
+      ),
+      experience: extractSectionText(
+        direct.experience ?? direct.workExperience ?? direct.experience_section
+      ),
+      projects: extractSectionText(
+        direct.projects ?? direct.project ?? direct.projects_section
+      ),
+    };
+  }
+
+  // 2) try resumeResult / ResumeResult / resume / parsed_resume fields (may be string)
+  const resumeCandidates = [
+    data?.result?.resumeResult,
+    data?.resumeResult,
+    data?.ResumeResult,
+    data?.resume,
+    data?.parsed_resume,
+    data?.result?.parsedResume,
+    data?.result?.parse_result,
+  ];
+
+  for (const candidate of resumeCandidates) {
+    const parsed = parseResumeJson(candidate) || candidate;
+    if (!parsed) continue;
+
+    // common shapes: parsed.sections, parsed.resume.sections, parsed.data.sections, parsed.parsed.sections
+    const possibleSections =
+      parsed.sections ??
+      parsed.resume?.sections ??
+      parsed.data?.sections ??
+      parsed.parsed?.sections ??
+      parsed.parsed_cv?.sections ??
+      parsed.experienceSections ??
+      null;
+
+    if (possibleSections) {
+      return {
+        education: extractSectionText(
+          possibleSections.education ??
+            possibleSections.educationText ??
+            possibleSections.education_section
+        ),
+        experience: extractSectionText(
+          possibleSections.experience ??
+            possibleSections.workExperience ??
+            possibleSections.experience_section
+        ),
+        projects: extractSectionText(
+          possibleSections.projects ??
+            possibleSections.project ??
+            possibleSections.projects_section
+        ),
+      };
+    }
+
+    // some parsers put education/experience/projects at top-level
+    const education =
+      parsed.education ??
+      parsed.educationText ??
+      parsed.education_section ??
+      parsed.education_details;
+    const experience =
+      parsed.experience ??
+      parsed.workExperience ??
+      parsed.experience_section ??
+      parsed.work_history;
+    const projects =
+      parsed.projects ??
+      parsed.project ??
+      parsed.projects_section ??
+      parsed.portfolio;
+
+    if (education || experience || projects) {
+      return {
+        education: extractSectionText(education),
+        experience: extractSectionText(experience),
+        projects: extractSectionText(projects),
+      };
+    }
+  }
+
+  // 3) last resort: try top-level fields on data
+  const fallbackEducation =
+    data?.education ?? data?.educationText ?? data?.education_section;
+  const fallbackExperience =
+    data?.experience ?? data?.workExperience ?? data?.experience_section;
+  const fallbackProjects =
+    data?.projects ?? data?.project ?? data?.projects_section;
+
   return {
-    education: extractSectionText(
-      src.education ?? src.educationText ?? src.education_section
-    ),
-    experience: extractSectionText(
-      src.experience ?? src.workExperience ?? src.experience_section
-    ),
-    projects: extractSectionText(
-      src.projects ?? src.project ?? src.projects_section
-    ),
+    education: extractSectionText(fallbackEducation),
+    experience: extractSectionText(fallbackExperience),
+    projects: extractSectionText(fallbackProjects),
   };
 }
