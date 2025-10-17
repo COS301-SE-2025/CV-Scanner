@@ -7,7 +7,6 @@ import {
   InputBase,
   Avatar,
   Chip,
-  Divider,
   AppBar,
   Toolbar,
   IconButton,
@@ -16,15 +15,11 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Alert,
   Snackbar,
   CircularProgress,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/Edit";
@@ -35,6 +30,7 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import Sidebar from "./Sidebar";
 import RoleBasedAccess from "../components/RoleBaseAccess";
+import Pagination from "@mui/material/Pagination";
 import { apiFetch } from "../lib/api";
 
 // Types matching your JSON structure
@@ -94,16 +90,12 @@ export default function ManageData() {
     role?: string;
     email?: string;
   } | null>(null);
-
+  const [page, setPage] = useState(1);
+  const CANDIDATES_PER_PAGE = 5;
   const [candidates, setCandidates] = useState<CandidateCard[]>([]);
-  const [filteredCandidates, setFilteredCandidates] = useState<CandidateCard[]>(
-    []
-  );
-  const [selectedCandidate, setSelectedCandidate] =
-    useState<CandidateCard | null>(null);
-  const [candidateData, setCandidateData] = useState<CandidateData | null>(
-    null
-  );
+  const [filteredCandidates, setFilteredCandidates] = useState<CandidateCard[]>([]);
+  const [selectedCandidate, setSelectedCandidate] = useState<CandidateCard | null>(null);
+  const [candidateData, setCandidateData] = useState<CandidateData | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({
@@ -128,14 +120,18 @@ export default function ManageData() {
     projects: "",
   });
 
+  // Paginated candidates
+  const paginatedCandidates = useMemo(() => {
+    const start = (page - 1) * CANDIDATES_PER_PAGE;
+    return filteredCandidates.slice(start, start + CANDIDATES_PER_PAGE);
+  }, [filteredCandidates, page]);
+
   // Check if user is admin
   useEffect(() => {
     const checkAdminAccess = async () => {
       const email = localStorage.getItem("userEmail") || "admin@email.com";
       try {
-        const meRes = await apiFetch(
-          `/auth/me?email=${encodeURIComponent(email)}`
-        );
+        const meRes = await apiFetch(`/auth/me?email=${encodeURIComponent(email)}`);
         if (meRes.ok) {
           const meData = await meRes.json();
           setUser(meData);
@@ -153,7 +149,7 @@ export default function ManageData() {
   // ---- ScoreRing (copied/simplified from Search.tsx) ----
   function scoreColor(value: number) {
     const v = Math.max(0, Math.min(10, value));
-    const hue = (v / 10) * 120; // 0..10 → red..green
+    const hue = (v / 10) * 120;
     return `hsl(${hue} 70% 45%)`;
   }
 
@@ -161,7 +157,6 @@ export default function ManageData() {
     const clamped = Math.max(0, Math.min(10, value));
     const pct = clamped * 10;
     const ringColor = scoreColor(clamped);
-    const isPerfect = clamped === 10;
 
     return (
       <Box sx={{ position: "relative", display: "inline-flex" }}>
@@ -181,9 +176,6 @@ export default function ManageData() {
             color: ringColor,
             position: "absolute",
             left: 0,
-            ...(isPerfect && {
-              filter: "drop-shadow(0 0 6px rgba(0, 255, 0, 0.6))",
-            }),
           }}
         />
         <Box
@@ -209,7 +201,6 @@ export default function ManageData() {
       </Box>
     );
   }
-  // -------------------------------------------------------
 
   // Load candidates
   useEffect(() => {
@@ -221,10 +212,7 @@ export default function ManageData() {
           const list = await candRes.json();
           const mapped: CandidateCard[] = list.map((c: any) => ({
             id: c.id,
-            name:
-              `${c.firstName || ""} ${c.lastName || ""}`.trim() ||
-              c.email ||
-              "Unknown",
+            name: `${c.firstName || ""} ${c.lastName || ""}`.trim() || c.email || "Unknown",
             email: c.email,
             skills: Array.isArray(c.skills) ? c.skills : [],
             project: c.project || "CV",
@@ -243,7 +231,7 @@ export default function ManageData() {
           setCandidates(mapped);
           setFilteredCandidates(mapped);
 
-          // Fetch individual scores and project-type info (update candidates dynamically)
+          // Fetch individual scores and project-type info
           (async function fetchIndividualScoresAndProjectTypes() {
             try {
               const scorePromises = mapped.map(async (cand) => {
@@ -268,10 +256,8 @@ export default function ManageData() {
                       id: cand.id,
                       projectType: j?.projectType ?? j?.type ?? null,
                       projectFit: j?.projectFit ?? j?.project_fit ?? null,
-                      projectFitPercent:
-                        j?.projectFitPercent ?? j?.project_fit_percent ?? null,
-                      projectFitLabel:
-                        j?.projectFitLabel ?? j?.projectFitLabel ?? null,
+                      projectFitPercent: j?.projectFitPercent ?? j?.project_fit_percent ?? null,
+                      projectFitLabel: j?.projectFitLabel ?? j?.projectFitLabel ?? null,
                     };
                   }
                 } catch (e) {
@@ -292,9 +278,7 @@ export default function ManageData() {
               ]);
 
               const scoreMap = new Map(scores.map((s) => [s.id, s.score]));
-              const projectTypeMap = new Map(
-                projectTypes.map((p) => [p.id, p])
-              );
+              const projectTypeMap = new Map(projectTypes.map((p) => [p.id, p]));
 
               setCandidates((prev) =>
                 prev.map((c) => {
@@ -315,16 +299,12 @@ export default function ManageData() {
                     fit: pt?.projectType ?? c.fit,
                     match: matchLabel,
                     projectFit: pt?.projectFit ?? c.projectFit,
-                    projectFitPercent:
-                      pt?.projectFitPercent ?? c.projectFitPercent,
+                    projectFitPercent: pt?.projectFitPercent ?? c.projectFitPercent,
                   };
                 })
               );
             } catch (e) {
-              console.error(
-                "Failed to fetch individual scores/project types:",
-                e
-              );
+              console.error("Failed to fetch individual scores/project types:", e);
             }
           })();
         }
@@ -396,14 +376,13 @@ export default function ManageData() {
       const projectTypePromise = apiFetch(`/cv/${candidate.id}/project-type`);
       const skillsPromise = apiFetch(`/cv/${candidate.id}/skills`);
 
-      const [summaryRes, expRes, scoreRes, ptRes, skillsRes] =
-        await Promise.allSettled([
-          summaryPromise,
-          expPromise,
-          scorePromise,
-          projectTypePromise,
-          skillsPromise,
-        ]);
+      const [summaryRes, expRes, scoreRes, ptRes, skillsRes] = await Promise.allSettled([
+        summaryPromise,
+        expPromise,
+        scorePromise,
+        projectTypePromise,
+        skillsPromise,
+      ]);
 
       const mapped: CandidateData = {
         filename: candidate.filename ?? "CV.pdf",
@@ -455,8 +434,7 @@ export default function ManageData() {
       if (scoreRes.status === "fulfilled" && scoreRes.value?.ok) {
         try {
           const sc = await scoreRes.value.json();
-          mapped.result.cv_score =
-            sc?.cvScore ?? sc?.cv_score ?? mapped.result.cv_score;
+          mapped.result.cv_score = sc?.cvScore ?? sc?.cv_score ?? mapped.result.cv_score;
         } catch {}
       }
 
@@ -464,17 +442,12 @@ export default function ManageData() {
       if (ptRes.status === "fulfilled" && ptRes.value?.ok) {
         try {
           const pt = await ptRes.value.json();
-          mapped.result.project_type =
-            pt?.projectType ?? pt?.project_type ?? mapped.result.project_type;
-          mapped.result.project_fit =
-            pt?.projectFit ?? pt?.project_fit ?? mapped.result.project_fit;
-          // also set match string if needed (frontend uses candidate.match)
+          mapped.result.project_type = pt?.projectType ?? pt?.project_type ?? mapped.result.project_type;
+          mapped.result.project_fit = pt?.projectFit ?? pt?.project_fit ?? mapped.result.project_fit;
         } catch {}
       }
 
-      // leave education/projects empty if API doesn't expose them
       setCandidateData(mapped);
-
       setEditForm({
         name: mapped.result.personal_info.name || candidate.name,
         email: mapped.result.personal_info.email || candidate.email,
@@ -530,12 +503,6 @@ export default function ManageData() {
     if (!selectedCandidate || !candidateData) return;
 
     try {
-      // In a real implementation, you would call your API endpoint
-      // const res = await apiFetch(`/cv/${selectedCandidate.id}/data`, {
-      //   method: "PUT",
-      //   body: JSON.stringify(updatedData),
-      // });
-
       // For now, we'll simulate a successful update
       showSnackbar("Candidate data updated successfully", "success");
       setEditDialogOpen(false);
@@ -565,19 +532,12 @@ export default function ManageData() {
     if (!selectedCandidate) return;
 
     try {
-      // In a real implementation, you would call your API endpoint
-      // const res = await apiFetch(`/cv/${selectedCandidate.id}`, {
-      //   method: "DELETE",
-      // });
-
       // For now, we'll simulate a successful deletion
       showSnackbar("Candidate deleted successfully", "success");
       setDeleteDialogOpen(false);
 
       // Remove from candidates list
-      const updatedCandidates = candidates.filter(
-        (c) => c.id !== selectedCandidate.id
-      );
+      const updatedCandidates = candidates.filter((c) => c.id !== selectedCandidate.id);
       setCandidates(updatedCandidates);
     } catch (error) {
       console.error("Failed to delete candidate:", error);
@@ -597,28 +557,14 @@ export default function ManageData() {
 
   return (
     <RoleBasedAccess allowedRoles={["Admin"]} fallbackPath="/dashboard">
-      <Box
-        sx={{
-          display: "flex",
-          minHeight: "100vh",
-          bgcolor: "#1E1E1E",
-          color: "#fff",
-        }}
-      >
+      <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#1E1E1E", color: "#fff" }}>
         {/* Sidebar */}
-        <Sidebar
-          userRole={user?.role ?? "User"}
-          collapsed={collapsed}
-          setCollapsed={setCollapsed}
-        />
+        <Sidebar userRole={user?.role ?? "User"} collapsed={collapsed} setCollapsed={setCollapsed} />
 
         {/* Main Content */}
         <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
           {/* Top Bar */}
-          <AppBar
-            position="static"
-            sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
-          >
+          <AppBar position="static" sx={{ bgcolor: "#232A3B", boxShadow: "none" }}>
             <Toolbar sx={{ justifyContent: "flex-end" }}>
               {/* User Info */}
               <Box
@@ -633,11 +579,7 @@ export default function ManageData() {
               >
                 <AccountCircleIcon sx={{ mr: 1 }} />
                 <Typography variant="subtitle1">
-                  {user
-                    ? `${user.first_name} ${user.last_name || ""} (${
-                        user.role
-                      })`
-                    : "Admin"}
+                  {user ? `${user.first_name} ${user.last_name || ""} (${user.role})` : "Admin"}
                 </Typography>
               </Box>
 
@@ -713,7 +655,9 @@ export default function ManageData() {
               >
                 {loading
                   ? "Loading candidates..."
-                  : `Showing ${filteredCandidates.length} of ${candidates.length} candidates`}
+                  : `Showing ${paginatedCandidates.length > 0 ? 
+                      `${Math.min((page - 1) * CANDIDATES_PER_PAGE + 1, filteredCandidates.length)}-${Math.min(page * CANDIDATES_PER_PAGE, filteredCandidates.length)}` 
+                      : '0'} of ${filteredCandidates.length} candidates`}
               </Typography>
 
               {/* Loading State */}
@@ -724,8 +668,10 @@ export default function ManageData() {
               )}
 
               {/* Candidate Cards */}
-              {!loading && filteredCandidates.length > 0
-                ? filteredCandidates.map((candidate) => (
+              {!loading && filteredCandidates.length > 0 ? (
+                <>
+                  {/* Single row layout - one candidate per row */}
+                  {paginatedCandidates.map((candidate) => (
                     <Paper
                       key={candidate.id}
                       elevation={3}
@@ -736,13 +682,7 @@ export default function ManageData() {
                         backgroundColor: "#adb6be",
                       }}
                     >
-                      <Box
-                        sx={{
-                          display: "flex",
-                          alignItems: "flex-start",
-                          gap: 3,
-                        }}
-                      >
+                      <Box sx={{ display: "flex", alignItems: "flex-start", gap: 3 }}>
                         <Avatar
                           sx={{
                             bgcolor: "#93AFF7",
@@ -816,8 +756,7 @@ export default function ManageData() {
                               fontFamily: "Helvetica, sans-serif",
                             }}
                           >
-                            Match: {candidate.match} | Score: {candidate.score}
-                            /10
+                            Match: {candidate.match} | Score: {candidate.score}/10
                           </Typography>
                         </Box>
                         <Box
@@ -828,7 +767,7 @@ export default function ManageData() {
                             alignItems: "center",
                           }}
                         >
-                          {/* Score ring and match (dynamically updated) */}
+                          {/* Score ring and match */}
                           <ScoreRing value={candidate.score} />
                           <Typography
                             variant="body2"
@@ -872,20 +811,40 @@ export default function ManageData() {
                         </Box>
                       </Box>
                     </Paper>
-                  ))
-                : !loading && (
-                    <Typography
-                      variant="body1"
+                  ))}
+                  
+                  {/* Pagination */}
+                  <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+                    <Pagination
+                      count={Math.max(1, Math.ceil(filteredCandidates.length / CANDIDATES_PER_PAGE))}
+                      page={page}
+                      onChange={(_, value) => setPage(value)}
+                      color="primary"
+                      size="large"
                       sx={{
-                        mt: 2,
-                        fontStyle: "italic",
-                        color: "#555",
-                        fontFamily: "Helvetica, sans-serif",
+                        "& .MuiPaginationItem-root": {
+                          color: "#204E20",
+                          fontWeight: "bold",
+                        },
                       }}
-                    >
-                      No candidates found.
-                    </Typography>
-                  )}
+                    />
+                  </Box>
+                </>
+              ) : (
+                !loading && (
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      mt: 2,
+                      fontStyle: "italic",
+                      color: "#555",
+                      fontFamily: "Helvetica, sans-serif",
+                    }}
+                  >
+                    No candidates found.
+                  </Typography>
+                )
+              )}
             </Paper>
           </Box>
         </Box>
@@ -896,9 +855,7 @@ export default function ManageData() {
           onClose={() => setEditDialogOpen(false)}
           maxWidth="md"
           fullWidth
-          PaperProps={{
-            sx: { borderRadius: 3, bgcolor: "#f5f5f5" },
-          }}
+          PaperProps={{ sx: { borderRadius: 3, bgcolor: "#f5f5f5" } }}
         >
           <DialogTitle sx={{ bgcolor: "#1976d2", color: "white" }}>
             Edit Candidate Data - {selectedCandidate?.name}
@@ -910,49 +867,36 @@ export default function ManageData() {
               </Box>
             ) : (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <Typography variant="h6" sx={{ mb: 2 }}>
-                  Personal Information
-                </Typography>
+                <Typography variant="h6" sx={{ mb: 2 }}>Personal Information</Typography>
 
                 <TextField
                   label="Name"
                   value={editForm.name}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, name: e.target.value })
-                  }
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                   fullWidth
                 />
 
                 <TextField
                   label="Email"
                   value={editForm.email}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, email: e.target.value })
-                  }
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
                   fullWidth
                 />
 
                 <TextField
                   label="Phone"
                   value={editForm.phone}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, phone: e.target.value })
-                  }
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
                   fullWidth
                 />
 
                 <TextField
                   label="Skills (comma-separated)"
                   value={editForm.skills.join(", ")}
-                  onChange={(e) =>
-                    setEditForm({
-                      ...editForm,
-                      skills: e.target.value
-                        .split(",")
-                        .map((s) => s.trim())
-                        .filter(Boolean),
-                    })
-                  }
+                  onChange={(e) => setEditForm({
+                    ...editForm,
+                    skills: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+                  })}
                   fullWidth
                   helperText="Separate skills with commas"
                 />
@@ -960,9 +904,7 @@ export default function ManageData() {
                 <TextField
                   label="Project Type"
                   value={editForm.project_type}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, project_type: e.target.value })
-                  }
+                  onChange={(e) => setEditForm({ ...editForm, project_type: e.target.value })}
                   fullWidth
                 />
 
@@ -970,26 +912,20 @@ export default function ManageData() {
                   label="Project Fit Score"
                   type="number"
                   value={editForm.project_fit}
-                  onChange={(e) =>
-                    setEditForm({
-                      ...editForm,
-                      project_fit: parseFloat(e.target.value),
-                    })
-                  }
+                  onChange={(e) => setEditForm({
+                    ...editForm,
+                    project_fit: parseFloat(e.target.value),
+                  })}
                   fullWidth
                   inputProps={{ min: 0, max: 10, step: 0.1 }}
                 />
 
-                <Typography variant="h6" sx={{ mt: 2 }}>
-                  Sections
-                </Typography>
+                <Typography variant="h6" sx={{ mt: 2 }}>Sections</Typography>
 
                 <TextField
                   label="Summary"
                   value={editForm.summary}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, summary: e.target.value })
-                  }
+                  onChange={(e) => setEditForm({ ...editForm, summary: e.target.value })}
                   multiline
                   rows={3}
                   fullWidth
@@ -998,9 +934,7 @@ export default function ManageData() {
                 <TextField
                   label="Education"
                   value={editForm.education}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, education: e.target.value })
-                  }
+                  onChange={(e) => setEditForm({ ...editForm, education: e.target.value })}
                   multiline
                   rows={2}
                   fullWidth
@@ -1009,9 +943,7 @@ export default function ManageData() {
                 <TextField
                   label="Experience"
                   value={editForm.experience}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, experience: e.target.value })
-                  }
+                  onChange={(e) => setEditForm({ ...editForm, experience: e.target.value })}
                   multiline
                   rows={2}
                   fullWidth
@@ -1020,9 +952,7 @@ export default function ManageData() {
                 <TextField
                   label="Projects"
                   value={editForm.projects}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, projects: e.target.value })
-                  }
+                  onChange={(e) => setEditForm({ ...editForm, projects: e.target.value })}
                   multiline
                   rows={3}
                   fullWidth
@@ -1053,35 +983,34 @@ export default function ManageData() {
         <Dialog
           open={deleteDialogOpen}
           onClose={() => setDeleteDialogOpen(false)}
-          PaperProps={{
-            sx: { borderRadius: 3, bgcolor: "#f5f5f5" },
-          }}
+          PaperProps={{ sx: { borderRadius: 3, bgcolor: "#f5f5f5" } }}
         >
           <DialogTitle>Confirm Delete</DialogTitle>
           <DialogContent>
             <Typography>
-              Are you sure you want to delete candidate{" "}
-              <strong>{selectedCandidate?.name}</strong>? This action cannot be
-              undone.
+              Are you sure you want to delete candidate <strong>{selectedCandidate?.name}</strong>? This action cannot be undone.
             </Typography>
           </DialogContent>
           <DialogActions>
-            <Button
-              onClick={() => setDeleteDialogOpen(false)}
-              sx={{ textTransform: "none" }}
-            >
+            <Button onClick={() => setDeleteDialogOpen(false)} sx={{ textTransform: "none" }}>
               Cancel
             </Button>
-            <Button
-              variant="contained"
-              color="error"
-              onClick={deleteCandidate}
-              sx={{ textTransform: "none" }}
-            >
+            <Button variant="contained" color="error" onClick={deleteCandidate} sx={{ textTransform: "none" }}>
               Delete
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Snackbar */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+        >
+          <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </RoleBasedAccess>
   );
