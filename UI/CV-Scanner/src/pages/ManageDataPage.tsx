@@ -421,12 +421,8 @@ export default function ManageData() {
               data?.project_type ??
               candidate.project ??
               "General",
-            sections: data?.result?.sections ??
-              data?.sections ?? {
-                education: "Education information not available",
-                experience: "Experience information not available",
-                projects: "Projects information not available",
-              },
+            // use normalizeSections to ensure strings for editForm
+            sections: normalizeSections(data),
             skills:
               data?.result?.skills ?? data?.skills ?? candidate.skills ?? [],
             summary:
@@ -465,11 +461,15 @@ export default function ManageData() {
             },
             project_fit: candidate.projectFitPercent || 0,
             project_type: candidate.project || "General",
-            sections: {
-              education: "Education information not available",
-              experience: "Experience information not available",
-              projects: "Projects information not available",
-            },
+            sections: normalizeSections({
+              sections: {
+                education: candidate.skills.length
+                  ? `Skills: ${candidate.skills.join(", ")}`
+                  : "Education information not available",
+                experience: "Experience information not available",
+                projects: "Projects information not available",
+              },
+            }),
             skills: candidate.skills,
             summary: `Summary for ${candidate.name}`,
           },
@@ -1096,4 +1096,70 @@ export default function ManageData() {
       </Box>
     </RoleBasedAccess>
   );
+}
+
+// Helper: robustly extract section text from multiple possible shapes
+function extractSectionText(input: any): string {
+  if (!input && input !== 0) return "";
+  // already a string
+  if (typeof input === "string") return input;
+  // array of strings
+  if (Array.isArray(input)) {
+    // array of strings or array of objects with text/summary/content
+    return input
+      .map((it) => {
+        if (!it && it !== 0) return "";
+        if (typeof it === "string") return it;
+        if (typeof it === "object") {
+          return (
+            (it.text && String(it.text)) ||
+            (it.summary && String(it.summary)) ||
+            (it.content && String(it.content)) ||
+            (it.description && String(it.description)) ||
+            ""
+          );
+        }
+        return "";
+      })
+      .filter(Boolean)
+      .join("\n\n");
+  }
+  // object with common keys
+  if (typeof input === "object") {
+    return (
+      (input.text && String(input.text)) ||
+      (input.summary && String(input.summary)) ||
+      (input.content && String(input.content)) ||
+      (input.description && String(input.description)) ||
+      // if object has items array, flatten them
+      (Array.isArray(input.items)
+        ? input.items
+            .map((it: any) => (typeof it === "string" ? it : it.text || ""))
+            .filter(Boolean)
+            .join("\n\n")
+        : "") ||
+      ""
+    );
+  }
+  // fallback to string coercion
+  try {
+    return String(input);
+  } catch {
+    return "";
+  }
+}
+
+function normalizeSections(data: any) {
+  const src = data?.result?.sections ?? data?.sections ?? data ?? {};
+  return {
+    education: extractSectionText(
+      src.education ?? src.educationText ?? src.education_section
+    ),
+    experience: extractSectionText(
+      src.experience ?? src.workExperience ?? src.experience_section
+    ),
+    projects: extractSectionText(
+      src.projects ?? src.project ?? src.projects_section
+    ),
+  };
 }
