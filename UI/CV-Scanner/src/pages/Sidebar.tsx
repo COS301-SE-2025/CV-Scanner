@@ -1,5 +1,10 @@
 import React, { useState } from "react";
-import { Box, Button, IconButton } from "@mui/material";
+import { 
+  Box, 
+  Button, 
+  IconButton,
+  Tooltip 
+} from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import PeopleIcon from "@mui/icons-material/People";
@@ -21,11 +26,12 @@ interface SidebarProps {
   setCollapsed: (collapsed: boolean) => void;
 }
 
-const isActive = (path: string) => location.pathname.indexOf(path) === 0;
+// Fixed: Use the location parameter
+const isActive = (path: string, currentLocation: any) => currentLocation.pathname.indexOf(path) === 0;
 
-const getButtonStyle = (path: string) => ({
+const getButtonStyle = (path: string, currentLocation: any) => ({
   ...navButtonStyle,
-  ...(isActive(path) && {
+  ...(isActive(path, currentLocation) && {
     bgcolor: "#d8f0ff",
     color: "#000",
   }),
@@ -37,7 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   setCollapsed,
 }) => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const location = useLocation(); // This is the React Router location
   const [isAnimating, setIsAnimating] = useState(false);
   const [isCollapsing, setIsCollapsing] = useState(false);
 
@@ -77,12 +83,12 @@ const Sidebar: React.FC<SidebarProps> = ({
     return (
       <Box
         sx={{
-          width: 40,
+          width: 60,
           maxWidth: 220,
           bgcolor: "#232A3B",
           display: "flex",
-          justifyContent: "center",
-          alignItems: "flex-start",
+          flexDirection: "column",
+          alignItems: "center",
           pt: 1,
           position: "relative",
           transition: "width 0.3s cubic-bezier(0.7,0.2,0.2,1)",
@@ -96,25 +102,158 @@ const Sidebar: React.FC<SidebarProps> = ({
           },
         }}
       >
-        <IconButton
-          onClick={handleExpand}
+        {/* Logo */}
+        <Box
+          component="img"
+          src={logoNavbar}
+          alt="Logo"
           sx={{
-            position: "fixed",
-            bottom: 16,
-            left: 0,
-            bgcolor: "#487DA6",
-            color: "#fff",
-            borderRadius: "50%",
             width: 40,
             height: 40,
-            zIndex: 1300,
-            "&:hover": {
-              bgcolor: "#375f87",
-            },
+            mb: 2,
           }}
-        >
-          <ChevronRightIcon />
-        </IconButton>
+        />
+
+        {/* Navigation Icons with Tooltips and Active States */}
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1, width: "100%", alignItems: "center" }}>
+          <Tooltip title="Dashboard" placement="right" arrow>
+            <IconButton
+              onClick={() => navigate("/dashboard")}
+              sx={{
+                color: isActive("/dashboard", location) ? "#d8f0ff" : "#fff",
+                bgcolor: isActive("/dashboard", location) ? "#487DA6" : "transparent",
+                "&:hover": { bgcolor: "#487DA6" },
+              }}
+            >
+              <DashboardIcon />
+            </IconButton>
+          </Tooltip>
+
+          {(userRole === "Editor" || userRole === "Admin") && (
+            <Tooltip title="Upload CV" placement="right" arrow>
+              <IconButton
+                onClick={() => navigate("/upload")}
+                sx={{
+                  color: isActive("/upload", location) ? "#d8f0ff" : "#fff",
+                  bgcolor: isActive("/upload", location) ? "#487DA6" : "transparent",
+                  "&:hover": { bgcolor: "#487DA6" },
+                }}
+              >
+                <UploadFileIcon />
+              </IconButton>
+            </Tooltip>
+          )}
+
+          <Tooltip title="Search" placement="right" arrow>
+            <IconButton
+              onClick={() => navigate("/search")}
+              sx={{
+                color: isActive("/search", location) ? "#d8f0ff" : "#fff",
+                bgcolor: isActive("/search", location) ? "#487DA6" : "transparent",
+                "&:hover": { bgcolor: "#487DA6" },
+              }}
+            >
+              <SearchIcon />
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title="Compare" placement="right" arrow>
+            <IconButton
+              onClick={() => navigate("/compare")}
+              sx={{
+                color: isActive("/compare", location) ? "#d8f0ff" : "#fff",
+                bgcolor: isActive("/compare", location) ? "#487DA6" : "transparent",
+                "&:hover": { bgcolor: "#487DA6" },
+              }}
+            >
+              <CompareArrowsIcon />
+            </IconButton>
+          </Tooltip>
+
+          {userRole === "Admin" && (
+            <Tooltip title="Manage Data" placement="right" arrow>
+              <IconButton
+                onClick={() => navigate("/manage-data")}
+                sx={{
+                  color: isActive("/manage-data", location) ? "#d8f0ff" : "#fff",
+                  bgcolor: isActive("/manage-data", location) ? "#487DA6" : "transparent",
+                  "&:hover": { bgcolor: "#487DA6" },
+                }}
+              >
+                <StorageIcon />
+              </IconButton>
+            </Tooltip>
+          )}
+
+          {userRole === "Admin" && (
+            <>
+              <Tooltip title="User Management" placement="right" arrow>
+                <IconButton
+                  onClick={() => navigate("/user-management")}
+                  sx={{
+                    color: isActive("/user-management", location) ? "#d8f0ff" : "#fff",
+                    bgcolor: isActive("/user-management", location) ? "#487DA6" : "transparent",
+                    "&:hover": { bgcolor: "#487DA6" },
+                  }}
+                >
+                  <PeopleIcon />
+                </IconButton>
+              </Tooltip>
+
+              <Tooltip title="System Settings" placement="right" arrow>
+                <IconButton
+                  onClick={() => navigate("/system-settings")}
+                  sx={{
+                    color: isActive("/system-settings", location) ? "#d8f0ff" : "#fff",
+                    bgcolor: isActive("/system-settings", location) ? "#487DA6" : "transparent",
+                    "&:hover": { bgcolor: "#487DA6" },
+                  }}
+                >
+                  <SettingsIcon />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
+        </Box>
+
+        {/* Logout at bottom */}
+        <Box sx={{ mt: "auto", mb: 2 }}>
+          <Tooltip title="Logout" placement="right" arrow>
+            <IconButton
+              onClick={handleLogout}
+              sx={{
+                color: "#fff",
+                "&:hover": { bgcolor: "#487DA6" },
+              }}
+            >
+              <ExitToAppIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
+
+        {/* Expand Button - Fixed positioning */}
+        <Box sx={{ 
+          position: "fixed", 
+          bottom: 16, 
+          left: 14,
+          zIndex: 1300 
+        }}>
+          <IconButton
+            onClick={handleExpand}
+            sx={{
+              bgcolor: "#487DA6",
+              color: "#fff",
+              borderRadius: "50%",
+              width: 32,
+              height: 32,
+              "&:hover": {
+                bgcolor: "#375f87",
+              },
+            }}
+          >
+            <ChevronRightIcon />
+          </IconButton>
+        </Box>
       </Box>
     );
   }
@@ -122,7 +261,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   return (
     <Box
       sx={{
-        width: collapsed ? 40 : 220,
+        width: collapsed ? 60 : 220,
         bgcolor: "#232A3B",
         display: "flex",
         flexDirection: "column",
@@ -150,26 +289,30 @@ const Sidebar: React.FC<SidebarProps> = ({
         },
       }}
     >
-      <IconButton
-        onClick={handleCollapse}
-        sx={{
-          position: "fixed",
-          bottom: 16,
-          left: collapsed ? 0 : 205,
-          bgcolor: "#487DA6",
-          color: "#fff",
-          borderRadius: "50%",
-          width: 40,
-          height: 40,
-          zIndex: 1300,
-          transition: "transform 0.3s",
-          "&:hover": {
-            bgcolor: "#375f87",
-          },
-        }}
-      >
-        <ChevronLeftIcon />
-      </IconButton>
+      {/* Collapse Button - Fixed positioning */}
+      <Box sx={{ 
+        position: "fixed", 
+        bottom: 16, 
+        left: 205,
+        zIndex: 1300 
+      }}>
+        <IconButton
+          onClick={handleCollapse}
+          sx={{
+            bgcolor: "#487DA6",
+            color: "#fff",
+            borderRadius: "50%",
+            width: 40,
+            height: 40,
+            transition: "transform 0.3s",
+            "&:hover": {
+              bgcolor: "#375f87",
+            },
+          }}
+        >
+          <ChevronLeftIcon />
+        </IconButton>
+      </Box>
 
       <Box
         sx={{
@@ -196,7 +339,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             fontWeight: 600,
             color: "#fff",
             fontSize: "1.1rem",
-            // Animate text disappearing from right to left
             overflow: "hidden",
             display: "inline-block",
             whiteSpace: "nowrap",
@@ -209,11 +351,11 @@ const Sidebar: React.FC<SidebarProps> = ({
         </Typography>
       </Box>
 
-      {/* Animate each button's label to disappear right-to-left */}
+      {/* Fixed: Pass location to getButtonStyle */}
       <Button
         fullWidth
-        sx={getButtonStyle("/dashboard")}
-        className={isActive("/dashboard") ? "active" : ""}
+        sx={getButtonStyle("/dashboard", location)}
+        className={isActive("/dashboard", location) ? "active" : ""}
         startIcon={<DashboardIcon />}
         onClick={() => navigate("/dashboard")}
       >
@@ -233,8 +375,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       {(userRole === "Editor" || userRole === "Admin") && (
         <Button
           fullWidth
-          sx={getButtonStyle("/upload")}
-          className={isActive("/upload") ? "active" : ""}
+          sx={getButtonStyle("/upload", location)}
+          className={isActive("/upload", location) ? "active" : ""}
           startIcon={<UploadFileIcon />}
           onClick={() => navigate("/upload")}
         >
@@ -254,8 +396,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       )}
       <Button
         fullWidth
-        sx={getButtonStyle("/search")}
-        className={isActive("/search") ? "active" : ""}
+        sx={getButtonStyle("/search", location)}
+        className={isActive("/search", location) ? "active" : ""}
         startIcon={<SearchIcon />}
         onClick={() => navigate("/search")}
       >
@@ -274,9 +416,9 @@ const Sidebar: React.FC<SidebarProps> = ({
       </Button>
       <Button
         fullWidth
-        sx={getButtonStyle("/compare")}
-        className={isActive("/compare") ? "active" : ""}
-        startIcon={<CompareArrowsIcon />} // you can change to CompareArrowsIcon
+        sx={getButtonStyle("/compare", location)}
+        className={isActive("/compare", location) ? "active" : ""}
+        startIcon={<CompareArrowsIcon />}
         onClick={() => navigate("/compare")}
       >
         <span
@@ -295,9 +437,9 @@ const Sidebar: React.FC<SidebarProps> = ({
       {userRole === "Admin" && (
         <Button
           fullWidth
-          sx={getButtonStyle("/manage-data")}
-          className={isActive("/manage-data") ? "active" : ""}
-          startIcon={<StorageIcon />} // Different icon for Manage Data
+          sx={getButtonStyle("/manage-data", location)}
+          className={isActive("/manage-data", location) ? "active" : ""}
+          startIcon={<StorageIcon />}
           onClick={() => navigate("/manage-data")}
         >
           <span
@@ -318,8 +460,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         <>
           <Button
             fullWidth
-            sx={getButtonStyle("/user-management")}
-            className={isActive("/user-management") ? "active" : ""}
+            sx={getButtonStyle("/user-management", location)}
+            className={isActive("/user-management", location) ? "active" : ""}
             startIcon={<PeopleIcon />}
             onClick={() => navigate("/user-management")}
           >
@@ -338,8 +480,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           </Button>
           <Button
             fullWidth
-            sx={getButtonStyle("/system-settings")}
-            className={isActive("/system-settings") ? "active" : ""}
+            sx={getButtonStyle("/system-settings", location)}
+            className={isActive("/system-settings", location) ? "active" : ""}
             startIcon={<SettingsIcon />}
             onClick={() => navigate("/system-settings")}
           >
