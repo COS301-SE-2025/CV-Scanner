@@ -112,6 +112,7 @@ export default function ManageData() {
     severity: "success" as "success" | "error",
   });
   const [loading, setLoading] = useState(false);
+  const [loadingCandidateData, setLoadingCandidateData] = useState(false);
 
   // Form state for editing
   const [editForm, setEditForm] = useState({
@@ -383,9 +384,120 @@ export default function ManageData() {
   // Load candidate data for editing
   const loadCandidateData = async (candidate: CandidateCard) => {
     try {
-      // For now, we'll create mock data since the endpoint might not exist
-      // In a real implementation, you would call: `/cv/${candidate.id}/data`
-      const mockCandidateData: CandidateData = {
+      // Open dialog immediately and show loader
+      setSelectedCandidate(candidate);
+      setCandidateData(null);
+      setEditDialogOpen(true);
+      setLoadingCandidateData(true);
+
+      // Try to fetch real candidate data from API
+      const res = await apiFetch(`/cv/${candidate.id}/data`);
+      if (res && res.ok) {
+        const data = await res.json().catch(() => null);
+
+        const mapped: CandidateData = {
+          filename: data?.filename ?? candidate.filename ?? "CV.pdf",
+          result: {
+            cv_score:
+              data?.result?.cv_score ??
+              data?.cv_score ??
+              data?.score ??
+              candidate.score ??
+              0,
+            personal_info: data?.result?.personal_info ??
+              data?.personal_info ?? {
+                email: candidate.email,
+                name: candidate.name,
+                phone: data?.phone ?? "Not available",
+              },
+            project_fit:
+              data?.result?.project_fit ??
+              data?.project_fit ??
+              data?.projectFitPercent ??
+              candidate.projectFitPercent ??
+              0,
+            project_type:
+              data?.result?.project_type ??
+              data?.project_type ??
+              candidate.project ??
+              "General",
+            sections: data?.result?.sections ??
+              data?.sections ?? {
+                education: "Education information not available",
+                experience: "Experience information not available",
+                projects: "Projects information not available",
+              },
+            skills:
+              data?.result?.skills ?? data?.skills ?? candidate.skills ?? [],
+            summary:
+              data?.result?.summary ??
+              data?.summary ??
+              `Summary for ${candidate.name}`,
+          },
+          status: "success",
+        };
+
+        setCandidateData(mapped);
+
+        // Populate edit form from mapped data
+        setEditForm({
+          name: mapped.result.personal_info.name || candidate.name,
+          email: mapped.result.personal_info.email || candidate.email,
+          phone: mapped.result.personal_info.phone || "",
+          skills: mapped.result.skills || candidate.skills,
+          summary: mapped.result.summary || "",
+          project_type: mapped.result.project_type || "",
+          project_fit: mapped.result.project_fit ?? 0,
+          education: mapped.result.sections.education || "",
+          experience: mapped.result.sections.experience || "",
+          projects: mapped.result.sections.projects || "",
+        });
+      } else {
+        // Fallback to mock if API missing or failed
+        const mockCandidateData: CandidateData = {
+          filename: candidate.filename || "CV.pdf",
+          result: {
+            cv_score: candidate.score,
+            personal_info: {
+              email: candidate.email,
+              name: candidate.name,
+              phone: "Not available",
+            },
+            project_fit: candidate.projectFitPercent || 0,
+            project_type: candidate.project || "General",
+            sections: {
+              education: "Education information not available",
+              experience: "Experience information not available",
+              projects: "Projects information not available",
+            },
+            skills: candidate.skills,
+            summary: `Summary for ${candidate.name}`,
+          },
+          status: "success",
+        };
+
+        setCandidateData(mockCandidateData);
+
+        setEditForm({
+          name: mockCandidateData.result.personal_info.name || candidate.name,
+          email:
+            mockCandidateData.result.personal_info.email || candidate.email,
+          phone: mockCandidateData.result.personal_info.phone || "",
+          skills: mockCandidateData.result.skills || candidate.skills,
+          summary: mockCandidateData.result.summary || "",
+          project_type: mockCandidateData.result.project_type || "",
+          project_fit: mockCandidateData.result.project_fit || 0,
+          education: mockCandidateData.result.sections.education || "",
+          experience: mockCandidateData.result.sections.experience || "",
+          projects: mockCandidateData.result.sections.projects || "",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to load candidate data:", error);
+      showSnackbar("Failed to load candidate data", "error");
+
+      // fallback mock on error
+      setCandidateData({
         filename: candidate.filename || "CV.pdf",
         result: {
           cv_score: candidate.score,
@@ -405,29 +517,22 @@ export default function ManageData() {
           summary: `Summary for ${candidate.name}`,
         },
         status: "success",
-      };
-
-      setCandidateData(mockCandidateData);
-
-      // Populate edit form
-      setEditForm({
-        name: mockCandidateData.result.personal_info.name || candidate.name,
-        email: mockCandidateData.result.personal_info.email || candidate.email,
-        phone: mockCandidateData.result.personal_info.phone || "",
-        skills: mockCandidateData.result.skills || candidate.skills,
-        summary: mockCandidateData.result.summary || "",
-        project_type: mockCandidateData.result.project_type || "",
-        project_fit: mockCandidateData.result.project_fit || 0,
-        education: mockCandidateData.result.sections.education || "",
-        experience: mockCandidateData.result.sections.experience || "",
-        projects: mockCandidateData.result.sections.projects || "",
       });
 
-      setSelectedCandidate(candidate);
-      setEditDialogOpen(true);
-    } catch (error) {
-      console.error("Failed to load candidate data:", error);
-      showSnackbar("Failed to load candidate data", "error");
+      setEditForm({
+        name: candidate.name,
+        email: candidate.email,
+        phone: "",
+        skills: candidate.skills,
+        summary: `Summary for ${candidate.name}`,
+        project_type: candidate.project || "",
+        project_fit: candidate.projectFitPercent || 0,
+        education: "",
+        experience: "",
+        projects: "",
+      });
+    } finally {
+      setLoadingCandidateData(false);
     }
   };
 
@@ -810,125 +915,131 @@ export default function ManageData() {
             Edit Candidate Data - {selectedCandidate?.name}
           </DialogTitle>
           <DialogContent sx={{ p: 3 }}>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                Personal Information
-              </Typography>
+            {loadingCandidateData || !candidateData ? (
+              <Box sx={{ display: "flex", justifyContent: "center", p: 6 }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  Personal Information
+                </Typography>
 
-              <TextField
-                label="Name"
-                value={editForm.name}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, name: e.target.value })
-                }
-                fullWidth
-              />
+                <TextField
+                  label="Name"
+                  value={editForm.name}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, name: e.target.value })
+                  }
+                  fullWidth
+                />
 
-              <TextField
-                label="Email"
-                value={editForm.email}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, email: e.target.value })
-                }
-                fullWidth
-              />
+                <TextField
+                  label="Email"
+                  value={editForm.email}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, email: e.target.value })
+                  }
+                  fullWidth
+                />
 
-              <TextField
-                label="Phone"
-                value={editForm.phone}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, phone: e.target.value })
-                }
-                fullWidth
-              />
+                <TextField
+                  label="Phone"
+                  value={editForm.phone}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, phone: e.target.value })
+                  }
+                  fullWidth
+                />
 
-              <TextField
-                label="Skills (comma-separated)"
-                value={editForm.skills.join(", ")}
-                onChange={(e) =>
-                  setEditForm({
-                    ...editForm,
-                    skills: e.target.value
-                      .split(",")
-                      .map((s) => s.trim())
-                      .filter(Boolean),
-                  })
-                }
-                fullWidth
-                helperText="Separate skills with commas"
-              />
+                <TextField
+                  label="Skills (comma-separated)"
+                  value={editForm.skills.join(", ")}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      skills: e.target.value
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter(Boolean),
+                    })
+                  }
+                  fullWidth
+                  helperText="Separate skills with commas"
+                />
 
-              <TextField
-                label="Project Type"
-                value={editForm.project_type}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, project_type: e.target.value })
-                }
-                fullWidth
-              />
+                <TextField
+                  label="Project Type"
+                  value={editForm.project_type}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, project_type: e.target.value })
+                  }
+                  fullWidth
+                />
 
-              <TextField
-                label="Project Fit Score"
-                type="number"
-                value={editForm.project_fit}
-                onChange={(e) =>
-                  setEditForm({
-                    ...editForm,
-                    project_fit: parseFloat(e.target.value),
-                  })
-                }
-                fullWidth
-                inputProps={{ min: 0, max: 10, step: 0.1 }}
-              />
+                <TextField
+                  label="Project Fit Score"
+                  type="number"
+                  value={editForm.project_fit}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      project_fit: parseFloat(e.target.value),
+                    })
+                  }
+                  fullWidth
+                  inputProps={{ min: 0, max: 10, step: 0.1 }}
+                />
 
-              <Typography variant="h6" sx={{ mt: 2 }}>
-                Sections
-              </Typography>
+                <Typography variant="h6" sx={{ mt: 2 }}>
+                  Sections
+                </Typography>
 
-              <TextField
-                label="Summary"
-                value={editForm.summary}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, summary: e.target.value })
-                }
-                multiline
-                rows={3}
-                fullWidth
-              />
+                <TextField
+                  label="Summary"
+                  value={editForm.summary}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, summary: e.target.value })
+                  }
+                  multiline
+                  rows={3}
+                  fullWidth
+                />
 
-              <TextField
-                label="Education"
-                value={editForm.education}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, education: e.target.value })
-                }
-                multiline
-                rows={2}
-                fullWidth
-              />
+                <TextField
+                  label="Education"
+                  value={editForm.education}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, education: e.target.value })
+                  }
+                  multiline
+                  rows={2}
+                  fullWidth
+                />
 
-              <TextField
-                label="Experience"
-                value={editForm.experience}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, experience: e.target.value })
-                }
-                multiline
-                rows={2}
-                fullWidth
-              />
+                <TextField
+                  label="Experience"
+                  value={editForm.experience}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, experience: e.target.value })
+                  }
+                  multiline
+                  rows={2}
+                  fullWidth
+                />
 
-              <TextField
-                label="Projects"
-                value={editForm.projects}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, projects: e.target.value })
-                }
-                multiline
-                rows={3}
-                fullWidth
-              />
-            </Box>
+                <TextField
+                  label="Projects"
+                  value={editForm.projects}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, projects: e.target.value })
+                  }
+                  multiline
+                  rows={3}
+                  fullWidth
+                />
+              </Box>
+            )}
           </DialogContent>
           <DialogActions sx={{ p: 2 }}>
             <Button
