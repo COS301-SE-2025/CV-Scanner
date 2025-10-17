@@ -668,183 +668,227 @@ export default function ManageData() {
               )}
 
               {/* Candidate Cards */}
-              {!loading && filteredCandidates.length > 0 ? (
-                <>
-                  {/* Single row layout - one candidate per row */}
-                  {paginatedCandidates.map((candidate) => (
-                    <Paper
-                      key={candidate.id}
-                      elevation={3}
-                      sx={{
-                        p: 3,
-                        mb: 3,
-                        borderRadius: 3,
-                        backgroundColor: "#adb6be",
-                      }}
-                    >
-                      <Box sx={{ display: "flex", alignItems: "flex-start", gap: 3 }}>
-                        <Avatar
-                          sx={{
-                            bgcolor: "#93AFF7",
-                            width: 56,
-                            height: 56,
-                            fontSize: "1.5rem",
-                            fontWeight: "bold",
-                          }}
-                        >
-                          {candidate.initials}
-                        </Avatar>
-                        <Box sx={{ flexGrow: 1 }}>
-                          <Typography
-                            variant="h6"
-                            sx={{
-                              fontWeight: "bold",
-                              mb: 0.5,
-                              fontFamily: "Helvetica, sans-serif",
-                              fontSize: "1.2rem",
-                            }}
-                          >
-                            {candidate.name}
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              mb: 1,
-                              color: "#000000",
-                              fontFamily: "Helvetica, sans-serif",
-                            }}
-                          >
-                            Email: {candidate.email}
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              mb: 1.5,
-                              color: "#000000",
-                              fontFamily: "Helvetica, sans-serif",
-                            }}
-                          >
-                            Uploaded: {candidate.uploaded}
-                          </Typography>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              gap: 1,
-                              flexWrap: "wrap",
-                              mb: 1.5,
-                            }}
-                          >
-                            {candidate.skills.map((skill, i) => (
-                              <Chip
-                                key={i}
-                                label={skill}
-                                size="small"
-                                sx={{
-                                  backgroundColor: "#93AFF7",
-                                  fontFamily: "Helvetica, sans-serif",
-                                  fontWeight: "bold",
-                                  color: "#0D1B2A",
-                                }}
-                              />
-                            ))}
-                          </Box>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              color: "#204E20",
-                              fontWeight: "bold",
-                              fontFamily: "Helvetica, sans-serif",
-                            }}
-                          >
-                            Match: {candidate.match} | Score: {candidate.score}/10
-                          </Typography>
-                        </Box>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            gap: 1,
-                            flexDirection: "column",
-                            alignItems: "center",
-                          }}
-                        >
-                          {/* Score ring and match */}
-                          <ScoreRing value={candidate.score} />
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              color: "#204E20",
-                              fontWeight: "bold",
-                              mt: 0.5,
-                            }}
-                          >
-                            {candidate.match}
-                          </Typography>
-                          {/* Edit / Delete buttons */}
-                          <Button
-                            variant="contained"
-                            startIcon={<EditIcon />}
-                            onClick={() => loadCandidateData(candidate)}
-                            sx={{
-                              bgcolor: "#1976d2",
-                              "&:hover": { bgcolor: "#1565c0" },
-                              textTransform: "none",
-                              mt: 1,
-                            }}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="contained"
-                            startIcon={<DeleteIcon />}
-                            onClick={() => {
-                              setSelectedCandidate(candidate);
-                              setDeleteDialogOpen(true);
-                            }}
-                            sx={{
-                              bgcolor: "#d32f2f",
-                              "&:hover": { bgcolor: "#c62828" },
-                              textTransform: "none",
-                            }}
-                          >
-                            Delete
-                          </Button>
-                        </Box>
-                      </Box>
-                    </Paper>
-                  ))}
-                  
-                  {/* Pagination */}
-                  <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
-                    <Pagination
-                      count={Math.max(1, Math.ceil(filteredCandidates.length / CANDIDATES_PER_PAGE))}
-                      page={page}
-                      onChange={(_, value) => setPage(value)}
-                      color="primary"
-                      size="large"
-                      sx={{
-                        "& .MuiPaginationItem-root": {
-                          color: "#204E20",
-                          fontWeight: "bold",
-                        },
-                      }}
-                    />
-                  </Box>
-                </>
-              ) : (
-                !loading && (
-                  <Typography
-                    variant="body1"
+{!loading && filteredCandidates.length > 0 ? (
+  <>
+    {/* Single row layout - one candidate per row */}
+    {paginatedCandidates.map((candidate) => (
+      <Paper
+        key={candidate.id}
+        elevation={3}
+        sx={{
+          p: 3,
+          mb: 3,
+          borderRadius: 3,
+          backgroundColor: "#adb6be",
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "flex-start", gap: 3 }}>
+          <Avatar
+            sx={{
+              bgcolor: "#93AFF7",
+              width: 56,
+              height: 56,
+              fontSize: "1.5rem",
+              fontWeight: "bold",
+            }}
+          >
+            {candidate.initials}
+          </Avatar>
+          <Box sx={{ flexGrow: 1 }}>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: "bold",
+                mb: 0.5,
+                fontFamily: "Helvetica, sans-serif",
+                fontSize: "1.2rem",
+              }}
+            >
+              {candidate.name}
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                mb: 1,
+                color: "#000000",
+                fontFamily: "Helvetica, sans-serif",
+              }}
+            >
+              Email: {candidate.email}
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                mb: 1.5,
+                color: "#000000",
+                fontFamily: "Helvetica, sans-serif",
+              }}
+            >
+              Uploaded: {candidate.uploaded}
+            </Typography>
+            
+            {/* Skills with limit and View All */}
+            <Box sx={{ mb: 1.5 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 0.5,
+                  flexWrap: "wrap",
+                  mb: 0.5,
+                }}
+              >
+                {candidate.skills.slice(0, 5).map((skill, i) => (
+                  <Chip
+                    key={i}
+                    label={skill}
+                    size="small"
                     sx={{
-                      mt: 2,
-                      fontStyle: "italic",
-                      color: "#555",
+                      backgroundColor: "#93AFF7",
                       fontFamily: "Helvetica, sans-serif",
+                      fontWeight: "bold",
+                      color: "#0D1B2A",
+                      fontSize: '0.85rem',
                     }}
-                  >
-                    No candidates found.
-                  </Typography>
-                )
+                  />
+                ))}
+                {candidate.skills.length > 5 && (
+                  <Chip
+                    label={`+${candidate.skills.length - 5} more`}
+                    size="small"
+                    onClick={() => {
+                      setSelectedCandidate(candidate);
+                      setSnackbar({
+                        open: true,
+                        message: `All skills for ${candidate.name}: ${candidate.skills.join(', ')}`,
+                        severity: "success"
+                      });
+                    }}
+                    sx={{
+                      backgroundColor: "#e0e0e0",
+                      fontFamily: "Helvetica, sans-serif",
+                      fontWeight: "bold",
+                      color: "#666",
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor: '#d0d0d0',
+                      },
+                    }}
+                  />
+                )}
+              </Box>
+              {candidate.skills.length > 5 && (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "#666",
+                    fontFamily: "Helvetica, sans-serif",
+                    fontSize: '0.9rem',
+                    fontStyle: 'italic',
+                  }}
+                >
+                  Click "+X more" to view all skills
+                </Typography>
               )}
+            </Box>
+
+            <Typography
+              variant="body2"
+              sx={{
+                color: "#204E20",
+                fontWeight: "bold",
+                fontFamily: "Helvetica, sans-serif",
+              }}
+            >
+              Match: {candidate.match} | Score: {candidate.score}/10
+            </Typography>
+          </Box>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 1,
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            {/* Score ring and match */}
+            <ScoreRing value={candidate.score} />
+            <Typography
+              variant="body2"
+              sx={{
+                color: "#204E20",
+                fontWeight: "bold",
+                mt: 0.5,
+              }}
+            >
+              {candidate.match}
+            </Typography>
+            {/* Edit / Delete buttons */}
+            <Button
+              variant="contained"
+              startIcon={<EditIcon />}
+              onClick={() => loadCandidateData(candidate)}
+              sx={{
+                bgcolor: "#1976d2",
+                "&:hover": { bgcolor: "#1565c0" },
+                textTransform: "none",
+                mt: 1,
+              }}
+            >
+              Edit
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<DeleteIcon />}
+              onClick={() => {
+                setSelectedCandidate(candidate);
+                setDeleteDialogOpen(true);
+              }}
+              sx={{
+                bgcolor: "#d32f2f",
+                "&:hover": { bgcolor: "#c62828" },
+                textTransform: "none",
+              }}
+            >
+              Delete
+            </Button>
+          </Box>
+        </Box>
+      </Paper>
+    ))}
+    
+    {/* Pagination */}
+    <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+      <Pagination
+        count={Math.max(1, Math.ceil(filteredCandidates.length / CANDIDATES_PER_PAGE))}
+        page={page}
+        onChange={(_, value) => setPage(value)}
+        color="primary"
+        size="large"
+        sx={{
+          "& .MuiPaginationItem-root": {
+            color: "#204E20",
+            fontWeight: "bold",
+          },
+        }}
+      />
+    </Box>
+  </>
+) : (
+  !loading && (
+    <Typography
+      variant="body1"
+      sx={{
+        mt: 2,
+        fontStyle: "italic",
+        color: "#555",
+        fontFamily: "Helvetica, sans-serif",
+      }}
+    >
+      No candidates found.
+    </Typography>
+  )
+)}
             </Paper>
           </Box>
         </Box>
