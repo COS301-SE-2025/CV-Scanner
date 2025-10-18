@@ -44,6 +44,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -3001,6 +3002,49 @@ private String truncateSummary(String s) {
             return ResponseEntity.status(500).body(createErrorResponse("Failed to update parsed sections: " + ex.getMessage()));
         }
     }
+
+        // ...existing code...
+    @DeleteMapping("/{identifier}")
+    public ResponseEntity<?> deleteCandidate(@PathVariable("identifier") String identifier) {
+        try {
+            Long candidateId = null;
+            try { 
+                candidateId = Long.parseLong(identifier); 
+            } catch (NumberFormatException ignored) {
+                // lookup by email
+                List<Long> ids = jdbc.query(
+                    "SELECT Id FROM dbo.Candidates WHERE Email = ?", 
+                    new Object[]{identifier},
+                    (rs, rowNum) -> rs.getLong("Id")
+                );
+                if (ids.isEmpty()) {
+                    return ResponseEntity.status(404).body(Map.of("message", "Candidate not found: " + identifier));
+                }
+                candidateId = ids.get(0);
+            }
+
+            // delete dependent parsed rows first
+            int parsedDeleted = jdbc.update("DELETE FROM dbo.CandidateParsedCv WHERE CandidateId = ?", candidateId);
+
+            // delete candidate row
+            int candidateDeleted = jdbc.update("DELETE FROM dbo.Candidates WHERE Id = ?", candidateId);
+
+            if (candidateDeleted <= 0) {
+                return ResponseEntity.status(404).body(Map.of("message", "Candidate not found or already deleted: " + candidateId));
+            }
+
+            Map<String,Object> resp = new LinkedHashMap<>();
+            resp.put("status", "ok");
+            resp.put("candidateId", candidateId);
+            resp.put("deletedCandidateRows", candidateDeleted);
+            resp.put("deletedParsedRows", parsedDeleted);
+            return ResponseEntity.ok(resp);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return ResponseEntity.status(500).body(createErrorResponse("Failed to delete candidate: " + ex.getMessage()));
+        }
+    }
+    // ...existing code...
 
 }
 

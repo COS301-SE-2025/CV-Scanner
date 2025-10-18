@@ -663,18 +663,26 @@ export default function ManageData() {
     if (!selectedCandidate) return;
 
     try {
-      // For now, we'll simulate a successful deletion
+      setLoadingCandidateData(true);
+      const res = await apiFetch(`/cv/${selectedCandidate.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        console.error("Delete candidate failed:", res.status, txt);
+        showSnackbar("Failed to delete candidate", "error");
+        return;
+      }
       showSnackbar("Candidate deleted successfully", "success");
       setDeleteDialogOpen(false);
-
-      // Remove from candidates list
-      const updatedCandidates = candidates.filter(
-        (c) => c.id !== selectedCandidate.id
+      setCandidates((prev) =>
+        prev.filter((c) => c.id !== selectedCandidate.id)
       );
-      setCandidates(updatedCandidates);
     } catch (error) {
       console.error("Failed to delete candidate:", error);
       showSnackbar("Failed to delete candidate", "error");
+    } finally {
+      setLoadingCandidateData(false);
     }
   };
 
