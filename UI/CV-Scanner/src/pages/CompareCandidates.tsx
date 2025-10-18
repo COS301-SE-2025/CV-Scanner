@@ -24,7 +24,9 @@ import {
   CircularProgress,
   Checkbox,
   FormControlLabel,
+  InputBase,
   LinearProgress,
+  Pagination,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
@@ -92,6 +94,9 @@ export default function CompareCandidates() {
   const [searchTermB, setSearchTermB] = useState("");
   const [globalSearchTerm, setGlobalSearchTerm] = useState("");
   const [loadingScores, setLoadingScores] = useState(false);
+  const [pageA, setPageA] = useState(1);
+  const [pageB, setPageB] = useState(1);
+  const CANDIDATES_PER_PAGE = 5;
 
   // Comparison state
   const [comparisonData, setComparisonData] = useState<ComparisonData>({
@@ -456,9 +461,11 @@ export default function CompareCandidates() {
     if (side === "A") {
       setCandidateA(null);
       setSearchTermA("");
+      setPageA(1);
     } else {
       setCandidateB(null);
       setSearchTermB("");
+      setPageB(1);
     }
     setCompareResult(null);
     setComparisonResult(null);
@@ -591,6 +598,13 @@ export default function CompareCandidates() {
     });
   };
 
+  const getPaginatedCandidates = (side: "A" | "B") => {
+    const filtered = getFilteredCandidates(side);
+    const page = side === "A" ? pageA : pageB;
+    const startIndex = (page - 1) * CANDIDATES_PER_PAGE;
+    return filtered.slice(startIndex, startIndex + CANDIDATES_PER_PAGE);
+  };
+
   // ✅ Updated candidate card to match Search page style
   const renderCandidateCard = (candidate: Candidate, side: "A" | "B") => {
     const isSelected =
@@ -601,11 +615,12 @@ export default function CompareCandidates() {
       side === "A"
         ? candidateB?.id === candidate.id
         : candidateA?.id === candidate.id;
-    const maxSkillsToShow = isMobile ? 3 : isTablet ? 5 : 8;
-    const skillsToShow = (candidate.skills ?? []).slice(0, maxSkillsToShow);
+    
+    // Show only 5 skills with "+X more" like Search/Manage
+    const skillsToShow = (candidate.skills ?? []).slice(0, 5);
     const remainingSkillsCount = Math.max(
       0,
-      (candidate.skills ?? []).length - maxSkillsToShow
+      (candidate.skills ?? []).length - 5
     );
 
     return (
@@ -666,30 +681,61 @@ export default function CompareCandidates() {
                 File: {candidate.filename ?? candidate.project}
               </Typography>
 
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mb: 1 }}>
-                {skillsToShow.map((skill) => (
-                  <Chip
-                    key={skill}
-                    label={skill}
-                    size={isMobile ? "small" : "medium"}
-                    sx={{
-                      bgcolor: "#93AFF7",
-                      color: "#0D1B2A",
-                      fontWeight: "bold",
-                    }}
-                  />
-                ))}
+              {/* Updated skills section - smaller like Search/Manage */}
+              <Box sx={{ mb: 1.5 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    gap: 0.5,
+                    flexWrap: "wrap",
+                    mb: 0.5,
+                  }}
+                >
+                  {skillsToShow.map((skill) => (
+                    <Chip
+                      key={skill}
+                      label={skill}
+                      size="small"
+                      sx={{
+                        backgroundColor: "#93AFF7",
+                        fontFamily: "Helvetica, sans-serif",
+                        fontWeight: "bold",
+                        color: "#0D1B2A",
+                        fontSize: '0.85rem',
+                      }}
+                    />
+                  ))}
+                  {remainingSkillsCount > 0 && (
+                    <Chip
+                      label={`+${remainingSkillsCount} more`}
+                      size="small"
+                      onClick={(e) => handleViewAllSkills(candidate, e)}
+                      sx={{
+                        backgroundColor: "#e0e0e0",
+                        fontFamily: "Helvetica, sans-serif",
+                        fontWeight: "bold",
+                        color: "#666",
+                        fontSize: '0.75rem',
+                        cursor: 'pointer',
+                        '&:hover': {
+                          backgroundColor: '#d0d0d0',
+                        },
+                      }}
+                    />
+                  )}
+                </Box>
                 {remainingSkillsCount > 0 && (
-                  <Chip
-                    label={`+${remainingSkillsCount}`}
-                    size={isMobile ? "small" : "medium"}
+                  <Typography
+                    variant="caption"
                     sx={{
-                      bgcolor: "#0D1B2A",
-                      color: "#93AFF7",
-                      fontWeight: "bold",
+                      color: "#666",
+                      fontFamily: "Helvetica, sans-serif",
+                      fontSize: '0.9rem',
+                      fontStyle: 'italic',
                     }}
-                    onClick={(e) => handleViewAllSkills(candidate, e)}
-                  />
+                  >
+                    Click "+X more" to view all skills
+                  </Typography>
                 )}
               </Box>
 
@@ -698,9 +744,10 @@ export default function CompareCandidates() {
                 sx={{
                   color: "#204E20",
                   fontWeight: "bold",
+                  fontFamily: "Helvetica, sans-serif",
                 }}
               >
-                Match: {candidate.match}
+                Match: {candidate.match} | Score: {candidate.score}/10
               </Typography>
             </Box>
 
@@ -730,14 +777,7 @@ export default function CompareCandidates() {
                 Deselect
               </Button>
             )}
-            <Button
-              size="small"
-              variant="text"
-              onClick={(e) => handleViewAllSkills(candidate, e)}
-              sx={{ textTransform: "none" }}
-            >
-              View All Skills ({(candidate.skills ?? []).length})
-            </Button>
+            
           </Box>
         </CardContent>
       </Card>
@@ -1075,7 +1115,8 @@ export default function CompareCandidates() {
             </IconButton>
           </Toolbar>
         </AppBar>
-
+        
+        {/* Main COntent */}
         <Box
           sx={{
             flexGrow: 1,
@@ -1089,7 +1130,33 @@ export default function CompareCandidates() {
           >
             Compare Candidates
           </Typography>
-
+          {/* Search Bar */}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          mb: 4,
+                          bgcolor: "#DEDDEE",
+                          borderRadius: 1,
+                          px: 2,
+                          py: 1,
+                          fontFamily: "Helvetica, sans-serif",
+                        }}
+                      >
+                        <SearchIcon color="action" />
+                        <InputBase
+                          placeholder="Search candidates by name, email, or skills..."
+                          sx={{
+                            ml: 1,
+                            flex: 1,
+                            fontFamily: "Helvetica, sans-serif",
+                            fontSize: "1rem",
+                          }}
+                          fullWidth
+                          value={globalSearchTerm}
+                          onChange={(e) => setGlobalSearchTerm(e.target.value)}
+                        />
+                      </Box>
           {loadingScores && (
             <Box sx={{ textAlign: "center", mb: 2 }}>
               <CircularProgress size={24} sx={{ color: "#93AFF7" }} />
@@ -1098,26 +1165,7 @@ export default function CompareCandidates() {
               </Typography>
             </Box>
           )}
-
-          <Paper sx={{ p: 2, mb: 3, bgcolor: "#DEDDEE" }}>
-            <TextField
-              fullWidth
-              placeholder="Search all candidates by name, email, or skills..."
-              value={globalSearchTerm}
-              onChange={(e) => setGlobalSearchTerm(e.target.value)}
-              sx={{
-                "& .MuiOutlinedInput-root": { bgcolor: "white" },
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon sx={{ color: "#0D1B2A" }} />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Paper>
-
+        
           <Box
             sx={{
               display: "flex",
@@ -1176,7 +1224,7 @@ export default function CompareCandidates() {
                   />
                 )}
                 <Box sx={{ flex: 1, overflow: "auto", minHeight: 200 }}>
-                  {getFilteredCandidates("A").length === 0 ? (
+                  {getPaginatedCandidates("A").length === 0 ? (
                     <Typography
                       sx={{ textAlign: "center", color: "#666", mt: 2 }}
                     >
@@ -1185,11 +1233,36 @@ export default function CompareCandidates() {
                         : "No candidates available"}
                     </Typography>
                   ) : (
-                    getFilteredCandidates("A").map((c) =>
+                    getPaginatedCandidates("A").map((c) =>
                       renderCandidateCard(c, "A")
                     )
                   )}
                 </Box>
+                {/* Pagination for Candidate A */}
+                {getFilteredCandidates("A").length > CANDIDATES_PER_PAGE && (
+                  <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+                    <Pagination
+                      count={Math.ceil(getFilteredCandidates("A").length / CANDIDATES_PER_PAGE)}
+                      page={pageA}
+                      onChange={(_, value) => setPageA(value)}
+                      size="small"
+                      sx={{
+                        "& .MuiPaginationItem-root": {
+                          color: "#204E20",
+                          fontWeight: "bold",
+                          fontSize: "0.8rem",
+                        },
+                        "& .MuiPaginationItem-page.Mui-selected": {
+                          backgroundColor: "#204E20",
+                          color: "#fff",
+                          "&:hover": {
+                            backgroundColor: "#1a3a1a",
+                          },
+                        },
+                      }}
+                    />
+                  </Box>
+                )}
                 {candidateA && (
                   <Button
                     variant="outlined"
@@ -1252,7 +1325,7 @@ export default function CompareCandidates() {
                   />
                 )}
                 <Box sx={{ flex: 1, overflow: "auto", minHeight: 200 }}>
-                  {getFilteredCandidates("B").length === 0 ? (
+                  {getPaginatedCandidates("B").length === 0 ? (
                     <Typography
                       sx={{ textAlign: "center", color: "#666", mt: 2 }}
                     >
@@ -1261,11 +1334,36 @@ export default function CompareCandidates() {
                         : "No candidates available"}
                     </Typography>
                   ) : (
-                    getFilteredCandidates("B").map((c) =>
+                    getPaginatedCandidates("B").map((c) =>
                       renderCandidateCard(c, "B")
                     )
                   )}
                 </Box>
+                {/* Pagination for Candidate B */}
+                {getFilteredCandidates("B").length > CANDIDATES_PER_PAGE && (
+                  <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+                    <Pagination
+                      count={Math.ceil(getFilteredCandidates("B").length / CANDIDATES_PER_PAGE)}
+                      page={pageB}
+                      onChange={(_, value) => setPageB(value)}
+                      size="small"
+                      sx={{
+                        "& .MuiPaginationItem-root": {
+                          color: "#204E20",
+                          fontWeight: "bold",
+                          fontSize: "0.8rem",
+                        },
+                        "& .MuiPaginationItem-page.Mui-selected": {
+                          backgroundColor: "#204E20",
+                          color: "#fff",
+                          "&:hover": {
+                            backgroundColor: "#1a3a1a",
+                          },
+                        },
+                      }}
+                    />
+                  </Box>
+                )}
                 {candidateB && (
                   <Button
                     variant="outlined"
