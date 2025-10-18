@@ -1,15 +1,22 @@
-# Thin wrapper around Hugging Face zero-shot BART.
+# Lightweight zero-shot classifier using MiniLM instead of BART.
 from typing import Dict, List, Tuple
 import logging
 
 _pipeline = None
 _pipeline_error = None
+
 try:
     from transformers import pipeline  # type: ignore
-    _pipeline = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=-1)
+    # 🪶 much smaller and faster than facebook/bart-large-mnli
+    _pipeline = pipeline(
+        "zero-shot-classification",
+        model="cross-encoder/nli-miniLM2-L6-v2",
+        device=-1   # use CPU; your main app already auto-selects GPU if available
+    )
 except Exception as e:
     _pipeline = None
     _pipeline_error = e
+    logging.getLogger("bart_model").warning("Failed to load MiniLM pipeline: %s", e)
 
 
 def classify_text_by_categories(text: str, categories, top_k: int = 3):
@@ -24,9 +31,7 @@ def classify_text_by_categories(text: str, categories, top_k: int = 3):
     except Exception:
         top_k = 3
 
-    # -------------------------
-    # Hugging Face pipeline path
-    # -------------------------
+
     if _pipeline is not None:
         try:
             if isinstance(categories, dict):
