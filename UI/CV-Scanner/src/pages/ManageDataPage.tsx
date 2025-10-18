@@ -987,19 +987,7 @@ export default function ManageData() {
                             alignItems: "center",
                           }}
                         >
-                          {/* Score ring and match */}
-                          <ScoreRing value={candidate.score} />
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              color: "#204E20",
-                              fontWeight: "bold",
-                              mt: 0.5,
-                            }}
-                          >
-                            {candidate.match}
-                          </Typography>
-                          {/* Edit / Delete buttons */}
+                          {/* Edit / Delete buttons (removed ScoreRing and project label) */}
                           <Button
                             variant="contained"
                             startIcon={<EditIcon />}
