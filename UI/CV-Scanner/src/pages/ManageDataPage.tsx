@@ -580,27 +580,81 @@ export default function ManageData() {
     if (!selectedCandidate || !candidateData) return;
 
     try {
-      // For now, we'll simulate a successful update
+      setLoadingCandidateData(true);
+
+      // Prepare payload expected by the API
+      const payload = {
+        summary: editForm.summary,
+        education: editForm.education,
+        experience: editForm.experience,
+        projects: editForm.projects,
+      };
+
+      // Call backend PUT /cv/{id}/parsed
+      const res = await apiFetch(`/cv/${selectedCandidate.id}/parsed`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        console.error("Update parsed sections failed:", res.status, errText);
+        showSnackbar("Failed to update candidate data", "error");
+        return;
+      }
+
+      // Update local state to reflect changes
+      const updatedCandidateData: CandidateData = {
+        ...candidateData,
+        result: {
+          ...candidateData.result,
+          summary: editForm.summary,
+          sections: {
+            education: editForm.education,
+            experience: editForm.experience,
+            projects: editForm.projects,
+          },
+          // keep other fields as-is
+          skills: candidateData.result.skills,
+          cv_score: candidateData.result.cv_score,
+          personal_info: candidateData.result.personal_info,
+          project_fit: candidateData.result.project_fit,
+          project_type: candidateData.result.project_type,
+        },
+      };
+
+      setCandidateData(updatedCandidateData);
+
+      // Update candidates list summary fields (light update)
+      setCandidates((prev) =>
+        prev.map((c) =>
+          c.id === selectedCandidate.id
+            ? {
+                ...c,
+                name: editForm.name || c.name,
+                email: editForm.email || c.email,
+                skills:
+                  editForm.skills && editForm.skills.length
+                    ? editForm.skills
+                    : c.skills,
+                project: editForm.project_type || c.project,
+                score:
+                  typeof editForm.project_fit === "number"
+                    ? editForm.project_fit
+                    : c.score,
+              }
+            : c
+        )
+      );
+
       showSnackbar("Candidate data updated successfully", "success");
       setEditDialogOpen(false);
-
-      // Refresh the candidates list
-      const updatedCandidates = candidates.map((c) =>
-        c.id === selectedCandidate.id
-          ? {
-              ...c,
-              name: editForm.name,
-              email: editForm.email,
-              skills: editForm.skills,
-              project: editForm.project_type,
-              score: editForm.project_fit,
-            }
-          : c
-      );
-      setCandidates(updatedCandidates);
     } catch (error) {
       console.error("Failed to update candidate data:", error);
       showSnackbar("Failed to update candidate data", "error");
+    } finally {
+      setLoadingCandidateData(false);
     }
   };
 
