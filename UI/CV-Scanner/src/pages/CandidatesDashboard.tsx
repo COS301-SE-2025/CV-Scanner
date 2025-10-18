@@ -305,7 +305,7 @@ export default function CandidatesDashboard() {
           // Get all candidates, top technologies, and project fits in parallel
           const [candidatesRes, techRes, projectFitsRes] = await Promise.all([
             apiFetch("/cv/candidates").catch(() => null),
-            apiFetch("/cv/top-technologies?limit=10").catch(() => null),
+            apiFetch("/cv/top-technologies?limit=5").catch(() => null),
             apiFetch("/cv/project-fits?limit=100").catch(() => null),
           ]);
 
@@ -418,7 +418,7 @@ export default function CandidatesDashboard() {
                   ].some((key) => nameLower === key || nameLower.includes(key));
                 })
                 .sort((a, b) => b.value - a.value)
-                .slice(0, 10);
+                .slice(0, 5);
 
               console.debug("Processed tech list:", techList);
 
@@ -452,7 +452,7 @@ export default function CandidatesDashboard() {
                 const techList = Array.from(skillCounts.entries())
                   .map(([name, value]) => ({ name, value }))
                   .sort((a, b) => b.value - a.value)
-                  .slice(0, 10);
+                  .slice(0, 5);
 
                 setGroupedBarData(techList);
                 if (techList.length > 0) {
@@ -785,293 +785,290 @@ export default function CandidatesDashboard() {
             ))}
           </Box>
 
-          {/* Dashboard Graphs */}
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "1fr",
-                sm: "1fr 1fr",
-                lg: "1fr 1fr 1fr",
-              },
-              gap: 4,
-              mb: 4,
-              alignItems: "stretch",  
+          {/* Dashboard Graphs - 2x2 Layout */}
+<Box
+  sx={{
+    display: "grid",
+    gridTemplateColumns: {
+      xs: "1fr",
+      sm: "1fr 1fr", // 2 columns on small screens and up
+    },
+    gap: 4,
+    mb: 4,
+    alignItems: "stretch",
+  }}
+>
+  {/* Line Chart: Monthly Candidate Uploads */}
+  <Paper
+    sx={{
+      p: 2,
+      borderRadius: 3,
+      backgroundColor: "#DEDDEE",
+      color: "#000",
+      transition: "transform 0.2s",
+      "&:hover": { transform: "translateY(-4px)" },
+      height: 300,
+      display: "flex",
+      flexDirection: "column",
+    }}
+  >
+    <Typography
+      variant="subtitle1"
+      sx={{
+        fontFamily: "Helvetica, sans-serif",
+        mb: 1,
+        fontWeight: 600,
+        flexShrink: 0,
+      }}
+    >
+      Monthly Candidate Uploads
+    </Typography>
+    <Box sx={{ flexGrow: 1, minHeight: 0 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart
+          data={
+            candidateTrends.length
+              ? candidateTrends
+              : [{ month: "N/A", candidates: 0 }]
+          }
+        >
+          <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
+          <XAxis
+            dataKey="month"
+            tick={{ fill: "#575656ff", fontWeight: "bold" }}
+          />
+          <YAxis tick={{ fill: "#575656ff", fontWeight: "bold" }} />
+          <RechartsTooltip />
+          <Line
+            type="monotone"
+            dataKey="candidates"
+            stroke="#0A2540 "
+            strokeWidth={2}
+            dot={{ r: 4 }}
+            activeDot={{ r: 6, fill: "#0A2540 " }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </Box>
+  </Paper>
+
+  {/* Bar Chart: Overall Tech Usage (Now limited to 5) */}
+  <Paper
+    sx={{
+      p: 2,
+      borderRadius: 3,
+      backgroundColor: "#DEDDEE",
+      color: "#000",
+      transition: "transform 0.2s",
+      "&:hover": { transform: "translateY(-4px)" },
+      height: 300,
+      display: "flex",
+      flexDirection: "column",
+    }}
+  >
+    <Typography
+      variant="subtitle1"
+      sx={{
+        fontFamily: "Helvetica, sans-serif",
+        mb: 1,
+        fontWeight: 600,
+        flexShrink: 0,
+      }}
+    >
+      Overall Tech Usage
+    </Typography>
+    <Box sx={{ flexGrow: 1, minHeight: 0 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
+          data={
+            groupedBarData.length
+              ? groupedBarData
+              : [{ name: "No Data", value: 0 }]
+          }
+          margin={{ top: 10, right: 20, left: 10, bottom: 20 }}
+        >
+          <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
+          <XAxis
+            dataKey="name"
+            tick={{
+              fill: "#575656ff",
+              fontWeight: "bold",
+              fontSize: 11,
             }}
+          />
+          <YAxis
+            allowDecimals={false}
+            tick={{ fill: "#575656ff", fontWeight: "bold" }}
+          />
+          <RechartsTooltip />
+          <Bar dataKey="value" name="Technology Usage" fill="#8884D8">
+            {groupedBarData.map((_, index) => (
+              <Cell
+                key={`cell-${index}`}
+                fill={COLORS[index % COLORS.length]}
+              />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </Box>
+  </Paper>
+
+  {/* Pie Chart: Skill Distribution */}
+  <Paper
+    sx={{
+      p: 2,
+      borderRadius: 3,
+      backgroundColor: "#DEDDEE",
+      color: "#000",
+      transition: "transform 0.2s",
+      "&:hover": { transform: "translateY(-4px)" },
+      height: 300,
+      display: "flex",
+      flexDirection: "column",
+      "& .recharts-pie-label-text": {
+        fill: "#575656ff !important",
+        fontWeight: 700,
+      },
+      "& .recharts-pie-label-line": {
+        stroke: "#575656ff",
+      },
+    }}
+  >
+    <Typography
+      variant="subtitle1"
+      sx={{
+        fontFamily: "Helvetica, sans-serif",
+        mb: 1,
+        fontWeight: 600,
+        flexShrink: 0,
+      }}
+    >
+      Skill Distribution
+    </Typography>
+    <Box sx={{ flexGrow: 1, minHeight: 0 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={skillDistribution.slice(0, 4)}
+            dataKey="value"
+            cx="50%"
+            cy="50%"
+            outerRadius={70}
+            labelLine={true}
+            label={({ name, percent }) =>
+              `${normalizeSkillName(name)}: ${
+                Number.isFinite(percent)
+                  ? (percent * 100).toFixed(0)
+                  : "0"
+              }%`
+            }
           >
-            {/* Line Chart: Light Blue */}
-            <Paper
-              sx={{
-                p: 2,
-                borderRadius: 3,
-                backgroundColor: "#DEDDEE",
-                color: "#000",
-                transition: "transform 0.2s",
-                "&:hover": { transform: "translateY(-4px)" },
-                height: 300, // Consistent height
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              <Typography
-                variant="subtitle1"
-                sx={{
-                  fontFamily: "Helvetica, sans-serif",
-                  mb: 1,
-                  fontWeight: 600,
-                  flexShrink: 0,
-                }}
-              >
-                Monthly Candidate Uploads
-              </Typography>
-              <Box sx={{ flexGrow: 1, minHeight: 0 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={
-                      candidateTrends.length
-                        ? candidateTrends
-                        : [{ month: "N/A", candidates: 0 }]
-                    }
-                  >
-                    <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="month"
-                      tick={{ fill: "#575656ff", fontWeight: "bold" }}
-                    />
-                    <YAxis tick={{ fill: "#575656ff", fontWeight: "bold" }} />
-                    <RechartsTooltip />
-                    <Line
-                      type="monotone"
-                      dataKey="candidates"
-                      stroke="#0A2540 "
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 6, fill: "#0A2540 " }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </Box>
-            </Paper>
+            {(skillDistribution.slice(0, 4) || []).map(
+              (entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={COLORS[index % COLORS.length]}
+                />
+              )
+            )}
+          </Pie>
+          <RechartsTooltip
+            formatter={(value, name, props) => {
+              const pct =
+                props &&
+                props.payload &&
+                typeof props.payload.percent === "number" &&
+                Number.isFinite(props.payload.percent)
+                  ? (props.payload.percent * 100).toFixed(1)
+                  : "";
+              return [
+                toNumberSafe(value),
+                pct
+                  ? `${normalizeSkillName(name)}: ${pct}%`
+                  : normalizeSkillName(name),
+              ];
+            }}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+    </Box>
+  </Paper>
 
-            {/* Bar Chart: Overall Tech Usage */}
-            <Paper
-              sx={{
-                p: 2,
-                borderRadius: 3,
-                backgroundColor: "#DEDDEE",
-                color: "#000",
-                transition: "transform 0.2s",
-                "&:hover": { transform: "translateY(-4px)" },
-                height: 300,
-               // boxSizing: "border-box", // 👈 same height for both
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              <Typography
-                variant="subtitle1"
-                sx={{
-                  fontFamily: "Helvetica, sans-serif",
-                  mb: 1,
-                  fontWeight: 600,
-                  flexShrink: 0,
-                }}
-              >
-                Overall Tech Usage
-              </Typography>
-              <Box sx={{ flexGrow: 1, minHeight: 0 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={
-                      groupedBarData.length
-                        ? groupedBarData
-                        : [{ name: "No Data", value: 0 }]
-                    }
-                    margin={{ top: 10, right: 20, left: 10, bottom: 20 }}
-                  >
-                    <CartesianGrid stroke="#4a5568" strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="name"
-                      tick={{
-                        fill: "#575656ff",
-                        fontWeight: "bold",
-                        fontSize: 11,
-                      }}
-                    />
-                    <YAxis
-                      //domain={[0, 30]}
-                      // ticks={[0, 5, 10, 15, 20, 25, 30]}
-                      allowDecimals={false}
-                      tick={{ fill: "#575656ff", fontWeight: "bold" }}
-                    />
-                    <RechartsTooltip />
-                    <Bar dataKey="value" name="Technology Usage" fill="#8884D8">
-                      {groupedBarData.map((_, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
-            </Paper>
-
-            {/* Pie Chart: Skill Distribution */}
-            <Paper
-              sx={{
-                p: 2,
-                borderRadius: 3,
-                backgroundColor: "#DEDDEE",
-                color: "#000",
-                transition: "transform 0.2s",
-                "&:hover": { transform: "translateY(-4px)" },
-                height: 300, // Same height as others
-                display: "flex",
-                flexDirection: "column",
-                "& .recharts-pie-label-text": {
-                  fill: "#575656ff !important",
-                  fontWeight: 700,
-                },
-                "& .recharts-pie-label-line": {
-                  stroke: "#575656ff",
-                },
-              }}
-            >
-              <Typography
-                variant="subtitle1"
-                sx={{
-                  fontFamily: "Helvetica, sans-serif",
-                  mb: 1,
-                  fontWeight: 600,
-                  flexShrink: 0,
-                }}
-              >
-                Skill Distribution
-              </Typography>
-              <Box sx={{ flexGrow: 1, minHeight: 0 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={skillDistribution.slice(0, 4)}
-                      dataKey="value"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={70} // Slightly larger for consistent height
-                      labelLine={true}
-                      label={({ name, percent }) =>
-                        `${normalizeSkillName(name)}: ${
-                          Number.isFinite(percent)
-                            ? (percent * 100).toFixed(0)
-                            : "0"
-                        }%`
-                      }
-                    >
-                      {(skillDistribution.slice(0, 4) || []).map(
-                        (entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={COLORS[index % COLORS.length]}
-                          />
-                        )
-                      )}
-                    </Pie>
-                    <RechartsTooltip
-                      formatter={(value, name, props) => {
-                        const pct =
-                          props &&
-                          props.payload &&
-                          typeof props.payload.percent === "number" &&
-                          Number.isFinite(props.payload.percent)
-                            ? (props.payload.percent * 100).toFixed(1)
-                            : "";
-                        return [
-                          toNumberSafe(value),
-                          pct
-                            ? `${normalizeSkillName(name)}: ${pct}%`
-                            : normalizeSkillName(name),
-                        ];
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </Box>
-            </Paper>
-
-            {/* Doughnut Chart: Project Fit Types - FIXED with correct label */}
-            <Paper
-              sx={{
-                p: 2,
-                borderRadius: 3,
-                backgroundColor: "#DEDDEE",
-                color: "#000",
-                transition: "transform 0.2s",
-                "&:hover": { transform: "translateY(-4px)" },
-                "& .recharts-pie-label-text": {
-                  fill: "#575656ff !important",
-                  fontWeight: 700,
-                },
-                "& .recharts-pie-label-line": {
-                  stroke: "#575656ff",
-                },
-                gridColumn: {
-                  xs: "auto", // normal span at small
-                  sm: "auto",
-                  lg: "1 / -1", // span all columns on large screens
-                },
-              }}
-            >
-              <Typography
-                variant="subtitle1"
-                sx={{
-                  fontFamily: "Helvetica, sans-serif",
-                  mb: 1,
-                  fontWeight: 600,
-                }}
-              >
-                Project Fit Types
-              </Typography>
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={projectFitData}
-                    dataKey="value"
-                    nameKey="type"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={40}
-                    outerRadius={60}
-                    label={({ type, percent }) =>
-                      `${type}: ${
-                        Number.isFinite(percent)
-                          ? (percent * 100).toFixed(0)
-                          : "0"
-                      }%`
-                    }
-                    labelLine={true}
-                  >
-                    {(projectFitData || []).map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip
-                    contentStyle={{
-                      backgroundColor: "#2b3a55",
-                      borderColor: "#4a5568",
-                    }}
-                    formatter={(value: any, name: any, props: any) => {
-                      const typeName = props?.payload?.type || name;
-                      return [toNumberSafe(value), typeName];
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </Paper>
-          </Box>
+  {/* Doughnut Chart: Project Fit Types */}
+  <Paper
+    sx={{
+      p: 2,
+      borderRadius: 3,
+      backgroundColor: "#DEDDEE",
+      color: "#000",
+      transition: "transform 0.2s",
+      "&:hover": { transform: "translateY(-4px)" },
+      "& .recharts-pie-label-text": {
+        fill: "#575656ff !important",
+        fontWeight: 700,
+      },
+      "& .recharts-pie-label-line": {
+        stroke: "#575656ff",
+      },
+      height: 300, // Added consistent height
+      display: "flex", // Added for consistency
+      flexDirection: "column", // Added for consistency
+    }}
+  >
+    <Typography
+      variant="subtitle1"
+      sx={{
+        fontFamily: "Helvetica, sans-serif",
+        mb: 1,
+        fontWeight: 600,
+        flexShrink: 0,
+      }}
+    >
+      Project Fit Types
+    </Typography>
+    <Box sx={{ flexGrow: 1, minHeight: 0 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={projectFitData}
+            dataKey="value"
+            nameKey="type"
+            cx="50%"
+            cy="50%"
+            innerRadius={40}
+            outerRadius={60}
+            label={({ type, percent }) =>
+              `${type}: ${
+                Number.isFinite(percent)
+                  ? (percent * 100).toFixed(0)
+                  : "0"
+              }%`
+            }
+            labelLine={true}
+          >
+            {(projectFitData || []).map((entry, index) => (
+              <Cell
+                key={`cell-${index}`}
+                fill={COLORS[index % COLORS.length]}
+              />
+            ))}
+          </Pie>
+          <RechartsTooltip
+            contentStyle={{
+              backgroundColor: "#2b3a55",
+              borderColor: "#4a5568",
+            }}
+            formatter={(value: any, name: any, props: any) => {
+              const typeName = props?.payload?.type || name;
+              return [toNumberSafe(value), typeName];
+            }}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+    </Box>
+  </Paper>
+</Box>
 
           {/* Recently Processed */}
           <Paper

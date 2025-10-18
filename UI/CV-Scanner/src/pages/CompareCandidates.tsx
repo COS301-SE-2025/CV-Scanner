@@ -24,7 +24,9 @@ import {
   CircularProgress,
   Checkbox,
   FormControlLabel,
+  InputBase,
   LinearProgress,
+  Pagination,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
@@ -92,6 +94,9 @@ export default function CompareCandidates() {
   const [searchTermB, setSearchTermB] = useState("");
   const [globalSearchTerm, setGlobalSearchTerm] = useState("");
   const [loadingScores, setLoadingScores] = useState(false);
+  const [pageA, setPageA] = useState(1);
+  const [pageB, setPageB] = useState(1);
+  const CANDIDATES_PER_PAGE = 5;
 
   // Comparison state
   const [comparisonData, setComparisonData] = useState<ComparisonData>({
@@ -104,7 +109,7 @@ export default function CompareCandidates() {
   const [comparisonResult, setComparisonResult] =
     useState<ComparisonResult | null>(null);
 
-  // ✅ Score ring component (same as Search page)
+  // ✅ Score ring component
   function scoreColor(value: number) {
     const v = Math.max(0, Math.min(10, value));
     const hue = (v / 10) * 120;
@@ -247,7 +252,7 @@ export default function CompareCandidates() {
     return Math.max(0, Math.min(10, p / 10));
   }
 
-  // ✅ Load user and candidate data (same as Search page)
+  // ✅ Load user and candidate data
   useEffect(() => {
     (async () => {
       try {
@@ -338,7 +343,7 @@ export default function CompareCandidates() {
 
         setCandidates(mapped);
 
-        // ✅ Fetch CV scores and project types individually (same as Search page)
+        // ✅ Fetch CV scores and project types individually
         setLoadingScores(true);
         try {
           const scorePromises = mapped.map(async (cand) => {
@@ -456,9 +461,11 @@ export default function CompareCandidates() {
     if (side === "A") {
       setCandidateA(null);
       setSearchTermA("");
+      setPageA(1);
     } else {
       setCandidateB(null);
       setSearchTermB("");
+      setPageB(1);
     }
     setCompareResult(null);
     setComparisonResult(null);
@@ -591,156 +598,211 @@ export default function CompareCandidates() {
     });
   };
 
-  // ✅ Updated candidate card to match Search page style
-  const renderCandidateCard = (candidate: Candidate, side: "A" | "B") => {
-    const isSelected =
-      side === "A"
-        ? candidateA?.id === candidate.id
-        : candidateB?.id === candidate.id;
-    const isBlocked =
-      side === "A"
-        ? candidateB?.id === candidate.id
-        : candidateA?.id === candidate.id;
-    const maxSkillsToShow = isMobile ? 3 : isTablet ? 5 : 8;
-    const skillsToShow = (candidate.skills ?? []).slice(0, maxSkillsToShow);
-    const remainingSkillsCount = Math.max(
-      0,
-      (candidate.skills ?? []).length - maxSkillsToShow
-    );
+  const getPaginatedCandidates = (side: "A" | "B") => {
+    const filtered = getFilteredCandidates(side);
+    const page = side === "A" ? pageA : pageB;
+    const startIndex = (page - 1) * CANDIDATES_PER_PAGE;
+    return filtered.slice(startIndex, startIndex + CANDIDATES_PER_PAGE);
+  };
+
+  // ✅ Compact Candidate Selector Component with Pagination
+  const CompactCandidateSelector = ({ 
+    candidate, 
+    isSelected, 
+    placeholder,
+    searchTerm,
+    onSearchChange,
+    side 
+  }) => {
+    const filteredCandidates = getFilteredCandidates(side);
+    const paginatedCandidates = getPaginatedCandidates(side);
+    const otherCandidate = side === "A" ? candidateB : candidateA;
+    const currentPage = side === "A" ? pageA : pageB;
+    const setCurrentPage = side === "A" ? setPageA : setPageB;
+    const totalPages = Math.ceil(filteredCandidates.length / CANDIDATES_PER_PAGE);
+
+    const handlePageChange = (event, value) => {
+      setCurrentPage(value);
+    };
 
     return (
-      <Card
-        key={String(candidate.id)}
-        sx={{
-          mb: 2,
-          bgcolor: isBlocked ? "#f5f5f5" : isSelected ? "#DEDDEE" : "#adb6beff",
-          color: "#000",
-          border: isSelected
-            ? "2px solid #93AFF7"
-            : isBlocked
-            ? "2px solid #ff6b6b"
-            : "none",
-          cursor: isBlocked ? "not-allowed" : "pointer",
-          opacity: isBlocked ? 0.6 : 1,
-          "&:hover": !isBlocked
-            ? {
-                boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
-                transform: "translateY(-2px)",
-              }
-            : {},
-          transition: "all 0.2s ease",
-        }}
-        onClick={() => !isBlocked && handleSelectCandidate(candidate, side)}
-      >
-        <CardContent sx={{ p: 2 }}>
-          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}>
-            <Avatar
-              sx={{
-                bgcolor: "#93AFF7",
-                width: 56,
-                height: 56,
-                fontSize: "1.5rem",
-                fontWeight: "bold",
+      <Paper sx={{ p: 2, borderRadius: 3, bgcolor: "#DEDDEE", height: "fit-content" }}>
+        <Typography sx={{ mb: 2, textAlign: "center", color: "#000", fontWeight: "bold" }}>
+          Candidate {side} {candidate && "(Selected)"}
+        </Typography>
+
+        {!candidate ? (
+          <>
+            <TextField
+              fullWidth
+              placeholder={placeholder}
+              value={searchTerm}
+              onChange={(e) => {
+                onSearchChange(e.target.value);
+                setCurrentPage(1); // Reset to first page when searching
               }}
-            >
+              sx={{ mb: 2, "& .MuiOutlinedInput-root": { bgcolor: "white" } }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: "#0D1B2A" }} />
+                  </InputAdornment>
+                ),
+              }}
+              size="small"
+            />
+            
+            {/* Compact candidate list */}
+            <Box sx={{ maxHeight: 300, overflow: "auto", mb: 2 }}>
+              {paginatedCandidates.map((c) => {
+                const isBlocked = otherCandidate && String(c.id) === String(otherCandidate.id);
+                return (
+                  <Card
+                    key={String(c.id)}
+                    sx={{
+                      mb: 1,
+                      bgcolor: isBlocked ? "#f5f5f5" : "#adb6beff",
+                      cursor: isBlocked ? "not-allowed" : "pointer",
+                      opacity: isBlocked ? 0.6 : 1,
+                      "&:hover": !isBlocked ? { bgcolor: "#93AFF7" } : {},
+                    }}
+                    onClick={() => !isBlocked && handleSelectCandidate(c, side)}
+                  >
+                    <CardContent sx={{ p: 1, "&:last-child": { pb: 1 } }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Avatar sx={{ width: 32, height: 32, fontSize: "0.8rem", bgcolor: "#93AFF7" }}>
+                          {initialsOf(c.firstName, c.lastName)}
+                        </Avatar>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="body2" sx={{ fontWeight: "bold", color: "#000" }}>
+                            {c.firstName} {c.lastName}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: "#555" }}>
+                            Score: {c.score}/10 • {c.match}
+                          </Typography>
+                        </Box>
+                        {isBlocked && (
+                          <Chip 
+                            label="Selected" 
+                            size="small" 
+                            sx={{ 
+                              bgcolor: "#ff6b6b", 
+                              color: "#000",
+                              fontSize: '0.6rem',
+                              height: 20
+                            }}
+                          />
+                        )}
+                      </Box>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+              {paginatedCandidates.length === 0 && (
+                <Typography variant="body2" sx={{ color: "#666", textAlign: "center", py: 2 }}>
+                  No candidates found
+                </Typography>
+              )}
+            </Box>
+
+            {/* Pagination */}
+            {filteredCandidates.length > CANDIDATES_PER_PAGE && (
+              <Box sx={{ display: "flex", justifyContent: "center", mt: 1 }}>
+                <Pagination
+                  count={totalPages}
+                  page={currentPage}
+                  onChange={handlePageChange}
+                  size="small"
+                  sx={{
+                    "& .MuiPaginationItem-root": {
+                      color: "#204E20",
+                      fontWeight: "bold",
+                      fontSize: "0.7rem",
+                      minWidth: 24,
+                      height: 24,
+                    },
+                    "& .MuiPaginationItem-page.Mui-selected": {
+                      backgroundColor: "#204E20",
+                      color: "#fff",
+                      "&:hover": {
+                        backgroundColor: "#1a3a1a",
+                      },
+                    },
+                  }}
+                />
+              </Box>
+            )}
+
+            {/* Results count */}
+            <Typography variant="caption" sx={{ color: "#666", textAlign: "center", display: "block", mt: 1 }}>
+              Showing {paginatedCandidates.length} of {filteredCandidates.length} candidates
+            </Typography>
+          </>
+        ) : (
+          // Selected candidate display
+          <Box sx={{ textAlign: "center" }}>
+            <Avatar sx={{ width: 64, height: 64, mx: "auto", mb: 1, bgcolor: "#93AFF7", fontSize: "1.2rem" }}>
               {initialsOf(candidate.firstName, candidate.lastName)}
             </Avatar>
-
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography
-                sx={{ fontWeight: "bold", fontSize: "1.1rem", mb: 0.5 }}
-              >
-                {candidate.firstName} {candidate.lastName}
-              </Typography>
-              <Typography sx={{ color: "#555", fontSize: "0.9rem", mb: 1 }}>
-                {candidate.email}
-              </Typography>
-              <Typography
-                sx={{
-                  fontWeight: "bold",
-                  color: "#0D1B2A",
-                  mb: 1,
-                  fontSize: "0.95rem",
-                }}
-              >
-                File: {candidate.filename ?? candidate.project}
-              </Typography>
-
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mb: 1 }}>
-                {skillsToShow.map((skill) => (
+            <Typography variant="h6" sx={{ color: "#000", fontWeight: "bold" }}>
+              {candidate.firstName} {candidate.lastName}
+            </Typography>
+            <Typography variant="body2" sx={{ color: "#555", mb: 1 }}>
+              {candidate.email}
+            </Typography>
+            <Typography variant="body2" sx={{ color: "#204E20", fontWeight: "bold", mb: 1 }}>
+              Score: {candidate.score}/10 | {candidate.match}
+            </Typography>
+            
+            {/* Skills preview */}
+            <Box sx={{ mb: 2 }}>
+              <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", justifyContent: "center", mb: 0.5 }}>
+                {(candidate.skills ?? []).slice(0, 3).map((skill) => (
                   <Chip
                     key={skill}
                     label={skill}
-                    size={isMobile ? "small" : "medium"}
+                    size="small"
                     sx={{
-                      bgcolor: "#93AFF7",
-                      color: "#0D1B2A",
+                      backgroundColor: "#93AFF7",
+                      fontFamily: "Helvetica, sans-serif",
                       fontWeight: "bold",
+                      color: "#0D1B2A",
+                      fontSize: '0.7rem',
+                      height: 20
                     }}
                   />
                 ))}
-                {remainingSkillsCount > 0 && (
+                {(candidate.skills ?? []).length > 3 && (
                   <Chip
-                    label={`+${remainingSkillsCount}`}
-                    size={isMobile ? "small" : "medium"}
-                    sx={{
-                      bgcolor: "#0D1B2A",
-                      color: "#93AFF7",
-                      fontWeight: "bold",
-                    }}
+                    label={`+${(candidate.skills ?? []).length - 3} more`}
+                    size="small"
                     onClick={(e) => handleViewAllSkills(candidate, e)}
+                    sx={{
+                      backgroundColor: "#e0e0e0",
+                      fontFamily: "Helvetica, sans-serif",
+                      fontWeight: "bold",
+                      color: "#666",
+                      fontSize: '0.6rem',
+                      height: 20,
+                      cursor: 'pointer',
+                    }}
                   />
                 )}
               </Box>
-
-              <Typography
-                variant="body2"
-                sx={{
-                  color: "#204E20",
-                  fontWeight: "bold",
-                }}
-              >
-                Match: {candidate.match}
-              </Typography>
             </Box>
 
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 1,
-              }}
-            >
-              <ScoreRing value={candidate.score} />
-            </Box>
-          </Box>
-
-          <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
-            {isSelected && (
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeselect(side);
-                }}
-                sx={{ textTransform: "none" }}
-              >
-                Deselect
-              </Button>
-            )}
             <Button
+              variant="outlined"
               size="small"
-              variant="text"
-              onClick={(e) => handleViewAllSkills(candidate, e)}
-              sx={{ textTransform: "none" }}
+              fullWidth
+              sx={{ mt: 1, textTransform: "none" }}
+              onClick={() => handleDeselect(side)}
             >
-              View All Skills ({(candidate.skills ?? []).length})
+              Change Candidate
             </Button>
           </Box>
-        </CardContent>
-      </Card>
+        )}
+      </Paper>
     );
   };
 
@@ -1075,7 +1137,8 @@ export default function CompareCandidates() {
             </IconButton>
           </Toolbar>
         </AppBar>
-
+        
+        {/* Main Content */}
         <Box
           sx={{
             flexGrow: 1,
@@ -1090,6 +1153,38 @@ export default function CompareCandidates() {
             Compare Candidates
           </Typography>
 
+          {/* Global Search Bar */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              mb: 4,
+              bgcolor: "#DEDDEE",
+              borderRadius: 1,
+              px: 2,
+              py: 1,
+              fontFamily: "Helvetica, sans-serif",
+            }}
+          >
+            <SearchIcon color="action" />
+            <InputBase
+              placeholder="Search candidates by name, email, or skills..."
+              sx={{
+                ml: 1,
+                flex: 1,
+                fontFamily: "Helvetica, sans-serif",
+                fontSize: "1rem",
+              }}
+              fullWidth
+              value={globalSearchTerm}
+              onChange={(e) => {
+                setGlobalSearchTerm(e.target.value);
+                setPageA(1);
+                setPageB(1);
+              }}
+            />
+          </Box>
+
           {loadingScores && (
             <Box sx={{ textAlign: "center", mb: 2 }}>
               <CircularProgress size={24} sx={{ color: "#93AFF7" }} />
@@ -1098,188 +1193,55 @@ export default function CompareCandidates() {
               </Typography>
             </Box>
           )}
-
-          <Paper sx={{ p: 2, mb: 3, bgcolor: "#DEDDEE" }}>
-            <TextField
-              fullWidth
-              placeholder="Search all candidates by name, email, or skills..."
-              value={globalSearchTerm}
-              onChange={(e) => setGlobalSearchTerm(e.target.value)}
-              sx={{
-                "& .MuiOutlinedInput-root": { bgcolor: "white" },
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon sx={{ color: "#0D1B2A" }} />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Paper>
-
+        
+          {/* Compact Candidate Selection */}
           <Box
             sx={{
               display: "flex",
               gap: isMobile ? 2 : 4,
               flexDirection: isMobile ? "column" : "row",
-              height: isMobile ? "auto" : "70vh",
-              minHeight: 500,
+              alignItems: "stretch",
             }}
           >
-            <Box
-              sx={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                minWidth: isMobile ? "100%" : 320,
-              }}
-            >
-              <Paper
-                sx={{
-                  flex: 1,
-                  p: 2,
-                  borderRadius: 3,
-                  bgcolor: "#DEDDEE",
-                  display: "flex",
-                  flexDirection: "column",
-                  overflow: "hidden",
-                }}
-              >
-                <Typography
-                  sx={{
-                    mb: 2,
-                    textAlign: "center",
-                    color: "#000",
-                    fontWeight: "bold",
-                  }}
-                >
-                  Candidate A {candidateA && "(Selected)"}
-                </Typography>
-                {!candidateA && (
-                  <TextField
-                    fullWidth
-                    placeholder="Search candidates..."
-                    value={searchTermA}
-                    onChange={(e) => setSearchTermA(e.target.value)}
-                    sx={{
-                      mb: 2,
-                      "& .MuiOutlinedInput-root": { bgcolor: "white" },
-                    }}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <SearchIcon sx={{ color: "#0D1B2A" }} />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                )}
-                <Box sx={{ flex: 1, overflow: "auto", minHeight: 200 }}>
-                  {getFilteredCandidates("A").length === 0 ? (
-                    <Typography
-                      sx={{ textAlign: "center", color: "#666", mt: 2 }}
-                    >
-                      {searchTermA || globalSearchTerm
-                        ? "No candidates match your search"
-                        : "No candidates available"}
-                    </Typography>
-                  ) : (
-                    getFilteredCandidates("A").map((c) =>
-                      renderCandidateCard(c, "A")
-                    )
-                  )}
-                </Box>
-                {candidateA && (
-                  <Button
-                    variant="outlined"
-                    fullWidth
-                    sx={{ mt: 2, textTransform: "none" }}
-                    onClick={() => handleDeselect("A")}
-                  >
-                    Show All Candidates
-                  </Button>
-                )}
-              </Paper>
+            {/* Candidate A */}
+            <Box sx={{ flex: 1 }}>
+              <CompactCandidateSelector
+                candidate={candidateA}
+                isSelected={!!candidateA}
+                placeholder="Search Candidate A..."
+                searchTerm={searchTermA}
+                onSearchChange={setSearchTermA}
+                side="A"
+              />
             </Box>
 
-            <Box
-              sx={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                minWidth: isMobile ? "100%" : 320,
-              }}
-            >
-              <Paper
-                sx={{
-                  flex: 1,
-                  p: 2,
-                  borderRadius: 3,
-                  bgcolor: "#DEDDEE",
-                  display: "flex",
-                  flexDirection: "column",
-                  overflow: "hidden",
-                }}
-              >
-                <Typography
-                  sx={{
-                    mb: 2,
-                    textAlign: "center",
-                    color: "#000",
-                    fontWeight: "bold",
-                  }}
-                >
-                  Candidate B {candidateB && "(Selected)"}
-                </Typography>
-                {!candidateB && (
-                  <TextField
-                    fullWidth
-                    placeholder="Search candidates..."
-                    value={searchTermB}
-                    onChange={(e) => setSearchTermB(e.target.value)}
-                    sx={{
-                      mb: 2,
-                      "& .MuiOutlinedInput-root": { bgcolor: "white" },
-                    }}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <SearchIcon sx={{ color: "#0D1B2A" }} />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                )}
-                <Box sx={{ flex: 1, overflow: "auto", minHeight: 200 }}>
-                  {getFilteredCandidates("B").length === 0 ? (
-                    <Typography
-                      sx={{ textAlign: "center", color: "#666", mt: 2 }}
-                    >
-                      {searchTermB || globalSearchTerm
-                        ? "No candidates match your search"
-                        : "No candidates available"}
-                    </Typography>
-                  ) : (
-                    getFilteredCandidates("B").map((c) =>
-                      renderCandidateCard(c, "B")
-                    )
-                  )}
-                </Box>
-                {candidateB && (
-                  <Button
-                    variant="outlined"
-                    fullWidth
-                    sx={{ mt: 2, textTransform: "none" }}
-                    onClick={() => handleDeselect("B")}
-                  >
-                    Show All Candidates
-                  </Button>
-                )}
-              </Paper>
+            {/* VS Separator */}
+            <Box sx={{ 
+              display: "flex", 
+              alignItems: "center", 
+              justifyContent: "center",
+              color: "#fff",
+              fontSize: "1.5rem",
+              fontWeight: "bold",
+              minHeight: isMobile ? "auto" : 200
+            }}>
+              VS
+            </Box>
+
+            {/* Candidate B */}
+            <Box sx={{ flex: 1 }}>
+              <CompactCandidateSelector
+                candidate={candidateB}
+                isSelected={!!candidateB}
+                placeholder="Search Candidate B..."
+                searchTerm={searchTermB}
+                onSearchChange={setSearchTermB}
+                side="B"
+              />
             </Box>
           </Box>
 
+          {/* Comparison Sections */}
           {candidateA && candidateB && (
             <>
               {renderDetailedComparison()}
