@@ -93,9 +93,14 @@ export default function ManageData() {
   const [page, setPage] = useState(1);
   const CANDIDATES_PER_PAGE = 5;
   const [candidates, setCandidates] = useState<CandidateCard[]>([]);
-  const [filteredCandidates, setFilteredCandidates] = useState<CandidateCard[]>([]);
-  const [selectedCandidate, setSelectedCandidate] = useState<CandidateCard | null>(null);
-  const [candidateData, setCandidateData] = useState<CandidateData | null>(null);
+  const [filteredCandidates, setFilteredCandidates] = useState<CandidateCard[]>(
+    []
+  );
+  const [selectedCandidate, setSelectedCandidate] =
+    useState<CandidateCard | null>(null);
+  const [candidateData, setCandidateData] = useState<CandidateData | null>(
+    null
+  );
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({
@@ -131,7 +136,9 @@ export default function ManageData() {
     const checkAdminAccess = async () => {
       const email = localStorage.getItem("userEmail") || "admin@email.com";
       try {
-        const meRes = await apiFetch(`/auth/me?email=${encodeURIComponent(email)}`);
+        const meRes = await apiFetch(
+          `/auth/me?email=${encodeURIComponent(email)}`
+        );
         if (meRes.ok) {
           const meData = await meRes.json();
           setUser(meData);
@@ -212,7 +219,10 @@ export default function ManageData() {
           const list = await candRes.json();
           const mapped: CandidateCard[] = list.map((c: any) => ({
             id: c.id,
-            name: `${c.firstName || ""} ${c.lastName || ""}`.trim() || c.email || "Unknown",
+            name:
+              `${c.firstName || ""} ${c.lastName || ""}`.trim() ||
+              c.email ||
+              "Unknown",
             email: c.email,
             skills: Array.isArray(c.skills) ? c.skills : [],
             project: c.project || "CV",
@@ -256,8 +266,10 @@ export default function ManageData() {
                       id: cand.id,
                       projectType: j?.projectType ?? j?.type ?? null,
                       projectFit: j?.projectFit ?? j?.project_fit ?? null,
-                      projectFitPercent: j?.projectFitPercent ?? j?.project_fit_percent ?? null,
-                      projectFitLabel: j?.projectFitLabel ?? j?.projectFitLabel ?? null,
+                      projectFitPercent:
+                        j?.projectFitPercent ?? j?.project_fit_percent ?? null,
+                      projectFitLabel:
+                        j?.projectFitLabel ?? j?.projectFitLabel ?? null,
                     };
                   }
                 } catch (e) {
@@ -278,7 +290,9 @@ export default function ManageData() {
               ]);
 
               const scoreMap = new Map(scores.map((s) => [s.id, s.score]));
-              const projectTypeMap = new Map(projectTypes.map((p) => [p.id, p]));
+              const projectTypeMap = new Map(
+                projectTypes.map((p) => [p.id, p])
+              );
 
               setCandidates((prev) =>
                 prev.map((c) => {
@@ -299,12 +313,16 @@ export default function ManageData() {
                     fit: pt?.projectType ?? c.fit,
                     match: matchLabel,
                     projectFit: pt?.projectFit ?? c.projectFit,
-                    projectFitPercent: pt?.projectFitPercent ?? c.projectFitPercent,
+                    projectFitPercent:
+                      pt?.projectFitPercent ?? c.projectFitPercent,
                   };
                 })
               );
             } catch (e) {
-              console.error("Failed to fetch individual scores/project types:", e);
+              console.error(
+                "Failed to fetch individual scores/project types:",
+                e
+              );
             }
           })();
         }
@@ -369,96 +387,155 @@ export default function ManageData() {
       setEditDialogOpen(true);
       setLoadingCandidateData(true);
 
-      // Use endpoints that exist on the API
-      const summaryPromise = apiFetch(`/cv/${candidate.id}/summary`);
-      const expPromise = apiFetch(`/cv/${candidate.id}/experience`);
-      const scorePromise = apiFetch(`/cv/${candidate.id}/cv-score`);
-      const projectTypePromise = apiFetch(`/cv/${candidate.id}/project-type`);
-      const skillsPromise = apiFetch(`/cv/${candidate.id}/skills`);
+      // Call the new parsed endpoint (will return { summary, education, experience, projects, ... })
+      const res = await apiFetch(`/cv/${candidate.id}/parsed`);
+      if (!res.ok) {
+        // fallback to existing endpoints if parsed endpoint not available
+        console.warn(
+          `/cv/${candidate.id}/parsed returned ${res.status}, falling back to previous calls`
+        );
+        // reuse previous behaviour: open dialog and attempt to populate from other endpoints
+        // keep behavior simple: attempt same parallel requests as before
+        const [summaryRes, expRes, scoreRes, ptRes, skillsRes] =
+          await Promise.allSettled([
+            apiFetch(`/cv/${candidate.id}/summary`),
+            apiFetch(`/cv/${candidate.id}/experience`),
+            apiFetch(`/cv/${candidate.id}/cv-score`),
+            apiFetch(`/cv/${candidate.id}/project-type`),
+            apiFetch(`/cv/${candidate.id}/skills`),
+          ]);
 
-      const [summaryRes, expRes, scoreRes, ptRes, skillsRes] = await Promise.allSettled([
-        summaryPromise,
-        expPromise,
-        scorePromise,
-        projectTypePromise,
-        skillsPromise,
-      ]);
+        const mapped: CandidateData = {
+          filename: candidate.filename ?? "CV.pdf",
+          result: {
+            cv_score: candidate.score ?? 0,
+            personal_info: {
+              email: candidate.email,
+              name: candidate.name,
+              phone: "",
+            },
+            project_fit: candidate.projectFitPercent ?? 0,
+            project_type: candidate.project ?? "General",
+            sections: { education: "", experience: "", projects: "" },
+            skills: candidate.skills ?? [],
+            summary: "",
+          },
+          status: "success",
+        };
 
-      const mapped: CandidateData = {
+        if (summaryRes.status === "fulfilled" && summaryRes.value?.ok) {
+          try {
+            const s = await summaryRes.value.json();
+            mapped.result.summary = s?.summary ?? s?.result?.summary ?? "";
+          } catch {}
+        }
+
+        if (expRes.status === "fulfilled" && expRes.value?.ok) {
+          try {
+            const e = await expRes.value.json();
+            mapped.result.sections.experience = Array.isArray(e)
+              ? e.join("\n\n")
+              : e?.experience
+              ? Array.isArray(e.experience)
+                ? e.experience.join("\n\n")
+                : String(e.experience)
+              : "";
+          } catch {}
+        }
+
+        if (skillsRes.status === "fulfilled" && skillsRes.value?.ok) {
+          try {
+            const sk = await skillsRes.value.json();
+            mapped.result.skills = sk?.skills ?? mapped.result.skills;
+          } catch {}
+        }
+
+        if (scoreRes.status === "fulfilled" && scoreRes.value?.ok) {
+          try {
+            const sc = await scoreRes.value.json();
+            mapped.result.cv_score =
+              sc?.cvScore ?? sc?.cv_score ?? mapped.result.cv_score;
+          } catch {}
+        }
+
+        if (ptRes.status === "fulfilled" && ptRes.value?.ok) {
+          try {
+            const pt = await ptRes.value.json();
+            mapped.result.project_type =
+              pt?.projectType ?? pt?.project_type ?? mapped.result.project_type;
+            mapped.result.project_fit =
+              pt?.projectFit ?? pt?.project_fit ?? mapped.result.project_fit;
+          } catch {}
+        }
+
+        setCandidateData(mapped);
+        setEditForm({
+          name: mapped.result.personal_info.name || candidate.name,
+          email: mapped.result.personal_info.email || candidate.email,
+          phone: mapped.result.personal_info.phone || "",
+          skills: mapped.result.skills || candidate.skills,
+          summary: mapped.result.summary || "",
+          project_type: mapped.result.project_type || "",
+          project_fit: mapped.result.project_fit ?? 0,
+          education: mapped.result.sections.education || "",
+          experience: mapped.result.sections.experience || "",
+          projects: mapped.result.sections.projects || "",
+        });
+        return;
+      }
+
+      // Successful parsed endpoint response
+      const parsedJson = (await res.json().catch(() => null)) ?? {};
+
+      // Normalize and extract sections using helper already defined in this file
+      const normalized = normalizeSections(parsedJson);
+
+      const mappedFromParsed: CandidateData = {
         filename: candidate.filename ?? "CV.pdf",
         result: {
           cv_score: candidate.score ?? 0,
           personal_info: {
             email: candidate.email,
             name: candidate.name,
-            phone: "",
+            phone: parsedJson?.result?.personal_info?.phone ?? "",
           },
-          project_fit: candidate.projectFitPercent ?? 0,
-          project_type: candidate.project ?? "General",
-          sections: { education: "", experience: "", projects: "" },
-          skills: candidate.skills ?? [],
-          summary: "",
+          project_fit:
+            parsedJson?.result?.project_fit ??
+            parsedJson?.project_fit ??
+            candidate.projectFitPercent ??
+            0,
+          project_type:
+            parsedJson?.result?.project_type ??
+            parsedJson?.project_type ??
+            candidate.project ??
+            "General",
+          sections: {
+            education: normalized.education || "",
+            experience: normalized.experience || "",
+            projects: normalized.projects || "",
+          },
+          skills: Array.isArray(parsedJson?.result?.skills)
+            ? parsedJson.result.skills
+            : Array.isArray(parsedJson?.skills)
+            ? parsedJson.skills
+            : candidate.skills,
+          summary: parsedJson?.summary ?? parsedJson?.result?.summary ?? "",
         },
         status: "success",
       };
 
-      // summary -> summary text
-      if (summaryRes.status === "fulfilled" && summaryRes.value?.ok) {
-        try {
-          const s = await summaryRes.value.json();
-          mapped.result.summary = s?.summary ?? s?.result?.summary ?? "";
-        } catch {}
-      }
-
-      // experience -> array -> join into experience section
-      if (expRes.status === "fulfilled" && expRes.value?.ok) {
-        try {
-          const e = await expRes.value.json();
-          if (Array.isArray(e?.experience)) {
-            mapped.result.sections.experience = e.experience.join("\n\n");
-          } else if (Array.isArray(e)) {
-            mapped.result.sections.experience = e.join("\n\n");
-          }
-        } catch {}
-      }
-
-      // skills
-      if (skillsRes.status === "fulfilled" && skillsRes.value?.ok) {
-        try {
-          const sk = await skillsRes.value.json();
-          mapped.result.skills = sk?.skills ?? mapped.result.skills;
-        } catch {}
-      }
-
-      // cv-score
-      if (scoreRes.status === "fulfilled" && scoreRes.value?.ok) {
-        try {
-          const sc = await scoreRes.value.json();
-          mapped.result.cv_score = sc?.cvScore ?? sc?.cv_score ?? mapped.result.cv_score;
-        } catch {}
-      }
-
-      // project-type -> project_type and project_fit
-      if (ptRes.status === "fulfilled" && ptRes.value?.ok) {
-        try {
-          const pt = await ptRes.value.json();
-          mapped.result.project_type = pt?.projectType ?? pt?.project_type ?? mapped.result.project_type;
-          mapped.result.project_fit = pt?.projectFit ?? pt?.project_fit ?? mapped.result.project_fit;
-        } catch {}
-      }
-
-      setCandidateData(mapped);
+      setCandidateData(mappedFromParsed);
       setEditForm({
-        name: mapped.result.personal_info.name || candidate.name,
-        email: mapped.result.personal_info.email || candidate.email,
-        phone: mapped.result.personal_info.phone || "",
-        skills: mapped.result.skills || candidate.skills,
-        summary: mapped.result.summary || "",
-        project_type: mapped.result.project_type || "",
-        project_fit: mapped.result.project_fit ?? 0,
-        education: mapped.result.sections.education || "",
-        experience: mapped.result.sections.experience || "",
-        projects: mapped.result.sections.projects || "",
+        name: mappedFromParsed.result.personal_info.name || candidate.name,
+        email: mappedFromParsed.result.personal_info.email || candidate.email,
+        phone: mappedFromParsed.result.personal_info.phone || "",
+        skills: mappedFromParsed.result.skills || candidate.skills,
+        summary: mappedFromParsed.result.summary || "",
+        project_type: mappedFromParsed.result.project_type || "",
+        project_fit: mappedFromParsed.result.project_fit ?? 0,
+        education: mappedFromParsed.result.sections.education || "",
+        experience: mappedFromParsed.result.sections.experience || "",
+        projects: mappedFromParsed.result.sections.projects || "",
       });
     } catch (error) {
       console.error("Failed to load candidate data:", error);
@@ -537,7 +614,9 @@ export default function ManageData() {
       setDeleteDialogOpen(false);
 
       // Remove from candidates list
-      const updatedCandidates = candidates.filter((c) => c.id !== selectedCandidate.id);
+      const updatedCandidates = candidates.filter(
+        (c) => c.id !== selectedCandidate.id
+      );
       setCandidates(updatedCandidates);
     } catch (error) {
       console.error("Failed to delete candidate:", error);
@@ -557,14 +636,28 @@ export default function ManageData() {
 
   return (
     <RoleBasedAccess allowedRoles={["Admin"]} fallbackPath="/dashboard">
-      <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#1E1E1E", color: "#fff" }}>
+      <Box
+        sx={{
+          display: "flex",
+          minHeight: "100vh",
+          bgcolor: "#1E1E1E",
+          color: "#fff",
+        }}
+      >
         {/* Sidebar */}
-        <Sidebar userRole={user?.role ?? "User"} collapsed={collapsed} setCollapsed={setCollapsed} />
+        <Sidebar
+          userRole={user?.role ?? "User"}
+          collapsed={collapsed}
+          setCollapsed={setCollapsed}
+        />
 
         {/* Main Content */}
         <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
           {/* Top Bar */}
-          <AppBar position="static" sx={{ bgcolor: "#232A3B", boxShadow: "none" }}>
+          <AppBar
+            position="static"
+            sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
+          >
             <Toolbar sx={{ justifyContent: "flex-end" }}>
               {/* User Info */}
               <Box
@@ -579,7 +672,11 @@ export default function ManageData() {
               >
                 <AccountCircleIcon sx={{ mr: 1 }} />
                 <Typography variant="subtitle1">
-                  {user ? `${user.first_name} ${user.last_name || ""} (${user.role})` : "Admin"}
+                  {user
+                    ? `${user.first_name} ${user.last_name || ""} (${
+                        user.role
+                      })`
+                    : "Admin"}
                 </Typography>
               </Box>
 
@@ -655,9 +752,17 @@ export default function ManageData() {
               >
                 {loading
                   ? "Loading candidates..."
-                  : `Showing ${paginatedCandidates.length > 0 ? 
-                      `${Math.min((page - 1) * CANDIDATES_PER_PAGE + 1, filteredCandidates.length)}-${Math.min(page * CANDIDATES_PER_PAGE, filteredCandidates.length)}` 
-                      : '0'} of ${filteredCandidates.length} candidates`}
+                  : `Showing ${
+                      paginatedCandidates.length > 0
+                        ? `${Math.min(
+                            (page - 1) * CANDIDATES_PER_PAGE + 1,
+                            filteredCandidates.length
+                          )}-${Math.min(
+                            page * CANDIDATES_PER_PAGE,
+                            filteredCandidates.length
+                          )}`
+                        : "0"
+                    } of ${filteredCandidates.length} candidates`}
               </Typography>
 
               {/* Loading State */}
@@ -668,227 +773,243 @@ export default function ManageData() {
               )}
 
               {/* Candidate Cards */}
-{!loading && filteredCandidates.length > 0 ? (
-  <>
-    {/* Single row layout - one candidate per row */}
-    {paginatedCandidates.map((candidate) => (
-      <Paper
-        key={candidate.id}
-        elevation={3}
-        sx={{
-          p: 3,
-          mb: 3,
-          borderRadius: 3,
-          backgroundColor: "#adb6be",
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "flex-start", gap: 3 }}>
-          <Avatar
-            sx={{
-              bgcolor: "#93AFF7",
-              width: 56,
-              height: 56,
-              fontSize: "1.5rem",
-              fontWeight: "bold",
-            }}
-          >
-            {candidate.initials}
-          </Avatar>
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: "bold",
-                mb: 0.5,
-                fontFamily: "Helvetica, sans-serif",
-                fontSize: "1.2rem",
-              }}
-            >
-              {candidate.name}
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                mb: 1,
-                color: "#000000",
-                fontFamily: "Helvetica, sans-serif",
-              }}
-            >
-              Email: {candidate.email}
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                mb: 1.5,
-                color: "#000000",
-                fontFamily: "Helvetica, sans-serif",
-              }}
-            >
-              Uploaded: {candidate.uploaded}
-            </Typography>
-            
-            {/* Skills with limit and View All */}
-            <Box sx={{ mb: 1.5 }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  gap: 0.5,
-                  flexWrap: "wrap",
-                  mb: 0.5,
-                }}
-              >
-                {candidate.skills.slice(0, 5).map((skill, i) => (
-                  <Chip
-                    key={i}
-                    label={skill}
-                    size="small"
-                    sx={{
-                      backgroundColor: "#93AFF7",
-                      fontFamily: "Helvetica, sans-serif",
-                      fontWeight: "bold",
-                      color: "#0D1B2A",
-                      fontSize: '0.85rem',
-                    }}
-                  />
-                ))}
-                {candidate.skills.length > 5 && (
-                  <Chip
-                    label={`+${candidate.skills.length - 5} more`}
-                    size="small"
-                    onClick={() => {
-                      setSelectedCandidate(candidate);
-                      setSnackbar({
-                        open: true,
-                        message: `All skills for ${candidate.name}: ${candidate.skills.join(', ')}`,
-                        severity: "success"
-                      });
-                    }}
-                    sx={{
-                      backgroundColor: "#e0e0e0",
-                      fontFamily: "Helvetica, sans-serif",
-                      fontWeight: "bold",
-                      color: "#666",
-                      fontSize: '0.75rem',
-                      cursor: 'pointer',
-                      '&:hover': {
-                        backgroundColor: '#d0d0d0',
-                      },
-                    }}
-                  />
-                )}
-              </Box>
-              {candidate.skills.length > 5 && (
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: "#666",
-                    fontFamily: "Helvetica, sans-serif",
-                    fontSize: '0.9rem',
-                    fontStyle: 'italic',
-                  }}
-                >
-                  Click "+X more" to view all skills
-                </Typography>
-              )}
-            </Box>
+              {!loading && filteredCandidates.length > 0 ? (
+                <>
+                  {/* Single row layout - one candidate per row */}
+                  {paginatedCandidates.map((candidate) => (
+                    <Paper
+                      key={candidate.id}
+                      elevation={3}
+                      sx={{
+                        p: 3,
+                        mb: 3,
+                        borderRadius: 3,
+                        backgroundColor: "#adb6be",
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: 3,
+                        }}
+                      >
+                        <Avatar
+                          sx={{
+                            bgcolor: "#93AFF7",
+                            width: 56,
+                            height: 56,
+                            fontSize: "1.5rem",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          {candidate.initials}
+                        </Avatar>
+                        <Box sx={{ flexGrow: 1 }}>
+                          <Typography
+                            variant="h6"
+                            sx={{
+                              fontWeight: "bold",
+                              mb: 0.5,
+                              fontFamily: "Helvetica, sans-serif",
+                              fontSize: "1.2rem",
+                            }}
+                          >
+                            {candidate.name}
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              mb: 1,
+                              color: "#000000",
+                              fontFamily: "Helvetica, sans-serif",
+                            }}
+                          >
+                            Email: {candidate.email}
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              mb: 1.5,
+                              color: "#000000",
+                              fontFamily: "Helvetica, sans-serif",
+                            }}
+                          >
+                            Uploaded: {candidate.uploaded}
+                          </Typography>
 
-            <Typography
-              variant="body2"
-              sx={{
-                color: "#204E20",
-                fontWeight: "bold",
-                fontFamily: "Helvetica, sans-serif",
-              }}
-            >
-              Match: {candidate.match} | Score: {candidate.score}/10
-            </Typography>
-          </Box>
-          <Box
-            sx={{
-              display: "flex",
-              gap: 1,
-              flexDirection: "column",
-              alignItems: "center",
-            }}
-          >
-            {/* Score ring and match */}
-            <ScoreRing value={candidate.score} />
-            <Typography
-              variant="body2"
-              sx={{
-                color: "#204E20",
-                fontWeight: "bold",
-                mt: 0.5,
-              }}
-            >
-              {candidate.match}
-            </Typography>
-            {/* Edit / Delete buttons */}
-            <Button
-              variant="contained"
-              startIcon={<EditIcon />}
-              onClick={() => loadCandidateData(candidate)}
-              sx={{
-                bgcolor: "#1976d2",
-                "&:hover": { bgcolor: "#1565c0" },
-                textTransform: "none",
-                mt: 1,
-              }}
-            >
-              Edit
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<DeleteIcon />}
-              onClick={() => {
-                setSelectedCandidate(candidate);
-                setDeleteDialogOpen(true);
-              }}
-              sx={{
-                bgcolor: "#d32f2f",
-                "&:hover": { bgcolor: "#c62828" },
-                textTransform: "none",
-              }}
-            >
-              Delete
-            </Button>
-          </Box>
-        </Box>
-      </Paper>
-    ))}
-    
-    {/* Pagination */}
-    <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
-      <Pagination
-        count={Math.max(1, Math.ceil(filteredCandidates.length / CANDIDATES_PER_PAGE))}
-        page={page}
-        onChange={(_, value) => setPage(value)}
-        color="primary"
-        size="large"
-        sx={{
-          "& .MuiPaginationItem-root": {
-            color: "#204E20",
-            fontWeight: "bold",
-          },
-        }}
-      />
-    </Box>
-  </>
-) : (
-  !loading && (
-    <Typography
-      variant="body1"
-      sx={{
-        mt: 2,
-        fontStyle: "italic",
-        color: "#555",
-        fontFamily: "Helvetica, sans-serif",
-      }}
-    >
-      No candidates found.
-    </Typography>
-  )
-)}
+                          {/* Skills with limit and View All */}
+                          <Box sx={{ mb: 1.5 }}>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                gap: 0.5,
+                                flexWrap: "wrap",
+                                mb: 0.5,
+                              }}
+                            >
+                              {candidate.skills.slice(0, 5).map((skill, i) => (
+                                <Chip
+                                  key={i}
+                                  label={skill}
+                                  size="small"
+                                  sx={{
+                                    backgroundColor: "#93AFF7",
+                                    fontFamily: "Helvetica, sans-serif",
+                                    fontWeight: "bold",
+                                    color: "#0D1B2A",
+                                    fontSize: "0.85rem",
+                                  }}
+                                />
+                              ))}
+                              {candidate.skills.length > 5 && (
+                                <Chip
+                                  label={`+${candidate.skills.length - 5} more`}
+                                  size="small"
+                                  onClick={() => {
+                                    setSelectedCandidate(candidate);
+                                    setSnackbar({
+                                      open: true,
+                                      message: `All skills for ${
+                                        candidate.name
+                                      }: ${candidate.skills.join(", ")}`,
+                                      severity: "success",
+                                    });
+                                  }}
+                                  sx={{
+                                    backgroundColor: "#e0e0e0",
+                                    fontFamily: "Helvetica, sans-serif",
+                                    fontWeight: "bold",
+                                    color: "#666",
+                                    fontSize: "0.75rem",
+                                    cursor: "pointer",
+                                    "&:hover": {
+                                      backgroundColor: "#d0d0d0",
+                                    },
+                                  }}
+                                />
+                              )}
+                            </Box>
+                            {candidate.skills.length > 5 && (
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color: "#666",
+                                  fontFamily: "Helvetica, sans-serif",
+                                  fontSize: "0.9rem",
+                                  fontStyle: "italic",
+                                }}
+                              >
+                                Click "+X more" to view all skills
+                              </Typography>
+                            )}
+                          </Box>
+
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "#204E20",
+                              fontWeight: "bold",
+                              fontFamily: "Helvetica, sans-serif",
+                            }}
+                          >
+                            Match: {candidate.match} | Score: {candidate.score}
+                            /10
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            gap: 1,
+                            flexDirection: "column",
+                            alignItems: "center",
+                          }}
+                        >
+                          {/* Score ring and match */}
+                          <ScoreRing value={candidate.score} />
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "#204E20",
+                              fontWeight: "bold",
+                              mt: 0.5,
+                            }}
+                          >
+                            {candidate.match}
+                          </Typography>
+                          {/* Edit / Delete buttons */}
+                          <Button
+                            variant="contained"
+                            startIcon={<EditIcon />}
+                            onClick={() => loadCandidateData(candidate)}
+                            sx={{
+                              bgcolor: "#1976d2",
+                              "&:hover": { bgcolor: "#1565c0" },
+                              textTransform: "none",
+                              mt: 1,
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="contained"
+                            startIcon={<DeleteIcon />}
+                            onClick={() => {
+                              setSelectedCandidate(candidate);
+                              setDeleteDialogOpen(true);
+                            }}
+                            sx={{
+                              bgcolor: "#d32f2f",
+                              "&:hover": { bgcolor: "#c62828" },
+                              textTransform: "none",
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        </Box>
+                      </Box>
+                    </Paper>
+                  ))}
+
+                  {/* Pagination */}
+                  <Box
+                    sx={{ display: "flex", justifyContent: "center", mt: 2 }}
+                  >
+                    <Pagination
+                      count={Math.max(
+                        1,
+                        Math.ceil(
+                          filteredCandidates.length / CANDIDATES_PER_PAGE
+                        )
+                      )}
+                      page={page}
+                      onChange={(_, value) => setPage(value)}
+                      color="primary"
+                      size="large"
+                      sx={{
+                        "& .MuiPaginationItem-root": {
+                          color: "#204E20",
+                          fontWeight: "bold",
+                        },
+                      }}
+                    />
+                  </Box>
+                </>
+              ) : (
+                !loading && (
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      mt: 2,
+                      fontStyle: "italic",
+                      color: "#555",
+                      fontFamily: "Helvetica, sans-serif",
+                    }}
+                  >
+                    No candidates found.
+                  </Typography>
+                )
+              )}
             </Paper>
           </Box>
         </Box>
@@ -911,36 +1032,49 @@ export default function ManageData() {
               </Box>
             ) : (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <Typography variant="h6" sx={{ mb: 2 }}>Personal Information</Typography>
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  Personal Information
+                </Typography>
 
                 <TextField
                   label="Name"
                   value={editForm.name}
-                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, name: e.target.value })
+                  }
                   fullWidth
                 />
 
                 <TextField
                   label="Email"
                   value={editForm.email}
-                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, email: e.target.value })
+                  }
                   fullWidth
                 />
 
                 <TextField
                   label="Phone"
                   value={editForm.phone}
-                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, phone: e.target.value })
+                  }
                   fullWidth
                 />
 
                 <TextField
                   label="Skills (comma-separated)"
                   value={editForm.skills.join(", ")}
-                  onChange={(e) => setEditForm({
-                    ...editForm,
-                    skills: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
-                  })}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      skills: e.target.value
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter(Boolean),
+                    })
+                  }
                   fullWidth
                   helperText="Separate skills with commas"
                 />
@@ -948,7 +1082,9 @@ export default function ManageData() {
                 <TextField
                   label="Project Type"
                   value={editForm.project_type}
-                  onChange={(e) => setEditForm({ ...editForm, project_type: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, project_type: e.target.value })
+                  }
                   fullWidth
                 />
 
@@ -956,20 +1092,26 @@ export default function ManageData() {
                   label="Project Fit Score"
                   type="number"
                   value={editForm.project_fit}
-                  onChange={(e) => setEditForm({
-                    ...editForm,
-                    project_fit: parseFloat(e.target.value),
-                  })}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      project_fit: parseFloat(e.target.value),
+                    })
+                  }
                   fullWidth
                   inputProps={{ min: 0, max: 10, step: 0.1 }}
                 />
 
-                <Typography variant="h6" sx={{ mt: 2 }}>Sections</Typography>
+                <Typography variant="h6" sx={{ mt: 2 }}>
+                  Sections
+                </Typography>
 
                 <TextField
                   label="Summary"
                   value={editForm.summary}
-                  onChange={(e) => setEditForm({ ...editForm, summary: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, summary: e.target.value })
+                  }
                   multiline
                   rows={3}
                   fullWidth
@@ -978,7 +1120,9 @@ export default function ManageData() {
                 <TextField
                   label="Education"
                   value={editForm.education}
-                  onChange={(e) => setEditForm({ ...editForm, education: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, education: e.target.value })
+                  }
                   multiline
                   rows={2}
                   fullWidth
@@ -987,7 +1131,9 @@ export default function ManageData() {
                 <TextField
                   label="Experience"
                   value={editForm.experience}
-                  onChange={(e) => setEditForm({ ...editForm, experience: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, experience: e.target.value })
+                  }
                   multiline
                   rows={2}
                   fullWidth
@@ -996,7 +1142,9 @@ export default function ManageData() {
                 <TextField
                   label="Projects"
                   value={editForm.projects}
-                  onChange={(e) => setEditForm({ ...editForm, projects: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, projects: e.target.value })
+                  }
                   multiline
                   rows={3}
                   fullWidth
@@ -1032,14 +1180,24 @@ export default function ManageData() {
           <DialogTitle>Confirm Delete</DialogTitle>
           <DialogContent>
             <Typography>
-              Are you sure you want to delete candidate <strong>{selectedCandidate?.name}</strong>? This action cannot be undone.
+              Are you sure you want to delete candidate{" "}
+              <strong>{selectedCandidate?.name}</strong>? This action cannot be
+              undone.
             </Typography>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setDeleteDialogOpen(false)} sx={{ textTransform: "none" }}>
+            <Button
+              onClick={() => setDeleteDialogOpen(false)}
+              sx={{ textTransform: "none" }}
+            >
               Cancel
             </Button>
-            <Button variant="contained" color="error" onClick={deleteCandidate} sx={{ textTransform: "none" }}>
+            <Button
+              variant="contained"
+              color="error"
+              onClick={deleteCandidate}
+              sx={{ textTransform: "none" }}
+            >
               Delete
             </Button>
           </DialogActions>
@@ -1051,7 +1209,10 @@ export default function ManageData() {
           autoHideDuration={6000}
           onClose={() => setSnackbar({ ...snackbar, open: false })}
         >
-          <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+          <Alert
+            severity={snackbar.severity}
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+          >
             {snackbar.message}
           </Alert>
         </Snackbar>

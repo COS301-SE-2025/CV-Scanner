@@ -2727,6 +2727,147 @@ private String truncateSummary(String s) {
 
         return digits;
     }
+
+        // ...existing code...
+        @GetMapping("/{identifier}/parsed")
+        public ResponseEntity<?> getParsedSections(@PathVariable("identifier") String identifier) {
+            try {
+                Long candidateId = null;
+                String email = null;
+                try { candidateId = Long.parseLong(identifier); } catch (NumberFormatException ignored) { email = identifier; }
+    
+                String sql;
+                Object[] params;
+                if (candidateId != null) {
+                    sql = """
+                        SELECT TOP 1 cpc.ResumeResult
+                        FROM dbo.Candidates c
+                        LEFT JOIN dbo.CandidateParsedCv cpc ON cpc.CandidateId = c.Id
+                        WHERE c.Id = ?
+                        ORDER BY cpc.ReceivedAt DESC
+                    """;
+                    params = new Object[]{candidateId};
+                } else {
+                    sql = """
+                        SELECT TOP 1 cpc.ResumeResult
+                        FROM dbo.Candidates c
+                        LEFT JOIN dbo.CandidateParsedCv cpc ON cpc.CandidateId = c.Id
+                        WHERE c.Email = ?
+                        ORDER BY cpc.ReceivedAt DESC
+                    """;
+                    params = new Object[]{email};
+                }
+    
+                List<String> rows = jdbc.query(sql, params, (rs, i) -> rs.getString("ResumeResult"));
+                if (rows.isEmpty() || isBlank(rows.get(0))) {
+                    return ResponseEntity.status(404).body(Map.of("message", "Parsed resume not found for: " + identifier));
+                }
+    
+                String resumeJson = rows.get(0);
+    
+                Map<String, Object> out = new LinkedHashMap<>();
+                // summary: reuse existing robust summary extractor
+                String summary = extractResumeSummary(resumeJson, null, null, null);
+                out.put("summary", summary);
+    
+                // education, experience, projects
+                List<String> education = extractEducationFromResume(resumeJson);
+                List<String> experience = extractExperienceFromResume(resumeJson);
+                List<String> projects = extractProjectsFromResume(resumeJson);
+    
+                out.put("education", education);
+                out.put("experience", experience);
+                out.put("projects", projects);
+    
+                return ResponseEntity.ok(out);
+            } catch (Exception ex) {
+                System.err.println("Failed to load parsed sections: " + ex.getMessage());
+                ex.printStackTrace();
+                return ResponseEntity.status(500).body(createErrorResponse("Failed to load parsed sections: " + ex.getMessage()));
+            }
+        }
+    
+        // --- helpers for parsed-fields endpoint ---
+        @SuppressWarnings("unchecked")
+        private List<String> extractEducationFromResume(String resumeJson) {
+            if (isBlank(resumeJson)) return java.util.Collections.emptyList();
+            try {
+                Map<String,Object> root = parseJsonToMap(resumeJson);
+                if (root == null) return java.util.Collections.emptyList();
+    
+                // common locations
+                Object ed = firstNonNull(root.get("education"),
+                                         (root.get("result") instanceof Map<?,?> r) ? ((Map<?,?>) r).get("education") : null,
+                                         (root.get("sections") instanceof Map<?,?> s) ? ((Map<?,?>) s).get("education") : null,
+                                         (root.get("sections") instanceof Map<?,?> s2) ? ((Map<?,?>) s2).get("educationDetails") : null);
+                List<String> list = coerceToList(ed);
+                if (list != null && !list.isEmpty()) return list;
+    
+                // fallback: try scanning 'sections' for education-like keys and return text blobs split
+                Object sections = firstNonNull(root.get("sections"), (root.get("result") instanceof Map<?,?> r) ? ((Map<?,?>) r).get("sections") : null);
+                if (sections instanceof Map<?,?> sec) {
+                    Object maybe = firstNonNull(sec.get("education"), sec.get("education_history"), sec.get("educationDetails"));
+                    list = coerceToList(maybe);
+                    if (list != null && !list.isEmpty()) return list;
+                }
+    
+                // last resort: search for typical education lines inside resumeJson string (simple regex)
+                java.util.List<String> found = new java.util.ArrayList<>();
+                java.util.regex.Pattern p = java.util.regex.Pattern.compile("(?im)(bachelor|bsc|ba|msc|master|phd|degree|university|college)[^\\n]{0,120}");
+                java.util.regex.Matcher m = p.matcher(resumeJson);
+                while (m.find() && found.size() < 10) {
+                    found.add(normalizeSpaces(m.group()).trim());
+                }
+                return found;
+            } catch (Exception e) {
+                return java.util.Collections.emptyList();
+            }
+        }
+    
+        @SuppressWarnings("unchecked")
+        private List<String> extractProjectsFromResume(String resumeJson) {
+            if (isBlank(resumeJson)) return java.util.Collections.emptyList();
+            try {
+                Map<String,Object> root = parseJsonToMap(resumeJson);
+                if (root == null) return java.util.Collections.emptyList();
+    
+                Object proj = firstNonNull(root.get("projects"),
+                                           (root.get("result") instanceof Map<?,?> r) ? ((Map<?,?>) r).get("projects") : null,
+                                           (root.get("sections") instanceof Map<?,?> s) ? ((Map<?,?>) s).get("projects") : null,
+                                           root.get("project"));
+                List<String> list = coerceToList(proj);
+                if (list != null && !list.isEmpty()) return list;
+    
+                // try nested result.sections.projects text
+                Object sections = firstNonNull(root.get("sections"), (root.get("result") instanceof Map<?,?> r) ? ((Map<?,?>) r).get("sections") : null);
+                if (sections instanceof Map<?,?> sec) {
+                    Object maybe = firstNonNull(sec.get("projects"), sec.get("project_list"), sec.get("selectedProjects"));
+                    list = coerceToList(maybe);
+                    if (list != null && !list.isEmpty()) return list;
+                }
+    
+                // fallback: extract bullet-like project lines from resumeJson
+                java.util.List<String> found = new java.util.ArrayList<>();
+                java.util.regex.Pattern p = java.util.regex.Pattern.compile("(?m)^\\s*[-•\\*]\\s*(.{10,200})$");
+                java.util.regex.Matcher m = p.matcher(resumeJson);
+                while (m.find() && found.size() < 20) {
+                    found.add(normalizeSpaces(m.group(1)).trim());
+                }
+                if (!found.isEmpty()) return found;
+    
+                // final fallback: try sentences containing "project" keyword
+                found.clear();
+                java.util.regex.Pattern p2 = java.util.regex.Pattern.compile("(?im)([^\\.\\n]{20,200}project[^\\.\\n]{0,200})");
+                java.util.regex.Matcher m2 = p2.matcher(resumeJson);
+                while (m2.find() && found.size() < 10) {
+                    found.add(normalizeSpaces(m2.group()).trim());
+                }
+                return found;
+            } catch (Exception e) {
+                return java.util.Collections.emptyList();
+            }
+        }
+
 }
 
 
