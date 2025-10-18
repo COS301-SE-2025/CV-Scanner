@@ -469,7 +469,7 @@ export default function UserManagementPage() {
           </Typography>
 
           {/* Search and Filter Section */}
-          <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+          <Box sx={{ display: "flex", gap: 2, mb: 3, alignItems: "center" }}>
             <TextField
               inputRef={searchRef}
               placeholder="Search users..."
@@ -479,7 +479,11 @@ export default function UserManagementPage() {
                 bgcolor: "#DEDDEE",
                 borderRadius: 1,
                 "& .MuiOutlinedInput-notchedOutline": {
-                  border: "none", // removes the outline
+                  border: "none",
+                },
+                "& .MuiInputBase-input": {
+                  fontSize: "0.9rem",
+                  py: 1.5,
                 },
               }}
               value={search}
@@ -487,7 +491,7 @@ export default function UserManagementPage() {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <SearchIcon />
+                    <SearchIcon sx={{ fontSize: "1.1rem" }} />
                   </InputAdornment>
                 ),
               }}
@@ -497,17 +501,33 @@ export default function UserManagementPage() {
               <Select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                sx={{ bgcolor: "#DEDDEE", borderRadius: 1, minWidth: 150 }}
+                sx={{ 
+                  bgcolor: "#DEDDEE", 
+                  borderRadius: 1, 
+                  minWidth: 150,
+                  "& .MuiSelect-select": {
+                    fontSize: "0.9rem",
+                    py: 1.5,
+                  },
+                }}
               >
-                <MenuItem value="All Roles">All Roles</MenuItem>
-                <MenuItem value="Admin">Admin</MenuItem>
-                <MenuItem value="Editor">Editor</MenuItem>
-                <MenuItem value="User">User</MenuItem>
+                <MenuItem value="All Roles" sx={{ fontSize: "0.9rem" }}>All Roles</MenuItem>
+                <MenuItem value="Admin" sx={{ fontSize: "0.9rem" }}>Admin</MenuItem>
+                <MenuItem value="Editor" sx={{ fontSize: "0.9rem" }}>Editor</MenuItem>
+                <MenuItem value="User" sx={{ fontSize: "0.9rem" }}>User</MenuItem>
               </Select>
             </div>
             <Button
               variant="contained"
-              sx={{ bgcolor: "#0D9488", color: "#fff", textTransform: "none" }}
+              sx={{ 
+                bgcolor: "#0D9488", 
+                color: "#fff", 
+                textTransform: "none",
+                fontSize: "0.9rem",
+                px: 2,
+                py: 1.5,
+                minHeight: "auto",
+              }}
               onClick={() => navigate("/add-user")}
               ref={addUserRef}
             >
@@ -518,38 +538,49 @@ export default function UserManagementPage() {
           {/* User Table */}
           <Paper
             elevation={6}
-            sx={{ p: 3, borderRadius: 3, bgcolor: "#DEDDEE" }}
+            sx={{ 
+              p: 2, 
+              borderRadius: 2, 
+              bgcolor: "#DEDDEE",
+              overflow: "hidden",
+            }}
           >
             <TableContainer>
               <Table
-                sx={{ "& td, & th": { fontFamily: "Helvetica, sans-serif" } }}
+                sx={{ 
+                  "& td, & th": { 
+                    fontFamily: "Helvetica, sans-serif",
+                    padding: "12px 16px",
+                  }
+                }}
               >
-                {/* 2. Update the table headers: */}
-                <TableHead sx={{ "& th": { fontSize: 16 } }}>
+                <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: "bold" }}>Username</TableCell>
-                    <TableCell sx={{ fontWeight: "bold" }}>
-                      First Name
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: "bold" }}>Last Name</TableCell>
-                    <TableCell sx={{ fontWeight: "bold" }}>Email</TableCell>
-                    <TableCell sx={{ fontWeight: "bold" }}>Role</TableCell>
-                    <TableCell sx={{ fontWeight: "bold" }}>
-                      Last Active
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: "bold" }}>Actions</TableCell>
+                    <TableCell sx={{ fontWeight: "bold", fontSize: "0.85rem" }}>Username</TableCell>
+                    <TableCell sx={{ fontWeight: "bold", fontSize: "0.85rem" }}>First Name</TableCell>
+                    <TableCell sx={{ fontWeight: "bold", fontSize: "0.85rem" }}>Last Name</TableCell>
+                    <TableCell sx={{ fontWeight: "bold", fontSize: "0.85rem" }}>Email</TableCell>
+                    <TableCell sx={{ fontWeight: "bold", fontSize: "0.85rem" }}>Role</TableCell>
+                    <TableCell sx={{ fontWeight: "bold", fontSize: "0.85rem" }}>Last Active</TableCell>
+                    <TableCell sx={{ fontWeight: "bold", fontSize: "0.85rem" }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
-                {/* 3. Update the table rows: */}
-                <TableBody sx={{ "& td": { fontSize: 18, fontWeight: 400 } }}>
+                <TableBody>
                   {paginatedUsers.map((user, idx) => (
-                    <TableRow key={user.email || idx}>
-                      <TableCell>{safeRender(user.username)}</TableCell>
-                      <TableCell>{safeRender(user.first_name)}</TableCell>
-                      <TableCell>{safeRender(user.last_name)}</TableCell>
+                    <TableRow 
+                      key={user.email || idx}
+                      sx={{ 
+                        '&:last-child td': { borderBottom: 0 },
+                        '&:hover': { bgcolor: 'rgba(0,0,0,0.02)' }
+                      }}
+                    >
+                      <TableCell sx={{ fontSize: "0.8rem", fontWeight: 500 }}>{safeRender(user.username)}</TableCell>
+                      <TableCell sx={{ fontSize: "0.8rem" }}>{safeRender(user.first_name)}</TableCell>
+                      <TableCell sx={{ fontSize: "0.8rem" }}>{safeRender(user.last_name)}</TableCell>
                       <TableCell
                         sx={{
-                          maxWidth: 200,
+                          fontSize: "0.8rem",
+                          maxWidth: 180,
                           whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
@@ -573,48 +604,53 @@ export default function UserManagementPage() {
                             textTransform: "none",
                             fontWeight: "bold",
                             pointerEvents: "none",
-                            width: 30,
+                            fontSize: "0.7rem",
+                            px: 1.5,
+                            py: 0.5,
+                            minWidth: "auto",
+                            minHeight: "auto",
                           }}
                         >
                           {safeRender(user.role)}
                         </Button>
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ fontSize: "0.8rem" }}>
                         {safeRender(user.lastActive) || "N/A"}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="contained"
-                          sx={{
-                            minWidth: 40,
-                            width: 40,
-                            height: 40,
-                            bgcolor: "#0073c1",
-                            color: "#fff",
-                            p: 0,
-                            mr: 1,
-                            "&:hover": { bgcolor: "#005f9e" },
-                          }}
-                          onClick={() => handleEditClick(user)}
-                          ref={idx === 0 ? firstEditRef : null}
-                        >
-                          <EditIcon />
-                        </Button>
-                        <Button
-                          variant="contained"
-                          sx={{
-                            minWidth: 40,
-                            width: 40,
-                            height: 40,
-                            bgcolor: "#f44336",
-                            color: "#fff",
-                            p: 0,
-                            "&:hover": { bgcolor: "#d32f2f" },
-                          }}
-                          onClick={() => handleDeleteUser(user)}
-                        >
-                          <DeleteIcon />
-                        </Button>
+                        <Box sx={{ display: "flex", gap: 1 }}>
+                          <Button
+                            variant="contained"
+                            sx={{
+                              minWidth: 32,
+                              width: 32,
+                              height: 32,
+                              bgcolor: "#0073c1",
+                              color: "#fff",
+                              p: 0,
+                              "&:hover": { bgcolor: "#005f9e" },
+                            }}
+                            onClick={() => handleEditClick(user)}
+                            ref={idx === 0 ? firstEditRef : null}
+                          >
+                            <EditIcon sx={{ fontSize: "1rem" }} />
+                          </Button>
+                          <Button
+                            variant="contained"
+                            sx={{
+                              minWidth: 32,
+                              width: 32,
+                              height: 32,
+                              bgcolor: "#f44336",
+                              color: "#fff",
+                              p: 0,
+                              "&:hover": { bgcolor: "#d32f2f" },
+                            }}
+                            onClick={() => handleDeleteUser(user)}
+                          >
+                            <DeleteIcon sx={{ fontSize: "1rem" }} />
+                          </Button>
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -624,10 +660,15 @@ export default function UserManagementPage() {
           </Paper>
 
           {/* Pagination */}
-          <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+          <Box sx={{ display: "flex", justifyContent: "center", mt: 3, gap: 1 }}>
             <Button
               variant="text"
-              sx={{ color: "#0073c1" }}
+              sx={{ 
+                color: "#0073c1",
+                fontSize: "0.8rem",
+                minWidth: "auto",
+                px: 1.5,
+              }}
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
             >
@@ -640,6 +681,10 @@ export default function UserManagementPage() {
                 sx={{
                   color: currentPage === i + 1 ? "#fff" : "#0073c1",
                   bgcolor: currentPage === i + 1 ? "#0073c1" : "transparent",
+                  fontSize: "0.8rem",
+                  minWidth: 32,
+                  height: 32,
+                  px: 1,
                 }}
                 onClick={() => setCurrentPage(i + 1)}
               >
@@ -648,7 +693,12 @@ export default function UserManagementPage() {
             ))}
             <Button
               variant="text"
-              sx={{ color: "#0073c1" }}
+              sx={{ 
+                color: "#0073c1",
+                fontSize: "0.8rem",
+                minWidth: "auto",
+                px: 1.5,
+              }}
               onClick={() =>
                 setCurrentPage((prev) => Math.min(prev + 1, totalPages))
               }
@@ -665,25 +715,34 @@ export default function UserManagementPage() {
           onClose={handleEditClose}
           maxWidth="sm"
           fullWidth
+          PaperProps={{
+            sx: { borderRadius: 2 }
+          }}
         >
-          <DialogTitle sx={{ bgcolor: "#5a88ad", color: "#fff" }}>
+          <DialogTitle sx={{ bgcolor: "#5a88ad", color: "#fff", fontSize: "1rem", py: 2 }}>
             Edit User
           </DialogTitle>
-          <DialogContent sx={{ mt: 2 }}>
+          <DialogContent sx={{ mt: 2, p: 2 }}>
             <Box
-              sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}
+              sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
             >
               <TextField
                 label="Username"
                 fullWidth
+                size="small"
                 value={editFormData.username}
                 onChange={(e) =>
                   setEditFormData({ ...editFormData, username: e.target.value })
                 }
+                sx={{
+                  "& .MuiInputLabel-root": { fontSize: "0.9rem" },
+                  "& .MuiInputBase-input": { fontSize: "0.9rem" },
+                }}
               />
               <TextField
                 label="First Name"
                 fullWidth
+                size="small"
                 value={editFormData.first_name}
                 onChange={(e) =>
                   setEditFormData({
@@ -691,10 +750,15 @@ export default function UserManagementPage() {
                     first_name: e.target.value,
                   })
                 }
+                sx={{
+                  "& .MuiInputLabel-root": { fontSize: "0.9rem" },
+                  "& .MuiInputBase-input": { fontSize: "0.9rem" },
+                }}
               />
               <TextField
                 label="Last Name"
                 fullWidth
+                size="small"
                 value={editFormData.last_name}
                 onChange={(e) =>
                   setEditFormData({
@@ -702,19 +766,26 @@ export default function UserManagementPage() {
                     last_name: e.target.value,
                   })
                 }
+                sx={{
+                  "& .MuiInputLabel-root": { fontSize: "0.9rem" },
+                  "& .MuiInputBase-input": { fontSize: "0.9rem" },
+                }}
               />
               <TextField
                 label="Email"
                 fullWidth
+                size="small"
                 value={editFormData.email}
                 InputProps={{
-                  readOnly: true, // This makes the email field non-editable
+                  readOnly: true,
                 }}
                 sx={{
                   "& .MuiInputBase-input.Mui-disabled": {
-                    WebkitTextFillColor: "#000000", // Keep text color black for better readability
-                    backgroundColor: "#a7a7a7ff", // Light gray background to indicate disabled state
+                    WebkitTextFillColor: "#000000",
+                    backgroundColor: "#a7a7a7ff",
+                    fontSize: "0.9rem",
                   },
+                  "& .MuiInputLabel-root": { fontSize: "0.9rem" },
                 }}
               />
               <Select
@@ -723,23 +794,40 @@ export default function UserManagementPage() {
                   setEditFormData({ ...editFormData, role: e.target.value })
                 }
                 fullWidth
+                size="small"
                 displayEmpty
+                sx={{
+                  "& .MuiSelect-select": { fontSize: "0.9rem" },
+                }}
               >
-                <MenuItem value="">Select Role</MenuItem>
-                <MenuItem value="Admin">Admin</MenuItem>
-                <MenuItem value="Editor">Editor</MenuItem>
-                <MenuItem value="User">User</MenuItem>
+                <MenuItem value="" sx={{ fontSize: "0.9rem" }}>Select Role</MenuItem>
+                <MenuItem value="Admin" sx={{ fontSize: "0.9rem" }}>Admin</MenuItem>
+                <MenuItem value="Editor" sx={{ fontSize: "0.9rem" }}>Editor</MenuItem>
+                <MenuItem value="User" sx={{ fontSize: "0.9rem" }}>User</MenuItem>
               </Select>
             </Box>
           </DialogContent>
           <DialogActions sx={{ p: 2 }}>
-            <Button onClick={handleEditClose} sx={{ color: "#666" }}>
+            <Button 
+              onClick={handleEditClose} 
+              sx={{ 
+                color: "#666",
+                fontSize: "0.9rem",
+                textTransform: "none",
+              }}
+            >
               Cancel
             </Button>
             <Button
               variant="contained"
               onClick={handleEditSave}
-              sx={{ bgcolor: "#4caf50", color: "#fff" }}
+              sx={{ 
+                bgcolor: "#4caf50", 
+                color: "#fff",
+                fontSize: "0.9rem",
+                textTransform: "none",
+                px: 2,
+              }}
             >
               Save Changes
             </Button>
@@ -776,10 +864,10 @@ export default function UserManagementPage() {
             <Box sx={{ position: "relative" }}>
               {tutorialStep === 0 && (
                 <>
-                  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1, fontSize: "1rem" }}>
                     Search Users
                   </Typography>
-                  <Typography sx={{ mb: 2 }}>
+                  <Typography sx={{ mb: 2, fontSize: "0.9rem" }}>
                     Use this bar to search for users by <b>name</b>,{" "}
                     <b>email</b>, or <b>role</b>.
                   </Typography>
@@ -787,10 +875,10 @@ export default function UserManagementPage() {
               )}
               {tutorialStep === 1 && (
                 <>
-                  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1, fontSize: "1rem" }}>
                     Filter by Role
                   </Typography>
-                  <Typography sx={{ mb: 2 }}>
+                  <Typography sx={{ mb: 2, fontSize: "0.9rem" }}>
                     Use these filters to view <b>Admins</b>, <b>Editors</b>,{" "}
                     <b>Users</b>, or <b>All</b>.
                   </Typography>
@@ -798,10 +886,10 @@ export default function UserManagementPage() {
               )}
               {tutorialStep === 2 && (
                 <>
-                  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1, fontSize: "1rem" }}>
                     Add a User
                   </Typography>
-                  <Typography sx={{ mb: 2 }}>
+                  <Typography sx={{ mb: 2, fontSize: "0.9rem" }}>
                     Click <b>Add User</b> to invite a new user to your
                     organization.
                   </Typography>
@@ -809,10 +897,10 @@ export default function UserManagementPage() {
               )}
               {tutorialStep === 3 && (
                 <>
-                  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1, fontSize: "1rem" }}>
                     Edit or Delete Users
                   </Typography>
-                  <Typography sx={{ mb: 2 }}>
+                  <Typography sx={{ mb: 2, fontSize: "0.9rem" }}>
                     Use <b>Edit</b> to update user details or <b>Delete</b> to
                     remove a user.
                   </Typography>
@@ -834,7 +922,7 @@ export default function UserManagementPage() {
                   onClick={handleCloseTutorial}
                   sx={{
                     color: "#888",
-                    fontSize: "0.85rem",
+                    fontSize: "0.8rem",
                     textTransform: "none",
                     minWidth: "auto",
                     p: 0,
@@ -852,6 +940,7 @@ export default function UserManagementPage() {
                         borderColor: "#5a88ad",
                         fontWeight: "bold",
                         textTransform: "none",
+                        fontSize: "0.8rem",
                         "&:hover": { borderColor: "#487DA6", color: "#487DA6" },
                       }}
                     >
@@ -867,6 +956,7 @@ export default function UserManagementPage() {
                         color: "#fff",
                         fontWeight: "bold",
                         textTransform: "none",
+                        fontSize: "0.8rem",
                         "&:hover": { bgcolor: "#487DA6" },
                       }}
                     >
@@ -881,6 +971,7 @@ export default function UserManagementPage() {
                         color: "#fff",
                         fontWeight: "bold",
                         textTransform: "none",
+                        fontSize: "0.8rem",
                         "&:hover": { bgcolor: "#487DA6" },
                       }}
                     >
