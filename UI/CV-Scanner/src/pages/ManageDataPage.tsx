@@ -16,6 +16,7 @@ import {
   DialogActions,
   TextField,
   Alert,
+  Tooltip,
   Snackbar,
   CircularProgress,
 } from "@mui/material";
@@ -28,6 +29,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import CancelIcon from "@mui/icons-material/Cancel";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import Sidebar from "./Sidebar";
 import RoleBasedAccess from "../components/RoleBaseAccess";
 import Pagination from "@mui/material/Pagination";
@@ -566,6 +568,16 @@ export default function ManageData() {
           {/* Top Bar */}
           <AppBar position="static" sx={{ bgcolor: "#232A3B", boxShadow: "none" }}>
             <Toolbar sx={{ justifyContent: "flex-end" }}>
+              {/* Help / FAQ icon */}
+            <Tooltip title="Go to Help Page" arrow>
+              <IconButton
+                color="inherit"
+                onClick={() => navigate("/help")}
+                sx={{ ml: 1, color: "#90ee90" }}
+              >
+                <HelpOutlineIcon />
+              </IconButton>
+            </Tooltip>
               {/* User Info */}
               <Box
                 sx={{

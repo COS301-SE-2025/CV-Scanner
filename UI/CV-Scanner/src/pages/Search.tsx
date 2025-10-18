@@ -21,6 +21,11 @@ import {
   Alert,
   Snackbar,
   CircularProgress,
+  Modal,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
@@ -70,6 +75,7 @@ export default function Search() {
     message: "",
     severity: "success" as "success" | "error",
   });
+  const [configModalOpen, setConfigModalOpen] = useState(false);
 
   // Replace hard-coded candidates with data from API
   type ApiCandidate = {
@@ -563,34 +569,63 @@ export default function Search() {
           >
             Search Candidates
           </Typography>
-          {/* Search Bar */}
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              mb: 4,
-              bgcolor: "#DEDDEE",
-              borderRadius: 1,
-              px: 2,
-              py: 1,
-              fontFamily: "Helvetica, sans-serif",
-            }}
-            ref={searchBarRef}
-          >
-            <SearchIcon color="action" />
-            <InputBase
-              placeholder="Search by name, email, or skills..."
+          
+          {/* Search Bar and Config Button Row */}
+          <Box sx={{ display: "flex", gap: 2, alignItems: "center", mb: 4 }}>
+            {/* Search Bar */}
+            <Box
               sx={{
-                ml: 1,
-                flex: 1,
+                display: "flex",
+                alignItems: "center",
+                flexGrow: 1,
+                bgcolor: "#DEDDEE",
+                borderRadius: 1,
+                px: 2,
+                py: 1,
+                fontFamily: "Helvetica, sans-serif",
+              }}
+              ref={searchBarRef}
+            >
+              <SearchIcon color="action" />
+              <InputBase
+                placeholder="Search by name, email, or skills..."
+                sx={{
+                  ml: 1,
+                  flex: 1,
+                  fontFamily: "Helvetica, sans-serif",
+                  fontSize: "1rem",
+                }}
+                fullWidth
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+              />
+            </Box>
+
+            {/* Config Button */}
+            <Button
+              variant="contained"
+              onClick={() => setConfigModalOpen(true)}
+              sx={{
+                bgcolor: "#232A3B",
+                color: "#DEDDEE",
+                fontWeight: "bold",
+                padding: "10px 20px",
+                borderRadius: "8px",
+                textTransform: "none",
                 fontFamily: "Helvetica, sans-serif",
                 fontSize: "1rem",
+                minWidth: "140px",
+                "&:hover": {
+                  bgcolor: "#1a202c",
+                  transform: "translateY(-1px)",
+                },
+                transition: "all 0.3s ease",
               }}
-              fullWidth
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-            />
+            >
+              Filters & Config
+            </Button>
           </Box>
+
           <Paper
             elevation={6}
             sx={{
@@ -601,13 +636,6 @@ export default function Search() {
               color: "#fff",
             }}
           >
-            {/* Filters */}
-            <Box sx={{ display: "flex", gap: 6, mb: 4 }} ref={checkboxesRef}>
-              <ConfigViewer />
-            </Box>
-
-            <Divider sx={{ my: 3 }} />
-
             {/* Results Count */}
             <Typography
               variant="subtitle1"
@@ -857,6 +885,52 @@ export default function Search() {
         </Box>
       </Box>
 
+      {/* Config Modal */}
+      <Dialog
+        open={configModalOpen}
+        onClose={() => setConfigModalOpen(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            bgcolor: "#f5f5f5",
+            fontFamily: "Helvetica, sans-serif",
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            bgcolor: "#232A3B",
+            color: "white",
+            fontFamily: "Helvetica, sans-serif",
+            fontWeight: "bold",
+            fontSize: "1.25rem",
+          }}
+        >
+          Filters & Configuration
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          <ConfigViewer />
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => setConfigModalOpen(false)}
+            sx={{
+              textTransform: "none",
+              fontFamily: "Helvetica, sans-serif",
+              fontWeight: "bold",
+              color: "#232A3B",
+              "&:hover": {
+                bgcolor: "rgba(35, 42, 59, 0.1)",
+              },
+            }}
+          >
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Tutorial Popover */}
       <Popover
         open={tutorialStep >= 0 && tutorialStep <= 2 && Boolean(anchorEl)}
@@ -899,11 +973,10 @@ export default function Search() {
             {tutorialStep === 1 && (
               <>
                 <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-                  Filters
+                  Filters & Config
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
-                  Use these checkboxes to filter candidates by <b>skills</b>,{" "}
-                  <b>project fit</b>, or <b>upload details</b>.
+                  Click the <b>Filters & Config</b> button to access advanced filtering options and configuration settings.
                 </Typography>
               </>
             )}
@@ -1004,7 +1077,8 @@ export default function Search() {
           onClose={() => setSnackbar({ ...snackbar, open: false })}
           sx={{ 
             bgcolor: snackbar.severity === 'success' ? '#4caf50' : '#f44336',
-            color: 'white'
+            color: 'white',
+            fontFamily: "Helvetica, sans-serif",
           }}
         >
           {snackbar.message}
