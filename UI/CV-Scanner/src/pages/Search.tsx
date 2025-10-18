@@ -18,6 +18,9 @@ import {
   Fade,
   Tooltip,
   Pagination,
+  Alert,
+  Snackbar,
+  CircularProgress,
 } from "@mui/material";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
@@ -27,7 +30,6 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import PeopleIcon from "@mui/icons-material/People";
 import SettingsIcon from "@mui/icons-material/Settings";
-import { CircularProgress } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
@@ -60,9 +62,14 @@ export default function Search() {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [processingCandidates, setProcessingCandidates] = useState<string[]>(
     []
-  ); // use email as ID
+  );
   const [page, setPage] = useState(1);
   const USERS_PER_PAGE = 5;
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success" as "success" | "error",
+  });
 
   // Replace hard-coded candidates with data from API
   type ApiCandidate = {
@@ -93,13 +100,13 @@ export default function Search() {
     cvFileUrl?: string;
     cvFileType?: string;
     filename?: string | null;
-    score: number; // 0-10
-    // new: store project-fit payload & percent if available
+    score: number;
     projectFit?: any;
     projectFitPercent?: number | null;
   };
 
   const [candidates, setCandidates] = useState<CandidateCard[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Toggle helper for checkbox filters
   function toggle(list: string[], value: string) {
@@ -110,7 +117,7 @@ export default function Search() {
 
   function scoreColor(value: number) {
     const v = Math.max(0, Math.min(10, value));
-    const hue = (v / 10) * 120; // 0..10 → red..green
+    const hue = (v / 10) * 120;
     return `hsl(${hue} 70% 45%)`;
   }
 
@@ -126,15 +133,15 @@ export default function Search() {
         <CircularProgress
           variant="determinate"
           value={100}
-          size={64}
+          size={56}
           thickness={4}
-          sx={{ color: "rgba(255,255,255,0.15)" }}
+          sx={{ color: "rgba(0,0,0,0.08)" }}
         />
         {/* Progress (colored ring) */}
         <CircularProgress
           variant="determinate"
           value={pct}
-          size={64}
+          size={56}
           thickness={4}
           sx={{
             color: ringColor,
@@ -186,7 +193,7 @@ export default function Search() {
     return candidates.filter((c) => {
       const matchesText =
         c.name.toLowerCase().includes(text) ||
-        c.project.toLowerCase().includes(text) ||
+        c.email.toLowerCase().includes(text) ||
         c.skills.some((s) => s.toLowerCase().includes(text));
 
       const matchesSkills =
@@ -307,12 +314,13 @@ export default function Search() {
             cvFileUrl: c.cvFileUrl,
             cvFileType: c.cvFileType,
             filename,
-            score: 0, // Will be fetched individually
+            score: 0,
             projectFit: undefined,
             projectFitPercent: null,
           };
         });
         setCandidates(mapped);
+        setLoading(false);
 
         // ✅ NEW: Fetch CV scores and project types individually for each candidate
         (async function fetchIndividualScoresAndProjectTypes() {
@@ -418,6 +426,7 @@ export default function Search() {
       } catch {
         setUser(null);
         setCandidates([]);
+        setLoading(false);
       }
     })();
     return;
@@ -461,35 +470,6 @@ export default function Search() {
     } catch {}
     navigate("/login", { replace: true });
   }
-  const reExtractCandidate = async (candidate: CandidateCard) => {
-    const email = candidate.email;
-    if (!email) return;
-
-    const CONFIG_BASE = "http://localhost:8081"; // Ensure this is defined
-
-    setProcessingCandidates((prev) => [...prev, email]);
-
-    try {
-      const res = await apiFetch("/cv/process", {
-        method: "POST",
-        body: JSON.stringify({ email }),
-      });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        alert({
-          open: true,
-          message: j.detail || `Failed to process CV (${res.status})`,
-        });
-        return;
-      }
-      const processedCV = await res.json();
-      navigate("/parsed-cv", { state: { cv: processedCV, candidate } });
-    } catch (e) {
-      alert({ open: true, message: "Error processing CV." });
-    } finally {
-      setProcessingCandidates((prev) => prev.filter((e) => e !== email));
-    }
-  };
 
   return (
     <Box
@@ -599,7 +579,7 @@ export default function Search() {
           >
             <SearchIcon color="action" />
             <InputBase
-              placeholder="Search by name, skills, or project type..."
+              placeholder="Search by name, email, or skills..."
               sx={{
                 ml: 1,
                 flex: 1,
@@ -632,249 +612,247 @@ export default function Search() {
             <Typography
               variant="subtitle1"
               sx={{
-                color: "#000000ff",
+                color: "#000000",
                 mb: 3,
                 fontWeight: "bold",
                 fontFamily: "Helvetica, sans-serif",
                 fontSize: "1rem",
               }}
             >
-              Showing {filteredCandidates.length} of {candidates.length}{" "}
-              candidates
+              {loading
+                ? "Loading candidates..."
+                : `Showing ${paginatedCandidates.length > 0 ? 
+                    `${Math.min((page - 1) * USERS_PER_PAGE + 1, filteredCandidates.length)}-${Math.min(page * USERS_PER_PAGE, filteredCandidates.length)}` 
+                    : '0'} of ${filteredCandidates.length} candidates`}
             </Typography>
+
+            {/* Loading State */}
+            {loading && (
+              <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+                <CircularProgress />
+              </Box>
+            )}
 
             {/* Candidate Cards */}
             <div ref={resultsRef}>
-              {paginatedCandidates.length > 0 ? (
-                paginatedCandidates.map((candidate, idx) => (
-                  <Paper
-                    key={idx}
-                    elevation={3}
-                    sx={{
-                      p: 3,
-                      mb: 3,
-                      borderRadius: 3,
-                      backgroundColor: "#adb6beff",
-                      cursor: "pointer", // Shows it's clickable
-                      "&:hover": {
-                        boxShadow: "0 4px 8px rgba(0,0,0,0.2)", // Visual feedback
-
-                        transform: "translateY(-2px)",
-                      },
-                      transition: "all 0.2s ease",
-                    }}
-                    onClick={() =>
-                      navigate(`/candidate/${candidate.id}/summary`, {
-                        state: { candidate },
-                      })
-                    }
-                  >
-                    <Box
-                      sx={{ display: "flex", alignItems: "flex-start", gap: 3 }}
+              {!loading && paginatedCandidates.length > 0 ? (
+                <>
+                  {/* Single row layout - one candidate per row */}
+                  {paginatedCandidates.map((candidate, idx) => (
+                    <Paper
+                      key={candidate.id}
+                      elevation={3}
+                      sx={{
+                        p: 3,
+                        mb: 3,
+                        borderRadius: 3,
+                        backgroundColor: "#adb6be",
+                        cursor: "pointer",
+                        "&:hover": {
+                          boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
+                          transform: "translateY(-2px)",
+                        },
+                        transition: "all 0.2s ease",
+                      }}
+                      onClick={() =>
+                        navigate(`/candidate/${candidate.id}/summary`, {
+                          state: { candidate },
+                        })
+                      }
                     >
-                      <Avatar
-                        sx={{
-                          bgcolor: "#93AFF7",
-                          width: 56,
-                          height: 56,
-                          fontSize: "1.5rem",
-                          fontWeight: "bold",
-                          fontFamily: "Helvetica, sans-serif",
-                        }}
-                      >
-                        {candidate.initials}
-                      </Avatar>
-                      <Box sx={{ flexGrow: 1 }}>
-                        <Typography
-                          variant="h6"
+                      <Box sx={{ display: "flex", alignItems: "flex-start", gap: 3 }}>
+                        <Avatar
                           sx={{
+                            bgcolor: "#93AFF7",
+                            width: 56,
+                            height: 56,
+                            fontSize: "1.5rem",
                             fontWeight: "bold",
-                            mb: 0.5,
                             fontFamily: "Helvetica, sans-serif",
-                            fontSize: "1.2rem",
                           }}
                         >
-                          {candidate.name}
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            mb: 1.5,
-                            color: "#black",
-                            fontFamily: "Helvetica, sans-serif",
-                            fontSize: "1rem",
-                          }}
-                        >
-                          Uploaded: {candidate.uploaded}
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            mb: 1.0,
-                            color: "#000000ff",
-                            fontFamily: "Helvetica, sans-serif",
-                            fontSize: "0.95rem",
-                            fontWeight: "bold",
-                          }}
-                        >
-                          File: {candidate.filename || "N/A"}
-                        </Typography>
+                          {candidate.initials}
+                        </Avatar>
+                        <Box sx={{ flexGrow: 1 }}>
+                          <Typography
+                            variant="h6"
+                            sx={{
+                              fontWeight: "bold",
+                              mb: 0.5,
+                              fontFamily: "Helvetica, sans-serif",
+                              fontSize: "1.2rem",
+                            }}
+                          >
+                            {candidate.name}
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              mb: 1,
+                              color: "#000000",
+                              fontFamily: "Helvetica, sans-serif",
+                            }}
+                          >
+                            Email: {candidate.email}
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              mb: 1.5,
+                              color: "#000000",
+                              fontFamily: "Helvetica, sans-serif",
+                            }}
+                          >
+                            Uploaded: {candidate.uploaded}
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              mb: 1.0,
+                              color: "#000000",
+                              fontFamily: "Helvetica, sans-serif",
+                              fontSize: "0.95rem",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            File: {candidate.filename || "N/A"}
+                          </Typography>
+                          
+                          {/* Skills with limit and View All - Same as Manage page */}
+                          <Box sx={{ mb: 1.5 }}>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                gap: 0.5,
+                                flexWrap: "wrap",
+                                mb: 0.5,
+                              }}
+                            >
+                              {candidate.skills.slice(0, 5).map((skill, i) => (
+                                <Chip
+                                  key={i}
+                                  label={skill}
+                                  size="small"
+                                  sx={{
+                                    backgroundColor: "#93AFF7",
+                                    fontFamily: "Helvetica, sans-serif",
+                                    fontWeight: "bold",
+                                    color: "#0D1B2A",
+                                    fontSize: '0.85rem',
+                                  }}
+                                />
+                              ))}
+                              {candidate.skills.length > 5 && (
+                                <Chip
+                                  label={`+${candidate.skills.length - 5} more`}
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.stopPropagation(); // Prevent navigation when clicking the chip
+                                    setSnackbar({
+                                      open: true,
+                                      message: `All skills for ${candidate.name}: ${candidate.skills.join(', ')}`,
+                                      severity: "success"
+                                    });
+                                  }}
+                                  sx={{
+                                    backgroundColor: "#e0e0e0",
+                                    fontFamily: "Helvetica, sans-serif",
+                                    fontWeight: "bold",
+                                    color: "#666",
+                                    fontSize: '0.75rem',
+                                    cursor: 'pointer',
+                                    '&:hover': {
+                                      backgroundColor: '#d0d0d0',
+                                    },
+                                  }}
+                                />
+                              )}
+                            </Box>
+                            {candidate.skills.length > 5 && (
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color: "#666",
+                                  fontFamily: "Helvetica, sans-serif",
+                                  fontSize: '0.9rem',
+                                  fontStyle: 'italic',
+                                }}
+                              >
+                                Click "+X more" to view all skills
+                              </Typography>
+                            )}
+                          </Box>
+
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "#204E20",
+                              fontWeight: "bold",
+                              fontFamily: "Helvetica, sans-serif",
+                            }}
+                          >
+                            Match: {candidate.match} | Score: {candidate.score}/10
+                          </Typography>
+                        </Box>
                         <Box
                           sx={{
                             display: "flex",
                             gap: 1,
-                            flexWrap: "wrap",
-                            mb: 1.5,
+                            flexDirection: "column",
+                            alignItems: "center",
                           }}
                         >
-                          {candidate.skills.map((skill, i) => (
-                            <Chip
-                              key={i}
-                              label={skill}
-                              size="small"
-                              sx={{
-                                backgroundColor: "#93AFF7",
-                                fontFamily: "Helvetica, sans-serif",
-                                fontSize: "1rem",
-                                fontWeight: "bold",
-                                color: "#0D1B2A",
-                              }}
-                            />
-                          ))}
+                          {/* Score ring and match */}
+                          <ScoreRing value={candidate.score} />
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "#204E20",
+                              fontWeight: "bold",
+                              mt: 0.5,
+                            }}
+                          >
+                            {candidate.match}
+                          </Typography>
                         </Box>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: "#204E20",
-                            fontWeight: "bold",
-                            fontFamily: "Helvetica, sans-serif",
-                            fontSize: "1rem",
-                          }}
-                        >
-                          Match: {candidate.match}
-                        </Typography>
                       </Box>
-                      <Box
-                        sx={{
-                          mt: 1,
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          gap: 1.5,
-                        }}
-                      >
-                        <ScoreRing value={candidate.score} />
-                        {/* <Button
-                          variant="contained"
-                          size="small"
-                          onClick={async (e) => {
-                            e.stopPropagation(); // Prevents triggering the Paper onClick
-
-                            // Show loading state if needed
-                            if (
-                              processingCandidates.includes(candidate.email)
-                            ) {
-                              return;
-                            }
-
-                            // Add candidate to processing list
-                            setProcessingCandidates((prev) => [
-                              ...prev,
-                              candidate.email,
-                            ]);
-
-                            try {
-                              // Fetch processed data from AI service (use aiFetch)
-                              const response = await aiFetch(
-                                `/upload_cv_for_candidate?email=${encodeURIComponent(
-                                  candidate.email
-                                )}&top_k=3`
-                              );
-                              if (!response.ok)
-                                throw new Error(
-                                  `AI request failed ${response.status}`
-                                );
-                              const data = await response.json();
-
-                              // Prepare payload (mimic UploadCVPage)
-                              const payload = data?.data ?? data;
-
-                              // Navigate to Parsed CV page
-                              navigate("/parsed-cv", {
-                                state: {
-                                  processedData: payload,
-                                  fileUrl: candidate.cvFileUrl, // must exist
-                                  fileType: candidate.cvFileType, // must exist
-                                  candidate: {
-                                    firstName: candidate.name.split(" ")[0],
-                                    lastName:
-                                      candidate.name.split(" ")[1] || "",
-                                    email: candidate.email,
-                                  },
-                                },
-                              });
-                            } catch (error) {
-                              console.error(
-                                "Failed to re-extract candidate:",
-                                error
-                              );
-                            } finally {
-                              // Remove candidate from processing list
-                              setProcessingCandidates((prev) =>
-                                prev.filter(
-                                  (email) => email !== candidate.email
-                                )
-                              );
-                            }
-                          }}
-                          disabled={processingCandidates.includes(
-                            candidate.email
-                          )}
-                          sx={{ textTransform: "none" }}
-                        >
-                          {processingCandidates.includes(candidate.email)
-                            ? "Processing..."
-                            : "Re-Extract"}
-                        </Button> */}
-                      </Box>
-                    </Box>
-                  </Paper>
-                ))
+                    </Paper>
+                  ))}
+                  
+                  {/* Pagination */}
+                  <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+                    <Pagination
+                      count={Math.max(1, Math.ceil(filteredCandidates.length / USERS_PER_PAGE))}
+                      page={page}
+                      onChange={(_, value) => setPage(value)}
+                      color="primary"
+                      size="large"
+                      sx={{
+                        "& .MuiPaginationItem-root": {
+                          color: "#204E20",
+                          fontWeight: "bold",
+                        },
+                      }}
+                    />
+                  </Box>
+                </>
               ) : (
-                <Typography
-                  variant="body1"
-                  sx={{
-                    mt: 2,
-                    fontStyle: "italic",
-                    color: "#555",
-                    fontFamily: "Helvetica, sans-serif",
-                    fontSize: "1rem",
-                  }}
-                >
-                  No results found. Try adjusting your search or filters.
-                </Typography>
+                !loading && (
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      mt: 2,
+                      fontStyle: "italic",
+                      color: "#555",
+                      fontFamily: "Helvetica, sans-serif",
+                      fontSize: "1rem",
+                    }}
+                  >
+                    No results found. Try adjusting your search or filters.
+                  </Typography>
+                )
               )}
             </div>
-
-            {/* Pagination */}
-            <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
-              <Pagination
-                count={Math.max(
-                  1,
-                  Math.ceil(filteredCandidates.length / USERS_PER_PAGE)
-                )}
-                page={page}
-                onChange={(_, value) => setPage(value)}
-                color="primary"
-                size="large"
-                sx={{
-                  "& .MuiPaginationItem-root": {
-                    color: "#204E20",
-                    fontWeight: "bold",
-                  },
-                }}
-              />
-            </Box>
           </Paper>
         </Box>
       </Box>
@@ -914,7 +892,7 @@ export default function Search() {
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
                   Use this bar to search for candidates by <b>name</b>,{" "}
-                  <b>skills</b>, or <b>project type</b>.
+                  <b>email</b>, or <b>skills</b>.
                 </Typography>
               </>
             )}
@@ -935,7 +913,7 @@ export default function Search() {
                   Results
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
-                  Here you’ll see the candidates that match your search and
+                  Here you'll see the candidates that match your search and
                   filters.
                 </Typography>
               </>
@@ -1014,6 +992,24 @@ export default function Search() {
           </Box>
         </Fade>
       </Popover>
+
+      {/* Snackbar for skills display */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <Alert 
+          severity={snackbar.severity} 
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          sx={{ 
+            bgcolor: snackbar.severity === 'success' ? '#4caf50' : '#f44336',
+            color: 'white'
+          }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
