@@ -25,6 +25,7 @@ import {
   Fade,
   Tooltip,
   InputAdornment,
+  Pagination,
 } from "@mui/material";
 import Sidebar from "./Sidebar";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -657,56 +658,31 @@ export default function UserManagementPage() {
                 </TableBody>
               </Table>
             </TableContainer>
+            {/* Pagination */}
+              <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+                <Pagination
+                  count={Math.max(1, Math.ceil(users.length / usersPerPage))}
+                  page={currentPage}
+                  onChange={(_, value) => setCurrentPage(value)}
+                  color="primary"
+                  size="large"
+                  sx={{
+                    "& .MuiPaginationItem-root": {
+                      color: "#204E20",
+                      fontWeight: "bold",
+                      fontSize: "0.9rem",
+                    },
+                    "& .MuiPaginationItem-page.Mui-selected": {
+                      backgroundColor: "#204E20",
+                      color: "#fff",
+                      "&:hover": {
+                        backgroundColor: "#1a3a1a",
+                      },
+                    },
+                  }}
+                />
+              </Box>
           </Paper>
-
-          {/* Pagination */}
-          <Box sx={{ display: "flex", justifyContent: "center", mt: 3, gap: 1 }}>
-            <Button
-              variant="text"
-              sx={{ 
-                color: "#0073c1",
-                fontSize: "0.8rem",
-                minWidth: "auto",
-                px: 1.5,
-              }}
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-            >
-              Previous
-            </Button>
-            {[...Array(totalPages)].map((_, i) => (
-              <Button
-                key={i}
-                variant="text"
-                sx={{
-                  color: currentPage === i + 1 ? "#fff" : "#0073c1",
-                  bgcolor: currentPage === i + 1 ? "#0073c1" : "transparent",
-                  fontSize: "0.8rem",
-                  minWidth: 32,
-                  height: 32,
-                  px: 1,
-                }}
-                onClick={() => setCurrentPage(i + 1)}
-              >
-                {i + 1}
-              </Button>
-            ))}
-            <Button
-              variant="text"
-              sx={{ 
-                color: "#0073c1",
-                fontSize: "0.8rem",
-                minWidth: "auto",
-                px: 1.5,
-              }}
-              onClick={() =>
-                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-              }
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </Button>
-          </Box>
         </Box>
 
         {/* Edit User Dialog */}
