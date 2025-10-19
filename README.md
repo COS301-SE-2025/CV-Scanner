@@ -27,7 +27,6 @@ It supports both **PDF and Word** CV formats and automatically summarizes candid
  **[Live System Demo](#)** - *Coming Soon: Live deployment link*  
  **[Final Video Demo](#)** - *Coming Soon: Complete project demonstration*  
  **[Project Management](https://github.com/orgs/COS301-SE-2025/projects/110/views/1)** - GitHub Project Board  
- **[Development Guide](#)** - *Coming Soon: Contributing guidelines*
  **[Deplyment link](https://jolly-bay-0e45d8b03.2.azurestaticapps.net)**
 
 
