@@ -106,10 +106,6 @@ export default function CandidatesDashboard() {
   } | null>(null);
 
   const reviewBtnRef = useRef<HTMLButtonElement>(null);
-  const lastChartClickRef = useRef<{ key: string; timestamp: number }>({
-    key: "",
-    timestamp: 0,
-  });
 
   // --- helpers: add here (after refs/state, before useEffect) ---
   function parseSkillFallback(input: string | null | undefined): string[] {
@@ -623,27 +619,6 @@ export default function CandidatesDashboard() {
   };
   const handleCloseTutorial = () => setShowTutorial(false);
 
-  const triggerFilteredSearch = (label: string | undefined) => {
-    const query = label?.trim();
-    if (!query) return;
-    navigate(`/search?query=${encodeURIComponent(query)}`, {
-      state: { presetQuery: query },
-    });
-  };
-
-  const handleChartInteraction = (label: string | undefined) => {
-    if (!label) return;
-    const now = Date.now();
-    const { key, timestamp } = lastChartClickRef.current;
-
-    if (key === label && now - timestamp <= 400) {
-      triggerFilteredSearch(label);
-      lastChartClickRef.current = { key: "", timestamp: 0 };
-    } else {
-      lastChartClickRef.current = { key: label, timestamp: now };
-    }
-  };
-
   // Logout handler: call server to invalidate session, clear local state and notify other tabs
   async function handleLogout() {
     try {
@@ -927,12 +902,10 @@ export default function CandidatesDashboard() {
                     />
                     <RechartsTooltip />
                     <Bar dataKey="value" name="Technology Usage" fill="#8884D8">
-                      {groupedBarData.map((item, index) => (
+                      {groupedBarData.map((_, index) => (
                         <Cell
                           key={`cell-${index}`}
                           fill={COLORS[index % COLORS.length]}
-                          onClick={() => handleChartInteraction(item?.name)}
-                          style={{ cursor: "pointer" }}
                         />
                       ))}
                     </Bar>
@@ -991,18 +964,14 @@ export default function CandidatesDashboard() {
                         }%`
                       }
                     >
-                      {skillDistribution.slice(0, 4).map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                          onClick={() =>
-                            handleChartInteraction(
-                              normalizeSkillName(entry?.name)
-                            )
-                          }
-                          style={{ cursor: "pointer" }}
-                        />
-                      ))}
+                      {(skillDistribution.slice(0, 4) || []).map(
+                        (entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        )
+                      )}
                     </Pie>
                     <RechartsTooltip
                       formatter={(value, name, props) => {
@@ -1078,12 +1047,10 @@ export default function CandidatesDashboard() {
                       }
                       labelLine={true}
                     >
-                      {projectFitData.map((entry, index) => (
+                      {(projectFitData || []).map((entry, index) => (
                         <Cell
                           key={`cell-${index}`}
                           fill={COLORS[index % COLORS.length]}
-                          onClick={() => handleChartInteraction(entry?.type)}
-                          style={{ cursor: "pointer" }}
                         />
                       ))}
                     </Pie>
