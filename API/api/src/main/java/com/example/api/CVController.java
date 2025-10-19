@@ -628,6 +628,7 @@ public class CVController {
         public List<String> skills;
         public String receivedAt; // ISO-8601
         public String match;      // placeholder
+        public String projectFitType;
 
         public CandidateSummary(long id, String firstName, String lastName, String email,
                                 String project, List<String> skills, String receivedAt, String match) {
@@ -639,6 +640,7 @@ public class CVController {
             this.skills = skills;
             this.receivedAt = receivedAt;
             this.match = match;
+            this.projectFitType = null;
         }
     }
 
@@ -708,30 +710,38 @@ public class CVController {
                 String aiResult = rs.getString("AiResult");
                 Timestamp ts = rs.getTimestamp("ReceivedAt");
 
-                // Prefer ResumeResult.skills, fallback to Normalized/AiResult
-                List<String> skills = extractSkillsFromResume(resumeJson);
+                List<String> skills = new ArrayList<>(extractSkillsFromResume(resumeJson));
                 if (skills.isEmpty()) {
-                    skills = extractSkills(normalized, aiResult);
+                    skills = new ArrayList<>(extractSkills(normalized, aiResult));
                 }
 
-                String project = fileUrl != null ? lastSegment(fileUrl) : "CV";
+                String projectType = extractProjectTypeFromResume(resumeJson);
+                if (projectType != null && !projectType.isBlank()) {
+                    skills.add(projectType);
+                }
+
+                String project = projectType != null && !projectType.isBlank()
+                        ? projectType
+                        : (fileUrl != null ? lastSegment(fileUrl) : "CV");
                 String receivedAt = ts != null ? ts.toInstant().toString() : null;
 
-                return new CandidateSummary(id, first, last, email, project, skills, receivedAt, "N/A");
+                CandidateSummary summary = new CandidateSummary(id, first, last, email, project, skills, receivedAt, "N/A");
+                summary.projectFitType = projectType;
+                return summary;
             });
 
-            if (q != null && !q.isBlank()) {
-                final String needle = q.toLowerCase();
-                items = items.stream().filter((CandidateSummary c) ->
+            final String needle = q.toLowerCase();
+            List<CandidateSummary> filtered = items.stream()
+                    .filter(c ->
                         (c.firstName != null && c.firstName.toLowerCase().contains(needle)) ||
                         (c.lastName != null && c.lastName.toLowerCase().contains(needle)) ||
                         (c.email != null && c.email.toLowerCase().contains(needle)) ||
                         (c.project != null && c.project.toLowerCase().contains(needle)) ||
-                        (c.skills != null && c.skills.stream().anyMatch(s -> s.toLowerCase().contains(needle)))
-                ).collect(java.util.stream.Collectors.toList());
-            }
+                        (c.projectFitType != null && c.projectFitType.toLowerCase().contains(needle)) ||
+                        (c.skills != null && c.skills.stream().anyMatch(s -> s.toLowerCase().contains(needle))))
+                    .collect(java.util.stream.Collectors.toList());
 
-            return ResponseEntity.ok(items);
+            return ResponseEntity.ok(filtered);
         } catch (Exception ex) {
             return ResponseEntity.status(500).body(createErrorResponse("Failed to fetch candidates: " + ex.getMessage()));
         }
@@ -3166,15 +3176,24 @@ private String truncateSummary(String s) {
                 String aiResult = rs.getString("AiResult");
                 Timestamp ts = rs.getTimestamp("ReceivedAt");
 
-                List<String> skills = extractSkillsFromResume(resumeJson);
+                List<String> skills = new ArrayList<>(extractSkillsFromResume(resumeJson));
                 if (skills.isEmpty()) {
-                    skills = extractSkills(normalized, aiResult);
+                    skills = new ArrayList<>(extractSkills(normalized, aiResult));
                 }
 
-                String project = fileUrl != null ? lastSegment(fileUrl) : "CV";
+                String projectType = extractProjectTypeFromResume(resumeJson);
+                if (projectType != null && !projectType.isBlank()) {
+                    skills.add(projectType);
+                }
+
+                String project = projectType != null && !projectType.isBlank()
+                        ? projectType
+                        : (fileUrl != null ? lastSegment(fileUrl) : "CV");
                 String receivedAt = ts != null ? ts.toInstant().toString() : null;
 
-                return new CandidateSummary(id, first, last, email, project, skills, receivedAt, "N/A");
+                CandidateSummary summary = new CandidateSummary(id, first, last, email, project, skills, receivedAt, "N/A");
+                summary.projectFitType = projectType;
+                return summary;
             });
 
             final String needle = q.toLowerCase();
@@ -3184,6 +3203,7 @@ private String truncateSummary(String s) {
                         (c.lastName != null && c.lastName.toLowerCase().contains(needle)) ||
                         (c.email != null && c.email.toLowerCase().contains(needle)) ||
                         (c.project != null && c.project.toLowerCase().contains(needle)) ||
+                        (c.projectFitType != null && c.projectFitType.toLowerCase().contains(needle)) ||
                         (c.skills != null && c.skills.stream().anyMatch(s -> s.toLowerCase().contains(needle))))
                     .collect(java.util.stream.Collectors.toList());
 
