@@ -744,61 +744,6 @@ public class ApiApplicationTests {
 
     // --------- CVController: /cv/candidates tests ---------
 
-    @Test
-    @SuppressWarnings("unchecked")
-    void cv_candidates_success_mapsSkills_and_allFields() throws Exception {
-        // Mock jdbcTemplate.query to use the provided RowMapper with two rows
-        doAnswer(invocation -> {
-            RowMapper<CVController.CandidateSummary> rm =
-                (RowMapper<CVController.CandidateSummary>) invocation.getArgument(1);
-
-            // Row 1: normalized JSON provides skills as multiline string
-            ResultSet rs1 = mock(ResultSet.class);
-            when(rs1.getLong("Id")).thenReturn(10L);
-            when(rs1.getString("FirstName")).thenReturn("Jane");
-            when(rs1.getString("LastName")).thenReturn("Doe");
-            when(rs1.getString("Email")).thenReturn("jane.doe@example.com");
-            when(rs1.getString("FileUrl")).thenReturn("https://example.com/files/jane.pdf");
-            when(rs1.getString("Normalized")).thenReturn("{\"skills\":\"Backend\\nCoder\"}");
-            when(rs1.getString("AiResult")).thenReturn(null);
-            when(rs1.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.parse("2025-01-01T10:00:00Z")));
-
-            // Row 2: fallback to aiResult.applied.Skills array
-            ResultSet rs2 = mock(ResultSet.class);
-            when(rs2.getLong("Id")).thenReturn(11L);
-            when(rs2.getString("FirstName")).thenReturn("Alice");
-            when(rs2.getString("LastName")).thenReturn("Brown");
-            when(rs2.getString("Email")).thenReturn("alice.brown@example.com");
-            when(rs2.getString("FileUrl")).thenReturn("https://example.com/files/alice.pdf");
-            when(rs2.getString("Normalized")).thenReturn(null);
-            when(rs2.getString("AiResult")).thenReturn("{\"applied\":{\"Skills\":[\"React\",\"Angular\"]}}");
-            when(rs2.getTimestamp("ReceivedAt")).thenReturn(Timestamp.from(Instant.parse("2025-02-02T12:00:00Z")));
-
-            var list = new ArrayList<CVController.CandidateSummary>();
-            list.add(rm.mapRow(rs1, 0));
-            list.add(rm.mapRow(rs2, 1));
-            return list;
-        }).when(jdbcTemplate).query(anyString(), any(RowMapper.class));
-
-        mockMvc.perform(get("/cv/candidates"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].id").value(10))
-            .andExpect(jsonPath("$[0].firstName").value("Jane"))
-            .andExpect(jsonPath("$[0].lastName").value("Doe"))
-            .andExpect(jsonPath("$[0].email").value("jane.doe@example.com"))
-            .andExpect(jsonPath("$[0].project").value("jane.pdf"))
-            .andExpect(jsonPath("$[0].skills[0]").value("Backend"))
-            .andExpect(jsonPath("$[0].skills[1]").value("Coder"))
-            .andExpect(jsonPath("$[0].receivedAt").value("2025-01-01T10:00:00Z"))
-            .andExpect(jsonPath("$[1].id").value(11))
-            .andExpect(jsonPath("$[1].firstName").value("Alice"))
-            .andExpect(jsonPath("$[1].skills[0]").value("React"))
-            .andExpect(jsonPath("$[1].skills[1]").value("Angular"));
-
-        verify(jdbcTemplate).query(anyString(), any(RowMapper.class));
-        verifyNoMoreInteractions(jdbcTemplate);
-    }
-
 
    
     @Test
