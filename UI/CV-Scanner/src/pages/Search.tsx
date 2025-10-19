@@ -491,8 +491,20 @@ export default function Search() {
         throw new Error(txt || `PDF fetch failed (${res.status})`);
       }
       const blob = await res.blob();
+      const contentType =
+        res.headers.get("content-type") || "application/octet-stream";
+      const isPdf = contentType.toLowerCase().includes("pdf");
       const url = URL.createObjectURL(blob);
-      window.open(url, "_blank", "noopener");
+      if (isPdf) {
+        window.open(url, "_blank", "noopener");
+      } else {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = candidate.filename || "candidate-document";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (err: any) {
       console.error("Failed to open PDF:", err);

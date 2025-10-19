@@ -3097,17 +3097,26 @@ private String truncateSummary(String s) {
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(Map.of("message", "No PDF stored for candidate: " + identifier));
             }
-            byte[] pdfBytes = (byte[]) rows.get(0).get("pdf");
-            String filename = Optional.ofNullable((String) rows.get(0).get("fileUrl"))
+
+            byte[] fileBytes = (byte[]) rows.get(0).get("pdf");
+            String storedType = (String) rows.get(0).get("PdfContentType");
+            String storedName = (String) rows.get(0).get("PdfFileName");
+            String fallbackName = Optional.ofNullable((String) rows.get(0).get("fileUrl"))
                     .map(CVController::lastSegment)
                     .orElse("CandidateCV.pdf");
 
-            ByteArrayResource resource = new ByteArrayResource(pdfBytes);
+            String filename = Optional.ofNullable(storedName).filter(s -> !s.isBlank()).orElse(fallbackName);
+            String contentType = Optional.ofNullable(storedType).filter(s -> !s.isBlank())
+                    .orElseGet(() -> filename.toLowerCase().endsWith(".pdf")
+                            ? MediaType.APPLICATION_PDF_VALUE
+                            : "application/octet-stream");
+
+            ByteArrayResource resource = new ByteArrayResource(fileBytes);
 
             return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_PDF)
+                    .contentType(MediaType.parseMediaType(contentType))
                     .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
-                    .contentLength(pdfBytes.length)
+                    .contentLength(fileBytes.length)
                     .body(resource);
 
         } catch (Exception ex) {
