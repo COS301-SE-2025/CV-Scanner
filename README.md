@@ -15,7 +15,7 @@ All project documentation and research contributions (Requirements, Design, Codi
 
 ## Project Links
 - **[Deployment (Live System Demo)](https://jolly-bay-0e45d8b03.2.azurestaticapps.net)**  
-- **[Full Video Demo](#)** – recorded system walkthrough *(coming soon)*  
+- **[Full Video Demo](https://drive.google.com/file/d/1U5sS0Op-Co242Vq3W6P1LUg-ReBln-fq/view?usp=sharing)** **OR** **[Download the Video off of GitHub](Documentation/Final_demo.mp4)**
 - **[Project Management Board](https://github.com/orgs/COS301-SE-2025/projects/110/views/1)**  
 - **[Contribution & Setup Guide](Documentation/Technical_Installation_Manual_V4.pdf)**  
 - **[Meet the Team](Documentation/teamREADME.md)**
