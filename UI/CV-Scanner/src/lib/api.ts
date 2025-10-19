@@ -1,5 +1,6 @@
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8081";
+  (import.meta.env.VITE_API_BASE_URL as string | undefined) ||
+  "https://vscanner-api-eaaudbdneafub4e3.southafricanorth-01.azurewebsites.net";
 
 // Use deployed AI service by default
 const AI_BASE_URL = (
@@ -20,15 +21,11 @@ function buildHeaders(init?: RequestInit): HeadersInit {
 }
 
 export async function apiFetch(path: string, opts: RequestInit = {}) {
-  const BASE = API_BASE_URL.replace(/\/+$/, "");
-  const url =
-    path.startsWith("http://") || path.startsWith("https://")
-      ? path
-      : `${BASE}${path.startsWith("/") ? "" : "/"}${path}`;
-
-  const headers = buildHeaders(opts);
-  const res = await fetch(url, { credentials: "include", ...opts, headers });
-  return res;
+  const base = API_BASE_URL.replace(/\/$/, "");
+  const url = path.startsWith("http")
+    ? path
+    : `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+  return fetch(url, { credentials: "include", ...opts });
 }
 
 export const aiFetch = async (path: string, init: RequestInit = {}) => {

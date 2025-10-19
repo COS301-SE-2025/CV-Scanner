@@ -80,30 +80,60 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
-        if (request.email == null || request.password == null) {
-            return ResponseEntity.badRequest().body(Collections.singletonMap("message", "Email and password are required."));
-        }
+    public ResponseEntity<?> login(HttpServletRequest httpRequest) {
+        LoginRequest request = new LoginRequest();
         try {
-            String passwordHash = jdbcTemplate.queryForObject(
-                "SELECT password_hash FROM users WHERE email = ? AND is_active = 1",
-                String.class, request.email
-            );
-            if (passwordEncoder.matches(request.password, passwordHash)) {
-                jdbcTemplate.update(
-                    "UPDATE users SET last_login = GETDATE() WHERE email = ?",
-                    request.email
-                );
-                // create server session for cookie-based auth
-                HttpSession session = httpRequest.getSession(true);
-                session.setAttribute("email", request.email);
-                // optional: set other session attributes, or setMaxInactiveInterval(...)
-                return ResponseEntity.ok(Collections.singletonMap("message", "Login successful"));
+            String contentType = httpRequest.getContentType() == null ? "" : httpRequest.getContentType().toLowerCase();
+            if (contentType.contains(org.springframework.http.MediaType.APPLICATION_JSON_VALUE)) {
+                // parse JSON body
+                try {
+                    request = mapper.readValue(httpRequest.getInputStream(), LoginRequest.class);
+                } catch (IOException ex) {
+                    return ResponseEntity.badRequest().body(Collections.singletonMap("message", "Invalid JSON body."));
+                }
+            } else if (contentType.contains(org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                    || contentType.contains(org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+                    || contentType.contains("application/x-www-form-urlencoded")) {
+                // form data
+                request.email = httpRequest.getParameter("email");
+                request.password = httpRequest.getParameter("password");
             } else {
+                // try JSON fallback (some clients omit content-type)
+                try {
+                    request = mapper.readValue(httpRequest.getInputStream(), LoginRequest.class);
+                } catch (Exception ex) {
+                    // fallback to parameters
+                    request.email = httpRequest.getParameter("email");
+                    request.password = httpRequest.getParameter("password");
+                }
+            }
+
+            if (request.email == null || request.password == null) {
+                return ResponseEntity.badRequest().body(Collections.singletonMap("message", "Email and password are required."));
+            }
+
+            try {
+                String passwordHash = jdbcTemplate.queryForObject(
+                    "SELECT password_hash FROM users WHERE email = ? AND is_active = 1",
+                    String.class, request.email
+                );
+                if (passwordEncoder.matches(request.password, passwordHash)) {
+                    jdbcTemplate.update(
+                        "UPDATE users SET last_login = GETDATE() WHERE email = ?",
+                        request.email
+                    );
+                    HttpSession session = httpRequest.getSession(true);
+                    session.setAttribute("email", request.email);
+                    return ResponseEntity.ok(Collections.singletonMap("message", "Login successful"));
+                } else {
+                    return ResponseEntity.status(401).body(Collections.singletonMap("message", "Invalid email or password."));
+                }
+            } catch (EmptyResultDataAccessException e) {
                 return ResponseEntity.status(401).body(Collections.singletonMap("message", "Invalid email or password."));
             }
-        } catch (EmptyResultDataAccessException e) {
-            return ResponseEntity.status(401).body(Collections.singletonMap("message", "Invalid email or password."));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Collections.singletonMap("message", "Internal server error."));
         }
     }
 

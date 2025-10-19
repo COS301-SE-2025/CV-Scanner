@@ -35,6 +35,21 @@ import Sidebar from "./Sidebar";
 import ConfigAlert from "./ConfigAlert";
 import RoleBasedAccess from "../components/RoleBaseAccess";
 import { apiFetch } from "../lib/api";
+
+// Lazy-load mammoth browser bundle at runtime to avoid requiring npm install
+async function loadMammoth(): Promise<any> {
+  if (typeof window === "undefined") return null;
+  const w = window as any;
+  if (w.mammoth) return w.mammoth;
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://unpkg.com/mammoth@1.4.19/mammoth.browser.min.js";
+    script.async = true;
+    script.onload = () => resolve((window as any).mammoth);
+    script.onerror = (e) => reject(new Error("Failed to load mammoth.js"));
+    document.head.appendChild(script);
+  });
+}
 import { useBrandLoader } from "../hooks/brandLoader";
 
 interface ProcessedData {
@@ -157,6 +172,7 @@ export default function UploadCVPage() {
 
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [fileHtml, setFileHtml] = useState<string | null>(null);
   const loader = useBrandLoader();
 
   const navigate = useNavigate();
@@ -531,8 +547,31 @@ export default function UploadCVPage() {
       // Create preview URL for PDFs
       if (selectedFile.type === "application/pdf") {
         setPdfUrl(URL.createObjectURL(selectedFile));
+        setFileHtml(null);
+      } else if (
+        selectedFile.type ===
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+        (selectedFile.name && selectedFile.name.toLowerCase().endsWith(".docx"))
+      ) {
+        setPdfUrl(null);
+        // Convert DOCX to HTML using mammoth
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+          try {
+            const arrayBuffer = ev.target?.result as ArrayBuffer;
+            const mm = await loadMammoth();
+            if (!mm) throw new Error("mammoth failed to load");
+            const result = await mm.convertToHtml({ arrayBuffer });
+            setFileHtml(result.value);
+          } catch (err) {
+            console.error("DOCX conversion failed", err);
+            setFileHtml(null);
+          }
+        };
+        reader.readAsArrayBuffer(selectedFile);
       } else {
         setPdfUrl(null);
+        setFileHtml(null);
       }
     }
   };
@@ -544,6 +583,7 @@ export default function UploadCVPage() {
       URL.revokeObjectURL(pdfUrl);
       setPdfUrl(null);
     }
+    setFileHtml(null);
 
     // Reset file input
     const fileInput = document.getElementById(
@@ -1185,7 +1225,14 @@ export default function UploadCVPage() {
       >
         <DialogTitle>Preview: {file?.name}</DialogTitle>
         <DialogContent sx={{ p: 0 }}>
-          {pdfUrl && (
+          {fileHtml ? (
+            <Box sx={{ p: 2 }}>
+              <div
+                dangerouslySetInnerHTML={{ __html: fileHtml }}
+                style={{ color: "#000", width: "100%" }}
+              />
+            </Box>
+          ) : pdfUrl ? (
             <iframe
               src={pdfUrl}
               title="PDF Preview"
@@ -1193,6 +1240,8 @@ export default function UploadCVPage() {
               height="600px"
               style={{ border: "none" }}
             />
+          ) : (
+            <Typography sx={{ p: 2 }}>No preview available</Typography>
           )}
         </DialogContent>
         <DialogActions>

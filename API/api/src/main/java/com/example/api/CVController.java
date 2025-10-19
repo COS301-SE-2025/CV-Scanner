@@ -43,6 +43,8 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -2727,6 +2729,323 @@ private String truncateSummary(String s) {
 
         return digits;
     }
+
+    @GetMapping("/{identifier}/parsed")
+    public ResponseEntity<?> getParsedSections(@PathVariable("identifier") String identifier) {
+        try {
+            Long candidateId = null;
+            String email = null;
+            try { candidateId = Long.parseLong(identifier); } catch (NumberFormatException ignored) { email = identifier; }
+    
+            String sql;
+            Object[] params;
+            if (candidateId != null) {
+                sql = """
+                    SELECT TOP 1 cpc.ResumeResult
+                    FROM dbo.Candidates c
+                    LEFT JOIN dbo.CandidateParsedCv cpc ON cpc.CandidateId = c.Id
+                    WHERE c.Id = ?
+                    ORDER BY cpc.ReceivedAt DESC
+                """;
+                params = new Object[]{candidateId};
+            } else {
+                sql = """
+                    SELECT TOP 1 cpc.ResumeResult
+                    FROM dbo.Candidates c
+                    LEFT JOIN dbo.CandidateParsedCv cpc ON cpc.CandidateId = c.Id
+                    WHERE c.Email = ?
+                    ORDER BY cpc.ReceivedAt DESC
+                """;
+                params = new Object[]{email};
+            }
+    
+            List<String> rows = jdbc.query(sql, params, (rs, i) -> rs.getString("ResumeResult"));
+            if (rows.isEmpty() || isBlank(rows.get(0))) {
+                return ResponseEntity.status(404).body(Map.of("message", "Parsed resume not found for: " + identifier));
+            }
+    
+            String resumeJson = rows.get(0);
+    
+            Map<String, Object> out = new LinkedHashMap<>();
+            // summary: reuse existing robust summary extractor
+            String summary = extractResumeSummary(resumeJson, null, null, null);
+            out.put("summary", summary);
+    
+            // education, experience, projects
+            List<String> education = extractEducationFromResume(resumeJson);
+            List<String> experience = extractExperienceFromResume(resumeJson);
+            List<String> projects = extractProjectsFromResume(resumeJson);
+    
+            out.put("education", education);
+            out.put("experience", experience);
+            out.put("projects", projects);
+    
+            return ResponseEntity.ok(out);
+        } catch (Exception ex) {
+            System.err.println("Failed to load parsed sections: " + ex.getMessage());
+            ex.printStackTrace();
+            return ResponseEntity.status(500).body(createErrorResponse("Failed to load parsed sections: " + ex.getMessage()));
+        }
+    }
+    
+    // --- helpers for parsed-fields endpoint ---
+    @SuppressWarnings("unchecked")
+    private List<String> extractEducationFromResume(String resumeJson) {
+        if (isBlank(resumeJson)) return java.util.Collections.emptyList();
+        try {
+            Map<String,Object> root = parseJsonToMap(resumeJson);
+            if (root == null) return java.util.Collections.emptyList();
+    
+            // common locations
+            Object ed = firstNonNull(root.get("education"),
+                                         (root.get("result") instanceof Map<?,?> r) ? ((Map<?,?>) r).get("education") : null,
+                                         (root.get("sections") instanceof Map<?,?> s) ? ((Map<?,?>) s).get("education") : null,
+                                         (root.get("sections") instanceof Map<?,?> s2) ? ((Map<?,?>) s2).get("educationDetails") : null);
+                List<String> list = coerceToList(ed);
+                if (list != null && !list.isEmpty()) return list;
+    
+                // fallback: try scanning 'sections' for education-like keys and return text blobs split
+                Object sections = firstNonNull(root.get("sections"), (root.get("result") instanceof Map<?,?> r) ? ((Map<?,?>) r).get("sections") : null);
+                if (sections instanceof Map<?,?> sec) {
+                    Object maybe = firstNonNull(sec.get("education"), sec.get("education_history"), sec.get("educationDetails"));
+                    list = coerceToList(maybe);
+                    if (list != null && !list.isEmpty()) return list;
+                }
+    
+                // last resort: search for typical education lines inside resumeJson string (simple regex)
+                java.util.List<String> found = new java.util.ArrayList<>();
+                java.util.regex.Pattern p = java.util.regex.Pattern.compile("(?im)(bachelor|bsc|ba|msc|master|phd|degree|university|college)[^\\n]{0,120}");
+                java.util.regex.Matcher m = p.matcher(resumeJson);
+                while (m.find() && found.size() < 10) {
+                    found.add(normalizeSpaces(m.group()).trim());
+                }
+                return found;
+            } catch (Exception e) {
+                return java.util.Collections.emptyList();
+            }
+        }
+    
+        @SuppressWarnings("unchecked")
+        private List<String> extractProjectsFromResume(String resumeJson) {
+            if (isBlank(resumeJson)) return java.util.Collections.emptyList();
+            try {
+                Map<String,Object> root = parseJsonToMap(resumeJson);
+                if (root == null) return java.util.Collections.emptyList();
+    
+                Object proj = firstNonNull(root.get("projects"),
+                                           (root.get("result") instanceof Map<?,?> r) ? ((Map<?,?>) r).get("projects") : null,
+                                           (root.get("sections") instanceof Map<?,?> s) ? ((Map<?,?>) s).get("projects") : null,
+                                           root.get("project"));
+                List<String> list = coerceToList(proj);
+                if (list != null && !list.isEmpty()) return list;
+    
+                // try nested result.sections.projects text
+                Object sections = firstNonNull(root.get("sections"), (root.get("result") instanceof Map<?,?> r) ? ((Map<?,?>) r).get("sections") : null);
+                if (sections instanceof Map<?,?> sec) {
+                    Object maybe = firstNonNull(sec.get("projects"), sec.get("project_list"), sec.get("selectedProjects"));
+                    list = coerceToList(maybe);
+                    if (list != null && !list.isEmpty()) return list;
+                }
+    
+                // fallback: extract bullet-like project lines from resumeJson
+                java.util.List<String> found = new java.util.ArrayList<>();
+                java.util.regex.Pattern p = java.util.regex.Pattern.compile("(?m)^\\s*[-•\\*]\\s*(.{10,200})$");
+                java.util.regex.Matcher m = p.matcher(resumeJson);
+                while (m.find() && found.size() < 20) {
+                    found.add(normalizeSpaces(m.group(1)).trim());
+                }
+                if (!found.isEmpty()) return found;
+    
+                // final fallback: try sentences containing "project" keyword
+                found.clear();
+                java.util.regex.Pattern p2 = java.util.regex.Pattern.compile("(?im)([^\\.\\n]{20,200}project[^\\.\\n]{0,200})");
+                java.util.regex.Matcher m2 = p2.matcher(resumeJson);
+                while (m2.find() && found.size() < 10) {
+                    found.add(normalizeSpaces(m2.group()).trim());
+                }
+                return found;
+            } catch (Exception e) {
+                return java.util.Collections.emptyList();
+            }
+        }
+
+    @PutMapping(value = "/{identifier}/parsed", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> updateParsedSections(
+            @PathVariable("identifier") String identifier,
+            @RequestBody Map<String, Object> payload) {
+        try {
+            // resolve candidate id (numeric id or email)
+            Long candidateId = null;
+            try { candidateId = Long.parseLong(identifier); } catch (NumberFormatException ignored) { /* treat as email below */ }
+
+            if (candidateId == null) {
+                // lookup by email
+                List<Long> ids = jdbc.query("SELECT Id FROM dbo.Candidates WHERE Email = ?", new Object[]{identifier},
+                        (rs, rowNum) -> rs.getLong("Id"));
+                if (ids.isEmpty()) {
+                    return ResponseEntity.status(404).body(Map.of("message", "Candidate not found for identifier: " + identifier));
+                }
+                candidateId = ids.get(0);
+            }
+
+            // fetch latest parsed row for this candidate
+            String selectSql = """
+                SELECT TOP 1 Id, ResumeResult
+                FROM dbo.CandidateParsedCv
+                WHERE CandidateId = ?
+                ORDER BY ReceivedAt DESC
+            """;
+            List<Map<String,Object>> rows = jdbc.query(selectSql, new Object[]{candidateId}, (rs, i) -> {
+                Map<String,Object> r = new LinkedHashMap<>();
+                r.put("id", rs.getLong("Id"));
+                r.put("resume", rs.getString("ResumeResult"));
+                return r;
+            });
+
+            if (rows.isEmpty()) {
+                return ResponseEntity.status(404).body(Map.of("message", "No parsed CV found for candidate: " + candidateId));
+            }
+
+            long parsedId = (Long) rows.get(0).get("id");
+            String resumeJson = (String) rows.get(0).get("resume");
+
+            // parse existing resume JSON (or create empty root)
+            Map<String,Object> root = parseJsonToMap(resumeJson);
+            if (root == null) root = new LinkedHashMap<>();
+
+            // ensure result and sections maps exist
+            final Map<String,Object> resultNode;
+            Object resultObj = root.get("result");
+            if (resultObj instanceof Map<?,?> m) {
+                resultNode = (Map<String,Object>) m;
+            } else {
+                resultNode = new LinkedHashMap<>();
+                root.put("result", resultNode);
+            }
+
+            final Map<String,Object> sectionsNode;
+            Object sectionsObj = resultNode.get("sections");
+            if (sectionsObj instanceof Map<?,?> s) {
+                sectionsNode = (Map<String,Object>) s;
+            } else {
+                sectionsNode = new LinkedHashMap<>();
+                resultNode.put("sections", sectionsNode);
+            }
+
+            // Helper to apply a field which may be string or list
+            java.util.function.BiConsumer<String, Object> applyField = (field, value) -> {
+                if (value == null) return;
+                if (value instanceof java.util.List) {
+                    sectionsNode.put(field, value);
+                    // also update result-level top key for backwards compatibility
+                    resultNode.put(field, value);
+                } else if (value instanceof String) {
+                    String s = ((String) value).trim();
+                    // keep multiline strings as-is, but also expose as list for UI that expects list
+                    if (s.contains("\n")) {
+                        List<String> lines = Arrays.stream(s.split("\\r?\\n"))
+                                                   .map(String::trim)
+                                                   .filter(t -> !t.isEmpty())
+                                                   .toList();
+                        sectionsNode.put(field, lines);
+                        resultNode.put(field, lines);
+                    } else {
+                        sectionsNode.put(field, s);
+                        resultNode.put(field, s);
+                    }
+                } else {
+                    // other types: serialize as-is
+                    sectionsNode.put(field, value);
+                    resultNode.put(field, value);
+                }
+            };
+
+            // Patch fields from payload
+            applyField.accept("education", payload.get("education"));
+            applyField.accept("experience", payload.get("experience"));
+            applyField.accept("projects", payload.get("projects"));
+
+            // optional: update top-level summary if provided
+            if (payload.containsKey("summary")) {
+                Object summ = payload.get("summary");
+                if (summ != null) {
+                    if (summ instanceof String) {
+                        String s = ((String) summ).trim();
+                        root.put("summary", s);
+                        resultNode.put("summary", s);
+                    } else {
+                        String s = json.writeValueAsString(summ);
+                        root.put("summary", s);
+                        resultNode.put("summary", s);
+                    }
+                }
+            }
+
+            // persist updated ResumeResult back to DB (update the existing parsed row)
+            String updatedJson = json.writeValueAsString(root);
+
+            String updateSql = "UPDATE dbo.CandidateParsedCv SET ResumeResult = ? WHERE Id = ?";
+            int updated = jdbc.update(updateSql, updatedJson, parsedId);
+
+            if (updated <= 0) {
+                return ResponseEntity.status(500).body(Map.of("message", "Failed to update parsed CV row"));
+            }
+
+            return ResponseEntity.ok(Map.of(
+                "status", "ok",
+                "candidateId", candidateId,
+                "parsedRowId", parsedId,
+                "updatedFields", List.of("summary","education","experience","projects")
+            ));
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return ResponseEntity.status(500).body(createErrorResponse("Failed to update parsed sections: " + ex.getMessage()));
+        }
+    }
+
+        // ...existing code...
+    @DeleteMapping("/{identifier}")
+    public ResponseEntity<?> deleteCandidate(@PathVariable("identifier") String identifier) {
+        try {
+            Long candidateId = null;
+            try { 
+                candidateId = Long.parseLong(identifier); 
+            } catch (NumberFormatException ignored) {
+                // lookup by email
+                List<Long> ids = jdbc.query(
+                    "SELECT Id FROM dbo.Candidates WHERE Email = ?", 
+                    new Object[]{identifier},
+                    (rs, rowNum) -> rs.getLong("Id")
+                );
+                if (ids.isEmpty()) {
+                    return ResponseEntity.status(404).body(Map.of("message", "Candidate not found: " + identifier));
+                }
+                candidateId = ids.get(0);
+            }
+
+            // delete dependent parsed rows first
+            int parsedDeleted = jdbc.update("DELETE FROM dbo.CandidateParsedCv WHERE CandidateId = ?", candidateId);
+
+            // delete candidate row
+            int candidateDeleted = jdbc.update("DELETE FROM dbo.Candidates WHERE Id = ?", candidateId);
+
+            if (candidateDeleted <= 0) {
+                return ResponseEntity.status(404).body(Map.of("message", "Candidate not found or already deleted: " + candidateId));
+            }
+
+            Map<String,Object> resp = new LinkedHashMap<>();
+            resp.put("status", "ok");
+            resp.put("candidateId", candidateId);
+            resp.put("deletedCandidateRows", candidateDeleted);
+            resp.put("deletedParsedRows", parsedDeleted);
+            return ResponseEntity.ok(resp);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return ResponseEntity.status(500).body(createErrorResponse("Failed to delete candidate: " + ex.getMessage()));
+        }
+    }
+    // ...existing code...
+
 }
 
 

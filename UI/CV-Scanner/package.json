@@ -19,6 +19,7 @@
     "@mui/material": "^5.18.0",
     "@mui/system": "^5.18.0",
     "axios": "^1.9.0",
+  "mammoth": "^1.4.19",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.56.4",
