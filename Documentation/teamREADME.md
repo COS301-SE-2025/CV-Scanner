@@ -2,11 +2,11 @@
 
 | Member | Role |
 |--------|------|
-| [Abdullah Pochee](https://github.com/AbdullahP19) | Data Science & Software Engineering |
-| [Talhah Karodia](https://github.com/TalhahKarodia) | AI & Cybersecurity |
-| [Ronan Smart](https://github.com/u23528568) | Software Development |
-| [Marcelo Parsotam](https://github.com/MarceloParsotam) | Frontend & UI/UX Design |
-| [Unaisah Hassim](https://github.com/u23664828) | Frontend & UX Design |
+| [Abdullah Pochee](https://github.com/AbdullahP19) | AI Model Development |
+| [Talhah Karodia](https://github.com/TalhahKarodia) | API Integration & Deployment |
+| [Ronan Smart](https://github.com/u23528568) | AI Model Development |
+| [Marcelo Parsotam](https://github.com/MarceloParsotam) | Frontend Development & UI/UX Design |
+| [Unaisah Hassim](https://github.com/u23664828) | Frontend Development |
 
 ---
 

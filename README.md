@@ -1,43 +1,30 @@
-#  CV-Scanner
+# CV-Scanner
 
-##  About the Project
+## About the Project
+**CV-Scanner** is an AI-powered recruitment platform by **Quantum Stack** that automates candidate screening using **Natural Language Processing (NLP)** and **AI**.  
+It extracts key technologies, soft skills, and project suitability indicators from **PDF and Word CVs**, storing results in a secure, centralized database.  
+A **role-based admin portal** allows efficient HR management.
 
-**CV-Scanner** is an AI-powered recruitment platform developed by **Quantum Stack** to revolutionize candidate screening. Leveraging state-of-the-art **Natural Language Processing (NLP)** and AI models, the system intelligently extracts:
-- Relevant technologies
-- Soft skills and personality traits
-- Project suitability indicators
-
-It supports both **PDF and Word** CV formats and automatically summarizes candidate profiles into a secure, centralized database. These summaries are accessible via a **role-based admin portal**, ensuring efficient and secure HR workflows.
 ---
-## Documentation & Resources
 
- **[Requirements & Design Document](Documentation/Software_Requirements_Specifications_V4.pdf)** - Latest software requirements specification  
- **[Architectural Design Document](Documentation/Architectural_Requirements_Specifications_V4.pdf)** - System architecture and design  
- **[User Manual](Documentation/USER_MANUAL_FINAL.pdf)** - Complete user guide  
- **[Technical Installation Guide](Documentation/Technical_Installation_Manual_V4.pdf)** - Setup and deployment instructions  
- **[Testing Policy](Documentation/Non_Functional_testing_V4.pdf)** - Testing methodology and reports  
- **[Coding Standards](Documentation/Coding_Standards_Document_V4.pdf)** - Development guidelines and quality standards  
+## Documentation & Research
+All project documentation and research contributions (Requirements, Design, Coding Standards, Testing, Manuals & Installation Guides) can be found here:  
+**[Documentation & Research Portal](Documentation/README.md)**
+
 ---
+
 ## Project Links
+- **[Deployment (Live System Demo)](https://jolly-bay-0e45d8b03.2.azurestaticapps.net)**  
+- **[Full Video Demo](#)** – recorded system walkthrough *(coming soon)*  
+- **[Project Management Board](https://github.com/orgs/COS301-SE-2025/projects/110/views/1)**  
+- **[Contribution & Setup Guide](Documentation/Technical_Installation_Manual_V4.pdf)**  
+- **[Meet the Team](Documentation/teamREADME.md)**
 
- **[Final Video Demo](#)** - *Coming Soon: Complete project demonstration*  
- **[Project Management](https://github.com/orgs/COS301-SE-2025/projects/110/views/1)** - GitHub Project Board  
- **[Development Guide](Documentation/Technical_Installation_Manual_V4.pdf)** - *Coming Soon: Contributing guidelines*
- **[Deployment link](https://jolly-bay-0e45d8b03.2.azurestaticapps.net)**
 ---
+
 ## Technology Stack
-
-- **Frontend:** React with TypeScript for modern, responsive UI
-- **Backend:** Java Spring Boot for robust REST API
-- **AI Engine:** Python with BART Model for intelligent CV parsing
-- **Database:** Secure data storage and management
-- **DevOps:** CI/CD pipelines and automated testing
----
-## Team: Quantum Stack
-
-[Abdullah Pochee](https://github.com/AbdullahP19) - Computer Science & Data Science specialist  
-[Talhah Karodia](https://github.com/TalhahKarodia) - AI, Cybersecurity & Software Engineering expert  
-[Ronan Smart](https://github.com/u23528568) - Software Development & Problem Solving focus  
-[Marcelo Parsotam](https://github.com/MarceloParsotam) - Frontend Development & UI/UX Design specialist  
-[Unaisah Hassim](https://github.com/u23664828) - Frontend Development & User Experience expert
----
+- React + TypeScript (Frontend) 
+- Spring Boot (Backend) 
+- Python BART (AI Engine)  
+- Secure Cloud Database 
+- CI/CD with Automated Testing
