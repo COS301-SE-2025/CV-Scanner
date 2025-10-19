@@ -477,6 +477,33 @@ export default function Search() {
     navigate("/login", { replace: true });
   }
 
+  const handleViewPdf = async (
+    e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+    candidate: CandidateCard
+  ) => {
+    e.stopPropagation();
+    try {
+      const res = await apiFetch(`/cv/${candidate.id}/pdf`, {
+        headers: { Accept: "application/pdf" },
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(txt || `PDF fetch failed (${res.status})`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener");
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err: any) {
+      console.error("Failed to open PDF:", err);
+      setSnackbar({
+        open: true,
+        severity: "error",
+        message: err?.message || "Unable to open PDF",
+      });
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -569,7 +596,7 @@ export default function Search() {
           >
             Search Candidates
           </Typography>
-          
+
           {/* Search Bar and Config Button Row */}
           <Box sx={{ display: "flex", gap: 2, alignItems: "center", mb: 4 }}>
             {/* Search Bar */}
@@ -649,9 +676,17 @@ export default function Search() {
             >
               {loading
                 ? "Loading candidates..."
-                : `Showing ${paginatedCandidates.length > 0 ? 
-                    `${Math.min((page - 1) * USERS_PER_PAGE + 1, filteredCandidates.length)}-${Math.min(page * USERS_PER_PAGE, filteredCandidates.length)}` 
-                    : '0'} of ${filteredCandidates.length} candidates`}
+                : `Showing ${
+                    paginatedCandidates.length > 0
+                      ? `${Math.min(
+                          (page - 1) * USERS_PER_PAGE + 1,
+                          filteredCandidates.length
+                        )}-${Math.min(
+                          page * USERS_PER_PAGE,
+                          filteredCandidates.length
+                        )}`
+                      : "0"
+                  } of ${filteredCandidates.length} candidates`}
             </Typography>
 
             {/* Loading State */}
@@ -688,7 +723,13 @@ export default function Search() {
                         })
                       }
                     >
-                      <Box sx={{ display: "flex", alignItems: "flex-start", gap: 3 }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: 3,
+                        }}
+                      >
                         <Avatar
                           sx={{
                             bgcolor: "#93AFF7",
@@ -745,7 +786,7 @@ export default function Search() {
                           >
                             File: {candidate.filename || "N/A"}
                           </Typography>
-                          
+
                           {/* Skills with limit and View All - Same as Manage page */}
                           <Box sx={{ mb: 1.5 }}>
                             <Box
@@ -766,7 +807,7 @@ export default function Search() {
                                     fontFamily: "Helvetica, sans-serif",
                                     fontWeight: "bold",
                                     color: "#0D1B2A",
-                                    fontSize: '0.85rem',
+                                    fontSize: "0.85rem",
                                   }}
                                 />
                               ))}
@@ -778,8 +819,10 @@ export default function Search() {
                                     e.stopPropagation(); // Prevent navigation when clicking the chip
                                     setSnackbar({
                                       open: true,
-                                      message: `All skills for ${candidate.name}: ${candidate.skills.join(', ')}`,
-                                      severity: "success"
+                                      message: `All skills for ${
+                                        candidate.name
+                                      }: ${candidate.skills.join(", ")}`,
+                                      severity: "success",
                                     });
                                   }}
                                   sx={{
@@ -787,10 +830,10 @@ export default function Search() {
                                     fontFamily: "Helvetica, sans-serif",
                                     fontWeight: "bold",
                                     color: "#666",
-                                    fontSize: '0.75rem',
-                                    cursor: 'pointer',
-                                    '&:hover': {
-                                      backgroundColor: '#d0d0d0',
+                                    fontSize: "0.75rem",
+                                    cursor: "pointer",
+                                    "&:hover": {
+                                      backgroundColor: "#d0d0d0",
                                     },
                                   }}
                                 />
@@ -802,8 +845,8 @@ export default function Search() {
                                 sx={{
                                   color: "#666",
                                   fontFamily: "Helvetica, sans-serif",
-                                  fontSize: '0.9rem',
-                                  fontStyle: 'italic',
+                                  fontSize: "0.9rem",
+                                  fontStyle: "italic",
                                 }}
                               >
                                 Click "+X more" to view all skills
@@ -819,7 +862,8 @@ export default function Search() {
                               fontFamily: "Helvetica, sans-serif",
                             }}
                           >
-                            Match: {candidate.match} | Score: {candidate.score}/10
+                            Match: {candidate.match} | Score: {candidate.score}
+                            /10
                           </Typography>
                         </Box>
                         <Box
@@ -842,15 +886,34 @@ export default function Search() {
                           >
                             {candidate.match}
                           </Typography>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={(e) => handleViewPdf(e, candidate)}
+                            sx={{
+                              mt: 1,
+                              textTransform: "none",
+                              fontWeight: "bold",
+                              bgcolor: "#232A3B",
+                              "&:hover": { bgcolor: "#0f1623" },
+                            }}
+                          >
+                            View PDF
+                          </Button>
                         </Box>
                       </Box>
                     </Paper>
                   ))}
-                  
+
                   {/* Pagination */}
-                  <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+                  <Box
+                    sx={{ display: "flex", justifyContent: "center", mt: 2 }}
+                  >
                     <Pagination
-                      count={Math.max(1, Math.ceil(filteredCandidates.length / USERS_PER_PAGE))}
+                      count={Math.max(
+                        1,
+                        Math.ceil(filteredCandidates.length / USERS_PER_PAGE)
+                      )}
                       page={page}
                       onChange={(_, value) => setPage(value)}
                       color="primary"
@@ -976,7 +1039,8 @@ export default function Search() {
                   Filters & Config
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
-                  Click the <b>Filters & Config</b> button to access advanced filtering options and configuration settings.
+                  Click the <b>Filters & Config</b> button to access advanced
+                  filtering options and configuration settings.
                 </Typography>
               </>
             )}
@@ -1072,12 +1136,12 @@ export default function Search() {
         autoHideDuration={6000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
       >
-        <Alert 
-          severity={snackbar.severity} 
+        <Alert
+          severity={snackbar.severity}
           onClose={() => setSnackbar({ ...snackbar, open: false })}
-          sx={{ 
-            bgcolor: snackbar.severity === 'success' ? '#4caf50' : '#f44336',
-            color: 'white',
+          sx={{
+            bgcolor: snackbar.severity === "success" ? "#4caf50" : "#f44336",
+            color: "white",
             fontFamily: "Helvetica, sans-serif",
           }}
         >

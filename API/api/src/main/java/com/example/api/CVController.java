@@ -23,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
 import java.util.Base64;
+import java.util.Optional;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -37,6 +38,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
@@ -3054,6 +3056,63 @@ private String truncateSummary(String s) {
         } catch (Exception ex) {
             ex.printStackTrace();
             return ResponseEntity.status(500).body(createErrorResponse("Failed to delete candidate: " + ex.getMessage()));
+        }
+    }
+
+    @GetMapping("/{identifier}/pdf")
+    public ResponseEntity<?> getCandidatePdf(@PathVariable("identifier") String identifier) {
+        try {
+            Long candidateId = null;
+            try {
+                candidateId = Long.parseLong(identifier);
+            } catch (NumberFormatException ignored) {
+                List<Long> ids = jdbc.query(
+                        "SELECT Id FROM dbo.Candidates WHERE Email = ?",
+                        new Object[]{identifier},
+                        (rs, rowNum) -> rs.getLong("Id"));
+                if (ids.isEmpty()) {
+                    return ResponseEntity.status(404)
+                            .body(Map.of("message", "Candidate not found: " + identifier));
+                }
+                candidateId = ids.get(0);
+            }
+
+            String sql = """
+                SELECT TOP 1 PdfData, FileUrl, ReceivedAt
+                FROM dbo.CandidateParsedCv
+                WHERE CandidateId = ?
+                ORDER BY ReceivedAt DESC
+            """;
+
+            List<Map<String, Object>> rows = jdbc.query(sql, new Object[]{candidateId}, (rs, i) -> {
+                Map<String, Object> row = new HashMap<>();
+                row.put("pdf", rs.getBytes("PdfData"));
+                row.put("fileUrl", rs.getString("FileUrl"));
+                row.put("receivedAt", rs.getTimestamp("ReceivedAt"));
+                return row;
+            });
+
+            if (rows.isEmpty() || rows.get(0).get("pdf") == null) {
+                return ResponseEntity.status(404)
+                        .body(Map.of("message", "No PDF stored for candidate: " + identifier));
+            }
+            byte[] pdfBytes = (byte[]) rows.get(0).get("pdf");
+            String filename = Optional.ofNullable((String) rows.get(0).get("fileUrl"))
+                    .map(CVController::lastSegment)
+                    .orElse("CandidateCV.pdf");
+
+            ByteArrayResource resource = new ByteArrayResource(pdfBytes);
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
+                    .contentLength(pdfBytes.length)
+                    .body(resource);
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return ResponseEntity.status(500)
+                    .body(createErrorResponse("Failed to load candidate PDF: " + ex.getMessage()));
         }
     }
 }
