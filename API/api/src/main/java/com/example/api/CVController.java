@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
+import java.util.Base64;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -246,52 +247,54 @@ public class CVController {
             long candidateId = upsertCandidate(body.candidate);
             Instant when = parseInstantOrNow(body.receivedAt);
 
-            // Extract resume JSON - simplified to just store the parse_resume response
             String resumeJson;
             try {
                 if (body.resume != null) {
-                    // If resume is already a Map, serialize it
                     if (body.resume instanceof Map) {
                         resumeJson = json.writeValueAsString(body.resume);
-                    } 
-                    // If resume is a String, use it directly (assume it's valid JSON)
-                    else if (body.resume instanceof String) {
+                    } else if (body.resume instanceof String) {
                         resumeJson = (String) body.resume;
-                    } 
-                    // Fallback: convert to JSON
-                    else {
+                    } else {
                         resumeJson = json.writeValueAsString(body.resume);
                     }
                 } else {
-                    // No resume provided - create minimal structure
                     Map<String, Object> minimal = new LinkedHashMap<>();
                     minimal.put("status", "no_resume");
                     minimal.put("receivedAt", when.toString());
                     minimal.put("source", "manual_entry");
                     resumeJson = json.writeValueAsString(minimal);
                 }
-                
                 System.out.println("ResumeResult JSON length: " + resumeJson.length());
-                
             } catch (Exception e) {
                 System.err.println("Failed to serialize resume JSON: " + e.getMessage());
                 e.printStackTrace();
                 resumeJson = "{}";
             }
 
-            // INSERT with NULL for deprecated columns, all data goes to ResumeResult
+            byte[] pdfBytes = null;
+            if (!isBlank(body.pdfBase64)) {
+                try {
+                    pdfBytes = Base64.getDecoder().decode(body.pdfBase64.replaceAll("\\s", ""));
+                    System.out.println("Decoded PDF bytes: " + pdfBytes.length);
+                } catch (IllegalArgumentException ex) {
+                    System.err.println("Invalid PDF base64 payload: " + ex.getMessage());
+                    return ResponseEntity.badRequest().body(createErrorResponse("Invalid PDF base64 payload"));
+                }
+            }
+
             final String sql = "INSERT INTO dbo.CandidateParsedCv " +
-                    "(CandidateId, FileUrl, AiResult, Normalized, ResumeResult, ReceivedAt, RawResult) " +
-                    "VALUES (?,?,?,?,?,?,?)";
+                    "(CandidateId, FileUrl, AiResult, Normalized, ResumeResult, PdfData, ReceivedAt, RawResult) " +
+                    "VALUES (?,?,?,?,?,?,?,?)";
 
             int rows = jdbc.update(sql,
                 candidateId,
                 body.fileUrl,
-                null,           // AiResult = NULL (deprecated)
-                null,           // Normalized = NULL (deprecated)
-                resumeJson,     // ResumeResult = full parse_resume response
+                null,
+                null,
+                resumeJson,
+                pdfBytes,
                 Timestamp.from(when),
-                null            // RawResult = NULL (deprecated)
+                null
             );
 
             System.out.println("Inserted " + rows + " row(s) into CandidateParsedCv");
@@ -300,7 +303,8 @@ public class CVController {
                 "status", "ok",
                 "candidateId", candidateId,
                 "message", "CV data saved successfully",
-                "rowsInserted", rows
+                "rowsInserted", rows,
+                "pdfStored", pdfBytes != null
             ));
         } catch (Exception ex) {
             System.err.println("Save failed: " + ex.getMessage());
@@ -642,17 +646,17 @@ public class CVController {
         public Object aiResult;
         public Object raw;
         public String receivedAt;
-
-        // Parsed resume full JSON (from /parse_resume)
-        public Object resume; // NEW
-        // Optional parsed fields (if you also send them separately)
+        public Object resume;
         public String filename;
         public String summary;
         public Map<String, Object> personalInfo;
         public Map<String, Object> sections;
         public java.util.List<String> skills;
         public String status;
-        public Object result; // some UIs wrap parsed output under "result"
+        public Object result;
+        public String pdfBase64;
+        public String pdfFilename;
+        public String pdfContentType;
     }
 
     @GetMapping("/candidates")
@@ -3003,7 +3007,6 @@ private String truncateSummary(String s) {
         }
     }
 
-        // ...existing code...
     @DeleteMapping("/{identifier}")
     public ResponseEntity<?> deleteCandidate(@PathVariable("identifier") String identifier) {
         try {
@@ -3044,8 +3047,8 @@ private String truncateSummary(String s) {
             return ResponseEntity.status(500).body(createErrorResponse("Failed to delete candidate: " + ex.getMessage()));
         }
     }
-    // ...existing code...
-
 }
+
+    // ...existing code...
 
 
