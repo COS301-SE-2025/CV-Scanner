@@ -490,14 +490,15 @@ export default function UploadCVPage() {
       setProcessedData(processedData);
       setAiParseData(parseData);
 
-      // Create file URL for preview
       const fileUrl = URL.createObjectURL(file);
-
-      // Navigate to results with parse data
+      const pdfBase64 = await fileToBase64(file);
       const navigationState = {
         aiParse: parseData,
         fileUrl,
         fileType: file.type,
+        pdfBase64,
+        pdfFilename: file.name,
+        pdfContentType: file.type,
         candidate: {
           firstName: candidateName.trim(),
           lastName: candidateSurname.trim(),
@@ -650,764 +651,775 @@ export default function UploadCVPage() {
   };
 
   return (
-    <RoleBasedAccess allowedRoles={["Admin", "Editor"]} fallbackPath="/dashboard">
-    <Box
-      sx={{
-        display: "flex",
-        minHeight: "100vh",
-        bgcolor: "#1E1E1E",
-        color: "#fff",
-        fontFamily: "Helvetica, sans-serif",
-      }}
+    <RoleBasedAccess
+      allowedRoles={["Admin", "Editor"]}
+      fallbackPath="/dashboard"
     >
-      {/* Session expired banner */}
-      {sessionExpired && (
-        <Box
-          sx={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bgcolor: "#b00020",
-            color: "#fff",
-            p: 2,
-            textAlign: "center",
-            zIndex: 9999,
-            fontWeight: "bold",
-          }}
-        >
-          ⚠️ Your session has expired. You will be redirected to login
-          shortly...
-        </Box>
-      )}
-
-      <Sidebar
-        userRole={user?.role || "User"}
-        collapsed={collapsed}
-        setCollapsed={(val) => {
-          setCollapsed(val);
-          setSidebarAnimating(true);
-          setTimeout(() => setSidebarAnimating(false), 300);
+      <Box
+        sx={{
+          display: "flex",
+          minHeight: "100vh",
+          bgcolor: "#1E1E1E",
+          color: "#fff",
+          fontFamily: "Helvetica, sans-serif",
         }}
-      />
-
-      <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
-        <AppBar
-          position="static"
-          sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
-        >
-          <Toolbar sx={{ justifyContent: "flex-end" }}>
-            <Tooltip title="Run Tutorial" arrow>
-              <IconButton
-                onClick={() => {
-                  setShowTutorial(true);
-                  setTutorialStep(0);
-                  setFadeIn(true);
-                }}
-                sx={{ ml: 1, color: "#FFEB3B" }}
-              >
-                <LightbulbRoundedIcon />
-              </IconButton>
-            </Tooltip>
-
-            <Tooltip title="Go to Help Page" arrow>
-              <IconButton
-                color="inherit"
-                onClick={() => navigate("/help")}
-                sx={{ ml: 1, color: "#90ee90" }}
-              >
-                <HelpOutlineIcon />
-              </IconButton>
-            </Tooltip>
-
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                ml: 2,
-                cursor: "pointer",
-                "&:hover": { opacity: 0.8 },
-              }}
-              onClick={() => navigate("/settings")}
-            >
-              <AccountCircleIcon sx={{ mr: 1 }} />
-              <Typography variant="subtitle1">
-                {getUserDisplayName()}
-              </Typography>
-            </Box>
-
-            <IconButton color="inherit" onClick={handleLogout} sx={{ ml: 1 }}>
-              <ExitToAppIcon />
-            </IconButton>
-          </Toolbar>
-        </AppBar>
-
-        <Box sx={{ p: 3 }}>
-          <Typography
-            variant="h5"
+      >
+        {/* Session expired banner */}
+        {sessionExpired && (
+          <Box
             sx={{
-              mb: 3,
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bgcolor: "#b00020",
+              color: "#fff",
+              p: 2,
+              textAlign: "center",
+              zIndex: 9999,
               fontWeight: "bold",
-              fontFamily: "Helvetica, sans-serif",
             }}
           >
-            Upload Candidate CV
-          </Typography>
+            ⚠️ Your session has expired. You will be redirected to login
+            shortly...
+          </Box>
+        )}
 
-          <ConfigAlert />
+        <Sidebar
+          userRole={user?.role || "User"}
+          collapsed={collapsed}
+          setCollapsed={(val) => {
+            setCollapsed(val);
+            setSidebarAnimating(true);
+            setTimeout(() => setSidebarAnimating(false), 300);
+          }}
+        />
 
-          <Paper
-            elevation={6}
-            sx={{ p: 4, borderRadius: 3, backgroundColor: "#DEDDEE" }}
+        <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
+          <AppBar
+            position="static"
+            sx={{ bgcolor: "#232A3B", boxShadow: "none" }}
           >
+            <Toolbar sx={{ justifyContent: "flex-end" }}>
+              <Tooltip title="Run Tutorial" arrow>
+                <IconButton
+                  onClick={() => {
+                    setShowTutorial(true);
+                    setTutorialStep(0);
+                    setFadeIn(true);
+                  }}
+                  sx={{ ml: 1, color: "#FFEB3B" }}
+                >
+                  <LightbulbRoundedIcon />
+                </IconButton>
+              </Tooltip>
+
+              <Tooltip title="Go to Help Page" arrow>
+                <IconButton
+                  color="inherit"
+                  onClick={() => navigate("/help")}
+                  sx={{ ml: 1, color: "#90ee90" }}
+                >
+                  <HelpOutlineIcon />
+                </IconButton>
+              </Tooltip>
+
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  ml: 2,
+                  cursor: "pointer",
+                  "&:hover": { opacity: 0.8 },
+                }}
+                onClick={() => navigate("/settings")}
+              >
+                <AccountCircleIcon sx={{ mr: 1 }} />
+                <Typography variant="subtitle1">
+                  {getUserDisplayName()}
+                </Typography>
+              </Box>
+
+              <IconButton color="inherit" onClick={handleLogout} sx={{ ml: 1 }}>
+                <ExitToAppIcon />
+              </IconButton>
+            </Toolbar>
+          </AppBar>
+
+          <Box sx={{ p: 3 }}>
             <Typography
-              variant="h6"
+              variant="h5"
               sx={{
+                mb: 3,
                 fontWeight: "bold",
-                color: "#000000ff",
-                mb: 2,
                 fontFamily: "Helvetica, sans-serif",
               }}
             >
-              Upload a candidate's CV to automatically extract skills and
-              project matches
+              Upload Candidate CV
             </Typography>
 
-            {/* Upload Area */}
-            <Box
-              ref={uploadBoxRef}
-              sx={{
-                border: "2px dashed #999",
-                borderRadius: 2,
-                height: 160,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexDirection: "column",
-                mb: 3,
-                bgcolor: "#cbd5e0",
-              }}
-            >
-              <CloudUploadIcon fontSize="large" />
-              <Typography variant="body2">
-                Drag and drop CV File here
-              </Typography>
-              <Box>
-                <input
-                  id="file-upload"
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  style={{ display: "none" }}
-                  onChange={handleFileChange}
-                />
-                <Button
-                  variant="contained"
-                  sx={reviewButtonStyle}
-                  onClick={handleBrowseClick}
-                >
-                  Browse Files
-                </Button>
-              </Box>
-            </Box>
+            <ConfigAlert />
 
-            {/* Candidate Details */}
-            <Box ref={candidateDetailsRef}>
-              <TextField
-                label="Candidate Name"
-                fullWidth
-                required
-                variant="outlined"
-                value={candidateName}
-                onChange={(e) =>
-                  handleFieldChange("candidateName", e.target.value)
-                }
-                onBlur={(e) => handleFieldBlur("candidateName", e.target.value)}
-                error={!!validationErrors.candidateName}
-                helperText={validationErrors.candidateName}
+            <Paper
+              elevation={6}
+              sx={{ p: 4, borderRadius: 3, backgroundColor: "#DEDDEE" }}
+            >
+              <Typography
+                variant="h6"
                 sx={{
+                  fontWeight: "bold",
+                  color: "#000000ff",
+                  mb: 2,
                   fontFamily: "Helvetica, sans-serif",
-                  mb: 3,
-                  "& .MuiOutlinedInput-root": {
-                    "& fieldset": {
-                      borderColor: validationErrors.candidateName
-                        ? "#d32f2f"
-                        : "#000000ff",
-                    },
-                    fontFamily: "Helvetica, sans-serif",
-                    fontSize: "1rem",
-                    color: "#000000ff",
-                  },
-                }}
-                InputLabelProps={{
-                  sx: {
-                    color: validationErrors.candidateName
-                      ? "#d32f2f"
-                      : "#000000ff",
-                    "&.Mui-focused": {
-                      borderColor: validationErrors.candidateName
-                        ? "#d32f2f"
-                        : "#204E20",
-                      color: validationErrors.candidateName
-                        ? "#d32f2f"
-                        : "#204E20",
-                    },
-                    fontFamily: "Helvetica, sans-serif",
-                    fontWeight: "bold",
-                  },
-                }}
-              />
-
-              <TextField
-                label="Candidate Surname"
-                fullWidth
-                required
-                variant="outlined"
-                value={candidateSurname}
-                onChange={(e) =>
-                  handleFieldChange("candidateSurname", e.target.value)
-                }
-                onBlur={(e) =>
-                  handleFieldBlur("candidateSurname", e.target.value)
-                }
-                error={!!validationErrors.candidateSurname}
-                helperText={validationErrors.candidateSurname}
-                sx={{
-                  mb: 3,
-                  "& .MuiOutlinedInput-root": {
-                    "& fieldset": {
-                      borderColor: validationErrors.candidateSurname
-                        ? "#d32f2f"
-                        : "#000000ff",
-                    },
-                    fontFamily: "Helvetica, sans-serif",
-                    fontSize: "1rem",
-                    color: "#000000ff",
-                  },
-                }}
-                InputLabelProps={{
-                  sx: {
-                    color: validationErrors.candidateSurname
-                      ? "#d32f2f"
-                      : "#000000ff",
-                    "&.Mui-focused": {
-                      color: validationErrors.candidateSurname
-                        ? "#d32f2f"
-                        : "#204E20",
-                    },
-                    fontFamily: "Helvetica, sans-serif",
-                    fontWeight: "bold",
-                  },
-                }}
-              />
-
-              <TextField
-                label="Candidate Email"
-                fullWidth
-                required
-                type="email"
-                variant="outlined"
-                value={candidateEmail}
-                onChange={(e) =>
-                  handleFieldChange("candidateEmail", e.target.value)
-                }
-                onBlur={(e) =>
-                  handleFieldBlur("candidateEmail", e.target.value)
-                }
-                error={!!validationErrors.candidateEmail}
-                helperText={validationErrors.candidateEmail}
-                sx={{
-                  mb: 3,
-                  "& .MuiOutlinedInput-root": {
-                    "& fieldset": {
-                      borderColor: validationErrors.candidateEmail
-                        ? "#d32f2f"
-                        : "#000000ff",
-                    },
-                    fontFamily: "Helvetica, sans-serif",
-                    fontSize: "1rem",
-                    color: "#000000ff",
-                  },
-                }}
-                InputLabelProps={{
-                  sx: {
-                    color: validationErrors.candidateEmail
-                      ? "#d32f2f"
-                      : "#000000ff",
-                    "&.Mui-focused": {
-                      color: validationErrors.candidateEmail
-                        ? "#d32f2f"
-                        : "#204E20",
-                    },
-                    fontFamily: "Helvetica, sans-serif",
-                    fontWeight: "bold",
-                  },
-                }}
-              />
-            </Box>
-
-            {/* File Preview */}
-            {file && (
-              <Box ref={cvTableRef}>
-                <TableContainer sx={{ mb: 3 }}>
-                  <Table
-                    sx={{
-                      "& td, & th": {
-                        color: "#000000ff",
-                        fontFamily: "Helvetica, sans-serif",
-                        fontSize: "1rem",
-                      },
-                    }}
-                  >
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: "bold" }}>
-                          File Name
-                        </TableCell>
-                        <TableCell sx={{ fontWeight: "bold" }}>Size</TableCell>
-                        <TableCell sx={{ fontWeight: "bold" }}>
-                          Action
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              cursor: "pointer",
-                              color: "#003cbdff",
-                              textDecoration: "underline",
-                              "&:hover": { color: "#204E20" },
-                            }}
-                            onClick={() => setPdfPreviewOpen(true)}
-                          >
-                            <PictureAsPdfIcon sx={{ mr: 1 }} />
-                            {file.name}
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          {(file.size / 1024 / 1024).toFixed(2)} MB
-                        </TableCell>
-                        <TableCell>
-                          <IconButton color="error" onClick={handleRemove}>
-                            <DeleteIcon />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Box>
-            )}
-
-            {/* Process Button */}
-            <Box sx={{ textAlign: "center", mb: 2 }}>
-              {file && (
-                <Button
-                  variant="contained"
-                  sx={reviewButtonStyle}
-                  onClick={handleProcess}
-                  disabled={loading}
-                  ref={processBtnRef}
-                >
-                  {loading ? "Processing..." : "Process CV"}
-                </Button>
-              )}
-            </Box>
-
-            <Typography
-              variant="body2"
-              color="#000000ff"
-              sx={{ fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
-            >
-              <strong>Requirements:</strong>
-              <br />
-              • Accepted formats: PDF, DOC, DOCX
-              <br />
-              • Maximum file size: 5MB
-              <br />• Ensure CV contains clear section headings
-            </Typography>
-          </Paper>
-        </Box>
-      </Box>
-
-      {/* Error Dialog */}
-      <Dialog
-        open={errorPopup.open}
-        onClose={() => setErrorPopup({ ...errorPopup, open: false })}
-      >
-        <DialogTitle>Error</DialogTitle>
-        <DialogContent>
-          <Typography>{errorPopup.message}</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setErrorPopup({ ...errorPopup, open: false })}>
-            OK
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Processed Data Modal */}
-      <Dialog
-        open={isModalOpen}
-        onClose={handleCloseModal}
-        PaperProps={{
-          sx: {
-            backgroundColor: "#5a88ad",
-            maxWidth: "60vw",
-            width: "60vw",
-            height: "60vw",
-            maxHeight: "90vh",
-            minHeight: "40vh",
-          },
-        }}
-      >
-        <DialogTitle
-          sx={{
-            bgcolor: "#181c2f",
-            color: "#fff",
-            fontWeight: "bold",
-            fontSize: "1.3rem",
-          }}
-        >
-          Processed CV Data
-        </DialogTitle>
-        <Divider sx={{ mb: 2 }} />
-        <DialogContent>
-          {processedData && (
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 6,
-                px: 2,
-                py: 1,
-              }}
-            >
-              <Box>
-                <Typography
-                  variant="subtitle2"
-                  sx={{
-                    color: "#232a3b",
-                    mb: 2,
-                    fontWeight: "bold",
-                    letterSpacing: 1,
-                  }}
-                >
-                  Profile
-                </Typography>
-                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
-                  {processedData.profile || "N/A"}
-                </Typography>
-                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
-                  Education:
-                </Typography>
-                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
-                  {processedData.education || "N/A"}
-                </Typography>
-                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
-                  Skills:
-                </Typography>
-                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
-                  {processedData.skills || "N/A"}
-                </Typography>
-                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
-                  Experience:
-                </Typography>
-                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
-                  {processedData.experience || "N/A"}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography
-                  variant="subtitle2"
-                  sx={{
-                    color: "#232a3b",
-                    mb: 2,
-                    fontWeight: "bold",
-                    letterSpacing: 1,
-                  }}
-                >
-                  Other Information
-                </Typography>
-                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
-                  Projects:
-                </Typography>
-                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
-                  {processedData.projects || "N/A"}
-                </Typography>
-                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
-                  Achievements:
-                </Typography>
-                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
-                  {processedData.achievements || "N/A"}
-                </Typography>
-                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
-                  Contact:
-                </Typography>
-                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
-                  {processedData.contact || "N/A"}
-                </Typography>
-                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
-                  Languages:
-                </Typography>
-                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
-                  {processedData.languages || "N/A"}
-                </Typography>
-                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
-                  Other:
-                </Typography>
-                <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
-                  {processedData.other || "N/A"}
-                </Typography>
-              </Box>
-            </Box>
-          )}
-          {/* Show raw AI parse JSON for debugging / visibility */}
-          <Divider sx={{ my: 2 }} />
-          <Box sx={{ px: 2 }}>
-            <Typography
-              variant="subtitle2"
-              sx={{ fontWeight: "bold", mt: 2, mb: 1 }}
-            >
-              AI Parse Result (raw)
-            </Typography>
-            <Box
-              sx={{
-                bgcolor: "#ffffff",
-                color: "#000",
-                p: 1,
-                borderRadius: 1,
-                fontFamily: "monospace",
-                whiteSpace: "pre-wrap",
-                maxHeight: "20vh",
-                overflow: "auto",
-                fontSize: 12,
-              }}
-            >
-              <pre style={{ margin: 0 }}>
-                {aiParseData
-                  ? JSON.stringify(aiParseData, null, 2)
-                  : "No parse result"}
-              </pre>
-            </Box>
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ bgcolor: "#181c2f", justifyContent: "flex-end" }}>
-          <Button
-            onClick={handleCloseModal}
-            sx={{
-              bgcolor: "#e0e0e0",
-              color: "#333",
-              fontWeight: "bold",
-              textTransform: "none",
-              boxShadow: "none",
-              "&:hover": {
-                bgcolor: "#cccccc",
-                color: "#222",
-              },
-            }}
-            variant="contained"
-          >
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* PDF Preview Dialog */}
-      <Dialog
-        open={pdfPreviewOpen}
-        onClose={() => setPdfPreviewOpen(false)}
-        maxWidth="lg"
-        fullWidth
-      >
-        <DialogTitle>Preview: {file?.name}</DialogTitle>
-        <DialogContent sx={{ p: 0 }}>
-          {fileHtml ? (
-            <Box sx={{ p: 2 }}>
-              <div
-                dangerouslySetInnerHTML={{ __html: fileHtml }}
-                style={{ color: "#000", width: "100%" }}
-              />
-            </Box>
-          ) : pdfUrl ? (
-            <iframe
-              src={pdfUrl}
-              title="PDF Preview"
-              width="100%"
-              height="600px"
-              style={{ border: "none" }}
-            />
-          ) : (
-            <Typography sx={{ p: 2 }}>No preview available</Typography>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setPdfPreviewOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Tutorial Popover */}
-      <Popover
-        open={
-          showTutorial &&
-          tutorialStep >= 0 &&
-          tutorialStep <= 3 &&
-          Boolean(anchorEl)
-        }
-        anchorEl={anchorEl}
-        onClose={handleCloseTutorial}
-        anchorOrigin={{
-          vertical: "top",
-          horizontal: "center",
-        }}
-        transformOrigin={{
-          vertical: "bottom",
-          horizontal: "center",
-        }}
-        componentsProps={{
-          root: {
-            onMouseDown: (e: React.MouseEvent) => e.preventDefault(),
-          },
-        }}
-        disableRestoreFocus={false}
-        disableAutoFocus={true}
-        disableEnforceFocus={true}
-        PaperProps={{
-          sx: {
-            p: 2,
-            bgcolor: "#fff",
-            color: "#181c2f",
-            borderRadius: 2,
-            boxShadow: 6,
-            minWidth: 280,
-            zIndex: 1502,
-            textAlign: "center",
-          },
-        }}
-      >
-        <Fade in={fadeIn} timeout={250}>
-          <Box sx={{ position: "relative" }}>
-            {tutorialStep === 0 && (
-              <>
-                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-                  Step 1: Upload a CV
-                </Typography>
-                <Typography sx={{ mb: 2 }}>
-                  Start by uploading a candidate's CV here. You can drag and
-                  drop or browse for a file.
-                </Typography>
-              </>
-            )}
-            {tutorialStep === 1 && (
-              <>
-                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-                  Step 2: Candidate Details
-                </Typography>
-                <Typography sx={{ mb: 2 }}>
-                  Enter the candidate's name, surname, and email address in
-                  these fields.
-                </Typography>
-              </>
-            )}
-            {tutorialStep === 2 && (
-              <>
-                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-                  Step 3: CV Table
-                </Typography>
-                <Typography sx={{ mb: 2 }}>
-                  Here you can see the uploaded CV file. You can remove it if
-                  needed before processing.
-                </Typography>
-              </>
-            )}
-            {tutorialStep === 3 && (
-              <>
-                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-                  Step 4: Process the CV
-                </Typography>
-                <Typography sx={{ mb: 2 }}>
-                  When you're ready, click <b>Process CV</b> to extract skills
-                  and information from the uploaded file.
-                </Typography>
-              </>
-            )}
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mt: 3,
-                gap: 2,
-              }}
-            >
-              <Button
-                variant="text"
-                size="small"
-                onClick={handleCloseTutorial}
-                sx={{
-                  color: "#888",
-                  fontSize: "0.85rem",
-                  textTransform: "none",
-                  minWidth: "auto",
-                  p: 0,
                 }}
               >
-                End Tutorial
-              </Button>
-              <Box sx={{ display: "flex", gap: 2 }}>
-                {tutorialStep > 0 && (
-                  <Button
-                    variant="outlined"
-                    onClick={() => handleStepChange(tutorialStep - 1)}
-                    sx={{
-                      color: "#5a88ad",
-                      borderColor: "#5a88ad",
-                      fontWeight: "bold",
-                      textTransform: "none",
-                      "&:hover": { borderColor: "#487DA6", color: "#487DA6" },
-                    }}
-                  >
-                    Previous
-                  </Button>
-                )}
-                {tutorialStep < 3 ? (
-                  <Button
-                    variant="contained"
-                    onClick={() => handleStepChange(tutorialStep + 1)}
-                    sx={{
-                      bgcolor: "#5a88ad",
-                      color: "#fff",
-                      fontWeight: "bold",
-                      textTransform: "none",
-                      "&:hover": { bgcolor: "#487DA6" },
-                    }}
-                  >
-                    Next
-                  </Button>
-                ) : (
+                Upload a candidate's CV to automatically extract skills and
+                project matches
+              </Typography>
+
+              {/* Upload Area */}
+              <Box
+                ref={uploadBoxRef}
+                sx={{
+                  border: "2px dashed #999",
+                  borderRadius: 2,
+                  height: 160,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexDirection: "column",
+                  mb: 3,
+                  bgcolor: "#cbd5e0",
+                }}
+              >
+                <CloudUploadIcon fontSize="large" />
+                <Typography variant="body2">
+                  Drag and drop CV File here
+                </Typography>
+                <Box>
+                  <input
+                    id="file-upload"
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    style={{ display: "none" }}
+                    onChange={handleFileChange}
+                  />
                   <Button
                     variant="contained"
-                    onClick={handleCloseTutorial}
-                    sx={{
-                      bgcolor: "#5a88ad",
-                      color: "#fff",
-                      fontWeight: "bold",
-                      textTransform: "none",
-                      "&:hover": { bgcolor: "#487DA6" },
-                    }}
+                    sx={reviewButtonStyle}
+                    onClick={handleBrowseClick}
                   >
-                    Finish
+                    Browse Files
+                  </Button>
+                </Box>
+              </Box>
+
+              {/* Candidate Details */}
+              <Box ref={candidateDetailsRef}>
+                <TextField
+                  label="Candidate Name"
+                  fullWidth
+                  required
+                  variant="outlined"
+                  value={candidateName}
+                  onChange={(e) =>
+                    handleFieldChange("candidateName", e.target.value)
+                  }
+                  onBlur={(e) =>
+                    handleFieldBlur("candidateName", e.target.value)
+                  }
+                  error={!!validationErrors.candidateName}
+                  helperText={validationErrors.candidateName}
+                  sx={{
+                    fontFamily: "Helvetica, sans-serif",
+                    mb: 3,
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": {
+                        borderColor: validationErrors.candidateName
+                          ? "#d32f2f"
+                          : "#000000ff",
+                      },
+                      fontFamily: "Helvetica, sans-serif",
+                      fontSize: "1rem",
+                      color: "#000000ff",
+                    },
+                  }}
+                  InputLabelProps={{
+                    sx: {
+                      color: validationErrors.candidateName
+                        ? "#d32f2f"
+                        : "#000000ff",
+                      "&.Mui-focused": {
+                        borderColor: validationErrors.candidateName
+                          ? "#d32f2f"
+                          : "#204E20",
+                        color: validationErrors.candidateName
+                          ? "#d32f2f"
+                          : "#204E20",
+                      },
+                      fontFamily: "Helvetica, sans-serif",
+                      fontWeight: "bold",
+                    },
+                  }}
+                />
+
+                <TextField
+                  label="Candidate Surname"
+                  fullWidth
+                  required
+                  variant="outlined"
+                  value={candidateSurname}
+                  onChange={(e) =>
+                    handleFieldChange("candidateSurname", e.target.value)
+                  }
+                  onBlur={(e) =>
+                    handleFieldBlur("candidateSurname", e.target.value)
+                  }
+                  error={!!validationErrors.candidateSurname}
+                  helperText={validationErrors.candidateSurname}
+                  sx={{
+                    mb: 3,
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": {
+                        borderColor: validationErrors.candidateSurname
+                          ? "#d32f2f"
+                          : "#000000ff",
+                      },
+                      fontFamily: "Helvetica, sans-serif",
+                      fontSize: "1rem",
+                      color: "#000000ff",
+                    },
+                  }}
+                  InputLabelProps={{
+                    sx: {
+                      color: validationErrors.candidateSurname
+                        ? "#d32f2f"
+                        : "#000000ff",
+                      "&.Mui-focused": {
+                        color: validationErrors.candidateSurname
+                          ? "#d32f2f"
+                          : "#204E20",
+                      },
+                      fontFamily: "Helvetica, sans-serif",
+                      fontWeight: "bold",
+                    },
+                  }}
+                />
+
+                <TextField
+                  label="Candidate Email"
+                  fullWidth
+                  required
+                  type="email"
+                  variant="outlined"
+                  value={candidateEmail}
+                  onChange={(e) =>
+                    handleFieldChange("candidateEmail", e.target.value)
+                  }
+                  onBlur={(e) =>
+                    handleFieldBlur("candidateEmail", e.target.value)
+                  }
+                  error={!!validationErrors.candidateEmail}
+                  helperText={validationErrors.candidateEmail}
+                  sx={{
+                    mb: 3,
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": {
+                        borderColor: validationErrors.candidateEmail
+                          ? "#d32f2f"
+                          : "#000000ff",
+                      },
+                      fontFamily: "Helvetica, sans-serif",
+                      fontSize: "1rem",
+                      color: "#000000ff",
+                    },
+                  }}
+                  InputLabelProps={{
+                    sx: {
+                      color: validationErrors.candidateEmail
+                        ? "#d32f2f"
+                        : "#000000ff",
+                      "&.Mui-focused": {
+                        color: validationErrors.candidateEmail
+                          ? "#d32f2f"
+                          : "#204E20",
+                      },
+                      fontFamily: "Helvetica, sans-serif",
+                      fontWeight: "bold",
+                    },
+                  }}
+                />
+              </Box>
+
+              {/* File Preview */}
+              {file && (
+                <Box ref={cvTableRef}>
+                  <TableContainer sx={{ mb: 3 }}>
+                    <Table
+                      sx={{
+                        "& td, & th": {
+                          color: "#000000ff",
+                          fontFamily: "Helvetica, sans-serif",
+                          fontSize: "1rem",
+                        },
+                      }}
+                    >
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: "bold" }}>
+                            File Name
+                          </TableCell>
+                          <TableCell sx={{ fontWeight: "bold" }}>
+                            Size
+                          </TableCell>
+                          <TableCell sx={{ fontWeight: "bold" }}>
+                            Action
+                          </TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                cursor: "pointer",
+                                color: "#003cbdff",
+                                textDecoration: "underline",
+                                "&:hover": { color: "#204E20" },
+                              }}
+                              onClick={() => setPdfPreviewOpen(true)}
+                            >
+                              <PictureAsPdfIcon sx={{ mr: 1 }} />
+                              {file.name}
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                          </TableCell>
+                          <TableCell>
+                            <IconButton color="error" onClick={handleRemove}>
+                              <DeleteIcon />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+              )}
+
+              {/* Process Button */}
+              <Box sx={{ textAlign: "center", mb: 2 }}>
+                {file && (
+                  <Button
+                    variant="contained"
+                    sx={reviewButtonStyle}
+                    onClick={handleProcess}
+                    disabled={loading}
+                    ref={processBtnRef}
+                  >
+                    {loading ? "Processing..." : "Process CV"}
                   </Button>
                 )}
               </Box>
-            </Box>
+
+              <Typography
+                variant="body2"
+                color="#000000ff"
+                sx={{ fontFamily: "Helvetica, sans-serif", fontSize: "1rem" }}
+              >
+                <strong>Requirements:</strong>
+                <br />
+                • Accepted formats: PDF, DOC, DOCX
+                <br />
+                • Maximum file size: 5MB
+                <br />• Ensure CV contains clear section headings
+              </Typography>
+            </Paper>
           </Box>
-        </Fade>
-      </Popover>
-    </Box>
+        </Box>
+
+        {/* Error Dialog */}
+        <Dialog
+          open={errorPopup.open}
+          onClose={() => setErrorPopup({ ...errorPopup, open: false })}
+        >
+          <DialogTitle>Error</DialogTitle>
+          <DialogContent>
+            <Typography>{errorPopup.message}</Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button
+              onClick={() => setErrorPopup({ ...errorPopup, open: false })}
+            >
+              OK
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Processed Data Modal */}
+        <Dialog
+          open={isModalOpen}
+          onClose={handleCloseModal}
+          PaperProps={{
+            sx: {
+              backgroundColor: "#5a88ad",
+              maxWidth: "60vw",
+              width: "60vw",
+              height: "60vw",
+              maxHeight: "90vh",
+              minHeight: "40vh",
+            },
+          }}
+        >
+          <DialogTitle
+            sx={{
+              bgcolor: "#181c2f",
+              color: "#fff",
+              fontWeight: "bold",
+              fontSize: "1.3rem",
+            }}
+          >
+            Processed CV Data
+          </DialogTitle>
+          <Divider sx={{ mb: 2 }} />
+          <DialogContent>
+            {processedData && (
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 6,
+                  px: 2,
+                  py: 1,
+                }}
+              >
+                <Box>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      color: "#232a3b",
+                      mb: 2,
+                      fontWeight: "bold",
+                      letterSpacing: 1,
+                    }}
+                  >
+                    Profile
+                  </Typography>
+                  <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                    {processedData.profile || "N/A"}
+                  </Typography>
+                  <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                    Education:
+                  </Typography>
+                  <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                    {processedData.education || "N/A"}
+                  </Typography>
+                  <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                    Skills:
+                  </Typography>
+                  <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                    {processedData.skills || "N/A"}
+                  </Typography>
+                  <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                    Experience:
+                  </Typography>
+                  <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                    {processedData.experience || "N/A"}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      color: "#232a3b",
+                      mb: 2,
+                      fontWeight: "bold",
+                      letterSpacing: 1,
+                    }}
+                  >
+                    Other Information
+                  </Typography>
+                  <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                    Projects:
+                  </Typography>
+                  <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                    {processedData.projects || "N/A"}
+                  </Typography>
+                  <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                    Achievements:
+                  </Typography>
+                  <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                    {processedData.achievements || "N/A"}
+                  </Typography>
+                  <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                    Contact:
+                  </Typography>
+                  <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                    {processedData.contact || "N/A"}
+                  </Typography>
+                  <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                    Languages:
+                  </Typography>
+                  <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                    {processedData.languages || "N/A"}
+                  </Typography>
+                  <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                    Other:
+                  </Typography>
+                  <Typography sx={{ mb: 3, whiteSpace: "pre-line" }}>
+                    {processedData.other || "N/A"}
+                  </Typography>
+                </Box>
+              </Box>
+            )}
+            {/* Show raw AI parse JSON for debugging / visibility */}
+            <Divider sx={{ my: 2 }} />
+            <Box sx={{ px: 2 }}>
+              <Typography
+                variant="subtitle2"
+                sx={{ fontWeight: "bold", mt: 2, mb: 1 }}
+              >
+                AI Parse Result (raw)
+              </Typography>
+              <Box
+                sx={{
+                  bgcolor: "#ffffff",
+                  color: "#000",
+                  p: 1,
+                  borderRadius: 1,
+                  fontFamily: "monospace",
+                  whiteSpace: "pre-wrap",
+                  maxHeight: "20vh",
+                  overflow: "auto",
+                  fontSize: 12,
+                }}
+              >
+                <pre style={{ margin: 0 }}>
+                  {aiParseData
+                    ? JSON.stringify(aiParseData, null, 2)
+                    : "No parse result"}
+                </pre>
+              </Box>
+            </Box>
+          </DialogContent>
+          <DialogActions
+            sx={{ bgcolor: "#181c2f", justifyContent: "flex-end" }}
+          >
+            <Button
+              onClick={handleCloseModal}
+              sx={{
+                bgcolor: "#e0e0e0",
+                color: "#333",
+                fontWeight: "bold",
+                textTransform: "none",
+                boxShadow: "none",
+                "&:hover": {
+                  bgcolor: "#cccccc",
+                  color: "#222",
+                },
+              }}
+              variant="contained"
+            >
+              Close
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* PDF Preview Dialog */}
+        <Dialog
+          open={pdfPreviewOpen}
+          onClose={() => setPdfPreviewOpen(false)}
+          maxWidth="lg"
+          fullWidth
+        >
+          <DialogTitle>Preview: {file?.name}</DialogTitle>
+          <DialogContent sx={{ p: 0 }}>
+            {fileHtml ? (
+              <Box sx={{ p: 2 }}>
+                <div
+                  dangerouslySetInnerHTML={{ __html: fileHtml }}
+                  style={{ color: "#000", width: "100%" }}
+                />
+              </Box>
+            ) : pdfUrl ? (
+              <iframe
+                src={pdfUrl}
+                title="PDF Preview"
+                width="100%"
+                height="600px"
+                style={{ border: "none" }}
+              />
+            ) : (
+              <Typography sx={{ p: 2 }}>No preview available</Typography>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setPdfPreviewOpen(false)}>Close</Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Tutorial Popover */}
+        <Popover
+          open={
+            showTutorial &&
+            tutorialStep >= 0 &&
+            tutorialStep <= 3 &&
+            Boolean(anchorEl)
+          }
+          anchorEl={anchorEl}
+          onClose={handleCloseTutorial}
+          anchorOrigin={{
+            vertical: "top",
+            horizontal: "center",
+          }}
+          transformOrigin={{
+            vertical: "bottom",
+            horizontal: "center",
+          }}
+          componentsProps={{
+            root: {
+              onMouseDown: (e: React.MouseEvent) => e.preventDefault(),
+            },
+          }}
+          disableRestoreFocus={false}
+          disableAutoFocus={true}
+          disableEnforceFocus={true}
+          PaperProps={{
+            sx: {
+              p: 2,
+              bgcolor: "#fff",
+              color: "#181c2f",
+              borderRadius: 2,
+              boxShadow: 6,
+              minWidth: 280,
+              zIndex: 1502,
+              textAlign: "center",
+            },
+          }}
+        >
+          <Fade in={fadeIn} timeout={250}>
+            <Box sx={{ position: "relative" }}>
+              {tutorialStep === 0 && (
+                <>
+                  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                    Step 1: Upload a CV
+                  </Typography>
+                  <Typography sx={{ mb: 2 }}>
+                    Start by uploading a candidate's CV here. You can drag and
+                    drop or browse for a file.
+                  </Typography>
+                </>
+              )}
+              {tutorialStep === 1 && (
+                <>
+                  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                    Step 2: Candidate Details
+                  </Typography>
+                  <Typography sx={{ mb: 2 }}>
+                    Enter the candidate's name, surname, and email address in
+                    these fields.
+                  </Typography>
+                </>
+              )}
+              {tutorialStep === 2 && (
+                <>
+                  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                    Step 3: CV Table
+                  </Typography>
+                  <Typography sx={{ mb: 2 }}>
+                    Here you can see the uploaded CV file. You can remove it if
+                    needed before processing.
+                  </Typography>
+                </>
+              )}
+              {tutorialStep === 3 && (
+                <>
+                  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                    Step 4: Process the CV
+                  </Typography>
+                  <Typography sx={{ mb: 2 }}>
+                    When you're ready, click <b>Process CV</b> to extract skills
+                    and information from the uploaded file.
+                  </Typography>
+                </>
+              )}
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mt: 3,
+                  gap: 2,
+                }}
+              >
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={handleCloseTutorial}
+                  sx={{
+                    color: "#888",
+                    fontSize: "0.85rem",
+                    textTransform: "none",
+                    minWidth: "auto",
+                    p: 0,
+                  }}
+                >
+                  End Tutorial
+                </Button>
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  {tutorialStep > 0 && (
+                    <Button
+                      variant="outlined"
+                      onClick={() => handleStepChange(tutorialStep - 1)}
+                      sx={{
+                        color: "#5a88ad",
+                        borderColor: "#5a88ad",
+                        fontWeight: "bold",
+                        textTransform: "none",
+                        "&:hover": { borderColor: "#487DA6", color: "#487DA6" },
+                      }}
+                    >
+                      Previous
+                    </Button>
+                  )}
+                  {tutorialStep < 3 ? (
+                    <Button
+                      variant="contained"
+                      onClick={() => handleStepChange(tutorialStep + 1)}
+                      sx={{
+                        bgcolor: "#5a88ad",
+                        color: "#fff",
+                        fontWeight: "bold",
+                        textTransform: "none",
+                        "&:hover": { bgcolor: "#487DA6" },
+                      }}
+                    >
+                      Next
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="contained"
+                      onClick={handleCloseTutorial}
+                      sx={{
+                        bgcolor: "#5a88ad",
+                        color: "#fff",
+                        fontWeight: "bold",
+                        textTransform: "none",
+                        "&:hover": { bgcolor: "#487DA6" },
+                      }}
+                    >
+                      Finish
+                    </Button>
+                  )}
+                </Box>
+              </Box>
+            </Box>
+          </Fade>
+        </Popover>
+      </Box>
     </RoleBasedAccess>
   );
 }
@@ -1441,4 +1453,15 @@ const reviewButtonStyle = {
     background:
       "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)",
   },
+};
+
+const fileToBase64 = async (blob: File): Promise<string> => {
+  const arrayBuffer = await blob.arrayBuffer();
+  let binary = "";
+  const bytes = new Uint8Array(arrayBuffer);
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
 };

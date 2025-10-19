@@ -276,8 +276,13 @@ const ParsedCVData: React.FC = () => {
   const navigate = useNavigate();
 
   // REMOVED: aiUpload - no longer using upload_cv endpoint
-  const { aiParse = { result: {} }, parsedResume = null } =
-    location.state ?? {};
+  const {
+    aiParse = { result: {} },
+    parsedResume = null,
+    pdfBase64 = null,
+    pdfFilename = null,
+    pdfContentType = null,
+  } = location.state ?? {};
 
   const { processedData, fileUrl, candidate } = location.state || {};
 
@@ -402,6 +407,12 @@ const ParsedCVData: React.FC = () => {
       raw: rawData,
       resume: parseResumeData ?? null,
       receivedAt: new Date().toISOString(),
+      pdfBase64,
+      pdfFilename:
+        pdfFilename ?? fileUrl
+          ? new URL(fileUrl).pathname.split("/").pop()
+          : undefined,
+      pdfContentType: pdfContentType ?? "application/pdf",
     };
 
     try {
