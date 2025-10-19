@@ -28,8 +28,7 @@ import {
   DialogActions,
 } from "@mui/material";
 import { useEffect, useMemo, useState, useRef } from "react";
-import { useLocation } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import SearchIcon from "@mui/icons-material/Search";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
@@ -50,8 +49,10 @@ import { apiFetch, aiFetch } from "../lib/api";
 
 export default function Search() {
   const [collapsed, setCollapsed] = useState(false);
+  const location = useLocation();
   const navigate = useNavigate();
-  const [searchText, setSearchText] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [lastAppliedQuery, setLastAppliedQuery] = useState<string | null>(null);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [selectedFits, setSelectedFits] = useState<string[]>([]);
   const [selectedDetails, setSelectedDetails] = useState<string[]>([]);
@@ -76,6 +77,8 @@ export default function Search() {
     severity: "success" as "success" | "error",
   });
   const [configModalOpen, setConfigModalOpen] = useState(false);
+  const [results, setResults] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Replace hard-coded candidates with data from API
   type ApiCandidate = {
@@ -195,7 +198,7 @@ export default function Search() {
 
   // Derived list used by render
   const filteredCandidates = useMemo(() => {
-    const text = searchText.toLowerCase();
+    const text = searchTerm.toLowerCase();
     return candidates.filter((c) => {
       const matchesText =
         c.name.toLowerCase().includes(text) ||
@@ -218,7 +221,7 @@ export default function Search() {
 
       return matchesText && matchesSkills && matchesFit && matchesDetails;
     });
-  }, [searchText, selectedSkills, selectedFits, selectedDetails, candidates]);
+  }, [searchTerm, selectedSkills, selectedFits, selectedDetails, candidates]);
 
   // PAGINATION: slice filteredCandidates to only show 5 per page
   const paginatedCandidates = useMemo(() => {
@@ -249,6 +252,58 @@ export default function Search() {
     const then = new Date(iso).getTime();
     return Date.now() - then <= 7 * 24 * 60 * 60 * 1000;
   }
+
+  const executeSearch = async (term: string) => {
+    const query = term.trim();
+    if (!query) {
+      setResults([]);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const res = await apiFetch(
+        `/cv/search?query=${encodeURIComponent(query)}`
+      );
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setResults(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Search failed:", error);
+      setSnackbar({
+        open: true,
+        severity: "error",
+        message: "Search failed. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const urlQuery = params.get("query")?.trim() || "";
+    const stateQuery =
+      (
+        location.state as { presetQuery?: string } | undefined
+      )?.presetQuery?.trim() || "";
+    const nextQuery = stateQuery || urlQuery;
+
+    if (nextQuery && nextQuery !== lastAppliedQuery) {
+      setSearchTerm(nextQuery);
+      setLastAppliedQuery(nextQuery);
+      executeSearch(nextQuery);
+    }
+  }, [location.search, location.state, lastAppliedQuery]);
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const query = searchTerm.trim();
+    navigate(`/search${query ? `?query=${encodeURIComponent(query)}` : ""}`, {
+      replace: true,
+      state: query ? { presetQuery: query } : undefined,
+    });
+    if (query) executeSearch(query);
+  };
 
   useEffect(() => {
     document.title = "Search Candidates";
@@ -635,8 +690,8 @@ export default function Search() {
                   fontSize: "1rem",
                 }}
                 fullWidth
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </Box>
 
