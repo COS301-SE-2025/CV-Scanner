@@ -3126,6 +3126,74 @@ private String truncateSummary(String s) {
                     .body(createErrorResponse("Failed to load candidate PDF: " + ex.getMessage()));
         }
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<?> searchCandidates(
+            @RequestParam(name = "query", required = false) String query,
+            @RequestParam(name = "limit", required = false, defaultValue = "100") int limit) {
+        try {
+            String q = query == null ? "" : query.trim();
+            if (q.isEmpty()) {
+                return ResponseEntity.ok(Collections.emptyList());
+            }
+
+            int top = Math.max(1, Math.min(limit, 500));
+            String sql = """
+                WITH latest AS (
+                  SELECT cpc.CandidateId, cpc.FileUrl, cpc.ResumeResult, cpc.AiResult, cpc.Normalized, cpc.ReceivedAt,
+                         ROW_NUMBER() OVER (PARTITION BY cpc.CandidateId ORDER BY cpc.ReceivedAt DESC) rn
+                  FROM dbo.CandidateParsedCv cpc
+                )
+                SELECT TOP %d
+                       c.Id, c.FirstName, c.LastName, c.Email,
+                       l.FileUrl, l.ResumeResult, l.AiResult, l.Normalized, l.ReceivedAt
+                FROM dbo.Candidates c
+                LEFT JOIN latest l ON l.CandidateId = c.Id AND l.rn = 1
+                ORDER BY
+                  CASE WHEN l.ReceivedAt IS NULL THEN 1 ELSE 0 END,
+                  l.ReceivedAt DESC,
+                  c.Id DESC
+            """.formatted(top);
+
+            List<CandidateSummary> items = jdbc.query(sql, (rs, i) -> {
+                long id = rs.getLong("Id");
+                String first = rs.getString("FirstName");
+                String last = rs.getString("LastName");
+                String email = rs.getString("Email");
+                String fileUrl = rs.getString("FileUrl");
+                String resumeJson = rs.getString("ResumeResult");
+                String normalized = rs.getString("Normalized");
+                String aiResult = rs.getString("AiResult");
+                Timestamp ts = rs.getTimestamp("ReceivedAt");
+
+                List<String> skills = extractSkillsFromResume(resumeJson);
+                if (skills.isEmpty()) {
+                    skills = extractSkills(normalized, aiResult);
+                }
+
+                String project = fileUrl != null ? lastSegment(fileUrl) : "CV";
+                String receivedAt = ts != null ? ts.toInstant().toString() : null;
+
+                return new CandidateSummary(id, first, last, email, project, skills, receivedAt, "N/A");
+            });
+
+            final String needle = q.toLowerCase();
+            List<CandidateSummary> filtered = items.stream()
+                    .filter(c ->
+                        (c.firstName != null && c.firstName.toLowerCase().contains(needle)) ||
+                        (c.lastName != null && c.lastName.toLowerCase().contains(needle)) ||
+                        (c.email != null && c.email.toLowerCase().contains(needle)) ||
+                        (c.project != null && c.project.toLowerCase().contains(needle)) ||
+                        (c.skills != null && c.skills.stream().anyMatch(s -> s.toLowerCase().contains(needle))))
+                    .collect(java.util.stream.Collectors.toList());
+
+            return ResponseEntity.ok(filtered);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return ResponseEntity.status(500)
+                    .body(createErrorResponse("Failed to execute search: " + ex.getMessage()));
+        }
+    }
 }
 
 
