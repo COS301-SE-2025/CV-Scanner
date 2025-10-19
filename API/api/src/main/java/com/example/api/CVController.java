@@ -271,7 +271,7 @@ public class CVController {
                 resumeJson = "{}";
             }
 
-            byte[] pdfBytes = null;
+            final byte[] pdfBytes;
             if (!isBlank(body.pdfBase64)) {
                 try {
                     pdfBytes = Base64.getDecoder().decode(body.pdfBase64.replaceAll("\\s", ""));
@@ -280,30 +280,47 @@ public class CVController {
                     System.err.println("Invalid PDF base64 payload: " + ex.getMessage());
                     return ResponseEntity.badRequest().body(createErrorResponse("Invalid PDF base64 payload"));
                 }
+            } else {
+                pdfBytes = null;
             }
 
             final String sql = "INSERT INTO dbo.CandidateParsedCv " +
                     "(CandidateId, FileUrl, AiResult, Normalized, ResumeResult, PdfData, ReceivedAt, RawResult) " +
                     "VALUES (?,?,?,?,?,?,?,?)";
+            final String resumeJsonFinal = resumeJson;
 
-            int rows = jdbc.update(sql,
-                candidateId,
-                body.fileUrl,
-                null,
-                null,
-                resumeJson,
-                pdfBytes,
-                Timestamp.from(when),
-                null
-            );
+            jdbc.update(connection -> {
+                PreparedStatement ps = connection.prepareStatement(sql);
+                ps.setLong(1, candidateId);
+                if (!isBlank(body.fileUrl)) ps.setString(2, body.fileUrl);
+                else ps.setNull(2, java.sql.Types.NVARCHAR);
 
-            System.out.println("Inserted " + rows + " row(s) into CandidateParsedCv");
+                if (body.aiResult != null) ps.setString(3, toJson(body.aiResult));
+                else ps.setNull(3, java.sql.Types.NVARCHAR);
+
+                if (body.normalized != null) ps.setString(4, toJson(body.normalized));
+                else ps.setNull(4, java.sql.Types.NVARCHAR);
+
+                ps.setString(5, resumeJsonFinal);
+
+                if (pdfBytes != null && pdfBytes.length > 0) ps.setBytes(6, pdfBytes);
+                else ps.setNull(6, java.sql.Types.VARBINARY);
+
+                ps.setTimestamp(7, Timestamp.from(when));
+
+                if (body.raw != null) ps.setString(8, toJson(body.raw));
+                else ps.setNull(8, java.sql.Types.NVARCHAR);
+
+                return ps;
+            });
+
+            System.out.println("Inserted candidate data into CandidateParsedCv");
 
             return ResponseEntity.ok(Map.of(
                 "status", "ok",
                 "candidateId", candidateId,
                 "message", "CV data saved successfully",
-                "rowsInserted", rows,
+                "rowsInserted", 1,
                 "pdfStored", pdfBytes != null
             ));
         } catch (Exception ex) {
@@ -1847,101 +1864,6 @@ private String truncateSummary(String s) {
         }
     }
 
-    // Helper: coerce arbitrary object (Number/String) to Double or null
-    private Double toDouble(Object v) {
-        if (v == null) return null;
-        if (v instanceof Number n) {
-            double d = n.doubleValue();
-            return Double.isFinite(d) ? d : null;
-        }
-        if (v instanceof String s) {
-            s = s.trim();
-            if (s.isEmpty()) return null;
-            // Try stripping a trailing % (treat as 0-1 if percentage, e.g. 85% -> 0.85)
-            if (s.endsWith("%")) {
-                try {
-                    double pct = Double.parseDouble(s.substring(0, s.length() - 1).trim());
-                    return pct /  100.0;
-                } catch (NumberFormatException ignored) { }
-            }
-            try {
-                return Double.parseDouble(s);
-            } catch (NumberFormatException ignored) {
-                return null;
-            }
-        }
-        return null;
-    }
-
-    // Computes average score (0..10) from AiResult JSON. Returns null if no numeric scores found.
-    private Double computeAverageScoreFromAiResult(String aiResultJson) {
-        try {
-            Map<String, Object> root = parseJsonToMap(aiResultJson);
-            if (root == null) return null;
-
-            Object rawObj = root.get("raw");
-            Map<String, Object> raw = null;
-            if (rawObj instanceof Map) raw = (Map<String, Object>) rawObj;
-            else if (rawObj instanceof String) {
-                try { raw = json.readValue((String) rawObj, Map.class); } catch (Exception ignored) {}
-            } else {
-                // also support case where top-level keys are categories (raw absent)
-                raw = root;
-            }
-
-            if (raw == null || raw.isEmpty()) return null;
-
-            List<Double> collected = new ArrayList<>();
-            for (Object v : raw.values()) {
-                if (v == null) continue;
-                if (v instanceof Map<?, ?> info) {
-                    // Prefer explicit "scores" array
-                    Object scoresObj = info.get("scores");
-                    if (scoresObj instanceof java.util.List<?> scoresList && !scoresList.isEmpty()) {
-                        Object first = scoresList.get(0);
-                        Double d = toDouble(first);
-                        if (d != null) { collected.add(d); continue; }
-                    }
-                    // Fallback: top_k list of {label,score}
-                    Object topkObj = info.get("top_k");
-                    if (topkObj instanceof java.util.List<?> topkList && !topkList.isEmpty()) {
-                        Object first = topkList.get(0);
-                        if (first instanceof Map<?,?> m && m.get("score") != null) {
-                            Double d = toDouble(m.get("score"));
-                            if (d != null) { collected.add(d); continue; }
-                        }
-                    }
-                    // Fallback: try any numeric value inside info
-                    for (Object inner : ((Map<?,?>) info).values()) {
-                        Double d = toDouble(inner);
-                        if (d != null) { collected.add(d); break; }
-                    }
-                } else if (v instanceof java.util.List<?> list) {
-                    // If raw category directly a list of scores or top_k objects
-                    Object first = list.isEmpty() ? null : list.get(0);
-                    Double d = toDouble(first);
-                    if (d != null) { collected.add(d); continue; }
-                    if (first instanceof Map<?,?> m && m.get("score") != null) {
-                        Double d2 = toDouble(m.get("score"));
-                        if (d2 != null) { collected.add(d2); continue; }
-                    }
-                } else {
-                    Double d = toDouble(v);
-                    if (d != null) collected.add(d);
-                }
-            }
-
-            if (collected.isEmpty()) return null;
-
-            double mean = collected.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
-            double scaled = mean * 10.0;
-            // round to 2 decimals
-            return Math.round(scaled * 100.0) / 100.0;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
     // ========== NEW ENDPOINTS FOR CV SCORE AND PROJECT TYPE ==========
 
     /**
@@ -2404,6 +2326,93 @@ private String truncateSummary(String s) {
         if (d <= 10.0) return d;           // already on 0..10
         if (d <= 100.0) return d / 10.0;   // percentage
         return Math.max(0.0, Math.min(10.0, d / 10.0)); // clamp
+    }
+
+    // Safely convert various value types to Double (supports Number, numeric Strings, and percentages like "87%").
+    private Double toDouble(Object o) {
+        if (o == null) return null;
+        if (o instanceof Number n) return n.doubleValue();
+        if (o instanceof String s) {
+            String t = s.trim();
+            if (t.isEmpty()) return null;
+            // Handle percentages like "87%" explicitly
+            if (t.endsWith("%")) {
+                try {
+                    String pct = t.substring(0, t.length() - 1).trim();
+                    return Double.parseDouble(pct);
+                } catch (NumberFormatException ignored) {
+                    // fallthrough to generic parse
+                }
+            }
+            // Remove common non-numeric decorations while keeping signs, decimals, and exponent
+            String cleaned = t.replaceAll("[^0-9eE+\\-\\.]", "");
+            if (cleaned.isEmpty() || cleaned.equals("+") || cleaned.equals("-") || cleaned.equals("."))
+                return null;
+            try {
+                return Double.parseDouble(cleaned);
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    // Compute an average score (0..10) from a flexible AI result JSON by collecting score-like fields.
+    private Double computeAverageScoreFromAiResult(String aiResultJson) {
+        if (isBlank(aiResultJson)) return null;
+        try {
+            Map<String, Object> root = json.readValue(aiResultJson, Map.class);
+            java.util.List<Double> rawScores = new java.util.ArrayList<>();
+            collectScores(root, rawScores, 0);
+            if (rawScores.isEmpty()) return null;
+            double sum = 0.0;
+            for (Double d : rawScores) {
+                if (d == null) continue;
+                sum += normalizeToTen(d);
+            }
+            double avg = sum / rawScores.size();
+            return Math.round(avg * 100.0) / 100.0;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    // Recursively traverse JSON-like structures and collect score-like numeric values.
+    @SuppressWarnings("unchecked")
+    private void collectScores(Object node, java.util.List<Double> out, int depth) {
+        if (node == null || depth > 6) return;
+
+        if (node instanceof Map<?, ?> map) {
+            // If this map has typical score fields, prefer them
+            Object s1 = map.get("score");
+            Object s2 = map.get("confidence");
+            Object s3 = map.get("cv_score");
+            Object s4 = map.get("fit");
+            Object s5 = map.get("project_fit");
+            Double v = toDouble(s1);
+            if (v == null) v = toDouble(s2);
+            if (v == null) v = toDouble(s3);
+            if (v == null) v = toDouble(s4);
+            if (v == null) v = toDouble(s5);
+            if (v != null) out.add(v);
+
+            // Recurse into values
+            for (Object value : map.values()) {
+                if (value != null) collectScores(value, out, depth + 1);
+            }
+            return;
+        }
+
+        if (node instanceof Iterable<?> it) {
+            for (Object item : it) {
+                collectScores(item, out, depth + 1);
+            }
+            return;
+        }
+
+        // Standalone primitive/string number
+        Double v = toDouble(node);
+        if (v != null) out.add(v);
     }
 
     /**
@@ -3048,7 +3057,5 @@ private String truncateSummary(String s) {
         }
     }
 }
-
-    // ...existing code...
 
 
