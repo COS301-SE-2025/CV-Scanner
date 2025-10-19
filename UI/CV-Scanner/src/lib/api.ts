@@ -25,7 +25,7 @@ export async function apiFetch(path: string, opts: RequestInit = {}) {
   const url = path.startsWith("http")
     ? path
     : `${base}${path.startsWith("/") ? "" : "/"}${path}`;
-  return fetch(url, { credentials: "include", ...opts });
+  return fetch(url, { credentials: "include", ...opts, headers: buildHeaders(opts) });
 }
 
 export const aiFetch = async (path: string, init: RequestInit = {}) => {
