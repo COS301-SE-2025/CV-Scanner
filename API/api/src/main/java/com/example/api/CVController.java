@@ -3059,7 +3059,7 @@ private String truncateSummary(String s) {
         }
     }
 
-    @GetMapping("/{identifier}/pdf")
+    @GetMapping(value = "/{identifier}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
     public ResponseEntity<?> getCandidatePdf(@PathVariable("identifier") String identifier) {
         try {
             Long candidateId = null;
@@ -3094,6 +3094,7 @@ private String truncateSummary(String s) {
 
             if (rows.isEmpty() || rows.get(0).get("pdf") == null) {
                 return ResponseEntity.status(404)
+                        .contentType(MediaType.APPLICATION_JSON)
                         .body(Map.of("message", "No PDF stored for candidate: " + identifier));
             }
             byte[] pdfBytes = (byte[]) rows.get(0).get("pdf");
@@ -3112,6 +3113,7 @@ private String truncateSummary(String s) {
         } catch (Exception ex) {
             ex.printStackTrace();
             return ResponseEntity.status(500)
+                    .contentType(MediaType.APPLICATION_JSON)
                     .body(createErrorResponse("Failed to load candidate PDF: " + ex.getMessage()));
         }
     }
