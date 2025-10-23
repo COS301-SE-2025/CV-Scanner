@@ -1130,6 +1130,6 @@ const ParsedCVData: React.FC = () => {
       </Box>
     </Box>
   );
-};
+}; 
 
 export default ParsedCVData;
