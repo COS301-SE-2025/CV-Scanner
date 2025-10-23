@@ -85,6 +85,29 @@ function applyFieldToRaw(
       ? value.split(/\r?\n/).filter(Boolean)
       : value;
 
+  // Update nested structures first
+  if (clone?.result) {
+    // Update personal_info fields
+    if (key === 'name' || key === 'email' || key === 'phone') {
+      clone.result.personal_info = clone.result.personal_info || {};
+      clone.result.personal_info[key] = val;
+    }
+    
+    // Update sections fields
+    if (key === 'education' || key === 'experience' || key === 'projects') {
+      clone.result.sections = clone.result.sections || {};
+      clone.result.sections[key] = val;
+    }
+    
+    // Update other result fields
+    if (key === 'skills') {
+      clone.result.skills = val;
+    }
+    if (key === 'profile' && clone.result.summary !== undefined) {
+      clone.result.summary = val;
+    }
+  }
+
   const appliedKey = clone?.applied
     ? "applied"
     : clone?.classification
@@ -127,7 +150,7 @@ function safeObject(v: any): Record<string, any> {
   return isObject(v) ? v : {};
 }
 
-const renderNormalizedFields = (fields: ParsedCVFields) => {
+const renderNormalizedFields = (fields: ParsedCVFields, onSave?: (key: keyof ParsedCVFields, value: string) => void) => {
   const safeFields = safeObject(fields);
 
   // Normalize values to strings where possible so child components
@@ -170,7 +193,7 @@ const renderNormalizedFields = (fields: ParsedCVFields) => {
                     ? value
                     : JSON.stringify(value, null, 2)
                 }
-                onSave={() => {}}
+                onSave={onSave ? (val) => onSave(key as keyof ParsedCVFields, val) : () => {}}
               />
             </Box>
           );
@@ -193,7 +216,7 @@ const renderNormalizedFields = (fields: ParsedCVFields) => {
                   ? value
                   : JSON.stringify(value, null, 2)
               }
-              onSave={() => {}}
+              onSave={onSave ? (val) => onSave(key as keyof ParsedCVFields, val) : () => {}}
             />
           </Box>
         );
@@ -345,15 +368,23 @@ const ParsedCVData: React.FC = () => {
   );
 
   const [fields, setFields] = useState<ParsedCVFields>(fieldsInitial);
+  const [parsedResumeFields, setParsedResumeFields] = useState<ParsedCVFields>(() => 
+    normalizeToParsedFields(parseResumeData) || {}
+  );
+  const [hasUserEdits, setHasUserEdits] = useState(false);
 
   const [rawData, setRawData] = useState<any>(
     () => primaryData?.data ?? primaryData
   );
 
   useEffect(() => {
-    setFields(fieldsInitial);
-    setRawData(primaryData?.data ?? primaryData);
-  }, [fieldsInitial, primaryData, parseResumeData]);
+    // Only reset data if user hasn't made any edits
+    if (!hasUserEdits) {
+      setFields(fieldsInitial);
+      setParsedResumeFields(normalizeToParsedFields(parseResumeData) || {});
+      setRawData(primaryData?.data ?? primaryData);
+    }
+  }, [fieldsInitial, primaryData, parseResumeData, hasUserEdits]);
 
   // Convert DOCX to HTML when component mounts
   useEffect(() => {
@@ -463,9 +494,20 @@ const ParsedCVData: React.FC = () => {
   }, [user]);
 
   const handleUpdate = (key: keyof ParsedCVFields, value: string) => {
-    const updated = { ...fields, [key]: value };
-    setFields(updated);
+    setHasUserEdits(true);
+    
+    // Update both sections simultaneously
+    const updatedFields = { ...fields, [key]: value };
+    const updatedParsedResumeFields = { ...parsedResumeFields, [key]: value };
+    
+    setFields(updatedFields);
+    setParsedResumeFields(updatedParsedResumeFields);
     setRawData((prev: any) => applyFieldToRaw(prev, key, value));
+  };
+
+  const handleParsedResumeUpdate = (key: keyof ParsedCVFields, value: string) => {
+    // Use the same logic as handleUpdate to keep both sections in sync
+    handleUpdate(key, value);
   };
 
   const handleSave = async () => {
@@ -906,7 +948,7 @@ const ParsedCVData: React.FC = () => {
                   Resume Raw Response
                 </Typography>
                 <pre style={{ margin: 0 }}>
-                  {JSON.stringify(parseResumeData, null, 2)}
+                  {JSON.stringify(rawData, null, 2)}
                 </pre>
               </Box>
             </Collapse>
@@ -923,9 +965,7 @@ const ParsedCVData: React.FC = () => {
 
                 {(() => {
                   try {
-                    const parsedFields =
-                      normalizeToParsedFields(parseResumeData) || {};
-                    const hasAny = Object.keys(parsedFields).length > 0;
+                    const hasAny = Object.keys(parsedResumeFields).length > 0;
                     if (!hasAny) {
                       return (
                         <Typography
@@ -936,7 +976,7 @@ const ParsedCVData: React.FC = () => {
                         </Typography>
                       );
                     }
-                    return renderNormalizedFields(parsedFields);
+                    return renderNormalizedFields(parsedResumeFields, handleParsedResumeUpdate);
                   } catch (e) {
                     return (
                       <Typography variant="body2" color="error">
