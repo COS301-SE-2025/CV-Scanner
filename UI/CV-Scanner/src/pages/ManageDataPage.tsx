@@ -389,15 +389,26 @@ export default function ManageData() {
       setEditDialogOpen(true);
       setLoadingCandidateData(true);
 
-      // Call the new parsed endpoint (will return { summary, education, experience, projects, ... })
+      // Fetch phone number separately
+      let phone = "";
+      try {
+        const phoneRes = await apiFetch(`/cv/${candidate.id}/phone`);
+        if (phoneRes.ok) {
+          const phoneData = await phoneRes.json();
+          phone = phoneData.phone || "";
+        }
+      } catch (error) {
+        console.warn("Failed to fetch phone number:", error);
+      }
+
+      // Call the new parsed endpoint
       const res = await apiFetch(`/cv/${candidate.id}/parsed`);
       if (!res.ok) {
         // fallback to existing endpoints if parsed endpoint not available
         console.warn(
           `/cv/${candidate.id}/parsed returned ${res.status}, falling back to previous calls`
         );
-        // reuse previous behaviour: open dialog and attempt to populate from other endpoints
-        // keep behavior simple: attempt same parallel requests as before
+        
         const [summaryRes, expRes, scoreRes, ptRes, skillsRes] =
           await Promise.allSettled([
             apiFetch(`/cv/${candidate.id}/summary`),
@@ -414,7 +425,7 @@ export default function ManageData() {
             personal_info: {
               email: candidate.email,
               name: candidate.name,
-              phone: "",
+              phone: phone, // Use the fetched phone number
             },
             project_fit: candidate.projectFitPercent ?? 0,
             project_type: candidate.project ?? "General",
@@ -474,7 +485,7 @@ export default function ManageData() {
         setEditForm({
           name: mapped.result.personal_info.name || candidate.name,
           email: mapped.result.personal_info.email || candidate.email,
-          phone: mapped.result.personal_info.phone || "",
+          phone: mapped.result.personal_info.phone || phone, // Use the fetched phone number
           skills: mapped.result.skills || candidate.skills,
           summary: mapped.result.summary || "",
           project_type: mapped.result.project_type || "",
@@ -499,7 +510,7 @@ export default function ManageData() {
           personal_info: {
             email: candidate.email,
             name: candidate.name,
-            phone: parsedJson?.result?.personal_info?.phone ?? "",
+            phone: phone, // Use the fetched phone number instead of parsedJson data
           },
           project_fit:
             parsedJson?.result?.project_fit ??
@@ -530,7 +541,7 @@ export default function ManageData() {
       setEditForm({
         name: mappedFromParsed.result.personal_info.name || candidate.name,
         email: mappedFromParsed.result.personal_info.email || candidate.email,
-        phone: mappedFromParsed.result.personal_info.phone || "",
+        phone: mappedFromParsed.result.personal_info.phone || phone, // Use the fetched phone number
         skills: mappedFromParsed.result.skills || candidate.skills,
         summary: mappedFromParsed.result.summary || "",
         project_type: mappedFromParsed.result.project_type || "",
@@ -542,7 +553,7 @@ export default function ManageData() {
     } catch (error) {
       console.error("Failed to load candidate data:", error);
       showSnackbar("Failed to load candidate data", "error");
-      // fallback mapping
+      // fallback mapping with empty phone
       setCandidateData({
         filename: candidate.filename || "CV.pdf",
         result: {
@@ -550,7 +561,7 @@ export default function ManageData() {
           personal_info: {
             email: candidate.email,
             name: candidate.name,
-            phone: "",
+            phone: "", // Empty phone as fallback
           },
           project_fit: candidate.projectFitPercent || 0,
           project_type: candidate.project || "General",
@@ -563,7 +574,7 @@ export default function ManageData() {
       setEditForm({
         name: candidate.name,
         email: candidate.email,
-        phone: "",
+        phone: "", // Empty phone as fallback
         skills: candidate.skills,
         summary: "",
         project_type: candidate.project || "",
@@ -1105,6 +1116,7 @@ export default function ManageData() {
                     setEditForm({ ...editForm, name: e.target.value })
                   }
                   fullWidth
+                  disabled
                 />
 
                 <TextField
@@ -1114,6 +1126,7 @@ export default function ManageData() {
                     setEditForm({ ...editForm, email: e.target.value })
                   }
                   fullWidth
+                  disabled
                 />
 
                 <TextField
@@ -1123,6 +1136,7 @@ export default function ManageData() {
                     setEditForm({ ...editForm, phone: e.target.value })
                   }
                   fullWidth
+                  disabled
                 />
 
                 <TextField
@@ -1139,6 +1153,7 @@ export default function ManageData() {
                   }
                   fullWidth
                   helperText="Separate skills with commas"
+                  disabled
                 />
 
                 <TextField
@@ -1148,6 +1163,7 @@ export default function ManageData() {
                     setEditForm({ ...editForm, project_type: e.target.value })
                   }
                   fullWidth
+                  disabled
                 />
 
                 <TextField
@@ -1162,6 +1178,7 @@ export default function ManageData() {
                   }
                   fullWidth
                   inputProps={{ min: 0, max: 10, step: 0.1 }}
+                  disabled
                 />
 
                 <Typography variant="h6" sx={{ mt: 2 }}>
