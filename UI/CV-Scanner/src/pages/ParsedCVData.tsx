@@ -667,6 +667,85 @@ const ParsedCVData: React.FC = () => {
             </Box>
             <Divider sx={{ mb: 2 }} />
 
+            {/* CV Score and Project Fit Section */}
+            {(parseResumeData?.result?.cv_score || parseResumeData?.result?.project_fit) && (
+              <Box
+                sx={{
+                  gridColumn: "1 / -1",
+                  p: 2,
+                  borderRadius: 1,
+                  backgroundColor: "#adb6beff",
+                  border: "1px solid #ddd",
+                  mb: 2,
+                }}
+              >
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: "bold", textAlign: "center", mb: 2 }}
+                >
+                  CV Assessment
+                </Typography>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  {/* CV Score */}
+                  {parseResumeData?.result?.cv_score && (
+                    <CircularProgressBar
+                      label="CV Score"
+                      value={parseResumeData.result.cv_score * 10} // Convert 8.4 to 84%
+                      colorStart="#ff6b6b"
+                      colorEnd="#4ecdc4"
+                    />
+                  )}
+                  
+                  {/* Project Fit */}
+                  {parseResumeData?.result?.project_fit && (
+                    <CircularProgressBar
+                      label="Project Fit"
+                      value={parseResumeData.result.project_fit * 10} // Convert 7.9 to 79%
+                      colorStart="#ffa726"
+                      colorEnd="#66bb6a"
+                    />
+                  )}
+                  
+                  {/* Project Type */}
+                  {parseResumeData?.result?.project_type && (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        p: 2,
+                        borderRadius: 2,
+                        backgroundColor: "#e3f2fd",
+                        minWidth: 120,
+                      }}
+                    >
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: "bold", color: "#1976d2" }}
+                      >
+                        Project Type
+                      </Typography>
+                      <Typography
+                        variant="body1"
+                        sx={{ textAlign: "center", mt: 0.5, fontWeight: "medium" }}
+                      >
+                        {parseResumeData.result.project_type}
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+            )}
+
             {/* Render fields grid */}
             <Box
               sx={{

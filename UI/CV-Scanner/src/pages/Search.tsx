@@ -965,7 +965,7 @@ export default function Search() {
                               "&:hover": { bgcolor: "#0f1623" },
                             }}
                           >
-                            View PDF
+                            View CV
                           </Button>
                         </Box>
                       </Box>
