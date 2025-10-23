@@ -37,6 +37,21 @@ export interface ParsedCVFields {
   phone?: string;
 }
 
+// Add mammoth loader function at the top level
+async function loadMammoth(): Promise<any> {
+  if (typeof window === "undefined") return null;
+  const w = window as any;
+  if (w.mammoth) return w.mammoth;
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://unpkg.com/mammoth@1.4.19/mammoth.browser.min.js";
+    script.async = true;
+    script.onload = () => resolve((window as any).mammoth);
+    script.onerror = (e) => reject(new Error("Failed to load mammoth.js"));
+    document.head.appendChild(script);
+  });
+}
+
 // Helper to TitleCase keys for data.applied/classification
 function titleCase(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
@@ -271,6 +286,21 @@ function normalizeToParsedFields(input: any): ParsedCVFields {
   return fields;
 }
 
+// Helper function to check if file is a Word document
+const isWordDocument = (filename: string, contentType: string) => {
+  const wordExtensions = ['.doc', '.docx', '.docm', '.dot', '.dotx'];
+  const wordMimeTypes = [
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-word.document.macroEnabled.12',
+    'application/vnd.ms-word.template.macroEnabled.12'
+  ];
+  
+  const lowerFilename = (filename || '').toLowerCase();
+  return wordExtensions.some(ext => lowerFilename.endsWith(ext)) || 
+         wordMimeTypes.some(mime => contentType.includes(mime));
+};
+
 const ParsedCVData: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -291,6 +321,8 @@ const ParsedCVData: React.FC = () => {
   const [pdfSticky, setPdfSticky] = useState(false);
   const [showRaw, setShowRaw] = useState(false);
   const [showResumeRaw, setShowResumeRaw] = useState(false);
+  const [convertedHtml, setConvertedHtml] = useState<string | null>(null);
+  const [converting, setConverting] = useState(false);
 
   const [firstName, setFirstName] = useState<string>(
     candidate?.firstName ?? ""
@@ -322,6 +354,44 @@ const ParsedCVData: React.FC = () => {
     setFields(fieldsInitial);
     setRawData(primaryData?.data ?? primaryData);
   }, [fieldsInitial, primaryData, parseResumeData]);
+
+  // Convert DOCX to HTML when component mounts
+  useEffect(() => {
+    const convertDocxToHtml = async () => {
+      if (isWordDocument(fileUrl, pdfContentType || "") && fileUrl && !convertedHtml) {
+        setConverting(true);
+        try {
+          console.log("Converting DOCX to HTML...");
+          
+          // Load mammoth if not already loaded
+          const mammoth = await loadMammoth();
+          if (!mammoth) {
+            throw new Error("Failed to load mammoth.js");
+          }
+
+          // Fetch the file
+          const response = await fetch(fileUrl);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch file: ${response.status}`);
+          }
+          
+          const arrayBuffer = await response.arrayBuffer();
+          
+          // Convert to HTML
+          const result = await mammoth.convertToHtml({ arrayBuffer });
+          console.log("DOCX conversion successful");
+          setConvertedHtml(result.value);
+        } catch (error) {
+          console.error("Failed to convert DOCX to HTML:", error);
+          setConvertedHtml(`<p>Error converting document: ${error}</p>`);
+        } finally {
+          setConverting(false);
+        }
+      }
+    };
+
+    convertDocxToHtml();
+  }, [fileUrl, pdfContentType, convertedHtml]);
 
   useEffect(() => {
     if (email) return;
@@ -816,7 +886,7 @@ const ParsedCVData: React.FC = () => {
             </Box>
           </Paper>
 
-          {/* Right Panel - PDF Viewer */}
+          {/* Right Panel - Document Viewer */}
           <Paper
             elevation={4}
             sx={{
@@ -855,7 +925,7 @@ const ParsedCVData: React.FC = () => {
                   },
                 }}
               >
-                {pdfSticky ? "Unpin PDF" : "Pin PDF"}
+                {pdfSticky ? "Unpin Document" : "Pin Document"}
               </Button>
             </Box>
 
@@ -872,19 +942,69 @@ const ParsedCVData: React.FC = () => {
                   overflow: "hidden",
                 }}
               >
-                <iframe
-                  src={fileUrl}
-                  title="CV PDF Viewer"
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    height: "100%",
-                    border: "none",
-                  }}
-                />
+                {isWordDocument(fileUrl, pdfContentType || "") ? (
+                  converting ? (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        height: "100%",
+                        bgcolor: "white",
+                      }}
+                    >
+                      <Typography>Converting document...</Typography>
+                    </Box>
+                  ) : convertedHtml ? (
+                    <Box 
+                      sx={{ 
+                        p: 2, 
+                        height: "100%", 
+                        overflow: "auto",
+                        bgcolor: "white",
+                        color: "black"
+                      }}
+                    >
+                      <div
+                        dangerouslySetInnerHTML={{ __html: convertedHtml }}
+                        style={{ 
+                          height: "100%",
+                          fontFamily: "Arial, sans-serif",
+                          lineHeight: "1.5"
+                        }}
+                      />
+                    </Box>
+                  ) : (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        height: "100%",
+                        bgcolor: "white",
+                      }}
+                    >
+                      <Typography color="error">
+                        Failed to load document preview
+                      </Typography>
+                    </Box>
+                  )
+                ) : (
+                  // PDF Viewer
+                  <iframe
+                    src={fileUrl}
+                    title="CV PDF Viewer"
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      height: "100%",
+                      border: "none",
+                    }}
+                  />
+                )}
               </Box>
             ) : (
-              <Typography>No PDF available</Typography>
+              <Typography>No document available</Typography>
             )}
           </Paper>
         </Box>
