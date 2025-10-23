@@ -1,5 +1,10 @@
 # CV-Scanner
 
+## Project Metrics
+
+[![CI](https://github.com/COS301-SE-2025/CV-Scanner/actions/workflows/CICD.yml/badge.svg)](https://github.com/COS301-SE-2025/CV-Scanner/actions/workflows/CICD.yml)![Requirements](https://img.shields.io/badge/requirements-satisfied-brightgreen)[![Open Issues](https://img.shields.io/github/issues/COS301-SE-2025/CV-Scanner)](https://github.com/COS301-SE-2025/CV-Scanner/issues)[![Closed Issues](https://img.shields.io/github/issues-closed/COS301-SE-2025/CV-Scanner)](https://github.com/COS301-SE-2025/CV-Scanner/issues?q=is%3Aissue+is%3Aclosed)![Last Commit](https://img.shields.io/github/last-commit/COS301-SE-2025/CV-Scanner)![Repo Size](https://img.shields.io/github/repo-size/COS301-SE-2025/CV-Scanner)
+
+---
 ## About the Project
 **CV-Scanner** is an AI-powered recruitment platform by **Quantum Stack** that automates candidate screening using **Natural Language Processing (NLP)** and **AI**.  
 It extracts key technologies, soft skills, and project suitability indicators from **PDF and Word CVs**, storing results in a secure, centralized database.  
@@ -23,6 +28,7 @@ All project documentation and research contributions (Requirements, Design, Codi
 ---
 
 ## Technology Stack
+![React](https://img.shields.io/badge/Frontend-React-61DAFB?logo=react&logoColor=white)![Java Spring](https://img.shields.io/badge/Backend-Java_Spring-6DB33F?logo=spring&logoColor=white)![Python](https://img.shields.io/badge/AI-Python-3776AB?logo=python&logoColor=white)
 - React + TypeScript (Frontend) 
 - Spring Boot (Backend) 
 - Python BART (AI Engine)  
