@@ -2202,6 +2202,24 @@ private String truncateSummary(String s) {
         }
     }
 
+    // Safe wrappers used by other endpoints
+    private String safeExtractProjectType(String resumeJson) {
+        try {
+            String type = extractProjectTypeFromResume(resumeJson);
+            return isBlank(type) ? null : type;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private Double safeExtractProjectFit(String resumeJson) {
+        try {
+            return extractProjectFitFromResume(resumeJson);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
     /**
      * Infer project type from skills list
      */
@@ -2751,7 +2769,7 @@ private String truncateSummary(String s) {
             Long candidateId = null;
             String email = null;
             try { candidateId = Long.parseLong(identifier); } catch (NumberFormatException ignored) { email = identifier; }
-    
+
             String sql;
             Object[] params;
             if (candidateId != null) {
@@ -2773,33 +2791,42 @@ private String truncateSummary(String s) {
                 """;
                 params = new Object[]{email};
             }
-    
-            List<String> rows = jdbc.query(sql, params, (rs, i) -> rs.getString("ResumeResult"));
+
+            java.util.List<String> rows = jdbc.query(sql, params, (rs, i) -> rs.getString("ResumeResult"));
             if (rows.isEmpty() || isBlank(rows.get(0))) {
-                return ResponseEntity.status(404).body(Map.of("message", "Parsed resume not found for: " + identifier));
+                return ResponseEntity.status(404).contentType(MediaType.APPLICATION_JSON)
+                        .body(java.util.Map.of("message", "Parsed resume not found for: " + identifier));
             }
-    
+
             String resumeJson = rows.get(0);
-    
-            Map<String, Object> out = new LinkedHashMap<>();
-            // summary: reuse existing robust summary extractor
+
+            java.util.Map<String, Object> out = new java.util.LinkedHashMap<>();
+            // summary
             String summary = extractResumeSummary(resumeJson, null, null, null);
             out.put("summary", summary);
-    
-            // education, experience, projects
-            List<String> education = extractEducationFromResume(resumeJson);
-            List<String> experience = extractExperienceFromResume(resumeJson);
-            List<String> projects = extractProjectsFromResume(resumeJson);
-    
+
+            // sections
+            java.util.List<String> education = extractEducationFromResume(resumeJson);
+            java.util.List<String> experience = extractExperienceFromResume(resumeJson);
+            java.util.List<String> projects = extractProjectsFromResume(resumeJson);
             out.put("education", education);
             out.put("experience", experience);
             out.put("projects", projects);
-    
-            return ResponseEntity.ok(out);
+
+            // skills + project type/fit
+            java.util.List<String> skills = extractSkillsFromResume(resumeJson);
+            out.put("skills", skills != null ? skills : java.util.Collections.emptyList());
+
+            String projectType = safeExtractProjectType(resumeJson);
+            Double projectFit = safeExtractProjectFit(resumeJson);
+            out.put("project_type", projectType);
+            out.put("project_fit", projectFit);
+
+            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(out);
         } catch (Exception ex) {
-            System.err.println("Failed to load parsed sections: " + ex.getMessage());
             ex.printStackTrace();
-            return ResponseEntity.status(500).body(createErrorResponse("Failed to load parsed sections: " + ex.getMessage()));
+            return ResponseEntity.status(500).contentType(MediaType.APPLICATION_JSON)
+                    .body(createErrorResponse("Failed to load parsed sections: " + ex.getMessage()));
         }
     }
     
@@ -3190,9 +3217,13 @@ private String truncateSummary(String s) {
             int top = Math.max(1, Math.min(limit, 500));
             String sql = """
                 WITH latest AS (
-                  SELECT cpc.CandidateId, cpc.FileUrl, cpc.ResumeResult, cpc.AiResult, cpc.Normalized, cpc.ReceivedAt,
-                         ROW_NUMBER() OVER (PARTITION BY cpc.CandidateId ORDER BY cpc.ReceivedAt DESC) rn
+                  SELECT cpc.CandidateId, cpc.FileUrl, cpc.ResumeResult, cpc.AiResult, cpc.Normalized, cpc.ReceivedAt
                   FROM dbo.CandidateParsedCv cpc
+                  JOIN (
+                    SELECT CandidateId, MAX(ReceivedAt) AS MaxReceivedAt
+                    FROM dbo.CandidateParsedCv
+                    GROUP BY CandidateId
+                  ) m ON m.CandidateId = cpc.CandidateId AND m.MaxReceivedAt = cpc.ReceivedAt
                 )
                 SELECT TOP %d
                        c.Id, c.FirstName, c.LastName, c.Email,

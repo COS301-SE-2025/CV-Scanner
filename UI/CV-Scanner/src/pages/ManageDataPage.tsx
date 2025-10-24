@@ -227,7 +227,7 @@ export default function ManageData() {
               "Unknown",
             email: c.email,
             skills: Array.isArray(c.skills) ? c.skills : [],
-            project: c.project || "CV",
+            project: isUuidish(c.project) ? "CV" : c.project || "CV",
             uploaded: relativeFrom(c.receivedAt),
             match: c.match || "N/A",
             initials: initialsOf(c.firstName, c.lastName),
@@ -1146,14 +1146,13 @@ export default function ManageData() {
                     setEditForm({
                       ...editForm,
                       skills: e.target.value
-                        .split(",")
+                        .split(/[,\n;]+/) // allow commas, newlines, semicolons
                         .map((s) => s.trim())
                         .filter(Boolean),
                     })
                   }
                   fullWidth
-                  helperText="Separate skills with commas"
-                  // removed disabled
+                  helperText="Separate skills with commas (e.g. React, Node.js, Azure)"
                 />
 
                 <TextField
@@ -1487,4 +1486,11 @@ function normalizeSections(data: any) {
     experience: extractSectionText(fallbackExperience),
     projects: extractSectionText(fallbackProjects),
   };
+}
+
+function isUuidish(text?: string | null) {
+  if (!text) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}(\.[A-Za-z0-9]+)?$/i.test(
+    text.trim()
+  );
 }
