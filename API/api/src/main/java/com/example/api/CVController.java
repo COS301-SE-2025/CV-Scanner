@@ -2975,12 +2975,63 @@ private String truncateSummary(String s) {
                 }
             };
 
-            // Patch fields from payload
+            // Patch fields from payload (sections)
             applyField.accept("education", payload.get("education"));
             applyField.accept("experience", payload.get("experience"));
             applyField.accept("projects", payload.get("projects"));
 
-            // optional: update top-level summary if provided
+            // NEW: skills, project_type, project_fit
+            // skills can be string "a, b, c" or list
+            Object skillsVal = payload.get("skills");
+            if (skillsVal != null) {
+                java.util.List<String> skills = new java.util.ArrayList<>();
+                if (skillsVal instanceof java.util.List<?> lst) {
+                    for (Object o : lst) {
+                        if (o == null) continue;
+                        String s = String.valueOf(o).trim();
+                        if (!s.isEmpty()) skills.add(s);
+                    }
+                } else if (skillsVal instanceof String s) {
+                    for (String part : s.split("[,\\r\\n]+")) {
+                        String t = part.trim();
+                        if (!t.isEmpty()) skills.add(t);
+                    }
+                } else {
+                    String t = String.valueOf(skillsVal).trim();
+                    if (!t.isEmpty()) skills.add(t);
+                }
+                if (!skills.isEmpty()) {
+                    resultNode.put("skills", skills);
+                    root.put("skills", skills);
+                }
+            }
+
+            // project_type as string
+            Object projTypeVal = payload.get("project_type");
+            if (projTypeVal instanceof String pt && !pt.trim().isEmpty()) {
+                String type = pt.trim();
+                resultNode.put("project_type", type);
+                root.put("project_type", type);
+            }
+
+            // project_fit as number or string like "87%" or "8.7"
+            Object projFitVal = payload.get("project_fit");
+            if (projFitVal != null) {
+                Double pf = toDouble(projFitVal);
+                if (pf != null) {
+                    // normalize to 0..10
+                    double norm = normalizeToTen(pf);
+                    // clamp & round to 2 dp
+                    norm = Math.max(0.0, Math.min(10.0, Math.round(norm * 100.0) / 100.0));
+                    resultNode.put("project_fit", norm);
+                    root.put("project_fit", norm);
+                    // also keep camelCase for compatibility if needed
+                    resultNode.put("projectFit", norm);
+                    root.put("projectFit", norm);
+                }
+            }
+
+            // optional: update summary
             if (payload.containsKey("summary")) {
                 Object summ = payload.get("summary");
                 if (summ != null) {
@@ -2996,9 +3047,8 @@ private String truncateSummary(String s) {
                 }
             }
 
-            // persist updated ResumeResult back to DB (update the existing parsed row)
+            // persist
             String updatedJson = json.writeValueAsString(root);
-
             String updateSql = "UPDATE dbo.CandidateParsedCv SET ResumeResult = ? WHERE Id = ?";
             int updated = jdbc.update(updateSql, updatedJson, parsedId);
 
@@ -3010,7 +3060,7 @@ private String truncateSummary(String s) {
                 "status", "ok",
                 "candidateId", candidateId,
                 "parsedRowId", parsedId,
-                "updatedFields", List.of("summary","education","experience","projects")
+                "updatedFields", java.util.List.of("summary","education","experience","projects","skills","project_type","project_fit")
             ));
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -3166,6 +3216,7 @@ private String truncateSummary(String s) {
                 String aiResult = rs.getString("AiResult");
                 Timestamp ts = rs.getTimestamp("ReceivedAt");
 
+                // Prefer ResumeResult.skills, fallback to Normalized/AiResult
                 List<String> skills = extractSkillsFromResume(resumeJson);
                 if (skills.isEmpty()) {
                     skills = extractSkills(normalized, aiResult);

@@ -408,7 +408,7 @@ export default function ManageData() {
         console.warn(
           `/cv/${candidate.id}/parsed returned ${res.status}, falling back to previous calls`
         );
-        
+
         const [summaryRes, expRes, scoreRes, ptRes, skillsRes] =
           await Promise.allSettled([
             apiFetch(`/cv/${candidate.id}/summary`),
@@ -591,19 +591,20 @@ export default function ManageData() {
   // Save edited candidate data
   const saveCandidateData = async () => {
     if (!selectedCandidate || !candidateData) return;
-
     try {
       setLoadingCandidateData(true);
 
-      // Prepare payload expected by the API
       const payload = {
         summary: editForm.summary,
         education: editForm.education,
         experience: editForm.experience,
         projects: editForm.projects,
+        // NEW:
+        skills: editForm.skills,
+        project_type: editForm.project_type,
+        project_fit: editForm.project_fit,
       };
 
-      // Call backend PUT /cv/{id}/parsed
       const res = await apiFetch(`/cv/${selectedCandidate.id}/parsed`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -628,12 +629,11 @@ export default function ManageData() {
             experience: editForm.experience,
             projects: editForm.projects,
           },
-          // keep other fields as-is
-          skills: candidateData.result.skills,
+          skills: editForm.skills, // reflect edited skills
+          project_type: editForm.project_type, // reflect edited project type
+          project_fit: editForm.project_fit, // reflect edited fit
           cv_score: candidateData.result.cv_score,
           personal_info: candidateData.result.personal_info,
-          project_fit: candidateData.result.project_fit,
-          project_type: candidateData.result.project_type,
         },
       };
 
@@ -735,15 +735,15 @@ export default function ManageData() {
           >
             <Toolbar sx={{ justifyContent: "flex-end" }}>
               {/* Help / FAQ icon */}
-            <Tooltip title="Go to Help Page" arrow>
-              <IconButton
-                color="inherit"
-                onClick={() => navigate("/help")}
-                sx={{ ml: 1, color: "#90ee90" }}
-              >
-                <HelpOutlineIcon />
-              </IconButton>
-            </Tooltip>
+              <Tooltip title="Go to Help Page" arrow>
+                <IconButton
+                  color="inherit"
+                  onClick={() => navigate("/help")}
+                  sx={{ ml: 1, color: "#90ee90" }}
+                >
+                  <HelpOutlineIcon />
+                </IconButton>
+              </Tooltip>
               {/* User Info */}
               <Box
                 sx={{
@@ -1153,7 +1153,7 @@ export default function ManageData() {
                   }
                   fullWidth
                   helperText="Separate skills with commas"
-                  disabled
+                  // removed disabled
                 />
 
                 <TextField
@@ -1163,7 +1163,7 @@ export default function ManageData() {
                     setEditForm({ ...editForm, project_type: e.target.value })
                   }
                   fullWidth
-                  disabled
+                  // removed disabled
                 />
 
                 <TextField
@@ -1178,7 +1178,7 @@ export default function ManageData() {
                   }
                   fullWidth
                   inputProps={{ min: 0, max: 10, step: 0.1 }}
-                  disabled
+                  // removed disabled
                 />
 
                 <Typography variant="h6" sx={{ mt: 2 }}>
